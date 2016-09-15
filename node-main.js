@@ -26,7 +26,7 @@ var files = [
   './src/env.js',
   './src/googledrive.js',
   './src/dropbox.js',
-  './src/safestore.js'
+  './src/safenetwork.js'
 ];
 
 for (var i = 0, len = files.length; i < len; i += 1) {

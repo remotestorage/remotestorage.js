@@ -67,7 +67,7 @@ Group: Internals  {
       File: IndexedDB  (no auto-title, indexeddb.js)
       File: InMemoryStorage  (no auto-title, inmemorystorage.js)
       File: LocalStorage  (no auto-title, localstorage.js)
-      File: Safestore  (safestore.js)
+      File: SafeNetwork  (safenetwork.js)
       File: Sync  (no auto-title, sync.js)
       File: Util  (no auto-title, util.js)
       File: Widget  (no auto-title, widget.js)

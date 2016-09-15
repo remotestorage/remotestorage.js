@@ -30,7 +30,7 @@
 
     "src/googledrive.js": "Backend to talk to googledrive",
     "src/dropbox.js": "Backend to talk to dropbox",
-    "src/safestore.js": "Backend to talk to safestore"
+    "src/safenetwork.js": "Backend to talk to safenetwork"
   },
   "amd-exclude": [
     "lib/bluebird.js"
@@ -116,11 +116,11 @@
       ],
       "depends": ["core"]
     },
-    "safestore": {
-      "label": "Safestore",
-      "desc": "Safestore synchronization",
+    "safenetwork": {
+      "label": "SafeNetwork",
+      "desc": "SafeNetwork synchronization",
       "files": [
-        "src/safestore.js"
+        "src/safenetwork.js"
       ],
       "depends": ["core"]
     },

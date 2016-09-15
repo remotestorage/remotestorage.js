@@ -541,7 +541,7 @@
      * Set API keys for (currently) GoogleDrive, Dropbox and SAFE Network backend 
      * support.
      * 
-     * Note that Safestore (SAFE Network) backend does not require an API key from
+     * Note that SafeNetwork (SAFE Network) backend does not require an API key from
      * an authority as in the case of most cloud services, so setApiKeys() is
      * used to define the application related information that is passed to 
      * an authorisation gateway app (SAFE Launcher). The gateway app then asks the
@@ -552,7 +552,7 @@
      * support for both these backends is still experimental.
      *
      * Parameters:
-     *   type - backend name: 'googledrive', 'dropbox' or 'safestore'
+     *   type - backend name: 'googledrive', 'dropbox' or 'safenetwork'
      *   keys - object, with string fields according to the backend:
      *   
      *    GoogleDrive:
@@ -561,7 +561,7 @@
      *    Dropbox:
      *      'appKey'
      *    
-     *    Safestore:
+     *    SafeNetwork:
      *      mrhTODO - check this!
      *
      */
@@ -575,9 +575,9 @@
                                               this.googledrive.clientId !== keys.clientId)) {
           RemoteStorage.GoogleDrive._rs_init(this);
         }
-      } else if (type === 'safestore' && (typeof this.safestore === 'undefined' ||
-          this.safestore.clientId !== keys.clientId)) {
-        RemoteStorage.Safestore._rs_init(this);
+      } else if (type === 'safenetwork' && (typeof this.safenetwork === 'undefined' ||
+          this.safenetwork.clientId !== keys.clientId)) {
+        RemoteStorage.SafeNetwork._rs_init(this);
       } else {
         delete this.apiKeys[type];
       }
@@ -687,7 +687,7 @@
         'I18n',
         'Dropbox',
         'GoogleDrive',
-        'Safestore',
+        'SafeNetwork',
         'Access',
         'Caching',
         'Discover',

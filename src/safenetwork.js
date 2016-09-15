@@ -1,7 +1,7 @@
-// mrhTODO NEXT: create safestore.js anew (branch feature/safestore-backend-gd)
-// mrhTODO       DONE: get working with old encrypted API - commit! tag as safestore-gb-working-00
+// mrhTODO NEXT: create safenetwork.js anew (branch feature/safenetwork-backend-gd)
+// mrhTODO       DONE: get working with old encrypted API - commit! tag as safenetwork-gb-working-00
 // mrhTODO       DONE: merge/rebase and check still works with latest remotestorage/src
-// mrhTODO       DONE (no changes): integrate diff of upstream/master googledrive.js and start of branch feature/safestore-backend-gd
+// mrhTODO       DONE (no changes): integrate diff of upstream/master googledrive.js and start of branch feature/safenetwork-backend-gd
 // mrhTODO       DONE: integrate galfert's connect/setAPI change
 
 // mrhTODO       DONE: test!!!! (may be some bug not always deleting the file when delete the screen object - NOT SEEN, delete works ok)
@@ -32,10 +32,10 @@
 // mrhTODO                   MORE: https://forum.safedev.org/t/help-wanted-testing-an-app-please/120/5?u=happybeing
 // mrhTODO                   MORE: https://forum.safedev.org/t/help-wanted-testing-an-app-please/120/6?u=happybeing
 // mrhTODO
-// mrhTODO NEXT: change Safestore to SafeNetwork everywhere (including this filename!)
+// mrhTODO NEXT: change SafeNetwork to SafeNetwork everywhere (including this filename!)
 // mrhTODO NEXT: update to RS 0.13 and republish myfd
 // mrhTODO NEXT: move these notes to Zim
-// mrhTODO NEXT: tidy up safestore.js (as Safenetwork.js)
+// mrhTODO NEXT: tidy up safenetwork.js (as Safenetwork.js)
 // mrhTODO NEXT: create myfd-port repo
 // mrhTODO NEXT: use github issues for bug notes
 // mrhTODO NEXT: maybe push my RS.js branch to RS repo - ask raucao first, and what to do
@@ -91,10 +91,10 @@ Content Security Policy: The page's settings blocked the loading of a resource a
 // mrhTODO           NEXT: strip node_modules from myfd prototype
 // mrhTODO           NEXT: retrofit localstorage settings
 
-// mrhTODO      [ ] Review/implement features noted at top of safestore-db.js (local file) up to "create safestore.js anew"
+// mrhTODO      [ ] Review/implement features noted at top of safenetwork-db.js (local file) up to "create safenetwork.js anew"
 // mrhTODO      (| Promises recursion: http://stackoverflow.com/questions/29020722/recursive-promise-in-javascript/29020886?noredirect=1#comment62855125_29020886)
 
-// mrhTODO - look at how Dropbox overrides BaseClient getItemURL and consider for safestore.js
+// mrhTODO - look at how Dropbox overrides BaseClient getItemURL and consider for safenetwork.js
 // mrhTODO   (see https://github.com/remotestorage/remotestorage.js/blob/master/src/dropbox.js#L16-L17)
 // mrhTODO
 // mrhTODO - review isPrivate / isPathShared values, maybe make App configurable (part of setApiKeys (rename?)
@@ -116,7 +116,7 @@ Content Security Policy: The page's settings blocked the loading of a resource a
 // mrhTODO so I need to co-ordinate with that.
 
 // mrhTODO document ApiKeys - these are settings configured by the App call to RemoteStorage.setApiKeys():
-/*    remoteStorage.setApiKeys('safestore', 
+/*    remoteStorage.setApiKeys('safenetwork', 
         {   
             // For details see SAFE Launcher /auth JSON API
             app: {
@@ -131,17 +131,17 @@ Content Security Policy: The page's settings blocked the loading of a resource a
 */
 
 LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.safenet when live on SAFEnetwork
-LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launcher which provides REST API
+//LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launcher which provides REST API
 //LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser
 
 /* SAFE BEAKER DEBUGGING: 
  
-  with safe://api.safenet and Beaker, I get this error on RS.Safestore::safestoreAuthorize():
+  with safe://api.safenet and Beaker, I get this error on RS.SafeNetwork::safenetworkAuthorize():
 
     remotestorage.js:5276 XMLHttpRequest cannot load safe://api.safenet/auth. 
     Cross origin requests are only supported for protocol schemes: http, data, chrome, https.
 
-  with http://localhost:8100 and Beaker, I get this error on RS.Safestore::safestoreAuthorize():
+  with http://localhost:8100 and Beaker, I get this error on RS.SafeNetwork::safenetworkAuthorize():
 
     XMLHttpRequest cannot load http://localhost:8100/auth. 
     Response to preflight request doesn't pass access control check: 
@@ -152,7 +152,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
 
 (function (global) {
   /**
-   * Class: RemoteStorage.Safestore
+   * Class: RemoteStorage.SafeNetwork
    *
    * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
    *
@@ -160,8 +160,8 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
    * get/put/delete interface which is compatible with
    * <RemoteStorage.WireClient>.
    * 
-   * When remoteStorage.backend is set to 'safestore', this backend will
-   * initialize and replace remoteStorage.remote with remoteStorage.safestore.
+   * When remoteStorage.backend is set to 'safenetwork', this backend will
+   * initialize and replace remoteStorage.remote with remoteStorage.safenetwork.
    * 
    * mrhTODO: ??? In order to ensure compatibility with the public folder,
    * <BaseClient.getItemURL> gets hijacked to return the Dropbox public share
@@ -171,7 +171,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
    *
    * (start code)
    *
-   * remoteStorage.setApiKeys('safestore', {
+   * remoteStorage.setApiKeys('safenetwork', {
    *   clientId: 'your-client-id'
    * });
    *
@@ -184,12 +184,12 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
    **/
 
   // mrhTODO: everything below this!
-  // mrhTODO: add regression tests in test/unit/safestore-suite.js
+  // mrhTODO: add regression tests in test/unit/safenetwork-suite.js
   var RS = RemoteStorage;
   
   // mrhTODO: this...
   var hasLocalStorage;//???
-  var SETTINGS_KEY = 'remotestorage:safestore';
+  var SETTINGS_KEY = 'remotestorage:safenetwork';
   var cleanPath = RS.WireClient.cleanPath;
   var PATH_PREFIX = '/remotestorage/';
   
@@ -232,7 +232,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
 
   var onErrorCb;
 
-  RS.Safestore = function (remoteStorage, clientId) {
+  RS.SafeNetwork = function (remoteStorage, clientId) {
 
     this.rs = remoteStorage;
     this.clientId = clientId;
@@ -253,7 +253,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
           // mrhTODO can probably eliminate all these - check if any apply to SAFE backend first
           userAddress: null,    // webfinger style address (username@server)
           href: null,           // server URL from webfinger
-          storageApi: null,     // remoteStorage API dependencies in here (safestore.js), not server, so hardcode?
+          storageApi: null,     // remoteStorage API dependencies in here (safenetwork.js), not server, so hardcode?
           
           options: null,        // http request headers - maybe Dropbox only?
             
@@ -272,7 +272,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     // mrhTODO port dropbox style load/save settings from localStorage
 };
 
-  RS.Safestore.prototype = {
+  RS.SafeNetwork.prototype = {
     connected: false,
     online: true,
     isPathShared: true,         // App private storage mrhTODO shared or private? app able to control?
@@ -282,30 +282,30 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
       // mrhTODO: review dropbox approach later
       
       if (settings.token) {
-        localStorage['remotestorage:safestore:token'] = settings.token;
+        localStorage['remotestorage:safenetwork:token'] = settings.token;
         this.token = settings.token;
         this.connected = true;
         this.permissions = settings.permissions;    // List of permissions approved by the user
 
         this._emit('connected');
-        RS.log('Safestore.configure() [CONNECTED]');
+        RS.log('SafeNetwork.configure() [CONNECTED]');
       } else {
         this.connected = false;
         delete this.token;
         this.permissions = null;
-        delete localStorage['remotestorage:safestore:token'];
-        RS.log('Safestore.configure() [DISCONNECTED]');
+        delete localStorage['remotestorage:safenetwork:token'];
+        RS.log('SafeNetwork.configure() [DISCONNECTED]');
       }
     },
 
     connect: function () {
-      RS.log('Safestore.connect()...');
+      RS.log('SafeNetwork.connect()...');
 
       // mrhTODO: note dropbox connect calls hookIt() if it has a token - for sync?
       // mrhTODO: note dropbox connect skips auth if it has a token - enables it to remember connection across sessions
       // mrhTODO: if storing Authorization consider security risk - e.g. another app could steal to access SAFE Drive?
-      this.rs.setBackend('safestore');
-      this.safestoreAuthorize(this.rs.apiKeys['safestore']);
+      this.rs.setBackend('safenetwork');
+      this.safenetworkAuthorize(this.rs.apiKeys['safenetwork']);
     },
 
     stopWaitingForToken: function () {
@@ -314,7 +314,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
       }
     },
 
-    safestoreAuthorize: function (appApiKeys) {
+    safenetworkAuthorize: function (appApiKeys) {
       var self = this;
 
       // Session data
@@ -339,7 +339,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
         // 401 - Unauthorised
         // 400 - Fields are missing
         if (xhr && (xhr.status === 400 || xhr.status == 401) ) {
-          RS.log('Safestore Authorisation Failed');
+          RS.log('SafeNetwork Authorisation Failed');
 //mrhTODO causes error:          return Promise.reject({statusCode: xhr.status});
         } else {
           var response = JSON.parse(xhr.responseText);
@@ -357,7 +357,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     
     // For reference see WireClient#get (wireclient.js)
     get: function (path, options) {
-      RS.log('Safestore.get(' + path + ',...)' );
+      RS.log('SafeNetwork.get(' + path + ',...)' );
       var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
 
       if (path.substr(-1) === '/') {
@@ -381,13 +381,13 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     // mrhTODO           when API stable, best may be to store contentType in the file not as metadata
     
     put: function (path, body, contentType, options) {
-      RS.log('Safestore.put(' + path + ',...)' );
+      RS.log('SafeNetwork.put(' + path + ',...)' );
       var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
 
       // putDone - handle PUT response codes, optionally decodes metadata from JSON format response
       var self = this;
       function putDone(response) {
-        RS.log('Safestore.put putDone(' + response.responseText + ') for path: ' + path );
+        RS.log('SafeNetwork.put putDone(' + response.responseText + ') for path: ' + path );
 
         if (response.status >= 200 && response.status < 300) {
           return self._getFileInfo(fullPath).then( function (fileInfo){
@@ -423,10 +423,10 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     // mrhTODO:       needed. This is not done currently.
     //
     'delete': function (path, options) {
-      RS.log('Safestore.delete(' + path + ',...)' );
+      RS.log('SafeNetwork.delete(' + path + ',...)' );
       var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
 
-      RS.log('Safestore.delete: ' + fullPath + ', ...)' );
+      RS.log('SafeNetwork.delete: ' + fullPath + ', ...)' );
       var self = this;
       
       
@@ -455,7 +455,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
           },
         };
 
-        RS.log('Safestore.delete calling _request( POST, ' + options.url + ', ...)' );
+        RS.log('SafeNetwork.delete calling _request( POST, ' + options.url + ', ...)' );
         return self._request('DELETE', options.url, options).then(function (response) {
           if (response.status === 200 || response.status === 204) {
             return Promise.resolve({statusCode: 200});
@@ -470,7 +470,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     // mrhTODO - replace _updateFile / _createFile with single _putFile (as POST /nfs/file now does both)
     // mrhTODO contentType is ignored on update (to change it would require file delete and create before update)
     _updateFile: function (path, body, contentType, options) {
-      RS.log('Safestore._updateFile(' + path + ',...)' );
+      RS.log('SafeNetwork._updateFile(' + path + ',...)' );
       var self = this;
 
       /* mrhTODO GoogleDrive only I think...
@@ -503,7 +503,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     },
 
     _createFile: function (path, body, contentType, options) {
-      RS.log('Safestore._createFile(' + path + ',...)' );
+      RS.log('SafeNetwork._createFile(' + path + ',...)' );
       var self = this;
       
       // Ensure path exists by recursively calling create on parent folder
@@ -556,7 +556,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
 
     // For reference see WireClient#get (wireclient.js)
     _getFile: function (path, options) {
-      RS.log('Safestore._getFile(' + path + ', ...)' );
+      RS.log('SafeNetwork._getFile(' + path + ', ...)' );
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
       var revCache = this._revCache;
       var self = this;
@@ -622,11 +622,11 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     // For reference see WireClient#get (wireclient.js) summarised as follows:
     // - parse JSON (spec example: https://github.com/remotestorage/spec/blob/master/release/draft-dejong-remotestorage-07.txt#L223-L235)
     // - return a map of item names to item object mapping values for "Etag:", "Content-Type:" and "Content-Length:"
-    // - NOTE: dropbox.js only provides etag, safestore.js provides etag and Content-Length but not Content-Type
-    // - NOTE: safestore.js etag values are faked (ie not provided by launcher) but functionally adequate
+    // - NOTE: dropbox.js only provides etag, safenetwork.js provides etag and Content-Length but not Content-Type
+    // - NOTE: safenetwork.js etag values are faked (ie not provided by launcher) but functionally adequate
       
     _getFolder: function (path, options) {
-      RS.log('Safestore._getFolder(' + path + ', ...)' );
+      RS.log('SafeNetwork._getFolder(' + path + ', ...)' );
       var self = this;
 
       // Check if folder exists. Create parent folder if parent doesn't exist
@@ -725,7 +725,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
             for (var attrname in listingSubdirectories) {   listing[attrname] = listingSubdirectories[attrname]; }          
           }
 
-          RS.log('Safestore._getFolder(' + path + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
+          RS.log('SafeNetwork._getFolder(' + path + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
           return Promise.resolve({statusCode: sCode, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE, revision: folderETagWithoutQuotes });
         });
       });
@@ -733,7 +733,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
 
     // Ensure path exists by recursively calling _createFolder if the parent doesn't exist
     _makeParentPath: function (path) {
-      RS.log('Safestore._makeParentPath(' + path + ')' );
+      RS.log('SafeNetwork._makeParentPath(' + path + ')' );
       var parentFolder = parentPath(path);
       var self = this;
       return self._getFileInfo(parentFolder).then(function (parentInfo) {
@@ -746,7 +746,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     },
 
     _createFolder: function (folderPath) {
-      RS.log('Safestore._createFolder(' + folderPath + ')' );
+      RS.log('SafeNetwork._createFolder(' + folderPath + ')' );
       var self = this;
 
       // Recursively create parent folders
@@ -803,7 +803,7 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     //      if the parent folder doesn't exist it will be created
     //
     _getFileInfo: function (fullPath) {
-      RS.log('Safestore._getFileInfo(' + fullPath + ')' );
+      RS.log('SafeNetwork._getFileInfo(' + fullPath + ')' );
 
       var self = this;
       var info;
@@ -834,12 +834,12 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
     },
 
     _request: function (method, url, options) {
-      RS.log('Safestore._request(' + method + ', ' + url + ', ...)' );
+      RS.log('SafeNetwork._request(' + method + ', ' + url + ', ...)' );
       var self = this;
       if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + self.token;
       return RS.WireClient.request.call(self, method, url, options).then(function (xhr) {
-        RS.log('Safestore._request() response: xhr.status is ' + xhr.status );
+        RS.log('SafeNetwork._request() response: xhr.status is ' + xhr.status );
         // Launcher responses
         // 401 - Unauthorized
         // 400 - Fields are missing
@@ -857,23 +857,23 @@ LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launc
   //    1) config.clientId not present
   //    2) it uses hookIt() (and in _rs_cleanup() unHookIt()) instead of inline assignements
   //       which causes dropbox version  to also call hookSync() and hookGetItemURL()
-  RS.Safestore._rs_init = function (remoteStorage) {
-    var config = remoteStorage.apiKeys.safestore;
+  RS.SafeNetwork._rs_init = function (remoteStorage) {
+    var config = remoteStorage.apiKeys.safenetwork;
     if (config) {
-      remoteStorage.safestore = new RS.Safestore(remoteStorage, config.clientId);
-      if (remoteStorage.backend === 'safestore') {
+      remoteStorage.safenetwork = new RS.SafeNetwork(remoteStorage, config.clientId);
+      if (remoteStorage.backend === 'safenetwork') {
         remoteStorage._origRemote = remoteStorage.remote;
-        remoteStorage.remote = remoteStorage.safestore;
+        remoteStorage.remote = remoteStorage.safenetwork;
       }
     }
   };
 
-  RS.Safestore._rs_supported = function (rs) {
+  RS.SafeNetwork._rs_supported = function (rs) {
     return true;
   };
 
   // mrhTODO see dropbox version
-  RS.Safestore._rs_cleanup = function (remoteStorage) {
+  RS.SafeNetwork._rs_cleanup = function (remoteStorage) {
     remoteStorage.setBackend(undefined);
     if (remoteStorage._origRemote) {
       remoteStorage.remote = remoteStorage._origRemote;
