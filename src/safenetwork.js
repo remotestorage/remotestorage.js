@@ -1,15 +1,154 @@
-// For now, the safenetwork.js backend requires RS.js built with different LAUNCHER_URL (see below)
-// according to the test environment.
-//
-// Note: during SAFEnetwork testing the SAFE API is changing regularly, so if you want to build RS.js with this backend
-//       yourself, you will need to make sure that the version of safestore.js is in step with that API of the SAFEnetwork
-//       you are connecting to at the time (which changes periodically). If in doubt ask webalyst (aka happybeing).
+// mrhTODO NEXT: create safenetwork.js anew (branch feature/safenetwork-backend-gd)
+// mrhTODO       DONE: get working with old encrypted API - commit! tag as safenetwork-gb-working-00
+// mrhTODO       DONE: merge/rebase and check still works with latest remotestorage/src
+// mrhTODO       DONE (no changes): integrate diff of upstream/master googledrive.js and start of branch feature/safenetwork-backend-gd
+// mrhTODO       DONE: integrate galfert's connect/setAPI change
+
+// mrhTODO       DONE: test!!!! (may be some bug not always deleting the file when delete the screen object - NOT SEEN, delete works ok)
+
+// mrhTODO       IGNORED: beware breaking go-safe linux cmds by cretz: strip out encryption and base64 encoding
+// mrhTODO       DONE: get working with new unencrypted API - commit!
+// mrhTODO       NEXT: when working:
+// mrhTODO           DONE: encryption: remove libsodium from build
+// mrhTODO           DONE: encryption: remove bops from build
+// mrhTODO             -> Update compoonents.json, package.json, clean up lib/, remove bower_components/
+// mrhTODO			 NEXT: pending new widget, try removing inline CSS in order to publish apps on SAFE alpha1
+// mrhTODO					- create CSS file widget.css from assets
+// mrhTODO					- add CSS in app html <head>
+// mrhTODO					- prevent inlining of WidgetCSS (comment out: https://github.com/remotestorage/remotestorage.js/blob/bugfix/937-webfinger_404/src/view.js#L163-L164)
+// mrhTODO           NEXT: upload myfd to http://myfd.safenet
+// mrhTODO               BUG: CORS errors: widget fails to load properly - see console output below
+// mrhTODO               note:
+// mrhTODO               - no icons
+// mrhTODO               - all form elements visible in default HTML (no CSS?)
+// mrhTODO               - regardless of "CORS everywhere" plugin state (note there's a browser setting to disable CORS)
+// mrhTODO              TEMPFIX:
+// mrhTODO                 - removed widget inline CSS to application CSS file
+// mrhTODO                 - updated RS.js to 0.12.2-pre including my changes
+// mrhTODO                 Widget now displays, works in part, but some issues remain:
+// mrhTODO                   - on load: did not display drinks from local storage
+// mrhTODO                   - on auth: did not display drinks (not sure if it was synching)
+// mrhTODO                   - on page refresh: displayed drinks, was not synching (further refresh fixed)
+// mrhTODO                   MORE: https://forum.safedev.org/t/help-wanted-testing-an-app-please/120/5?u=happybeing
+// mrhTODO                   MORE: https://forum.safedev.org/t/help-wanted-testing-an-app-please/120/6?u=happybeing
+// mrhTODO
+// mrhTODO NEXT: change SafeNetwork to SafeNetwork everywhere (including this filename!)
+// mrhTODO NEXT: update to RS 0.13 and republish myfd
+// mrhTODO NEXT: move these notes to Zim
+// mrhTODO NEXT: tidy up safenetwork.js (as Safenetwork.js)
+// mrhTODO NEXT: create myfd-port repo
+// mrhTODO NEXT: use github issues for bug notes
+// mrhTODO NEXT: maybe push my RS.js branch to RS repo - ask raucao first, and what to do
+// mrhTODO
+// mrhTODO NEXT: work out suitable default and app settings for directories (public/private, app/data)
+// mrhTODO       First thoughts: 
+// mrhTODO              - all RS.js files live under PATH_PREFIX
+// mrhTODO              - default NFS settings: drive / private
+// mrhTODO              - getItemURL() returns either canonical URL (not yet supported) or something in /shares (drive / public)
+// mrhTODO              - app can override use of drive and choose app (in which case other apps cannot access its file)
+// mrhTODO       
+// mrhTODO       References: - RS.js public/private client and category directory usage in RS wiki:
+// mrhTODO                     https://wiki.remotestorage.io/RemoteStorage.js:Beginners%27_Guide#Define_a_module
+// mrhTODO                   - Summary of SAFE NFS directory settings app/data, and public/private
+// mrhTODO                     https://forum.safedev.org/t/safe-nfs-api-notes-on-where-and-how-files-are-stored/108
+// mrhTODO NEXT: think about what to do with SAFE Beaker:
+// mrhTODO       - on new alpha account...
+// mrhTODO       - try a myfd.beaker.safenet (by just changing LAUNCHER_URL
+// mrhTODO       - look into using safe-js (See: https://forum.safedev.org/t/safebbrowser-pre-release-0-2-4-test-the-api/118/20?u=happybeing)
+
+/* 
+CORS ERROR 1 - before logging starts
+------------
+Content Security Policy: The page's settings blocked the loading of a resource at self ("default-src http://myfd.safenet http://*.safenet").
+    
+
+(function () {
+
+    var event_id = docum...
+
+CORS ERROR 2 - midst of early logging:
+------------
+[Eventhandling] Adding event listener ready function()
+Content Security Policy: The page's settings blocked the loading of a resource at self ("default-src http://myfd.safenet http://*.safenet").
+    
+
+/ ** encoding:utf-8 ** / / * RESET * / #remo...
+
+myfd.safenet (line 1)
+Content Security Policy: The page's settings blocked the loading of a resource at data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDg3LjUgMTAwIiB4bWw6c3BhY2U9InByZXNlcnZlIiBoZWlnaHQ9IjE2IiB2aWV3Qm94PSIwIDAgMTUuOTk5OTk5IDE2IiB3aWR0aD0iMTYiIHZlcnNpb249IjEuMSIgeT0iMHB4IiB4PSIwcHgiIHhtbG5zOmNjPSJodHRwOi8vY3JlYXRpdmVjb21tb25zLm9yZy9ucyMiIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyI+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC01LjUxMTIgLTc2LjUyNSkiIGRpc3BsYXk9Im5vbmUiPgoJPHBhdGggZGlzcGxheT0iaW5saW5lIiBkPSJtNTEuNDczIDQyLjI1NS0yLjIwNSAyLjIxMmMxLjQ3OCAxLjQ3NyAyLjI5NSAzLjQ0MiAyLjI5NSA1LjUzMyAwIDQuMzA5LTMuNTA0IDcuODEyLTcuODEyIDcuODEydi0xLjU2MmwtMy4xMjUgMy4xMjUgMy4xMjQgMy4xMjV2LTEuNTYyYzYuMDI5IDAgMTAuOTM4LTQuOTA2IDEwLjkzOC0xMC45MzggMC0yLjkyNy0xLjE0MS01LjY3Ni0zLjIxNS03Ljc0NXoiLz4KCTxwYXRoIGRpc3BsYXk9ImlubGluZSIgZD0ibTQ2Ljg3NSA0MC42MjUtMy4xMjUtMy4xMjV2MS41NjJjLTYuMDMgMC0xMC45MzggNC45MDctMTAuOTM4IDEwLjkzOCAwIDIuOTI3IDEuMTQxIDUuNjc2IDMuMjE3IDcuNzQ1bDIuMjAzLTIuMjEyYy0xLjQ3Ny0xLjQ3OS0yLjI5NC0zLjQ0Mi0yLjI5NC01LjUzMyAwLTQuMzA5IDMuNTA0LTcuODEyIDcuODEyLTcuODEydjEuNTYybDMuMTI1LTMuMTI1eiIvPgo8L2c+CjxwYXRoIGZpbGw9IiNmZmYiIGQ9Im0xMCAwbC0wLjc1IDEuOTA2MmMtMS4wMDc4LTAuMjk0Mi0zLjQ1ODYtMC43NzA4LTUuNjU2MiAwLjkzNzYgMC0wLjAwMDItMy45MzAyIDIuNTk0MS0yLjA5MzggNy41OTQybDEuNjU2Mi0wLjcxOTJzLTEuNTM5OS0zLjExMjIgMS42ODc2LTUuNTMxM2MwIDAgMS42OTU3LTEuMTMzOSAzLjY4NzQtMC41OTM3bC0wLjcxODcgMS44MTI0IDMuODEyNS0xLjYyNS0xLjYyNS0zLjc4MTJ6Ii8+PHBhdGggZmlsbD0iI2ZmZiIgZD0ibTE0IDUuNTYyNWwtMS42NTYgMC43MTg3czEuNTQxIDMuMTEzNS0xLjY4OCA1LjUzMDhjMCAwLTEuNzI3MiAxLjEzNS0zLjcxODUgMC41OTRsMC43NS0xLjgxMi0zLjgxMjUgMS41OTQgMS41OTM4IDMuODEyIDAuNzgxMi0xLjkwNmMxLjAxMTMgMC4yOTUgMy40NjE1IDAuNzY2IDUuNjU2LTAuOTM4IDAgMCAzLjkyOC0yLjU5NCAyLjA5NC03LjU5MzV6Ii8+Cjwvc3ZnPgo= ("default-src http://myfd.safenet http://*.safenet").
+[RemoteStorage] [FEATURE IndexedDB] supported
+
+CORS ERROR 3 - NOT REPEATABLE midst of early logging:
+------------
+[Eventhandling] Adding event listener sync bound ()
+remotestorage.js (line 3532)
+Content Security Policy: The page's settings blocked the loading of a resource at self ("default-src http://myfd.safenet http://*.safenet").
+    
+
+/ * See license.txt for terms of usage * /...
+*/
+
+// mrhTODO           NEXT: strip node_modules from myfd prototype
+// mrhTODO           NEXT: retrofit localstorage settings
+
+// mrhTODO      [ ] Review/implement features noted at top of safenetwork-db.js (local file) up to "create safenetwork.js anew"
+// mrhTODO      (| Promises recursion: http://stackoverflow.com/questions/29020722/recursive-promise-in-javascript/29020886?noredirect=1#comment62855125_29020886)
+
+// mrhTODO - look at how Dropbox overrides BaseClient getItemURL and consider for safenetwork.js
+// mrhTODO   (see https://github.com/remotestorage/remotestorage.js/blob/master/src/dropbox.js#L16-L17)
+// mrhTODO
+// mrhTODO - review isPrivate / isPathShared values, maybe make App configurable (part of setApiKeys (rename?)
+// mrh TODO  Note: when file has own folder can ditch remoteStorage/appname prefix - only use when store is public
+// mrhTODO 
+
+// mrhTODO ensure build/components.json includes the required dependencies:
+// mrhTODO as per MaidSafe example for now...
+// mrhTODO npm install libsodium-wrappers request
+// mrhTODO switch from 'request' to XMLHtmlRequest and remove 'request' from build/components.json
+
+// mrhTODO Implement eTag headers when SAFE Launcher API supports them (versioning)
+// mrhTODO  (For spec search "Versioning" in https://tools.ietf.org/html/draft-dejong-remotestorage-07)
+
+// mrhTODO Implement CORS headers (RS spec says *all* responses must return CORS headers)
+
+// mrhTODO Review RS spec and check compliance
+// mrhTODO RS plan to move all to https://github.com/stefanpenner/es6-promise
+// mrhTODO so I need to co-ordinate with that.
+
+// mrhTODO document ApiKeys - these are settings configured by the App call to RemoteStorage.setApiKeys():
+/*    remoteStorage.setApiKeys('safenetwork', 
+        {   
+            // For details see SAFE Launcher /auth JSON API
+            app: {
+                name: 'RemoteStorage Demo',     // Your app name etc.
+                version: '0.0.1',
+                vendor: 'remoteStorage',
+                id: 'org.remotestorage.rsdemo'  // Identifies stored data (unique per vendor)
+            },
+            permissions: ['SAFE_DRIVE_ACCESS']  // List of permissions to request. On authorisation, 
+                                                // holds permissions granted by user
+        }
+*/
 
 LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.safenet when live on SAFEnetwork
-//LAUNCHER_URL = 'http://api.safenet'; // For live tests using Firefox/Chrome with proxy configured, and running SAFE Launcher locally
-//LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser, no proxy needed, and running SAFE Launcher locally
+//LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launcher which provides REST API
+//LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser
 
-ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
+/* SAFE BEAKER DEBUGGING: 
+ 
+  with safe://api.safenet and Beaker, I get this error on RS.SafeNetwork::safenetworkAuthorize():
+
+    remotestorage.js:5276 XMLHttpRequest cannot load safe://api.safenet/auth. 
+    Cross origin requests are only supported for protocol schemes: http, data, chrome, https.
+
+  with http://localhost:8100 and Beaker, I get this error on RS.SafeNetwork::safenetworkAuthorize():
+
+    XMLHttpRequest cannot load http://localhost:8100/auth. 
+    Response to preflight request doesn't pass access control check: 
+    No 'Access-Control-Allow-Origin' header is present on the requested resource. 
+    Origin 'safe://myfd' is therefore not allowed access.
+
+*/
 
 (function (global) {
   /**
@@ -44,11 +183,15 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
    * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
    **/
 
+  // mrhTODO: everything below this!
+  // mrhTODO: add regression tests in test/unit/safenetwork-suite.js
   var RS = RemoteStorage;
   
-  var hasLocalStorage;// mrhTODO look at use of this
+  // mrhTODO: this...
+  var hasLocalStorage;//???
   var SETTINGS_KEY = 'remotestorage:safenetwork';
-  var PATH_PREFIX = '/remotestorage/';  // mrhTODO app configurable?
+  var cleanPath = RS.WireClient.cleanPath;
+  var PATH_PREFIX = '/remotestorage/';
   
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
@@ -56,7 +199,17 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     return path.replace(/[^\/]+\/?$/, '');
   }
 
-  // Used to cache file info
+  // mrhTODO: is this in use?
+  function baseName(path) {
+    var parts = path.split('/');
+    if (path.substr(-1) === '/') {
+      return parts[parts.length-2]+'/';
+    } else {
+      return parts[parts.length-1];
+    }
+  }
+
+  // mrhTODO: is this in use?
   var Cache = function (maxAge) {
     this.maxAge = maxAge;
     this._items = {};
@@ -74,13 +227,6 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         v: value,
         t: new Date().getTime()
       };
-    },
-    
-    'delete': function (key) {
-      var item = this._items[key];
-      if ( item ) {
-        delete item;
-      }
     }
   };
 
@@ -99,6 +245,8 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     onErrorCb = function (error){
       if (error instanceof RemoteStorage.Unauthorized) {
 
+        // mrhTODO store auth info here (e.g. token, safeURL?) - CHECK API: WireClient.configure 
+          
         // Delete all the settings - see the documentation of
         // wireclient.configure
         self.configure({
@@ -112,12 +260,14 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           // SAFE Launcher auth response:
           token: null,
           permissions: null,    // List of granted SAFE Network access permssions (e.g. 'SAFE_DRIVE_ACCESS')
+          symetricKeyBase64: null,    
+          symetricNonceBase64: null,
         });
       }
     };
 
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
-    this.rs.on('error', onErrorCb);
+//mrhTODO (was from dropbox version - stops connect doing anything)    this.rs.on('error', onErrorCb);
 
     // mrhTODO port dropbox style load/save settings from localStorage
 };
@@ -127,7 +277,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     online: true,
     isPathShared: true,         // App private storage mrhTODO shared or private? app able to control?
     launcherUrl: LAUNCHER_URL,  // Can be overridden by App
-        
+
     configure: function (settings) { // Settings parameter compatible with WireClient
       // mrhTODO: review dropbox approach later
       
@@ -166,25 +316,49 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
     safenetworkAuthorize: function (appApiKeys) {
       var self = this;
-      self.appKeys = appApiKeys.app;
+
+      // Session data
+      this.launcherUrl = LAUNCHER_URL;
+      // App can override url by setting appApiKeys.laucherURL
+      if ( typeof appApiKeys.launcherURL !== 'undefined' ) { this.launcherUrl = appApiKeys.launcherURL;  }
+      // JSON string ("payload") for POST
+      this.payload = appApiKeys;     // App calls setApiKeys() to configure persistent part of "payload"
+
+      // The request...
+      var options = {
+        url: this.launcherUrl + '/auth',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(this.payload)
+      };
       
-      tokenKey = SETTINGS_KEY + ':token';
-      window.safeAuth.authorise(self.appKeys, tokenKey).then( function(res) {   // mrhTODO - am leaving off local storage key
-        // Save session info
-        self.configure({ 
-            token:          res.token,                  // Auth token
-            permissions:    res.permissions,   // List of permissions approved by the user
-          });
-      }, function (err){
-        RS.log('SafeNetwork Authorisation Failed');
-        RS.log(err);
+      // POST
+      return RS.WireClient.request.call(this, 'POST', options.url, options).then(function (xhr) {    
+        // Launcher responses
+        // 401 - Unauthorised
+        // 400 - Fields are missing
+        if (xhr && (xhr.status === 400 || xhr.status == 401) ) {
+          RS.log('SafeNetwork Authorisation Failed');
+//mrhTODO causes error:          return Promise.reject({statusCode: xhr.status});
+        } else {
+          var response = JSON.parse(xhr.responseText);
+    
+          // Save session info
+          self.configure({ 
+              token:                response.token,        // Auth token
+              permissions:          response.permissions,  // List of permissions approved by the user
+            });
+          
+//mrhTODO:          return Promise.resolve(xhr);
+        }
       });
     },
     
     // For reference see WireClient#get (wireclient.js)
     get: function (path, options) {
       RS.log('SafeNetwork.get(' + path + ',...)' );
-      var fullPath = ( PATH_PREFIX + '/' + path ).replace(/\/+/g, '/');
+      var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
 
       if (path.substr(-1) === '/') {
         return this._getFolder(fullPath, options);
@@ -207,44 +381,39 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     // mrhTODO           when API stable, best may be to store contentType in the file not as metadata
     
     put: function (path, body, contentType, options) {
-      RS.log('SafeNetwork.put(' + path + ', ' + (options ? ( '{IfMatch: ' + options.IfMatch + ', IfNoneMatch: ' + options.IfNoneMatch + '})') : 'null)' ) );
-      var fullPath = ( PATH_PREFIX + '/' + path ).replace(/\/+/g, '/');
+      RS.log('SafeNetwork.put(' + path + ',...)' );
+      var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
 
       // putDone - handle PUT response codes, optionally decodes metadata from JSON format response
       var self = this;
       function putDone(response) {
-        RS.log('SafeNetwork.put putDone(statusCode: ' + response.statusCode + ') for path: ' + path );
-        
-        // mrhTODO SAFE API v0.6: _createFile/_updateFile lack version support
-        // mrhTODO so the response.statusCode checks here are untested
-        if (response.statusCode >= 200 && response.statusCode < 300) {
+        RS.log('SafeNetwork.put putDone(' + response.responseText + ') for path: ' + path );
+
+        if (response.status >= 200 && response.status < 300) {
           return self._getFileInfo(fullPath).then( function (fileInfo){
+
+            var etagWithoutQuotes;
+            if ( fileInfo.ETag === 'string') {
+              etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
+            }
             
-            var etagWithoutQuotes = ( typeof(fileInfo.ETag) === 'string' ? fileInfo.ETag : undefined );            
             return Promise.resolve({statusCode: 200, 'contentType': contentType, revision: etagWithoutQuotes});
-          }, function (err){
-            RS.log('REJECTING!!! ' + err.message)
-            return Promise.reject(err);
           });
-        } else if (response.statusCode === 412) {   // Precondition failed
-          RS.log('putDone(...) conflict - resolving with statusCode 412');
+        } else if (response.status === 412) {   // Precondition failed
           return Promise.resolve({statusCode: 412, revision: 'conflict'});
         } else {
-          return Promise.reject(new Error("PUT failed with status " + response.statusCode + " (" + response.responseText + ")"));
+          return Promise.reject(new Error("PUT failed with status " + response.status + " (" + response.responseText + ")"));
         }
       }
       return self._getFileInfo(fullPath).then(function (fileInfo) {
         if (fileInfo) {
           if (options && (options.ifNoneMatch === '*')) {
-            return putDone({ statusCode: 412 });    // Precondition failed (because entity exists, version irrelevant)
+            return putDone({ status: 412 });    // Precondition failed
           }
           return self._updateFile(fullPath, body, contentType, options).then(putDone);
         } else {
           return self._createFile(fullPath, body, contentType, options).then(putDone);
         }
-      }, function (err){
-        RS.log('REJECTING!!! ' + err.message)
-        return Promise.reject(err);
       });
     },
 
@@ -255,10 +424,11 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     //
     'delete': function (path, options) {
       RS.log('SafeNetwork.delete(' + path + ',...)' );
-      var fullPath = ( PATH_PREFIX + '/' + path ).replace(/\/+/g, '/');
+      var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
 
       RS.log('SafeNetwork.delete: ' + fullPath + ', ...)' );
       var self = this;
+      
       
       return self._getFileInfo(fullPath).then(function (fileInfo) {
         if (!fileInfo) {
@@ -266,34 +436,41 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           return Promise.resolve({statusCode: 200});
         }
 
-        var etagWithoutQuotes = ( typeof(fileInfo.ETag) === 'string' ? fileInfo.ETag : undefined );
-        if (ENABLE_ETAGS && options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
+        var etagWithoutQuotes;
+        if (fileInfo.ETag === 'string') {
+          etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
+        }
+        if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
           return {statusCode: 412, revision: etagWithoutQuotes};
         }
 
-        deleteFunction = ( fullPath.substr(-1)==='/' ? window.safeNFS.deleteDir : window.safeNFS.deleteFile );
-        return deleteFunction(self.token, fullPath, self.isPathShared).then(function (success){
-          // mrhTODO must handle: if file doesn't exist also do self._fileInfoCache.delete(fullPath);
+        var NFStype = ( fullPath.substr(-1)==='/' ? '/nfs/directory/' : '/nfs/file/' );
+        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+          
+        var fullUrl = self.launcherUrl + NFStype + rootPath + encodeURIComponent(fullPath);
 
-          if (success) {
-            self._fileInfoCache.delete(fullPath);
+        var options = {
+          url: fullUrl,
+          headers: {
+          },
+        };
+
+        RS.log('SafeNetwork.delete calling _request( POST, ' + options.url + ', ...)' );
+        return self._request('DELETE', options.url, options).then(function (response) {
+          if (response.status === 200 || response.status === 204) {
             return Promise.resolve({statusCode: 200});
           } else {
-            return Promise.reject('safeNFS deleteFunction("' + fullPath + '") failed: ' + success );
+            return Promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
           }
-        }, function (err){
-          RS.log('REJECTING!!! deleteFunction("' + fullPath + '") failed: ' + err.message)
-          return Promise.reject(err);
         });
 
-      }, function (err){
-        RS.log('REJECTING!!! ' + err.message)
-        return Promise.reject(err);
       });
     },
 
-    _updateFile: function (fullPath, body, contentType, options) {
-      RS.log('SafeNetwork._updateFile(' + fullPath + ',...)' );
+    // mrhTODO - replace _updateFile / _createFile with single _putFile (as POST /nfs/file now does both)
+    // mrhTODO contentType is ignored on update (to change it would require file delete and create before update)
+    _updateFile: function (path, body, contentType, options) {
+      RS.log('SafeNetwork._updateFile(' + path + ',...)' );
       var self = this;
 
       /* mrhTODO GoogleDrive only I think...
@@ -303,61 +480,111 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       }
 */
       
-      return window.safeNFS.createOrUpdateFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (result) {
-        // self._shareIfNeeded(fullPath);  // mrhTODO what's this? (was part of dropbox.js)
+      // STORE/UPDATE FILE CONTENT (PUT) (https://maidsafe.readme.io/docs/nfs-update-file-content)
+      var queryParams = 'offset=0';
+      var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+      var urlPUT = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);//mrhTODO + '?' + queryParams;
 
-        var response = { statusCode: ( result ? 200 : 400  ) }; // mrhTODO currently just a response that resolves to truthy (may be extended to return status?)
-        
-        self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
-        return Promise.resolve( response );
-      }, function (err){
-        RS.log('REJECTING!!! safeNFS.createOrUpdateFile("' + fullPath + '") failed: ' + err.message)
-        return Promise.reject(err);
+      // mrhTODO I'm not sure what header/content-type needed for encrypted data
+      // mrhTODO Should CT denote the type that is encrypted, or say it's encrypted?
+      var optionsPUT = {
+          url: urlPUT,
+        headers: {
+          'Content-Type': contentType
+        },
+        body: body,
+      };
+
+      // mrhTODO googledrive does two PUTs, one initiates resumable tx, the second sends data - review when streaming API avail
+      return self._request('PUT', optionsPUT.url, optionsPUT).then(function (response) {
+        // self._shareIfNeeded(path);  // mrhTODO what's this? (was part of dropbox.js)
+        return response;
       });
     },
 
-    _createFile: function (fullPath, body, contentType, options) {
-      RS.log('SafeNetwork._createFile(' + fullPath + ',...)' );
+    _createFile: function (path, body, contentType, options) {
+      RS.log('SafeNetwork._createFile(' + path + ',...)' );
       var self = this;
       
       // Ensure path exists by recursively calling create on parent folder
-      return self._makeParentPath(fullPath).then(function (parentPath) {
+      return self._makeParentPath(path).then(function (parentPath) {
+                
+/* mrhTODO GoogleDrive only I think...
+         if ((!contentType.match(/charset=/)) &&
+            (encryptedData instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(encryptedData))) {
+          contentType += '; charset=binary';
+        }
+*/
+        var fileMetadata = {
+            mimetype:   contentType,    // WireClient.put provides a mime type which we store as metadata for get
+        };
         
-        return window.safeNFS.createFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (result) {
-          // self._shareIfNeeded(fullPath);  // mrhTODO what's this?
+        // CREATE/UPDATE FILE (POST) (https://maidsafe.readme.io/docs/nfsfile)
+        var queryParams = 'offset=0'; //mrhTODO???
+        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+        var urlPOST = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);//mrhTODO + '?' + queryParams;
 
-          var response = { statusCode: ( result ? 200 : 400  ) }; // mrhTODO currently just a response that resolves to truthy (may be extended to return status?)
+//        var payloadPOST = {
+            //metadata:       JSON.stringify(fileMetadata), mrhTODO: test this, with v0.4 API POST causes 400 from SAFE API
+//        };
 
-          self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
-          return Promise.resolve(response);
-        }, function (err){
-          RS.log('REJECTING!!! _createFile("' + fullPath + '") failed: ' + err.message)
-          return Promise.reject(err);
+        var optionsPOST = {
+            url: urlPOST,
+            headers: {
+              'Content-Type': 'text/plain', // For POST - not related to contentType (file)
+              'Content-Length': body.length,// ???
+              //'Metadata:        JSON.stringify(fileMetadata), mrhTODO: test this, with v0.4 API POST causes 400 from SAFE API
+
+            },
+            body: body,
+          };
+        
+        return self._request('POST', optionsPOST.url, optionsPOST).then(function (response) {
+          // self._shareIfNeeded(path);  // mrhTODO what's this?
+
+          if (response.status !== 200){
+            return Promise.reject( {statusCode: reponse.status} );
+          }
+          else {
+            RS.log("DEBUG _createFile() response.responseText: ", response.responseText);
+            return Promise.resolve(response);
+
+         }
         });
-      }, function (err){
-        RS.log('REJECTING!!! _makeParentPath("' + fullPath + '") failed: ' + err.message)
-        return Promise.reject(err);
       });
     },
 
     // For reference see WireClient#get (wireclient.js)
-    _getFile: function (fullPath, options) {
-      RS.log('SafeNetwork._getFile(' + fullPath + ', ...)' );
-      if (! this.connected) { return Promise.reject("not connected (fullPath: " + fullPath + ")"); }
+    _getFile: function (path, options) {
+      RS.log('SafeNetwork._getFile(' + path + ', ...)' );
+      if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
       var revCache = this._revCache;
       var self = this;
 
+      var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+      var url = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);//mrhTODO + '?' + queryParams;
+
       // Check if file exists. Creates parent folder if that doesn't exist.
-      return self._getFileInfo(fullPath).then(function (fileInfo) {
-        var etagWithoutQuotes = fileInfo.ETag; // mrhTODO don't need this I think: ( fileInfo.ETag && typeof(fileInfo.ETag) === 'string' ? fileInfo.ETag : undefined );
+      return self._getFileInfo(path).then(function (fileInfo) {
+        var etagWithoutQuotes;
+        if (fileInfo && typeof(fileInfo.ETag) === 'string') {
+          etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
+        }
 
         // Request is only for changed file, so if eTag matches return "304 Not Modified"
-        // mrhTODO strictly this should be asked of SAFE API, but until versioning supported, we cache last eTags
-        if (ENABLE_ETAGS && options && options.ifNoneMatch && etagWithoutQuotes && (etagWithoutQuotes === options.ifNoneMatch)) {
+        if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
           return Promise.resolve({statusCode: 304});
         }
-        
-        return window.safeNFS.getFile(self.token, fullPath, 'json', self.isPathShared).then(function (body) {
+          
+        return self._request('GET', url, {}).then(function (response) {
+          var body;
+          var status = response.status;
+
+          if (status === 400 || status === 401) {
+            return Promise.resolve({statusCode: status});
+          }
+
+          body = response.responseText;
           
           /* SAFE NFS API file-metadata - disabled for now:
           var fileMetadata = response.getResponseHeader('file-metadata');
@@ -366,71 +593,83 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           }
           RS.log('..file-metadata: ' + fileMetadata);
           */
-          
-          // Refer to baseclient.js#getFile for retResponse spec (note getFile header comment wrong!)
+            
           var retResponse = {
-            statusCode: 200, 
-            body: JSON.stringify(body),     // mrhTODO not sure stringify() needed, but without it RS.local copies of nodes differ when loaded from SAFE
-                                            // mrhTODO RS ISSUE: is it a bug that RS#get accepts a string *or an object* for body? Should it only accept a string?
+            statusCode: status, 
+            body: body, 
             revision: etagWithoutQuotes,
           };
 
-          retResponse.contentType = 'application/json; charset=UTF-8';   // mrhTODO googledrive.js#put always sets this type, so fairly safe default until SAFE NFS supports save/get of content type
-
-          if (fileInfo && fileInfo['Content-Type'] ){
-            retResponse.contentType = fileInfo['Content-Type'];
+          if (fileInfo){
+            retResponse.contentType = fileInfo.mimetype;
+          
+            // mrhTODO: This is intended to parse remotestorage JSON format objects, so when saving those
+            // mrhTODO: it may be necessary to set memeType in the saved file-metadata
+            if (retResponse.contentType.match(/^application\/json/)) {
+              try {
+                retResponse.body = JSON.parse(body);
+              } catch(e) {}
+            }            
           }
          
           return Promise.resolve( retResponse );
-        }, function (err){
-          RS.log('REJECTING!!! safeNFS.getFile("' + fullPath + '") failed: ' + err.message)
-          return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
-      }, function (err){
-        RS.log('REJECTING!!! ' + err.message)
-        return Promise.reject(err);
       });
     },
     
-
     // _getFolder - obtain folder listing and create parent folder(s) if absent
     //
     // For reference see WireClient#get (wireclient.js) summarised as follows:
     // - parse JSON (spec example: https://github.com/remotestorage/spec/blob/master/release/draft-dejong-remotestorage-07.txt#L223-L235)
     // - return a map of item names to item object mapping values for "Etag:", "Content-Type:" and "Content-Length:"
-    // - NOTE: googledrive.js only provides ETag, safenetwork.js provides ETag, Content-Length but not Content-Type
-    // - NOTE: safenetwork.js ETag values are faked (ie not provided by launcher) but functionally adequate
+    // - NOTE: dropbox.js only provides etag, safenetwork.js provides etag and Content-Length but not Content-Type
+    // - NOTE: safenetwork.js etag values are faked (ie not provided by launcher) but functionally adequate
       
-    _getFolder: function (fullPath, options) {
-      RS.log('SafeNetwork._getFolder(' + fullPath + ', ...)' );
+    _getFolder: function (path, options) {
+      RS.log('SafeNetwork._getFolder(' + path + ', ...)' );
       var self = this;
 
       // Check if folder exists. Create parent folder if parent doesn't exist
-      return self._getFileInfo(fullPath).then(function (fileInfo) {
+      return self._getFileInfo(path).then(function (fileInfo) {
         var query, fields, data, i, etagWithoutQuotes, itemsMap;
         if (!fileInfo) {
-          return Promise.resolve({statusCode: 404}); // mrhTODO should this reject?
+          return Promise.resolve({statusCode: 404});
         }
 
         // folder exists so obtain listing
-        // mrhTODO change getDir to listLongNames on API update
-        RS.log('safeNFS.getDir(token, ' + fullPath + ', isPathShared = ' + self.isPathShared + ')' );
-        return window.safeNFS.getDir(self.token, fullPath, self.isPathShared).then(function (body) {
+        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+        var url = self.launcherUrl + '/nfs/directory/' + rootPath + encodeURIComponent(path);
+        var revCache = self._revCache;
 
-          var listing, listingFiles, listingSubdirectories, mime, rev;
+        return self._request('GET', url, {}).then(function (resp) {
+          var sCode = resp.status;
+
+          // 401 - Unauthorized
+          // 400 - Fields are missing
+          //if (sCode === 400 || sCode === 401) {
+          if (sCode === 401) { // Unuathorized
+            return Promise.resolve({statusCode: sCode});
+          }
+
+          var listing, listingFiles, listingSubdirectories, body, mime, rev;
+          try{
+            body = JSON.parse(resp.responseText);
+          } catch (e) {
+            return Promise.reject(e);
+          }
+          
           if (body.info) {
-            var folderETagWithoutQuotes = fullPath + '-' + body.info.createdOn + '-' + body.info.modifiedOn;
+            var folderETagWithoutQuotes = path + '-' + body.info.createdOn + '-' + body.info.modifiedOn;
             RS.log('..folder eTag: ' + folderETagWithoutQuotes);
             
-            var folderMetadata = {};
+            var folderMetadata;
             if ( body.info.metadata ){ 
               folderMetadata = body.info.metadata; 
+              RS.log('..folder metadata: ' + folderMetadata);
             }
-            folderMetadata.ETag = folderETagWithoutQuotes;
-            RS.log('..folder metadata: ' + JSON.stringify(folderMetadata));
             
             listingFiles = body.files.reduce(function (m, item) {
-              var fullItemPath = fullPath + item.name;
+              var itemPath = path + item.name;
               
               
               var metadata; // mrhTODO compact next few lines
@@ -438,44 +677,44 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
                 metadata = JSON.parse(metadata);
               }
               else {
-                metadata = { mimetype: 'application/json; charset=UTF-8' };  // mrhTODO fake it until implemented - should never be used
+                metadata = { mimetype: 'application/json' };  // mrhTODO should never be used
               }
 
               // mrhTODO: Until SAFE API supports eTags make them manually:
               // mrhTODO: any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3
-              var eTagWithoutQuotes = fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '-' + item.size;
+              var eTagWithQuotes = '"' + itemPath + '-' + item.createdOn + '-' + item.modifiedOn + '-' + item.size + '"';
                 
               // Add file info to cache
-              var fileInfo = {
-                fullPath: fullItemPath, // Used by _fileInfoCache() but nothing else
-                
-                // Remaining members must pass RS.js test: sync.js#corruptServerItemsMap()
-                ETag: eTagWithoutQuotes,
+              var fileInfo = {      // Structure members must pass sync.js#corruptServerItemsMap()
+                path: itemPath,
+                ETag: eTagWithQuotes,
                 'Content-Length': item.size,
-                'Content-Type': metadata.mimetype,  // metadata.mimetype currently faked (see above) mrhTODO, see next
+                mimetype: metadata.mimetype,
+                // mimetype: ??? // mrhTODO: "Content-Type" not yet supported
+                //                  mrhTODO: (would need to be stored alongside file content and set/updated by _createFile/_updateFile)
               };
 
-              self._fileInfoCache.set(fullItemPath, fileInfo);
-              RS.log('..._fileInfoCache.set(file: ' + fullItemPath  + ')' );
+              self._fileInfoCache.set(itemPath, fileInfo);
+              RS.log('_fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
               m[item.name] =  fileInfo;              
               return m;
             }, {});
 
             listingSubdirectories = body.subDirectories.reduce(function (m, item) {
-              var fullItemPath = fullPath + item.name + '/';
+              var itemPath = path + item.name + '/';
               
               // mrhTODO until SAFE API supports eTags make them manually:
               // Create eTag manually (any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3)
-              var eTagWithoutQuotes = fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn;
+              var eTagWithQuotes =  '"' + itemPath + '-' + item.createdOn + '-' + item.modifiedOn + '"';
                 
               // Add file info to cache
               var fileInfo = { 
-                fullPath: fullItemPath,
-                ETag: eTagWithoutQuotes,
+                path: itemPath,
+                etag: eTagWithQuotes,
               };
               
-              self._fileInfoCache.set(fullItemPath, fileInfo);
-              RS.log('..._fileInfoCache.set(directory: ' + fullItemPath  + ')' );
+              self._fileInfoCache.set(itemPath, fileInfo);
+              RS.log('_fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
               m[item.name + '/'] = fileInfo;
               return m;
             }, {});
@@ -486,22 +725,16 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
             for (var attrname in listingSubdirectories) {   listing[attrname] = listingSubdirectories[attrname]; }          
           }
 
-          RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
-          return Promise.resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE/*, mrhTODO revision: folderETagWithoutQuotes*/ });
-        }, function (err){
-          RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err )
-          return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
+          RS.log('SafeNetwork._getFolder(' + path + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
+          return Promise.resolve({statusCode: sCode, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE, revision: folderETagWithoutQuotes });
         });
-      }, function (err){
-        RS.log('_getFileInfo("' + fullPath + '") failed: ' + err)
-        return Promise.reject(err);
       });
     },
 
-    // Ensure fullPath exists by recursively calling _createFolder if the parent doesn't exist
-    _makeParentPath: function (fullPath) {
-      RS.log('SafeNetwork._makeParentPath(' + fullPath + ')' );
-      var parentFolder = parentPath(fullPath);
+    // Ensure path exists by recursively calling _createFolder if the parent doesn't exist
+    _makeParentPath: function (path) {
+      RS.log('SafeNetwork._makeParentPath(' + path + ')' );
+      var parentFolder = parentPath(path);
       var self = this;
       return self._getFileInfo(parentFolder).then(function (parentInfo) {
         if (parentInfo) {
@@ -509,9 +742,6 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         } else {
           return self._createFolder(parentFolder);
         }
-      }, function (err){
-        RS.log('REJECTING!!! ' + err.message)
-        return Promise.reject(err);
       });
     },
 
@@ -519,8 +749,6 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       RS.log('SafeNetwork._createFolder(' + folderPath + ')' );
       var self = this;
 
-      var userMetadata = "";
-      
       // Recursively create parent folders
       return self._makeParentPath(folderPath).then(function (parentInfo) {
         // Parent exists so create 'folderPath'
@@ -528,17 +756,28 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 //mrhTODO var needsMetadata = options && (options.ifMatch || (options.ifNoneMatch === '*'));
 //mrhTODO the above line is not in the googledrive.js version (must be from my port of dropbox.js)
 
-        return window.safeNFS.createDir(self.token, folderPath, self.isPrivate, self.userMetadata, self.isPathShared).then(function (response) {
+        
+        // CREATE folder (POST) (https://maidsafe.readme.io/docs/nfsfolder)
+        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+        var urlPOST = self.launcherUrl + '/nfs/directory/' + rootPath + encodeURIComponent(folderPath);
+
+        var payloadPOST = {
+//            isPrivate:            self.isPrivate, // mrhTODO is this needed
+            metadata:             "",
+        };
+
+        var optionsPOST = {
+            url: urlPOST,
+            headers: {
+              'Content-Type': 'text/plain',
+            },
+            body: JSON.stringify(payloadPOST),
+          };
+            
+        return self._request('POST', optionsPOST.url, optionsPOST).then(function (response) {
 //          self._shareIfNeeded(folderPath);  // mrhTODO what's this? (was part of dropbox.js)
           return Promise.resolve(response);
-        }, function (err){
-          RS.log('safeNFS.createDir("' + folderPath + '") failed: ' + err.message)
-          return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
-
-      }, function (err){
-        RS.log('_makeParentPath("' + folderPath + '") failed: ' + err.message)
-        return Promise.reject(err);
       });
     },
 
@@ -585,23 +824,31 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           if (fullPath.substr(-1) === '/') {    // folder, so create it
             return self._createFolder(fullPath).then(function () {
               return self._getFileInfo(fullPath);
-            }, function (err){
-              RS.log('_createFolder("' + fullPath + '") ERROR statusCode: ' + err.statusCode )
-              return Promise.reject(err);
             });
-          }
-          else {                                // file, doesn't exist
-            RS.log('_getFileInfo(' + fullPath + ') file does not exist, no fileInfo available ')
-            return Promise.resolve(null);            
           }
         }
         
         return Promise.resolve(info);         // Pass back info (null if doesn't exist)
-      }, function (err){
-        RS.log('_getFolder("' + parentPath(fullPath) + '") ERROR statusCode: ' + err.statusCode )
-        return Promise.reject(err);
       });
       
+    },
+
+    _request: function (method, url, options) {
+      RS.log('SafeNetwork._request(' + method + ', ' + url + ', ...)' );
+      var self = this;
+      if (! options.headers) { options.headers = {}; }
+      options.headers['Authorization'] = 'Bearer ' + self.token;
+      return RS.WireClient.request.call(self, method, url, options).then(function (xhr) {
+        RS.log('SafeNetwork._request() response: xhr.status is ' + xhr.status );
+        // Launcher responses
+        // 401 - Unauthorized
+        // 400 - Fields are missing
+        if (xhr && (xhr.status === 400 || xhr.status == 401) ) {
+          return Promise.reject({statusCode: xhr.status});
+        } else {
+          return Promise.resolve(xhr);
+        }
+      });
     }
   };
 
@@ -610,13 +857,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
   //    1) config.clientId not present
   //    2) it uses hookIt() (and in _rs_cleanup() unHookIt()) instead of inline assignements
   //       which causes dropbox version  to also call hookSync() and hookGetItemURL()
-  //
-  // mrhTODO re-above, also need to check if app calling setAPIKeys for multiple backends breaks this
-  // mrhTODO and may cause problems with starting sync?
-  // mrhTODO Maybe the hookIt stuff in Dropbox allows chaining, but not yet in GD or SN?
-  //
   RS.SafeNetwork._rs_init = function (remoteStorage) {
-
     var config = remoteStorage.apiKeys.safenetwork;
     if (config) {
       remoteStorage.safenetwork = new RS.SafeNetwork(remoteStorage, config.clientId);

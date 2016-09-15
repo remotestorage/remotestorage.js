@@ -577,9 +577,9 @@
                                               this.safenetwork.clientId !== keys.clientId)) {
           RemoteStorage.SafeNetwork._rs_init(this);
         }
-      } else if (type === 'safestore' && (typeof this.safestore === 'undefined' ||
-          this.safestore.clientId !== keys.clientId)) {
-        RemoteStorage.Safestore._rs_init(this);
+      } else if (type === 'safenetwork' && (typeof this.safenetwork === 'undefined' ||
+          this.safenetwork.clientId !== keys.clientId)) {
+        RemoteStorage.SafeNetwork._rs_init(this);
       } else {
         delete this.apiKeys[type];
       }
