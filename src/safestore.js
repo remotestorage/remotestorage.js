@@ -13,16 +13,32 @@
 // mrhTODO           DONE: encryption: remove bops from build
 // mrhTODO             -> Update compoonents.json, package.json, clean up lib/, remove bower_components/
 // mrhTODO			 NEXT: pending new widget, try removing inline CSS in order to publish apps on SAFE alpha1
+// mrhTODO					- create CSS file widget.css from assets
+// mrhTODO					- add CSS in app html <head>
+// mrhTODO					- prevent inlining of WidgetCSS (comment out: https://github.com/remotestorage/remotestorage.js/blob/bugfix/937-webfinger_404/src/view.js#L163-L164)
 // mrhTODO           NEXT: upload myfd to http://myfd.safenet
 // mrhTODO               BUG: CORS errors: widget fails to load properly - see console output below
-// mrhTODO               [ ] research CORS - forum & references
-// mrhTODO               [ ] search for "Content Security Policy: The page's settings blocked the loading of a resource at self"
 // mrhTODO               note:
 // mrhTODO               - no icons
 // mrhTODO               - all form elements visible in default HTML (no CSS?)
 // mrhTODO               - regardless of "CORS everywhere" plugin state (note there's a browser setting to disable CORS)
+// mrhTODO              TEMPFIX:
+// mrhTODO                 - removed widget inline CSS to application CSS file
+// mrhTODO                 - updated RS.js to 0.12.2-pre including my changes
+// mrhTODO                 Widget now displays, works in part, but some issues remain:
+// mrhTODO                   - on load: did not display drinks from local storage
+// mrhTODO                   - on auth: did not display drinks (not sure if it was synching)
+// mrhTODO                   - on page refresh: displayed drinks, was not synching (further refresh fixed)
+// mrhTODO                   MORE: https://forum.safedev.org/t/help-wanted-testing-an-app-please/120/5?u=happybeing
+// mrhTODO                   MORE: https://forum.safedev.org/t/help-wanted-testing-an-app-please/120/6?u=happybeing
 // mrhTODO
-// mrhTODO NEXT: change Safestore to SafeNetwork everywhere
+// mrhTODO NEXT: change Safestore to SafeNetwork everywhere (including this filename!)
+// mrhTODO NEXT: update to RS 0.13 and republish myfd
+// mrhTODO NEXT: move these notes to Zim
+// mrhTODO NEXT: tidy up safestore.js (as Safenetwork.js)
+// mrhTODO NEXT: create myfd-port repo
+// mrhTODO NEXT: use github issues for bug notes
+// mrhTODO NEXT: maybe push my RS.js branch to RS repo - ask raucao first, and what to do
 // mrhTODO
 // mrhTODO NEXT: work out suitable default and app settings for directories (public/private, app/data)
 // mrhTODO       First thoughts: 
@@ -35,6 +51,10 @@
 // mrhTODO                     https://wiki.remotestorage.io/RemoteStorage.js:Beginners%27_Guide#Define_a_module
 // mrhTODO                   - Summary of SAFE NFS directory settings app/data, and public/private
 // mrhTODO                     https://forum.safedev.org/t/safe-nfs-api-notes-on-where-and-how-files-are-stored/108
+// mrhTODO NEXT: think about what to do with SAFE Beaker:
+// mrhTODO       - on new alpha account...
+// mrhTODO       - try a myfd.beaker.safenet (by just changing LAUNCHER_URL
+// mrhTODO       - look into using safe-js (See: https://forum.safedev.org/t/safebbrowser-pre-release-0-2-4-test-the-api/118/20?u=happybeing)
 
 /* 
 CORS ERROR 1 - before logging starts
@@ -111,7 +131,7 @@ Content Security Policy: The page's settings blocked the loading of a resource a
 */
 
 LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.safenet when live on SAFEnetwork
-//LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launcher which provides REST API
+LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launcher which provides REST API
 //LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser
 
 /* SAFE BEAKER DEBUGGING: 
