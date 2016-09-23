@@ -1,5 +1,5 @@
-(function () {
-
+  var RemoteStorage = require('./remotestorage');
+  
   RemoteStorage.MODULES = {};
 
   /*
@@ -78,4 +78,3 @@
     RemoteStorage.defineModule.apply(RemoteStorage, arguments);
   };
 
-})();

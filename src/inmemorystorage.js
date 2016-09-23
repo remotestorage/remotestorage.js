@@ -1,4 +1,4 @@
-(function (global) {
+  var RemoteStorage = require('./remotestorage');
   /**
    * Class: RemoteStorage.InMemoryStorage
    *
@@ -55,4 +55,3 @@
   };
 
   RemoteStorage.InMemoryStorage._rs_cleanup = function () {};
-})(typeof(window) !== 'undefined' ? window : global);

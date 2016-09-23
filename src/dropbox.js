@@ -1,5 +1,4 @@
-(function (global) {
-  var RS = RemoteStorage;
+  var RS = RemoteStorage = require('./remotestorage');
 
   /**
    * File: Dropbox
@@ -977,4 +976,3 @@
     rs.removeEventListener('error', onErrorCb);
     rs.setBackend(undefined);
   };
-})(this);

@@ -22,7 +22,7 @@
    *
    **/
 
-(function (global) {
+  var RemoteStorage = require('./remotestorage');
   var SETTINGS_KEY = "remotestorage:caching";
 
   var containingFolder = RemoteStorage.util.containingFolder;
@@ -172,4 +172,3 @@
     this._remoteStorage = remoteStorage;
   };
 
-})(typeof(window) !== 'undefined' ? window : global);

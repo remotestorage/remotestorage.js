@@ -1,4 +1,3 @@
-(function (global) {
 
   /**
    * Class: RemoteStorage.IndexedDB
@@ -39,7 +38,7 @@
    *
    */
 
-  var RS = RemoteStorage;
+  var RS = RemoteStorage = require('./remotestorage');
 
   var DB_VERSION = 2;
 
@@ -401,4 +400,3 @@
     return pending.promise;
   };
 
-})(typeof(window) !== 'undefined' ? window : global);

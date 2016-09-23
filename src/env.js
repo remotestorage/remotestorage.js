@@ -1,6 +1,6 @@
-(function (pMode) {
+  var RemoteStorage = require('./remotestorage')
 
-  var mode = pMode,
+  var mode = typeof(window) !== 'undefined' ? 'browser' : 'node',
       env = {},
       isBackground = false;
 
@@ -60,4 +60,3 @@
   RemoteStorage.Env._rs_cleanup = function (remoteStorage) {
   };
 
-})(typeof(window) !== 'undefined' ? 'browser' : 'node');

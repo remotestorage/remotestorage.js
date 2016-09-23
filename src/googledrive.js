@@ -1,4 +1,4 @@
-(function (global) {
+
   /**
    * Class: RemoteStorage.GoogleDrive
    *
@@ -20,7 +20,7 @@
    * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
    **/
 
-  var RS = RemoteStorage;
+  var RS = RemoteStorage = require('./remotestorage');
 
   var BASE_URL = 'https://www.googleapis.com';
   var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -462,4 +462,3 @@
     }
   };
 
-})(this);

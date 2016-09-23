@@ -1,5 +1,5 @@
-(function (global) {
-
+  var RemoteStorage = require('./remotestorage');
+  
   var syncInterval = 10000,
       backgroundSyncInterval = 60000,
       isBackground = false;
@@ -1184,4 +1184,3 @@
     delete remoteStorage.sync;
   };
 
-})(typeof(window) !== 'undefined' ? window : global);

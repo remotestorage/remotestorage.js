@@ -1,11 +1,10 @@
-(function (global) {
 
   function deprecate(thing, replacement) {
     console.log('WARNING: ' + thing + ' is deprecated. Use ' +
                 replacement + ' instead.');
   }
 
-  var RS = RemoteStorage;
+  var RS = RemoteStorage = require('./remotestorage');
 
   /**
    * Class: RemoteStorage.BaseClient
@@ -678,4 +677,3 @@
    * <RemoteStorage.BaseClient.Types>
    **/
 
-})(typeof(window) !== 'undefined' ? window : global);
