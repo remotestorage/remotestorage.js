@@ -94,5 +94,3 @@
       delete localStorage[SETTINGS_KEY];
     }
   };
-
-})(typeof(window) !== 'undefined' ? window : global);
