@@ -1,6 +1,12 @@
 
 var RemoteStorage = require('./remotestorage')
 
+
+function shareFirst(path) {
+  return ( this.backend === 'dropbox' &&
+           path.match(/^\/public\/.*[^\/]$/) );
+}
+
 var SyncedGetPutDelete = {
   get: function (path, maxAge) {
     var self = this;
