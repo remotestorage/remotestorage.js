@@ -4,7 +4,7 @@
   "version": "0.13.0",
   "private": false,
   "license": "MIT",
-  "main": "./node-main.js",
+  "main": "./build/build.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/remotestorage/remotestorage.js.git"
