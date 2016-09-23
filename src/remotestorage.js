@@ -1,4 +1,3 @@
-(function (global) {
 
   var hasLocalStorage;
 
@@ -906,9 +905,5 @@
    * Not available in no-cache builds.
    */
 
-  global.RemoteStorage = RemoteStorage;
 
-  if ((typeof module === 'object') && (typeof module.exports !== 'undefined')){
-    module.exports = RemoteStorage;
-  }
-})(typeof(window) !== 'undefined' ? window : global);
+module.exports = RemoteStorage;

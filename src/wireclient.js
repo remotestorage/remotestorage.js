@@ -1,5 +1,4 @@
-(function (global) {
-  var RS = RemoteStorage;
+  var RS = RemoteStorage = require('./remotestorage');
 
   /**
    * Class: RemoteStorage.WireClient
@@ -583,4 +582,3 @@
     remoteStorage.removeEventListener('error', onErrorCb);
   };
 
-})(typeof(window) !== 'undefined' ? window : global);

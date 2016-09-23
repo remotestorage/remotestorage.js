@@ -1,4 +1,4 @@
-(function(global) {
+  var RemoteStorage = require('./remotestorage');
 
   var SETTINGS_KEY = "remotestorage:access";
 
@@ -158,4 +158,3 @@
   });
 
   RemoteStorage.Access._rs_init = function() {};
-})(typeof(window) !== 'undefined' ? window : global);

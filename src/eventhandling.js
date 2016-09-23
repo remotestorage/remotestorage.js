@@ -1,4 +1,5 @@
-(function (global) {
+  var RemoteStorage = require('./remotestorage');
+  
   /**
    * Interface: eventhandling
    */
@@ -105,4 +106,3 @@
       object._addEvent(eventName);
     });
   };
-})(typeof(window) !== 'undefined' ? window : global);
