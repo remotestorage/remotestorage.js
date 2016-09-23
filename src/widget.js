@@ -1,5 +1,5 @@
-(function (window) {
-
+  var RemoteStorage = require('./remotestorage');
+  
   var hasLocalStorage;
   var LS_STATE_KEY = 'remotestorage:widget:state';
 
@@ -209,4 +209,3 @@
     }
     return true;
   }
-})(typeof(window) !== 'undefined' ? window : global);

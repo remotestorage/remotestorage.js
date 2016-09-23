@@ -4,8 +4,7 @@
  * Provides reusable utility functions at RemoteStorage.util
  *
  */
-(function (global) {
-
+var RemoteStorage = require('./remotestorage');
   /**
    * Function: fixArrayBuffers
    *
@@ -427,4 +426,3 @@
       }
     });
   }
-})(typeof(window) !== 'undefined' ? window : global);

@@ -1,5 +1,5 @@
-(function (global) {
-
+  var RemoteStorage = require('./remotestorage');
+  
   function extractParams(url) {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
     var location = url || RemoteStorage.Authorize.getLocation().href,
@@ -225,5 +225,3 @@
   RemoteStorage.Authorize._rs_cleanup = function (remoteStorage) {
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
-
-})(typeof(window) !== 'undefined' ? window : global);
