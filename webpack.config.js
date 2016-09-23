@@ -7,6 +7,9 @@ module.exports = {
     libraryTarget: 'umd',
     umdNamedDefine: true
   },
+  externals: [
+    {xmlhttprequest: "XMLHttpRequest"}
+  ],
   resolve: {
     extensions: ['', '.js']
   }
