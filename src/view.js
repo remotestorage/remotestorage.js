@@ -1,6 +1,6 @@
-(function (window){
-
-  var t = RemoteStorage.I18n.translate;
+  var RemoteStorage = require('./remotestorage');
+  var I18n = require('./i18n')
+  var t = I18n.translate;
 
   /**
    * Class: RemoteStorage.Widget.View
@@ -525,4 +525,3 @@
       event.target.nextElementSibling.setAttribute('disabled','disabled');
     }
   }
-})(typeof(window) !== 'undefined' ? window : global);
