@@ -1,4 +1,5 @@
-(function(global) {
+  var RemoteStorage = require('../remotestorage');
+  var tv4 = require('tv4');
 
   /**
    * Class: RemoteStorage.BaseClient.Types
@@ -154,4 +155,3 @@
     }
   });
 
-})(typeof(window) !== 'undefined' ? window : global);
