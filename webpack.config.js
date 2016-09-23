@@ -1,5 +1,5 @@
 module.exports = {
-  entry: ['./src/remotestorage.js'],
+  entry: './src/init.js',
   devtool: 'source-map',
   output: {
     filename: __dirname + '/build/build.js',
