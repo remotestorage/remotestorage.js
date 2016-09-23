@@ -1,4 +1,5 @@
-(function () {
+  var RemoteStorage = require('./remotestorage');
+
   /**
    * Interface: cachinglayer
    *
@@ -424,4 +425,3 @@
       object[key] = methods[key];
     }
   };
-})();

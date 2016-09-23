@@ -1,4 +1,4 @@
-(function (global) {
+  var RemoteStorage = require('./remotestorage');
   /**
    * Class: RemoteStorage.LocalStorage
    *
@@ -109,4 +109,3 @@
       delete localStorage[key];
     });
   };
-})(typeof(window) !== 'undefined' ? window : global);
