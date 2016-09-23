@@ -1,4 +1,5 @@
-(function (global) {
+  var RemoteStorage = require('./remotestorage');
+  require('webfinger.js');
 
   // feature detection flags
   var haveXMLHttpRequest, hasLocalStorage;
