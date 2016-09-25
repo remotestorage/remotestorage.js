@@ -878,7 +878,7 @@
         }
 
         return this.dealWithFailure(path, action, status).then(function () {
-          remoteStorage._emit('error', error);
+          remoteStorageInstance._emit('error', error);
           throw error;
         });
       }
@@ -1146,8 +1146,9 @@
   };
 
   var syncCycleCb;
-
+  var remoteStorageInstance
   RemoteStorage.Sync._rs_init = function (remoteStorage) {
+    remoteStorageInstance = remoteStorage
     syncCycleCb = function () {
       RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
       if (RemoteStorage.Env.isBrowser()) {
