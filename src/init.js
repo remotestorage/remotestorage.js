@@ -1,24 +1,22 @@
-var RemoteStorage = require('./remotestorage')
-require('./syncedgetputdelete')
-require('./eventhandling')
-require('./util')
-require('./wireclient')
-require('./sync')
-require('./modules')
-require('./baseclient')
-require('./caching')
-require('./cachinglayer')
-require('./dropbox')
-require('./indexeddb')
-require('./inmemorystorage')
-require('./localstorage')
-require('./baseclient/types')
-require('./env')
-require('./widget')
-require('./view')
-require('./access')
-require('./assets')
-require('./discover')
-require('./authorize')
-
-module.exports = RemoteStorage
+require('./syncedgetputdelete');
+require('./eventhandling');
+require('./util');
+require('./wireclient');
+require('./sync');
+require('./modules');
+require('./baseclient');
+require('./caching');
+require('./cachinglayer');
+require('./dropbox');
+require('./indexeddb');
+require('./inmemorystorage');
+require('./localstorage');
+require('./baseclient/types');
+require('./env');
+require('./widget');
+require('./view');
+require('./access');
+require('./assets');
+require('./discover');
+require('./authorize');
+module.exports = require('./remotestorage');

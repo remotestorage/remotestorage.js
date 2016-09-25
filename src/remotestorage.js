@@ -30,8 +30,7 @@
     return Promise.resolve(r);
   }
 
-
-  var SyncedGetPutDelete = require('./syncedgetputdelete')
+  var SyncedGetPutDelete = require('./syncedgetputdelete');
   /**
    * Class: RemoteStorage
    *
