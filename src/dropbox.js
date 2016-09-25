@@ -1,4 +1,5 @@
-  var RS = RemoteStorage = require('./remotestorage');
+  var RS = require('./remotestorage');
+  var RemoteStorage = RS;
 
   /**
    * File: Dropbox
