@@ -3,13 +3,11 @@ module.exports = {
   devtool: 'source-map',
   output: {
     filename: __dirname + '/build/build.js',
-    library: 'RemoteStorage',
+    library: 'remotestoragejs',
     libraryTarget: 'umd',
     umdNamedDefine: true
   },
-  externals: [
-    {xmlhttprequest: "XMLHttpRequest"}
-  ],
+  externals: [ 'xmlhttprequest' ],
   resolve: {
     extensions: ['', '.js']
   }
