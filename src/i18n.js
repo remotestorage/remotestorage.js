@@ -4,8 +4,8 @@
    * TODO add documentation
    **/
 
-  "use strict";
-
+  var RemoteStorage = require('./remotestorage');
+  
   var dictionary = {
     "view_info": 'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',
     "view_connect": "<strong>Connect</strong> remote storage",
@@ -19,7 +19,7 @@
     "view_unauthorized": "Unauthorized! Click here to reconnect."
   };
 
- var I18n = {
+ RemoteStorage.I18n = {
 
     translate: function () {
       var str    = arguments[0],
@@ -44,5 +44,3 @@
     _rs_init: function() {
     }
   };
-
-  module.exports = I18n;

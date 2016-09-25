@@ -1,3 +1,4 @@
+require('./i18n');
 require('./syncedgetputdelete');
 require('./eventhandling');
 require('./util');
