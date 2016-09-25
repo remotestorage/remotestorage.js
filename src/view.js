@@ -1,6 +1,5 @@
   var RemoteStorage = require('./remotestorage');
-  var I18n = require('./i18n')
-  var t = I18n.translate;
+  var t = RemoteStorage.I18n.translate;
 
   /**
    * Class: RemoteStorage.Widget.View
