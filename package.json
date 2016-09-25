@@ -15,7 +15,9 @@
     "uglify-js": "^2.6.1"
   },
   "scripts": {
-    "test": "make test"
+    "test": "make test",
+    "dist": "NODE_ENV=production webpack",
+    "start": "webpack -w"
   },
   "dependencies": {
     "tv4": "^1.2.7",
