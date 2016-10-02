@@ -1,3 +1,4 @@
+module.exports = require('./remotestorage');
 require('./i18n');
 require('./syncedgetputdelete');
 require('./eventhandling');
@@ -9,6 +10,7 @@ require('./baseclient');
 require('./caching');
 require('./cachinglayer');
 require('./dropbox');
+require('./googledrive');
 require('./indexeddb');
 require('./inmemorystorage');
 require('./localstorage');
@@ -20,4 +22,3 @@ require('./access');
 require('./assets');
 require('./discover');
 require('./authorize');
-module.exports = require('./remotestorage');
