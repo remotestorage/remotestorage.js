@@ -1,154 +1,13 @@
-// mrhTODO NEXT: create safenetwork.js anew (branch feature/safenetwork-backend-gd)
-// mrhTODO       DONE: get working with old encrypted API - commit! tag as safenetwork-gb-working-00
-// mrhTODO       DONE: merge/rebase and check still works with latest remotestorage/src
-// mrhTODO       DONE (no changes): integrate diff of upstream/master googledrive.js and start of branch feature/safenetwork-backend-gd
-// mrhTODO       DONE: integrate galfert's connect/setAPI change
-
-// mrhTODO       DONE: test!!!! (may be some bug not always deleting the file when delete the screen object - NOT SEEN, delete works ok)
-
-// mrhTODO       IGNORED: beware breaking go-safe linux cmds by cretz: strip out encryption and base64 encoding
-// mrhTODO       DONE: get working with new unencrypted API - commit!
-// mrhTODO       NEXT: when working:
-// mrhTODO           DONE: encryption: remove libsodium from build
-// mrhTODO           DONE: encryption: remove bops from build
-// mrhTODO             -> Update compoonents.json, package.json, clean up lib/, remove bower_components/
-// mrhTODO			 NEXT: pending new widget, try removing inline CSS in order to publish apps on SAFE alpha1
-// mrhTODO					- create CSS file widget.css from assets
-// mrhTODO					- add CSS in app html <head>
-// mrhTODO					- prevent inlining of WidgetCSS (comment out: https://github.com/remotestorage/remotestorage.js/blob/bugfix/937-webfinger_404/src/view.js#L163-L164)
-// mrhTODO           NEXT: upload myfd to http://myfd.safenet
-// mrhTODO               BUG: CORS errors: widget fails to load properly - see console output below
-// mrhTODO               note:
-// mrhTODO               - no icons
-// mrhTODO               - all form elements visible in default HTML (no CSS?)
-// mrhTODO               - regardless of "CORS everywhere" plugin state (note there's a browser setting to disable CORS)
-// mrhTODO              TEMPFIX:
-// mrhTODO                 - removed widget inline CSS to application CSS file
-// mrhTODO                 - updated RS.js to 0.12.2-pre including my changes
-// mrhTODO                 Widget now displays, works in part, but some issues remain:
-// mrhTODO                   - on load: did not display drinks from local storage
-// mrhTODO                   - on auth: did not display drinks (not sure if it was synching)
-// mrhTODO                   - on page refresh: displayed drinks, was not synching (further refresh fixed)
-// mrhTODO                   MORE: https://forum.safedev.org/t/help-wanted-testing-an-app-please/120/5?u=happybeing
-// mrhTODO                   MORE: https://forum.safedev.org/t/help-wanted-testing-an-app-please/120/6?u=happybeing
-// mrhTODO
-// mrhTODO NEXT: change SafeNetwork to SafeNetwork everywhere (including this filename!)
-// mrhTODO NEXT: update to RS 0.13 and republish myfd
-// mrhTODO NEXT: move these notes to Zim
-// mrhTODO NEXT: tidy up safenetwork.js (as Safenetwork.js)
-// mrhTODO NEXT: create myfd-port repo
-// mrhTODO NEXT: use github issues for bug notes
-// mrhTODO NEXT: maybe push my RS.js branch to RS repo - ask raucao first, and what to do
-// mrhTODO
-// mrhTODO NEXT: work out suitable default and app settings for directories (public/private, app/data)
-// mrhTODO       First thoughts: 
-// mrhTODO              - all RS.js files live under PATH_PREFIX
-// mrhTODO              - default NFS settings: drive / private
-// mrhTODO              - getItemURL() returns either canonical URL (not yet supported) or something in /shares (drive / public)
-// mrhTODO              - app can override use of drive and choose app (in which case other apps cannot access its file)
-// mrhTODO       
-// mrhTODO       References: - RS.js public/private client and category directory usage in RS wiki:
-// mrhTODO                     https://wiki.remotestorage.io/RemoteStorage.js:Beginners%27_Guide#Define_a_module
-// mrhTODO                   - Summary of SAFE NFS directory settings app/data, and public/private
-// mrhTODO                     https://forum.safedev.org/t/safe-nfs-api-notes-on-where-and-how-files-are-stored/108
-// mrhTODO NEXT: think about what to do with SAFE Beaker:
-// mrhTODO       - on new alpha account...
-// mrhTODO       - try a myfd.beaker.safenet (by just changing LAUNCHER_URL
-// mrhTODO       - look into using safe-js (See: https://forum.safedev.org/t/safebbrowser-pre-release-0-2-4-test-the-api/118/20?u=happybeing)
-
-/* 
-CORS ERROR 1 - before logging starts
-------------
-Content Security Policy: The page's settings blocked the loading of a resource at self ("default-src http://myfd.safenet http://*.safenet").
-    
-
-(function () {
-
-    var event_id = docum...
-
-CORS ERROR 2 - midst of early logging:
-------------
-[Eventhandling] Adding event listener ready function()
-Content Security Policy: The page's settings blocked the loading of a resource at self ("default-src http://myfd.safenet http://*.safenet").
-    
-
-/ ** encoding:utf-8 ** / / * RESET * / #remo...
-
-myfd.safenet (line 1)
-Content Security Policy: The page's settings blocked the loading of a resource at data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDg3LjUgMTAwIiB4bWw6c3BhY2U9InByZXNlcnZlIiBoZWlnaHQ9IjE2IiB2aWV3Qm94PSIwIDAgMTUuOTk5OTk5IDE2IiB3aWR0aD0iMTYiIHZlcnNpb249IjEuMSIgeT0iMHB4IiB4PSIwcHgiIHhtbG5zOmNjPSJodHRwOi8vY3JlYXRpdmVjb21tb25zLm9yZy9ucyMiIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyI+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC01LjUxMTIgLTc2LjUyNSkiIGRpc3BsYXk9Im5vbmUiPgoJPHBhdGggZGlzcGxheT0iaW5saW5lIiBkPSJtNTEuNDczIDQyLjI1NS0yLjIwNSAyLjIxMmMxLjQ3OCAxLjQ3NyAyLjI5NSAzLjQ0MiAyLjI5NSA1LjUzMyAwIDQuMzA5LTMuNTA0IDcuODEyLTcuODEyIDcuODEydi0xLjU2MmwtMy4xMjUgMy4xMjUgMy4xMjQgMy4xMjV2LTEuNTYyYzYuMDI5IDAgMTAuOTM4LTQuOTA2IDEwLjkzOC0xMC45MzggMC0yLjkyNy0xLjE0MS01LjY3Ni0zLjIxNS03Ljc0NXoiLz4KCTxwYXRoIGRpc3BsYXk9ImlubGluZSIgZD0ibTQ2Ljg3NSA0MC42MjUtMy4xMjUtMy4xMjV2MS41NjJjLTYuMDMgMC0xMC45MzggNC45MDctMTAuOTM4IDEwLjkzOCAwIDIuOTI3IDEuMTQxIDUuNjc2IDMuMjE3IDcuNzQ1bDIuMjAzLTIuMjEyYy0xLjQ3Ny0xLjQ3OS0yLjI5NC0zLjQ0Mi0yLjI5NC01LjUzMyAwLTQuMzA5IDMuNTA0LTcuODEyIDcuODEyLTcuODEydjEuNTYybDMuMTI1LTMuMTI1eiIvPgo8L2c+CjxwYXRoIGZpbGw9IiNmZmYiIGQ9Im0xMCAwbC0wLjc1IDEuOTA2MmMtMS4wMDc4LTAuMjk0Mi0zLjQ1ODYtMC43NzA4LTUuNjU2MiAwLjkzNzYgMC0wLjAwMDItMy45MzAyIDIuNTk0MS0yLjA5MzggNy41OTQybDEuNjU2Mi0wLjcxOTJzLTEuNTM5OS0zLjExMjIgMS42ODc2LTUuNTMxM2MwIDAgMS42OTU3LTEuMTMzOSAzLjY4NzQtMC41OTM3bC0wLjcxODcgMS44MTI0IDMuODEyNS0xLjYyNS0xLjYyNS0zLjc4MTJ6Ii8+PHBhdGggZmlsbD0iI2ZmZiIgZD0ibTE0IDUuNTYyNWwtMS42NTYgMC43MTg3czEuNTQxIDMuMTEzNS0xLjY4OCA1LjUzMDhjMCAwLTEuNzI3MiAxLjEzNS0zLjcxODUgMC41OTRsMC43NS0xLjgxMi0zLjgxMjUgMS41OTQgMS41OTM4IDMuODEyIDAuNzgxMi0xLjkwNmMxLjAxMTMgMC4yOTUgMy40NjE1IDAuNzY2IDUuNjU2LTAuOTM4IDAgMCAzLjkyOC0yLjU5NCAyLjA5NC03LjU5MzV6Ii8+Cjwvc3ZnPgo= ("default-src http://myfd.safenet http://*.safenet").
-[RemoteStorage] [FEATURE IndexedDB] supported
-
-CORS ERROR 3 - NOT REPEATABLE midst of early logging:
-------------
-[Eventhandling] Adding event listener sync bound ()
-remotestorage.js (line 3532)
-Content Security Policy: The page's settings blocked the loading of a resource at self ("default-src http://myfd.safenet http://*.safenet").
-    
-
-/ * See license.txt for terms of usage * /...
-*/
-
-// mrhTODO           NEXT: strip node_modules from myfd prototype
-// mrhTODO           NEXT: retrofit localstorage settings
-
-// mrhTODO      [ ] Review/implement features noted at top of safenetwork-db.js (local file) up to "create safenetwork.js anew"
-// mrhTODO      (| Promises recursion: http://stackoverflow.com/questions/29020722/recursive-promise-in-javascript/29020886?noredirect=1#comment62855125_29020886)
-
-// mrhTODO - look at how Dropbox overrides BaseClient getItemURL and consider for safenetwork.js
-// mrhTODO   (see https://github.com/remotestorage/remotestorage.js/blob/master/src/dropbox.js#L16-L17)
-// mrhTODO
-// mrhTODO - review isPrivate / isPathShared values, maybe make App configurable (part of setApiKeys (rename?)
-// mrh TODO  Note: when file has own folder can ditch remoteStorage/appname prefix - only use when store is public
-// mrhTODO 
-
-// mrhTODO ensure build/components.json includes the required dependencies:
-// mrhTODO as per MaidSafe example for now...
-// mrhTODO npm install libsodium-wrappers request
-// mrhTODO switch from 'request' to XMLHtmlRequest and remove 'request' from build/components.json
-
-// mrhTODO Implement eTag headers when SAFE Launcher API supports them (versioning)
-// mrhTODO  (For spec search "Versioning" in https://tools.ietf.org/html/draft-dejong-remotestorage-07)
-
-// mrhTODO Implement CORS headers (RS spec says *all* responses must return CORS headers)
-
-// mrhTODO Review RS spec and check compliance
-// mrhTODO RS plan to move all to https://github.com/stefanpenner/es6-promise
-// mrhTODO so I need to co-ordinate with that.
-
-// mrhTODO document ApiKeys - these are settings configured by the App call to RemoteStorage.setApiKeys():
-/*    remoteStorage.setApiKeys('safenetwork', 
-        {   
-            // For details see SAFE Launcher /auth JSON API
-            app: {
-                name: 'RemoteStorage Demo',     // Your app name etc.
-                version: '0.0.1',
-                vendor: 'remoteStorage',
-                id: 'org.remotestorage.rsdemo'  // Identifies stored data (unique per vendor)
-            },
-            permissions: ['SAFE_DRIVE_ACCESS']  // List of permissions to request. On authorisation, 
-                                                // holds permissions granted by user
-        }
-*/
+// For now, the safenetwork.js backend requires RS.js built with different LAUNCHER_URL (see below)
+// according to the test environment.
+//
+// Note: during SAFEnetwork testing the SAFE API is changing regularly, so if you want to build RS.js with this backend
+//       yourself, you will need to make sure that the version of safestore.js is in step with that API of the SAFEnetwork
+//       you are connecting to at the time (which changes periodically). If in doubt ask webalyst (aka happybeing).
 
 LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.safenet when live on SAFEnetwork
-//LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launcher which provides REST API
-//LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser
-
-/* SAFE BEAKER DEBUGGING: 
- 
-  with safe://api.safenet and Beaker, I get this error on RS.SafeNetwork::safenetworkAuthorize():
-
-    remotestorage.js:5276 XMLHttpRequest cannot load safe://api.safenet/auth. 
-    Cross origin requests are only supported for protocol schemes: http, data, chrome, https.
-
-  with http://localhost:8100 and Beaker, I get this error on RS.SafeNetwork::safenetworkAuthorize():
-
-    XMLHttpRequest cannot load http://localhost:8100/auth. 
-    Response to preflight request doesn't pass access control check: 
-    No 'Access-Control-Allow-Origin' header is present on the requested resource. 
-    Origin 'safe://myfd' is therefore not allowed access.
-
-*/
+//LAUNCHER_URL = 'http://api.safenet'; // For live tests using Firefox/Chrome with proxy configured, and running SAFE Launcher locally
+//LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser, no proxy needed, and running SAFE Launcher locally
 
 (function (global) {
   /**
@@ -183,15 +42,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
    * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
    **/
 
-  // mrhTODO: everything below this!
-  // mrhTODO: add regression tests in test/unit/safenetwork-suite.js
   var RS = RemoteStorage;
   
-  // mrhTODO: this...
-  var hasLocalStorage;//???
+  var hasLocalStorage;// mrhTODO look at use of this
   var SETTINGS_KEY = 'remotestorage:safenetwork';
   var cleanPath = RS.WireClient.cleanPath;
-  var PATH_PREFIX = '/remotestorage/';
+  var PATH_PREFIX = '/remotestorage/';  // mrhTODO app configurable?
   
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
@@ -199,17 +55,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
     return path.replace(/[^\/]+\/?$/, '');
   }
 
-  // mrhTODO: is this in use?
-  function baseName(path) {
-    var parts = path.split('/');
-    if (path.substr(-1) === '/') {
-      return parts[parts.length-2]+'/';
-    } else {
-      return parts[parts.length-1];
-    }
-  }
-
-  // mrhTODO: is this in use?
+  // Used to cache file info
   var Cache = function (maxAge) {
     this.maxAge = maxAge;
     this._items = {};
@@ -260,14 +106,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           // SAFE Launcher auth response:
           token: null,
           permissions: null,    // List of granted SAFE Network access permssions (e.g. 'SAFE_DRIVE_ACCESS')
-          symetricKeyBase64: null,    
-          symetricNonceBase64: null,
         });
       }
     };
 
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
-//mrhTODO (was from dropbox version - stops connect doing anything)    this.rs.on('error', onErrorCb);
+    //mrhTODO (was from dropbox version - stops connect doing anything)    this.rs.on('error', onErrorCb);
 
     // mrhTODO port dropbox style load/save settings from localStorage
 };
