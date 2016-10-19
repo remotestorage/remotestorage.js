@@ -274,7 +274,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
         desc: "if unsuccesfully tried to discover a storage, promise is rejected",
         run: function (env, test) {
           RemoteStorage.Discover("foo@bar").then(test.fail, function (err) {
-            test.assertType(err, 'string');
+            test.assertType(err, 'object');
           });
           XMLHttpRequest.onOpen = function () {
             var xhr = XMLHttpRequest.instances[0];
@@ -290,7 +290,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
         desc: "if Webfinger request returns a 404 (not found), promise is rejected",
         run: function (env, test) {
           RemoteStorage.Discover("foo@bar").then(test.fail, function (err) {
-            test.assertType(err, 'string');
+            test.assertType(err, 'object');
           });
           XMLHttpRequest.onOpen = function () {
             var xhr = XMLHttpRequest.instances[0];

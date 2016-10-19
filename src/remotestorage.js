@@ -364,7 +364,7 @@
       this._emit('connecting');
 
       var discoveryTimeout = setTimeout(function () {
-        this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
+        this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
       }.bind(this), RemoteStorage.config.discoveryTimeout);
 
       RemoteStorage.Discover(userAddress).then(function (info) {
@@ -396,7 +396,8 @@
           }
         }
       }.bind(this), function(err) {
-        this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
+        clearTimeout(discoveryTimeout);
+        this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
       }.bind(this));
     },
 
