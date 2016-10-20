@@ -3,6 +3,7 @@ if (typeof define !== 'function') {
 }
 define(['require', 'fs'], function(require, fs, undefined) {
   var suites = [];
+  var RemoteStorage = require('./../../src/remotestorage')
 
   suites.push({
     name: "access",
