@@ -160,39 +160,20 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
 
     safenetworkAuthorize: function (appApiKeys) {
       var self = this;
-
-      // Session data
-      this.launcherUrl = LAUNCHER_URL;
-      // App can override url by setting appApiKeys.laucherURL
-      if ( typeof appApiKeys.launcherURL !== 'undefined' ) { this.launcherUrl = appApiKeys.launcherURL;  }
-      // JSON string ("payload") for POST
-      this.payload = appApiKeys;     // App calls setApiKeys() to configure persistent part of "payload"
-
-      // The request...
-      var options = {
-        url: this.launcherUrl + '/auth',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(this.payload)
-      };
-
-      return window.safeAuth.authorise(appApiKeys.app).then( function(res) {   // mrhTODO - am leaving off local storage key
-      /* window.safeAuth.authorise(this.app, this.LOCAL_STORAGE_TOKEN_KEY)
-        if (typeof res === 'object') {
-          this.setAuthToken(res.__parsedResponseBody__.token);
-        }
-        */
+      self.appKeys = appApiKeys.app;
+      
+      tokenKey = SETTINGS_KEY + ':token';
+      return window.safeAuth.authorise(self.appKeys, tokenKey).then( function(res) {   // mrhTODO - am leaving off local storage key
         // Save session info
         self.configure({ 
-            token:          res.__parsedResponseBody__.token,        // Auth token
-            permissions:    res.__parsedResponseBody__.permissions,  // List of permissions approved by the user
+            token:          res.token,                  // Auth token
+            permissions:    res.permissions,   // List of permissions approved by the user
           });
 
       }, (err) => {
         RS.log('SafeNetwork Authorisation Failed');
         RS.log(err);
-        return this;
+        return this; //mrhTODO reject promise?
       });
     },
     
@@ -280,6 +261,9 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
             }
             
             return Promise.resolve({statusCode: 200, 'contentType': contentType, revision: etagWithoutQuotes});
+          }, (err) => {
+            RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err)
+            return Promise.reject(err);
           });
         } else if (response.status === 412) {   // Precondition failed
           return Promise.resolve({statusCode: 412, revision: 'conflict'});
@@ -296,6 +280,9 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
         } else {
           return self._createFile(fullPath, body, contentType, options).then(putDone);
         }
+      }, (err) => {
+        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err)
+        return Promise.reject(err);
       });
     },
 
@@ -325,30 +312,21 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           return {statusCode: 412, revision: etagWithoutQuotes};
         }
 
-        ///////////////////////////////////////////////////////////////////////////////////
-        ///// ????????????? UPDATE THIS TO SAFE-JS ////////////////////////////////////////
-        ///////////////////////////////////////////////////////////////////////////////////
-
-        var NFStype = ( fullPath.substr(-1)==='/' ? '/nfs/directory/' : '/nfs/file/' );
-        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
-          
-        var fullUrl = self.launcherUrl + NFStype + rootPath + encodeURIComponent(fullPath);
-
-        var options = {
-          url: fullUrl,
-          headers: {
-          },
-        };
-
-        RS.log('SafeNetwork.delete calling _request( POST, ' + options.url + ', ...)' );
-        return self._request('DELETE', options.url, options).then(function (response) {
+        deleteFunction = ( fullPath.substr(-1)==='/' ? window.safeNFS.deleteDir : window.safeNFS.deleteFile );
+        return deleteFunction(self.token, fullPath, self.isPathShared).then(function (response){
           if (response.status === 200 || response.status === 204) {
             return Promise.resolve({statusCode: 200});
           } else {
             return Promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
           }
+        }, (err) => {
+          RS.log('REJECTING!!! deleteFunction("' + fullPath + '") failed: ' + err)
+          return Promise.reject(err);
         });
 
+      }, (err) => {
+        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err)
+        return Promise.reject(err);
       });
     },
 
@@ -373,7 +351,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
         if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
           return {statusCode: 412, revision: etagWithoutQuotes};
         }
-
         var NFStype = ( fullPath.substr(-1)==='/' ? '/nfs/directory/' : '/nfs/file/' );
         var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
           
@@ -426,9 +403,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
       };
 
       // mrhTODO googledrive does two PUTs, one initiates resumable tx, the second sends data - review when streaming API avail
-      return self._request('PUT', optionsPUT.url, optionsPUT).then(function (response) {
+      return window.safeNFS.createFile(self.token, path, body, contentType, body.length, null, self.isPathShared).then(function (response) {
         // self._shareIfNeeded(path);  // mrhTODO what's this? (was part of dropbox.js)
         return response;
+      }, (err) => {
+        RS.log('REJECTING!!! safeNFS.createFile("' + path + '") failed: ' + err)
+        return Promise.reject(err);
       });
     },
 
@@ -473,38 +453,8 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
       
       // Ensure path exists by recursively calling create on parent folder
       return self._makeParentPath(path).then(function (parentPath) {
-                
-/* mrhTODO GoogleDrive only I think...
-         if ((!contentType.match(/charset=/)) &&
-            (encryptedData instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(encryptedData))) {
-          contentType += '; charset=binary';
-        }
-*/
-        var fileMetadata = {
-            mimetype:   contentType,    // WireClient.put provides a mime type which we store as metadata for get
-        };
         
-        // CREATE/UPDATE FILE (POST) (https://maidsafe.readme.io/docs/nfsfile)
-        var queryParams = 'offset=0'; //mrhTODO???
-        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
-        var urlPOST = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);//mrhTODO + '?' + queryParams;
-
-//        var payloadPOST = {
-            //metadata:       JSON.stringify(fileMetadata), mrhTODO: test this, with v0.4 API POST causes 400 from SAFE API
-//        };
-
-        var optionsPOST = {
-            url: urlPOST,
-            headers: {
-              'Content-Type': 'text/plain', // For POST - not related to contentType (file)
-              'Content-Length': body.length,// ???
-              //'Metadata:        JSON.stringify(fileMetadata), mrhTODO: test this, with v0.4 API POST causes 400 from SAFE API
-
-            },
-            body: body,
-          };
-        
-        return self._request('POST', optionsPOST.url, optionsPOST).then(function (response) {
+        return window.safeNFS.createFile(self.token, path, body, contentType, body.length, null, self.isPathShared).then(function (response) {
           // self._shareIfNeeded(path);  // mrhTODO what's this?
 
           if (response.status !== 200){
@@ -515,7 +465,13 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
             return Promise.resolve(response);
 
          }
+        }, (err) => {
+          RS.log('REJECTING!!! _createFile("' + path + '") failed: ' + err)
+          return Promise.reject(err);
         });
+      }, (err) => {
+        RS.log('REJECTING!!! _makeParentPath("' + path + '") failed: ' + err)
+        return Promise.reject(err);
       });
     },
 
@@ -593,7 +549,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           return Promise.resolve({statusCode: 304});
         }
           
-        return self._request('GET', url, {}).then(function (response) {
+        return window.safeNFS.getFile(self.token, path, self.isPathShared).then(function (response) {
           var body;
           var status = response.status;
 
@@ -623,14 +579,18 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
             // mrhTODO: This is intended to parse remotestorage JSON format objects, so when saving those
             // mrhTODO: it may be necessary to set memeType in the saved file-metadata
             if (retResponse.contentType.match(/^application\/json/)) {
-              try {
-                retResponse.body = JSON.parse(body);
-              } catch(e) {}
+                retResponse.body = response.__parsedResponseBody__;
             }            
           }
          
           return Promise.resolve( retResponse );
+        }, (err) => {
+          RS.log('REJECTING!!! safeNFS.getFile("' + path + '") failed: ' + err)
+          return Promise.reject(err);
         });
+      }, (err) => {
+        RS.log('REJECTING!!! _getFileInfo("' + path + '") failed: ' + err)
+        return Promise.reject(err);
       });
     },
     
@@ -714,31 +674,15 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
       return self._getFileInfo(path).then(function (fileInfo) {
         var query, fields, data, i, etagWithoutQuotes, itemsMap;
         if (!fileInfo) {
-          return Promise.resolve({statusCode: 404});
+          return Promise.resolve({statusCode: 404}); // mrhTODO should this reject?
         }
 
         // folder exists so obtain listing
-        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
-        var url = self.launcherUrl + '/nfs/directory/' + rootPath + encodeURIComponent(path);
-        var revCache = self._revCache;
+        // mrhTODO change getDir to listLongNames on API update
+        RS.log('safeNFS.getDir(token, ' + path + ', isPathShared = ' + self.isPathShared + ')' );
+        return window.safeNFS.getDir(self.token, path, self.isPathShared).then(function (body) {
 
-        return self._request('GET', url, {}).then(function (resp) {
-          var sCode = resp.status;
-
-          // 401 - Unauthorized
-          // 400 - Fields are missing
-          //if (sCode === 400 || sCode === 401) {
-          if (sCode === 401) { // Unuathorized
-            return Promise.resolve({statusCode: sCode});
-          }
-
-          var listing, listingFiles, listingSubdirectories, body, mime, rev;
-          try{
-            body = JSON.parse(resp.responseText);
-          } catch (e) {
-            return Promise.reject(e);
-          }
-          
+          var listing, listingFiles, listingSubdirectories, mime, rev;
           if (body.info) {
             var folderETagWithoutQuotes = path + '-' + body.info.createdOn + '-' + body.info.modifiedOn;
             RS.log('..folder eTag: ' + folderETagWithoutQuotes);
@@ -776,7 +720,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
               };
 
               self._fileInfoCache.set(itemPath, fileInfo);
-              RS.log('_fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
+              RS.log('..._fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
               m[item.name] =  fileInfo;              
               return m;
             }, {});
@@ -795,7 +739,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
               };
               
               self._fileInfoCache.set(itemPath, fileInfo);
-              RS.log('_fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
+              RS.log('..._fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
               m[item.name + '/'] = fileInfo;
               return m;
             }, {});
@@ -807,8 +751,14 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           }
 
           RS.log('SafeNetwork._getFolder(' + path + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
-          return Promise.resolve({statusCode: sCode, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE, revision: folderETagWithoutQuotes });
+          return Promise.resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE, revision: folderETagWithoutQuotes });
+        }, (err) => {
+          RS.log('safeNFS.getDir("' + path + '") failed: ' + err)
+          return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
+      }, (err) => {
+        RS.log('_getFileInfo("' + path + '") failed: ' + err)
+        return Promise.reject(err);
       });
     },
 
@@ -882,7 +832,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
               };
 
               self._fileInfoCache.set(itemPath, fileInfo);
-              RS.log('_fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
+              RS.log('..._fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
               m[item.name] =  fileInfo;              
               return m;
             }, {});
@@ -901,7 +851,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
               };
               
               self._fileInfoCache.set(itemPath, fileInfo);
-              RS.log('_fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
+              RS.log('..._fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
               m[item.name + '/'] = fileInfo;
               return m;
             }, {});
@@ -929,6 +879,9 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
         } else {
           return self._createFolder(parentFolder);
         }
+      }, (err) => {
+        RS.log('REJECTING!!! _getFileInfo("' + path + '") failed: ' + err)
+        return Promise.reject(err);
       });
     },
 
@@ -936,6 +889,8 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
       RS.log('SafeNetwork._createFolder(' + folderPath + ')' );
       var self = this;
 
+      var userMetadata = "";
+      
       // Recursively create parent folders
       return self._makeParentPath(folderPath).then(function (parentInfo) {
         // Parent exists so create 'folderPath'
@@ -943,28 +898,17 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
 //mrhTODO var needsMetadata = options && (options.ifMatch || (options.ifNoneMatch === '*'));
 //mrhTODO the above line is not in the googledrive.js version (must be from my port of dropbox.js)
 
-        
-        // CREATE folder (POST) (https://maidsafe.readme.io/docs/nfsfolder)
-        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
-        var urlPOST = self.launcherUrl + '/nfs/directory/' + rootPath + encodeURIComponent(folderPath);
-
-        var payloadPOST = {
-//            isPrivate:            self.isPrivate, // mrhTODO is this needed
-            metadata:             "",
-        };
-
-        var optionsPOST = {
-            url: urlPOST,
-            headers: {
-              'Content-Type': 'text/plain',
-            },
-            body: JSON.stringify(payloadPOST),
-          };
-            
-        return self._request('POST', optionsPOST.url, optionsPOST).then(function (response) {
+        return window.safeNFS.createDir(self.token, folderPath, self.isPrivate, self.userMetadata, self.isPathShared).then(function (response) {
 //          self._shareIfNeeded(folderPath);  // mrhTODO what's this? (was part of dropbox.js)
           return Promise.resolve(response);
+        }, (err) => {
+          RS.log('TEST!!! safeNFS.createDir("' + folderPath + '") failed: ' + err)
+          return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
+
+      }, (err) => {
+        RS.log('REJECTING!!! _makeParentPath("' + folderPath + '") failed: ' + err)
+        return Promise.reject(err);
       });
     },
 
@@ -1048,11 +992,17 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           if (fullPath.substr(-1) === '/') {    // folder, so create it
             return self._createFolder(fullPath).then(function () {
               return self._getFileInfo(fullPath);
+            }, (err) => {
+              RS.log('REJECTING!!! _createFolder("' + fullPath + '") failed: ' + err)
+              return Promise.reject(err);
             });
           }
         }
         
         return Promise.resolve(info);         // Pass back info (null if doesn't exist)
+      }, (err) => {
+        RS.log('REJECTING!!! _getFolder("' + parentPath(fullPath) + '") failed: ' + err)
+        return Promise.reject(err);
       });
       
     },
