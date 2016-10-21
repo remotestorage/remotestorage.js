@@ -207,9 +207,11 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
       // putDone - handle PUT response codes, optionally decodes metadata from JSON format response
       var self = this;
       function putDone(response) {
-        RS.log('SafeNetwork.put putDone(' + response.responseText + ') for path: ' + path );
+        RS.log('SafeNetwork.put putDone(statusCode: ' + response.statusCode + ') for path: ' + path );
 
-        if (response.status >= 200 && response.status < 300) {
+        // mrhTODO SAFE API v0.5: _createFile/_updateFile lack version support
+        // mrhTODO so the response.statusCode checks here are untested
+        if (response.statusCode >= 200 && response.statusCode < 300) {
           return self._getFileInfo(fullPath).then( function (fileInfo){
 
             var etagWithoutQuotes;
@@ -222,16 +224,16 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
             RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err)
             return Promise.reject(err);
           });
-        } else if (response.status === 412) {   // Precondition failed
+        } else if (response.statusCode === 412) {   // Precondition failed
           return Promise.resolve({statusCode: 412, revision: 'conflict'});
         } else {
-          return Promise.reject(new Error("PUT failed with status " + response.status + " (" + response.responseText + ")"));
+          return Promise.reject(new Error("PUT failed with status " + response.statusCode + " (" + response.responseText + ")"));
         }
       }
       return self._getFileInfo(fullPath).then(function (fileInfo) {
         if (fileInfo) {
           if (options && (options.ifNoneMatch === '*')) {
-            return putDone({ status: 412 });    // Precondition failed
+            return putDone({ statusCode: 412 });    // Precondition failed
           }
           return self._updateFile(fullPath, body, contentType, options).then(putDone);
         } else {
@@ -334,15 +336,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
         
         return window.safeNFS.createFile(self.token, path, body, contentType, body.length, null, self.isPathShared).then(function (response) {
           // self._shareIfNeeded(path);  // mrhTODO what's this?
-
-          if (response.status !== 200){
-            return Promise.reject( {statusCode: response.status} );
-          }
-          else {
-            RS.log("DEBUG _createFile() response.responseText: ", response.responseText);
-            return Promise.resolve(response);
-
-         }
+          return Promise.resolve({statusCode: 200});
         }, (err) => {
           RS.log('REJECTING!!! _createFile("' + path + '") failed: ' + err)
           return Promise.reject(err);
