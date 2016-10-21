@@ -45,7 +45,7 @@
 
     webFinger.lookup(userAddress, function (err, response) {
       if (err) {
-        return pending.reject(err.message);
+        return pending.reject(err);
       } else if ((typeof response.idx.links.remotestorage !== 'object') ||
                  (typeof response.idx.links.remotestorage.length !== 'number') ||
                  (response.idx.links.remotestorage.length <= 0)) {
