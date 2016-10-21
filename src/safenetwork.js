@@ -175,47 +175,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
       });
     },
     
-    OLDsafenetworkAuthorize: function (appApiKeys) {
-      var self = this;
-
-      // Session data
-      this.launcherUrl = LAUNCHER_URL;
-      // App can override url by setting appApiKeys.laucherURL
-      if ( typeof appApiKeys.launcherURL !== 'undefined' ) { this.launcherUrl = appApiKeys.launcherURL;  }
-      // JSON string ("payload") for POST
-      this.payload = appApiKeys;     // App calls setApiKeys() to configure persistent part of "payload"
-
-      // The request...
-      var options = {
-        url: this.launcherUrl + '/auth',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(this.payload)
-      };
-      
-      // POST
-      return RS.WireClient.request.call(this, 'POST', options.url, options).then(function (xhr) {    
-        // Launcher responses
-        // 401 - Unauthorised
-        // 400 - Fields are missing
-        if (xhr && (xhr.status === 400 || xhr.status == 401) ) {
-          RS.log('SafeNetwork Authorisation Failed');
-//mrhTODO causes error:          return Promise.reject({statusCode: xhr.status});
-        } else {
-          var response = JSON.parse(xhr.responseText);
-    
-          // Save session info
-          self.configure({ 
-              token:                response.token,        // Auth token
-              permissions:          response.permissions,  // List of permissions approved by the user
-            });
-          
-//mrhTODO:          return Promise.resolve(xhr);
-        }
-      });
-    },
-    
     // For reference see WireClient#get (wireclient.js)
     get: function (path, options) {
       RS.log('SafeNetwork.get(' + path + ',...)' );
