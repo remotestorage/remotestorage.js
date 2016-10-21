@@ -1,7 +1,7 @@
 {
   "name": "remotestoragejs",
   "description": "JavaScript library for integrating remoteStorage",
-  "version": "0.13.0",
+  "version": "0.13.1-pre",
   "private": false,
   "license": "MIT",
   "main": "./node-main.js",
