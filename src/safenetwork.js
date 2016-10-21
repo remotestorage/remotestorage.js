@@ -91,8 +91,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
     onErrorCb = function (error){
       if (error instanceof RemoteStorage.Unauthorized) {
 
-        // mrhTODO store auth info here (e.g. token, safeURL?) - CHECK API: WireClient.configure 
-          
         // Delete all the settings - see the documentation of
         // wireclient.configure
         self.configure({
@@ -111,7 +109,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
     };
 
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
-    //mrhTODO (was from dropbox version - stops connect doing anything)    this.rs.on('error', onErrorCb);
+    this.rs.on('error', onErrorCb);
 
     // mrhTODO port dropbox style load/save settings from localStorage
 };
@@ -379,7 +377,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           // self._shareIfNeeded(path);  // mrhTODO what's this?
 
           if (response.status !== 200){
-            return Promise.reject( {statusCode: reponse.status} );
+            return Promise.reject( {statusCode: response.status} );
           }
           else {
             RS.log("DEBUG _createFile() response.responseText: ", response.responseText);
