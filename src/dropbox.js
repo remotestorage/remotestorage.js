@@ -255,7 +255,6 @@
         if ( !this.userAddress ){
           this.info().then(function (info){
             this.userAddress = info.display_name;
-            this.rs.widget.view.setUserAddress(this.userAddress);
             this._emit('connected');
           }.bind(this));
         }
