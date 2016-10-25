@@ -1,4 +1,4 @@
-  var RemoteStorage = require('./remotestorage')
+  var RemoteStorage = require('./remotestorage.js')
 
   var mode = typeof(window) !== 'undefined' ? 'browser' : 'node',
       env = {},

@@ -1,4 +1,4 @@
-  var RemoteStorage = require('./remotestorage');
+  var RemoteStorage = require('./remotestorage.js');
   
   var syncInterval = 10000,
       backgroundSyncInterval = 60000,

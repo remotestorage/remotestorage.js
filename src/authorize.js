@@ -1,4 +1,4 @@
-  var RemoteStorage = require('./remotestorage');
+  var RemoteStorage = require('./remotestorage.js');
   
   function extractParams(url) {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
