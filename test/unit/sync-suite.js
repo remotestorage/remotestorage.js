@@ -2,7 +2,7 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks, requirejs) {
+define(['bluebird', 'test/helpers/mocks', 'require'], function(Promise, mocks, require) {
   global.Promise = Promise;
 
   var suites = [];
@@ -16,6 +16,7 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
     return flat;
   }
 
+  var RemoteStorage = require('../../src/remotestorage');
   suites.push({
     name: "Sync Suite",
     desc: "testing the sync adapter instance",
@@ -33,7 +34,7 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
       RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
-      require('./src/util.js');
+      require('../../src/util');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
@@ -41,35 +42,35 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       }
 
 
-      require('./src/eventhandling.js');
+      require('../../src/eventhandling');
       if (global.rs_eventhandling){
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
-      require('./src/cachinglayer.js');
+      require('../../src/cachinglayer');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
 
-      require('./src/inmemorystorage.js');
+      require('../../src/inmemorystorage');
       if (global.rs_ims) {
         RemoteStorage.InMemoryStorage = global.rs_ims;
       } else {
         global.rs_ims = RemoteStorage.InMemoryStorage;
       }
 
-      require('./src/sync.js');
+      require('../../src/sync');
       if (global.rs_sync) {
         RemoteStorage.Sync = global.rs_sync;
       } else {
         global.rs_sync = RemoteStorage.Sync;
       }
 
-      require('./src/authorize.js');
+      require('../../src/authorize');
       if (global.rs_authorize) {
         RemoteStorage.Authorize = global.rs_authorize;
       } else {
