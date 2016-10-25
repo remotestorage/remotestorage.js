@@ -22,7 +22,7 @@
    *
    **/
 
-  var RemoteStorage = require('./remotestorage.js');
+  var RemoteStorage = require('./remotestorage');
   var SETTINGS_KEY = "remotestorage:caching";
 
   var containingFolder = RemoteStorage.util.containingFolder;

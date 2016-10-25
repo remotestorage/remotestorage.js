@@ -1,5 +1,5 @@
 
-var RemoteStorage = require('./remotestorage.js')
+var RemoteStorage = require('./remotestorage')
 
 
 function shareFirst(path) {

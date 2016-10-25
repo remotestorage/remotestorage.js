@@ -1,4 +1,4 @@
-  var RemoteStorage = require('./remotestorage.js');
+  var RemoteStorage = require('./remotestorage');
   /**
    * Class: RemoteStorage.LocalStorage
    *

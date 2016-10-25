@@ -38,7 +38,7 @@
    *
    */
 
-  var RS = require('./remotestorage.js');
+  var RS = require('./remotestorage');
   var RemoteStorage = RS;
 
   var DB_VERSION = 2;
