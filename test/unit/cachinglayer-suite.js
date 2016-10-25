@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+define(['bluebird', 'require'], function (Promise, require) {
   global.Promise = Promise;
   var suites = [];
 
@@ -25,26 +25,26 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
 
-      require('src/util.js');
+      require('../../src/util');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
         global.rs_util = RemoteStorage.util;
       }
 
-      require('src/eventhandling');
+      require('../../src/eventhandling');
       if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('src/cachinglayer.js');
+      require('../../src/cachinglayer');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
-      require('src/inmemorystorage');
+      require('../../src/inmemorystorage');
       if (global.rs_ims) {
         RemoteStorage.InMemoryStorage = global.rs_ims;
       } else {

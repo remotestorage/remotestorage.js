@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(Promise, requirejs, backend, mocks, undefined) {
+define(['bluebird', 'require', 'test/behavior/backend', 'test/helpers/mocks'], function(Promise, require, backend, mocks, undefined) {
   global.Promise = Promise;
   var suites = [];
 
@@ -12,21 +12,21 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     global.RemoteStorage.SyncError = function() {};
     global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
 
-    require('./src/util');
+    require('../../src/util');
     if (global.rs_util) {
       RemoteStorage.util = global.rs_util;
     } else {
       global.rs_util = RemoteStorage.util;
     }
 
-    require('./src/eventhandling');
+    require('../../src/eventhandling');
     if (global.rs_eventhandling) {
       RemoteStorage.eventHandling = global.rs_eventhandling;
     } else {
       global.rs_eventhandling = RemoteStorage.eventHandling;
     }
 
-    require('./src/wireclient');
+    require('../../src/wireclient');
     if (global.rs_wireclient) {
       RemoteStorage.WireClient = global.rs_wireclient;
     } else {

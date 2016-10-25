@@ -3,7 +3,7 @@ if (typeof define !== 'function') {
 }
 define(['require', 'fs'], function(require, fs, undefined) {
   var suites = [];
-  var RemoteStorage = require('./../../src/remotestorage')
+  var RemoteStorage = require('../../src/remotestorage')
 
   suites.push({
     name: "access",
@@ -11,7 +11,7 @@ define(['require', 'fs'], function(require, fs, undefined) {
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      require('./../../src/access');
+      require('../../src/access');
       if (global.rs_access) {
         RemoteStorage.access = global.rs_access;
       } else {

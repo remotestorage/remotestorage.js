@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 
-define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
+define(['require', 'fs'], function(require, fs, undefined) {
   var suites = [];
 
   suites.push({
@@ -11,14 +11,14 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      require('./src/util');
+      require('../../src/util');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
         global.rs_util = RemoteStorage.util;
       }
 
-      require('./src/caching');
+      require('../../src/caching');
       if (global.rs_caching) {
         RemoteStorage.caching = global.rs_caching;
       } else {

@@ -1,11 +1,11 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise, requirejs, mocks, tv4) {
+define(['bluebird', 'require', 'test/helpers/mocks', 'tv4'], function (Promise, require, mocks, tv4) {
 
   global.Promise = Promise;
   global.tv4 = tv4;
-
+  var RemoteStorage = require('../../src/remotestorage')
   var suites = [];
 
   suites.push({
@@ -33,30 +33,30 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
         }
       };
 
-      require('./src/util');
+      require('../../src/util');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
         global.rs_util = RemoteStorage.util;
       }
 
-      require('./src/eventhandling');
+      require('../../src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
-      require('./src/wireclient');
+      require('../../src/wireclient');
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
       }
 
-      require('./lib/Math.uuid');
-      require('./src/baseclient');
-      require('./src/baseclient/types');
+      require('../../lib/Math.uuid');
+      require('../../src/baseclient.js');
+      require('../../src/baseclient/types');
       if (global.rs_baseclient_with_types) {
         RemoteStorage.BaseClient = global.rs_baseclient_with_types;
       } else {
@@ -145,8 +145,8 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
         };
       }
       if (typeof(RemoteStorage.BaseClient) !== 'function') {
-        require('./src/eventhandling');
-        require('./src/baseclient');
+        require('../../src/eventhandling');
+        require('../../src/baseclient');
       }
       test.done();
     },
