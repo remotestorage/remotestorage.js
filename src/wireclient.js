@@ -1,4 +1,4 @@
-  var RS = require('./remotestorage.js');
+  var RS = require('./remotestorage');
   var RemoteStorage = RS;
   /**
    * Class: RemoteStorage.WireClient

@@ -4,7 +4,7 @@
                 replacement + ' instead.');
   }
 
-  var RS = require('./remotestorage.js');
+  var RS = require('./remotestorage');
   var RemoteStorage = RS;
 
   /**
