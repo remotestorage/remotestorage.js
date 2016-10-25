@@ -15,8 +15,5 @@ module.exports = {
     umdNamedDefine: true
   },
   externals: [ 'xmlhttprequest' ],
-  resolve: {
-    extensions: ['', '.js']
-  },
   plugins: plugins
 };
