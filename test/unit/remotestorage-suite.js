@@ -1,8 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
-
+define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteStorage, require, tv4) {
   global.Promise = Promise;
   global.tv4 = tv4;
 
@@ -68,21 +67,18 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      require('./src/remotestorage');
       if (global.rs_rs) {
         global.RemoteStorage = global.rs_rs;
       } else {
         global.rs_rs = RemoteStorage;
       }
 
-      require('./src/eventhandling.js');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
-      require('src/util');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
@@ -508,7 +504,6 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
     name: "RemoteStorage",
     desc: "The global RemoteStorage namespace",
     setup: function(env, test) {
-      require('./src/remotestorage.js');
       test.done();
     },
 
@@ -563,37 +558,31 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
     name: "remoteStorage",
     desc: "the RemoteStorage instance - without a connected remote",
     setup: function(env, test) {
-      require('./src/remotestorage');
       if (global.rs_rs) {
         global.RemoteStorage = global.rs_rs;
       } else {
         global.rs_rs = RemoteStorage;
       }
 
-      require('./src/util');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
         global.rs_util = RemoteStorage.util;
       }
 
-      require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
-      require('./src/wireclient');
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
       }
 
-      require('./lib/Math.uuid');
-      require('./src/baseclient');
-      require('./src/baseclient/types');
+      require('../../lib/Math.uuid');
       if (global.rs_baseclient_with_types) {
         RemoteStorage.BaseClient = global.rs_baseclient_with_types;
       } else {

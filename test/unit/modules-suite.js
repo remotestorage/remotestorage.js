@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
-define([], function() {
+define(['./src/init'], function(RemoteStorage) {
 
   var suites = [];
 
@@ -10,21 +10,18 @@ define([], function() {
     desc: "RemoteStorage modules",
     setup: function(env, test) {
       global.Promise = require('./lib/bluebird.js');
-      require('./src/remotestorage');
       if (global.rs_rs) {
         global.RemoteStorage = global.rs_rs;
       } else {
         global.rs_rs = RemoteStorage;
       }
 
-      require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
-      require('src/util');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
@@ -35,7 +32,6 @@ define([], function() {
         connected: false
       };
       RemoteStorage.BaseClient = function() {};
-      require('./src/modules');
       test.done();
     },
 

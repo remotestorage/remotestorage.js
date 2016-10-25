@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requirejs, fs, WebFinger) {
+define(['./src/init', 'bluebird', 'fs', 'webfinger.js'], function (RemoteStorage, Promise, fs, WebFinger) {
 
   global.Promise = Promise;
   global.WebFinger = WebFinger;
@@ -16,14 +16,12 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
       RemoteStorage.log = function() {};
       global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
 
-      require('src/util');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
         global.rs_util = RemoteStorage.util;
       }
 
-      require('./src/discover');
       if (global.rs_util) {
         RemoteStorage.discover = global.rs_discover;
       } else {
