@@ -16,8 +16,6 @@ require('./inmemorystorage.js');
 require('./localstorage.js');
 require('./baseclient/types.js');
 require('./env.js');
-require('./widget.js');
-require('./view.js');
 require('./access.js');
 require('./assets.js');
 require('./discover.js');
