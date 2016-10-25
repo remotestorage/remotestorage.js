@@ -1,7 +1,7 @@
 {
   "name": "remotestoragejs",
   "description": "JavaScript library for integrating remoteStorage",
-  "version": "0.13.0",
+  "version": "0.13.1-pre",
   "private": false,
   "license": "MIT",
   "main": "./build/build.js",
@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "tv4": "^1.2.7",
-    "webfinger.js": "^2.2.1",
+    "webfinger.js": "^2.4.2",
     "xhr2": "^0.1.3"
   }
 }

@@ -387,7 +387,6 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         run: function(env, test) {
           env.rs.on('error', function(e) {
             test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
-            test.assertAnd(e.message, "Failed to contact storage server.", "wrong error message : "+e.message);
             test.done();
           });
           env.rs.connect('someone@somewhere');
@@ -400,7 +399,6 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
           RemoteStorage.config.discoveryTimeout = 500;
           env.rs.on('error', function(e) {
             test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
-            test.assertAnd(e.message, "No storage information found at that user address.", "wrong error message : "+e.message);
             test.done();
           });
           env.rs.connect("someone@timeout");

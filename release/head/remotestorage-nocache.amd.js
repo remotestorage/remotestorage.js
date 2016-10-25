@@ -1,4 +1,4 @@
-/** remotestorage.js 0.13.0, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.13.1-pre, http://remotestorage.io, MIT-licensed **/
 define([], function() {
 
 /** FILE: src/remotestorage.js **/
@@ -368,7 +368,7 @@ define([], function() {
       this._emit('connecting');
 
       var discoveryTimeout = setTimeout(function () {
-        this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
+        this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
       }.bind(this), RemoteStorage.config.discoveryTimeout);
 
       RemoteStorage.Discover(userAddress).then(function (info) {
@@ -400,7 +400,8 @@ define([], function() {
           }
         }
       }.bind(this), function(err) {
-        this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
+        clearTimeout(discoveryTimeout);
+        this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
       }.bind(this));
     },
 
@@ -2060,7 +2061,7 @@ define([], function() {
 
     webFinger.lookup(userAddress, function (err, response) {
       if (err) {
-        return pending.reject(err.message);
+        return pending.reject(err);
       } else if ((typeof response.idx.links.remotestorage !== 'object') ||
                  (typeof response.idx.links.remotestorage.length !== 'number') ||
                  (response.idx.links.remotestorage.length <= 0)) {
@@ -2116,11 +2117,11 @@ define([], function() {
 /* global define */
 /*!
  * webfinger.js
- *   version 2.3.2
+ *   version 2.4.2
  *   http://github.com/silverbucket/webfinger.js
  *
  * Developed and Maintained by:
- *   Nick Jennings <nick@silverbucket.net> 2012 - 2014
+ *   Nick Jennings <nick@silverbucket.net> 2012 - 2016
  *
  * webfinger.js is released under the AGPL (see LICENSE).
  *
@@ -2177,7 +2178,7 @@ if (typeof XMLHttpRequest === 'undefined') {
     return obj;
   }
 
-  // given a URL ensures it's HTTPS. 
+  // given a URL ensures it's HTTPS.
   // returns false for null string or non-HTTPS URL.
   function isSecure(url) {
     if (typeof url !== 'string') {
@@ -2214,56 +2215,64 @@ if (typeof XMLHttpRequest === 'undefined') {
 
   // make an http request and look for JRD response, fails if request fails
   // or response not json.
-  WebFinger.prototype.__fetchJRD = function (_url, errorHandler, sucessHandler) {
+  WebFinger.prototype.__fetchJRD = function (url, errorHandler, sucessHandler) {
     var self = this;
-    function __makeRequest(url) {
-      var xhr = new XMLHttpRequest();
-  
+
+    var xhr = new XMLHttpRequest();
+
+    function __processState() {
+      if (xhr.status === 200) {
+        if (self.__isValidJSON(xhr.responseText)) {
+          return sucessHandler(xhr.responseText);
+        } else {
+          return errorHandler(generateErrorObject({
+            message: 'invalid json',
+            url: url,
+            status: xhr.status
+          }));
+        }
+      } else if (xhr.status === 404) {
+        return errorHandler(generateErrorObject({
+          message: 'resource not found',
+          url: url,
+          status: xhr.status
+        }));
+      } else if ((xhr.status >= 301) && (xhr.status <= 302)) {
+        var location = xhr.getResponseHeader('Location');
+        if (isSecure(location)) {
+          return __makeRequest(location); // follow redirect
+        } else {
+          return errorHandler(generateErrorObject({
+            message: 'no redirect URL found',
+            url: url,
+            status: xhr.status
+          }));
+        }
+      } else {
+        return errorHandler(generateErrorObject({
+          message: 'error during request',
+          url: url,
+          status: xhr.status
+        }));
+      }
+    }
+
+    function __makeRequest() {
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            if (self.__isValidJSON(xhr.responseText)) {
-              return sucessHandler(xhr.responseText);
-            } else {
-              return errorHandler(generateErrorObject({
-                message: 'invalid json',
-                url: url,
-                status: xhr.status
-              }));
-            }
-          } else if (xhr.status === 404) {
-            return errorHandler(generateErrorObject({
-              message: 'endpoint unreachable',
-              url: url,
-              status: xhr.status
-            }));
-          } else if ((xhr.status >= 301) && (xhr.status <= 302)) {
-            var location = xhr.getResponseHeader('Location');
-            if (isSecure(location)) {
-              return __makeRequest(location); // follow redirect
-            } else {
-              return errorHandler(generateErrorObject({
-                message: 'no redirect URL found',
-                url: url,
-                status: xhr.status
-              }));
-            }
-          } else {
-            return errorHandler(generateErrorObject({
-              message: 'error during request',
-              url: url,
-              status: xhr.status
-            }));
-          }
+          __processState();
         }
       };
-  
+
+      xhr.onload = function (a, b) {
+        __processState();
+      }
       xhr.open('GET', url, true);
       xhr.setRequestHeader('Accept', 'application/jrd+json, application/json');
       xhr.send();
     }
-    
-    return __makeRequest(_url);
+
+    return __makeRequest();
   };
 
   WebFinger.prototype.__isValidJSON = function (str) {
@@ -2282,16 +2291,15 @@ if (typeof XMLHttpRequest === 'undefined') {
 
   // processes JRD object as if it's a webfinger response object
   // looks for known properties and adds them to profile datat struct.
-  WebFinger.prototype.__processJRD = function (JRD, errorHandler, successHandler) {
+  WebFinger.prototype.__processJRD = function (URL, JRD, errorHandler, successHandler) {
     var parsedJRD = JSON.parse(JRD);
     if ((typeof parsedJRD !== 'object') ||
         (typeof parsedJRD.links !== 'object')) {
       if (typeof parsedJRD.error !== 'undefined') {
-        return errorHandler(generateErrorObject({ message: parsedJRD.error }));
+        return errorHandler(generateErrorObject({ message: parsedJRD.error, request: URL }));
       } else {
-        return errorHandler(generateErrorObject({ message: 'unknown response from server' }));
+        return errorHandler(generateErrorObject({ message: 'unknown response from server', request: URL }));
       }
-      return false;
     }
 
     var links = parsedJRD.links;
@@ -2339,20 +2347,29 @@ if (typeof XMLHttpRequest === 'undefined') {
     }
 
     var self = this;
-    var parts = address.replace(/ /g,'').split('@');
-    var host = parts[1];    // host name for this useraddress
+    var host = '';
+    if (address.indexOf('://') > -1) {
+      // other uri format
+      host = address.replace(/ /g,'').split('://')[1];
+    } else {
+      // useraddress
+      host = address.replace(/ /g,'').split('@')[1];
+    }
     var uri_index = 0;      // track which URIS we've tried already
     var protocol = 'https'; // we use https by default
 
-    if (parts.length !== 2) {
-      return cb(generateErrorObject({ message: 'invalid user address ' + address + ' ( expected format: user@host.com )' }));
-    } else if (self.__isLocalhost(host)) {
+    if (self.__isLocalhost(host)) {
       protocol = 'http';
     }
 
     function __buildURL() {
+      var uri = '';
+      if (! address.split('://')[1]) {
+        // the URI has not been defined, default to acct
+        uri = 'acct:';
+      }
       return protocol + '://' + host + '/.well-known/' +
-             URIS[uri_index] + '?resource=acct:' + address;
+             URIS[uri_index] + '?resource=' + uri + address;
     }
 
     // control flow for failures, what to do in various cases, etc.
@@ -2374,12 +2391,13 @@ if (typeof XMLHttpRequest === 'undefined') {
         //    (stored somewhere in control of the user)
         // 3. make a request to that url and get the json
         // 4. process it like a normal webfinger response
-        self.__fetchJRD(__buildURL(), cb, function (data) { // get link to users JRD
-          self.__processJRD(data, cb, function (result) {
+        var URL = __buildURL();
+        self.__fetchJRD(URL, cb, function (data) { // get link to users JRD
+          self.__processJRD(URL, data, cb, function (result) {
             if ((typeof result.idx.links.webfist === 'object') &&
                 (typeof result.idx.links.webfist[0].href === 'string')) {
               self.__fetchJRD(result.idx.links.webfist[0].href, cb, function (JRD) {
-                self.__processJRD(JRD, cb, function (result) {
+                self.__processJRD(URL, JRD, cb, function (result) {
                   return cb(null, cb);
                 });
               });
@@ -2393,8 +2411,9 @@ if (typeof XMLHttpRequest === 'undefined') {
 
     function __call() {
       // make request
-      self.__fetchJRD(__buildURL(), __fallbackChecks, function (JRD) {
-        self.__processJRD(JRD, cb, function (result) { cb(null, result); });
+      var URL = __buildURL();
+      self.__fetchJRD(URL, __fallbackChecks, function (JRD) {
+        self.__processJRD(URL, JRD, cb, function (result) { cb(null, result); });
       });
     }
 
@@ -3134,10 +3153,10 @@ RemoteStorage.Assets = {
     return typeof(document) !== 'undefined';
   };
 
-  function stateSetter(widget, state) {
+  function stateSetter(widget, state, message) {
     RemoteStorage.log('[Widget] Producing stateSetter for', state);
     return function () {
-      RemoteStorage.log('[Widget] Setting state', state, arguments);
+      RemoteStorage.log('[Widget] Setting state', state, message);
       if (hasLocalStorage) {
         localStorage[LS_STATE_KEY] = state;
       }
@@ -3145,7 +3164,7 @@ RemoteStorage.Assets = {
         if (widget.rs.remote) {
           widget.view.setUserAddress(widget.rs.remote.userAddress);
         }
-        widget.view.setState(state, arguments);
+        widget.view.setState(state, message);
       } else {
         widget._rememberedState = state;
       }
@@ -3157,9 +3176,9 @@ RemoteStorage.Assets = {
       var s;
       if (error instanceof RemoteStorage.DiscoveryError) {
         console.error('Discovery failed', error, '"' + error.message + '"');
-        s = stateSetter(widget, 'initial', [error.message]);
+        s = stateSetter(widget, 'initial', error.message);
       } else if (error instanceof RemoteStorage.SyncError) {
-        s = stateSetter(widget, 'offline', []);
+        s = stateSetter(widget, 'offline');
       } else if (error instanceof RemoteStorage.Unauthorized) {
         s = stateSetter(widget, 'unauthorized');
       } else {
@@ -3250,13 +3269,13 @@ RemoteStorage.Assets = {
      *   state
      *   args
      **/
-    setState: function (state, args) {
-      RemoteStorage.log('[View] widget.view.setState(',state,',',args,');');
+    setState: function (state, message) {
+      RemoteStorage.log('[View] widget.view.setState(',state,',',message,');');
       var s = this.states[state];
       if (typeof(s) === 'undefined') {
         throw new Error("Bad State assigned to view: " + state);
       }
-      s.apply(this, args);
+      s.apply(this, [message]);
     },
 
     /**
