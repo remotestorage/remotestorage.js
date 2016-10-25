@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require'], function (require) {
+define(['./src/init'], function (RemoteStorage) {
   var suites = [];
 	var oldReadBinaryData;
 
@@ -9,7 +9,6 @@ define(['require'], function (require) {
     name: "WireClient NodeJS",
     desc: "Low-level remotestorage client used in NodeJS",
     setup: function(env, test) {
-      env.RemoteStorage = require('./../../node-main');
 
       RemoteStorage.Authorize = {
         IMPLIED_FAKE_TOKEN: false

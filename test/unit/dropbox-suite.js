@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function (Promise, requirejs, backend, mocks, undefined) {
+define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks'], function (RemoteStorage, Promise, backend, mocks, undefined) {
 
   global.Promise = Promise;
 
@@ -22,36 +22,30 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     };
     global.RemoteStorage.Unauthorized = function () {};
 
-    require('./src/util');
     if (global.rs_util) {
       RemoteStorage.util = global.rs_util;
     } else {
       global.rs_util = RemoteStorage.util;
     }
 
-    require('./src/baseclient');
-    require('./src/baseclient/types');
     if (global.rs_baseclient_with_types) {
       RemoteStorage.BaseClient = global.rs_baseclient_with_types;
     } else {
       global.rs_baseclient_with_types = RemoteStorage.BaseClient;
     }
 
-    require('./src/eventhandling');
     if (global.rs_eventhandling) {
       RemoteStorage.eventHandling = global.rs_eventhandling;
     } else {
       global.rs_eventhandling = RemoteStorage.eventHandling;
     }
 
-    require('./src/wireclient');
     if (global.rs_wireclient) {
       RemoteStorage.WireClient = global.rs_wireclient;
     } else {
       global.rs_wireclient = RemoteStorage.WireClient;
     }
 
-    require('./src/dropbox');
     if (global.rs_dropbox) {
       RemoteStorage.Dropbox = global.rs_dropbox;
     } else {

@@ -1,9 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require', 'fs'], function(require, fs, undefined) {
+define(['./src/init', 'fs'], function(RemoteStorage, fs, undefined) {
   var suites = [];
-  var RemoteStorage = require('./../../src/remotestorage')
 
   suites.push({
     name: "Authorize",
@@ -12,21 +11,18 @@ define(['require', 'fs'], function(require, fs, undefined) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
 
-      require('./../../src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
-      require('./../../src/util');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
         global.rs_util = RemoteStorage.util;
       }
 
-      require('./../../src/authorize');
       if (global.rs_authorize) {
         RemoteStorage.authorize = global.rs_authorize;
       } else {

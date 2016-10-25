@@ -2,7 +2,7 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define([], function() {
+define(['./src/init'], function(RemoteStorage) {
   var suites = [],
       t;
 
@@ -12,7 +12,6 @@ define([], function() {
 
     setup: function(env, test) {
       global.RemoteStorage = {};
-      require('src/i18n.js');
       if (global.rs_I18n) {
         RemoteStorage.I18n = global.rs_I18n;
       } else {

@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+define(['bluebird', './src/init'], function (Promise, RemoteStorage) {
   global.Promise = Promise;
   var suites = [];
 
@@ -25,7 +25,6 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
 
-      require('src/util.js');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {

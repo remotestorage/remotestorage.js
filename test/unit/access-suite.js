@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define([ '../../src/remotestorage', 'require', 'fs'], function( RemoteStorage, require, fs, undefined) {
+define([ './src/init', 'fs'], function( RemoteStorage, fs, undefined) {
   var suites = [];
 
   suites.push({
@@ -10,7 +10,6 @@ define([ '../../src/remotestorage', 'require', 'fs'], function( RemoteStorage, r
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      require('./src/access');
       if (global.rs_access) {
         RemoteStorage.access = global.rs_access;
       } else {
