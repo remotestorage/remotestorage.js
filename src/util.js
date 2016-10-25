@@ -4,7 +4,7 @@
  * Provides reusable utility functions at RemoteStorage.util
  *
  */
-var RemoteStorage = require('./remotestorage');
+var RemoteStorage = require('./remotestorage.js');
   /**
    * Function: fixArrayBuffers
    *

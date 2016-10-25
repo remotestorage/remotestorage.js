@@ -4,7 +4,7 @@
    * TODO add documentation
    **/
 
-  var RemoteStorage = require('./remotestorage');
+  var RemoteStorage = require('./remotestorage.js');
   
   var dictionary = {
     "view_info": 'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',

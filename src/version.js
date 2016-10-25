@@ -1,4 +1,4 @@
-var RemoteStorage = require('./remotestorage')
+var RemoteStorage = require('./remotestorage.js')
 RemoteStorage.version = RemoteStorage.prototype.version = {
   productName: 'remotestorage.js',
   product: 0,
