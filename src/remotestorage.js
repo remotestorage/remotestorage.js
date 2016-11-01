@@ -208,18 +208,6 @@
   RemoteStorage.prototype = {
 
     /**
-     * Method: displayWidget
-     *
-     * Displays the widget at the top right of the page. Make sure to call this function
-     * once on every pageload (after the html 'body' tag), unless you use a custom widget.
-     *
-     * Parameters:
-     *
-     *   domID: identifier of the DOM element which should embody the widget (optional)
-     */
-     // (see src/widget.js for implementation)
-
-    /**
      * Property: remote
      *
      * Properties:
