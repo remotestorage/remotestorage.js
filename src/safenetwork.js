@@ -9,7 +9,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
 //LAUNCHER_URL = 'http://api.safenet'; // For live tests using Firefox/Chrome with proxy configured, and running SAFE Launcher locally
 //LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser, no proxy needed, and running SAFE Launcher locally
 
-ENABLE_ETAGS = false;
+ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
 
 (function (global) {
   /**
@@ -242,7 +242,7 @@ ENABLE_ETAGS = false;
       return self._getFileInfo(fullPath).then(function (fileInfo) {
         if (fileInfo) {
           if (options && (options.ifNoneMatch === '*')) {
-            return putDone({ statusCode: 412 });    // Precondition failed
+            return putDone({ statusCode: 412 });    // Precondition failed (because entity exists, version irrelevant)
           }
           return self._updateFile(fullPath, body, contentType, options).then(putDone);
         } else {
@@ -276,7 +276,7 @@ ENABLE_ETAGS = false;
         if (typeof(fileInfo.ETag) === 'string') {
           etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
         }
-        if (options && options.ifMatch && ENABLE_ETAGS && (options.ifMatch !== etagWithoutQuotes)) {
+        if (ENABLE_ETAGS && options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
           return {statusCode: 412, revision: etagWithoutQuotes};
         }
 
@@ -382,7 +382,7 @@ ENABLE_ETAGS = false;
 
         // Request is only for changed file, so if eTag matches return "304 Not Modified"
         // mrhTODO strictly this should be asked of SAFE API, but until versioning supported, we cache last eTags
-        if (options && options.ifNoneMatch && ENABLE_ETAGS && (etagWithoutQuotes === options.ifNoneMatch)) {
+        if (ENABLE_ETAGS && options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
           return Promise.resolve({statusCode: 304});
         }
           
@@ -454,7 +454,7 @@ ENABLE_ETAGS = false;
 
           var listing, listingFiles, listingSubdirectories, mime, rev;
           if (body.info) {
-            var folderETagWithoutQuotes = ( ENABLE_ETAGS ? fullPath + '-' + body.info.createdOn + '-' + body.info.modifiedOn : undefined );
+            var folderETagWithoutQuotes = fullPath + '-' + body.info.createdOn + '-' + body.info.modifiedOn;
             RS.log('..folder eTag: ' + folderETagWithoutQuotes);
             
             var folderMetadata;
@@ -477,7 +477,7 @@ ENABLE_ETAGS = false;
 
               // mrhTODO: Until SAFE API supports eTags make them manually:
               // mrhTODO: any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3
-              var eTagWithQuotes = ( ENABLE_ETAGS ? '"' + fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '-' + item.size + '"' : undefined );
+              var eTagWithQuotes = '"' + fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '-' + item.size + '"';
                 
               // Add file info to cache
               var fileInfo = {
@@ -500,7 +500,7 @@ ENABLE_ETAGS = false;
               
               // mrhTODO until SAFE API supports eTags make them manually:
               // Create eTag manually (any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3)
-              var eTagWithQuotes = ( ENABLE_ETAGS ? '"' + fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '"' : undefined );
+              var eTagWithQuotes = '"' + fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '"';
                 
               // Add file info to cache
               var fileInfo = { 
