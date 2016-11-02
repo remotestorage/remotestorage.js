@@ -9,6 +9,8 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
 //LAUNCHER_URL = 'http://api.safenet'; // For live tests using Firefox/Chrome with proxy configured, and running SAFE Launcher locally
 //LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser, no proxy needed, and running SAFE Launcher locally
 
+ENABLE_ETAGS = false;
+
 (function (global) {
   /**
    * Class: RemoteStorage.SafeNetwork
@@ -73,6 +75,13 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
         v: value,
         t: new Date().getTime()
       };
+    },
+    
+    'delete': function (key) {
+      var item = this._items[key];
+      if ( item ) {
+        delete item;
+      }
     }
   };
 
@@ -215,13 +224,13 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           return self._getFileInfo(fullPath).then( function (fileInfo){
 
             var etagWithoutQuotes;
-            if ( fileInfo.ETag === 'string') {
+            if (typeof(fileInfo.ETag) === 'string') {
               etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
             }
             
             return Promise.resolve({statusCode: 200, 'contentType': contentType, revision: etagWithoutQuotes});
           }, (err) => {
-            RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err)
+            RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
             return Promise.reject(err);
           });
         } else if (response.statusCode === 412) {   // Precondition failed
@@ -240,7 +249,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           return self._createFile(fullPath, body, contentType, options).then(putDone);
         }
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err)
+        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -264,27 +273,30 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
         }
 
         var etagWithoutQuotes;
-        if (fileInfo.ETag === 'string') {
+        if (typeof(fileInfo.ETag) === 'string') {
           etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
         }
-        if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
+        if (options && options.ifMatch && ENABLE_ETAGS && (options.ifMatch !== etagWithoutQuotes)) {
           return {statusCode: 412, revision: etagWithoutQuotes};
         }
 
         deleteFunction = ( fullPath.substr(-1)==='/' ? window.safeNFS.deleteDir : window.safeNFS.deleteFile );
-        return deleteFunction(self.token, fullPath, self.isPathShared).then(function (response){
-          if (response.status === 200 || response.status === 204) {
+        return deleteFunction(self.token, fullPath, self.isPathShared).then(function (success){
+          // mrhTODO must handle: if file doesn't exist also do self._fileInfoCache.delete(fullPath);
+
+          if (success) {
+            self._fileInfoCache.delete(fullPath);
             return Promise.resolve({statusCode: 200});
           } else {
-            return Promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
+            return Promise.reject('safeNFS deleteFunction("' + fullPath + '") failed: ' + success );
           }
         }, (err) => {
-          RS.log('REJECTING!!! deleteFunction("' + fullPath + '") failed: ' + err)
+          RS.log('REJECTING!!! deleteFunction("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
           return Promise.reject(err);
         });
 
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err)
+        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.statusCode)
         return Promise.reject(err);
       });
     },
@@ -320,9 +332,11 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
       // mrhTODO googledrive does two PUTs, one initiates resumable tx, the second sends data - review when streaming API avail
       return window.safeNFS.createFile(self.token, path, body, contentType, body.length, null, self.isPathShared).then(function (response) {
         // self._shareIfNeeded(path);  // mrhTODO what's this? (was part of dropbox.js)
+
+        self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
         return response;
       }, (err) => {
-        RS.log('REJECTING!!! safeNFS.createFile("' + path + '") failed: ' + err)
+        RS.log('REJECTING!!! safeNFS.createFile("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -336,13 +350,15 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
         
         return window.safeNFS.createFile(self.token, path, body, contentType, body.length, null, self.isPathShared).then(function (response) {
           // self._shareIfNeeded(path);  // mrhTODO what's this?
+          
+          self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
           return Promise.resolve({statusCode: 200});
         }, (err) => {
-          RS.log('REJECTING!!! _createFile("' + path + '") failed: ' + err)
+          RS.log('REJECTING!!! _createFile("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
           return Promise.reject(err);
         });
       }, (err) => {
-        RS.log('REJECTING!!! _makeParentPath("' + path + '") failed: ' + err)
+        RS.log('REJECTING!!! _makeParentPath("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -355,7 +371,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
       var self = this;
 
       var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
-      var url = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);//mrhTODO + '?' + queryParams;
+      var url = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);
 
       // Check if file exists. Creates parent folder if that doesn't exist.
       return self._getFileInfo(path).then(function (fileInfo) {
@@ -365,19 +381,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
         }
 
         // Request is only for changed file, so if eTag matches return "304 Not Modified"
-        if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
+        // mrhTODO strictly this should be asked of SAFE API, but until versioning supported, we cache last eTags
+        if (options && options.ifNoneMatch && ENABLE_ETAGS && (etagWithoutQuotes === options.ifNoneMatch)) {
           return Promise.resolve({statusCode: 304});
         }
           
-        return window.safeNFS.getFile(self.token, path, self.isPathShared).then(function (response) {
-          var body;
-          var status = response.status;
-
-          if (status === 400 || status === 401) {
-            return Promise.resolve({statusCode: status});
-          }
-
-          body = response.responseText;
+        return window.safeNFS.getFile(self.token, path, self.isPathShared).then(function (body) {
           
           /* SAFE NFS API file-metadata - disabled for now:
           var fileMetadata = response.getResponseHeader('file-metadata');
@@ -386,30 +395,34 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           }
           RS.log('..file-metadata: ' + fileMetadata);
           */
-            
+          
+          // Refer to baseclient.js#getFile for retResponse spec (note getFile header comment wrong!)
           var retResponse = {
-            statusCode: status, 
+            statusCode: 200, 
             body: body, 
             revision: etagWithoutQuotes,
           };
 
+          
           if (fileInfo){
             retResponse.contentType = fileInfo.mimetype;
           
+          /* mrhTODO already done by safe-js NFS getFile
             // mrhTODO: This is intended to parse remotestorage JSON format objects, so when saving those
-            // mrhTODO: it may be necessary to set memeType in the saved file-metadata
+            // mrhTODO: it may be necessary to set mimeType in the saved file-metadata
             if (retResponse.contentType.match(/^application\/json/)) {
                 retResponse.body = response.__parsedResponseBody__;
             }            
+          */
           }
          
           return Promise.resolve( retResponse );
         }, (err) => {
-          RS.log('REJECTING!!! safeNFS.getFile("' + path + '") failed: ' + err)
-          return Promise.reject(err);
+          RS.log('REJECTING!!! safeNFS.getFile("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
+          return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + path + '") failed: ' + err)
+        RS.log('REJECTING!!! _getFileInfo("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -423,12 +436,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
     // - NOTE: dropbox.js only provides etag, safenetwork.js provides etag and Content-Length but not Content-Type
     // - NOTE: safenetwork.js etag values are faked (ie not provided by launcher) but functionally adequate
       
-    _getFolder: function (path, options) {
-      RS.log('SafeNetwork._getFolder(' + path + ', ...)' );
+    _getFolder: function (fullPath, options) {
+      RS.log('SafeNetwork._getFolder(' + fullPath + ', ...)' );
       var self = this;
 
       // Check if folder exists. Create parent folder if parent doesn't exist
-      return self._getFileInfo(path).then(function (fileInfo) {
+      return self._getFileInfo(fullPath).then(function (fileInfo) {
         var query, fields, data, i, etagWithoutQuotes, itemsMap;
         if (!fileInfo) {
           return Promise.resolve({statusCode: 404}); // mrhTODO should this reject?
@@ -436,12 +449,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
 
         // folder exists so obtain listing
         // mrhTODO change getDir to listLongNames on API update
-        RS.log('safeNFS.getDir(token, ' + path + ', isPathShared = ' + self.isPathShared + ')' );
-        return window.safeNFS.getDir(self.token, path, self.isPathShared).then(function (body) {
+        RS.log('safeNFS.getDir(token, ' + fullPath + ', isPathShared = ' + self.isPathShared + ')' );
+        return window.safeNFS.getDir(self.token, fullPath, self.isPathShared).then(function (body) {
 
           var listing, listingFiles, listingSubdirectories, mime, rev;
           if (body.info) {
-            var folderETagWithoutQuotes = path + '-' + body.info.createdOn + '-' + body.info.modifiedOn;
+            var folderETagWithoutQuotes = ( ENABLE_ETAGS ? fullPath + '-' + body.info.createdOn + '-' + body.info.modifiedOn : undefined );
             RS.log('..folder eTag: ' + folderETagWithoutQuotes);
             
             var folderMetadata;
@@ -451,7 +464,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
             }
             
             listingFiles = body.files.reduce(function (m, item) {
-              var itemPath = path + item.name;
+              var fullItemPath = fullPath + item.name;
               
               
               var metadata; // mrhTODO compact next few lines
@@ -459,44 +472,44 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
                 metadata = JSON.parse(metadata);
               }
               else {
-                metadata = { mimetype: 'application/json' };  // mrhTODO should never be used
+                metadata = { mimetype: 'application/json' };  // mrhTODO fake it until implemented - should never be used
               }
 
               // mrhTODO: Until SAFE API supports eTags make them manually:
               // mrhTODO: any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3
-              var eTagWithQuotes = '"' + itemPath + '-' + item.createdOn + '-' + item.modifiedOn + '-' + item.size + '"';
+              var eTagWithQuotes = ( ENABLE_ETAGS ? '"' + fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '-' + item.size + '"' : undefined );
                 
               // Add file info to cache
-              var fileInfo = {      // Structure members must pass sync.js#corruptServerItemsMap()
-                path: itemPath,
+              var fileInfo = {
+                fullPath: fullItemPath, // Used by _fileInfoCache() but nothing else
+                
+                // Remaining members must pass RS.js test: sync.js#corruptServerItemsMap()
                 ETag: eTagWithQuotes,
                 'Content-Length': item.size,
-                mimetype: metadata.mimetype,
-                // mimetype: ??? // mrhTODO: "Content-Type" not yet supported
-                //                  mrhTODO: (would need to be stored alongside file content and set/updated by _createFile/_updateFile)
+                'Content-Type': metadata.mimetype,  // metadata.mimetype currently faked (see above)
               };
 
-              self._fileInfoCache.set(itemPath, fileInfo);
-              RS.log('..._fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
+              self._fileInfoCache.set(fullItemPath, fileInfo);
+              RS.log('..._fileInfoCache.set(file: ' + fullItemPath  + ')' );
               m[item.name] =  fileInfo;              
               return m;
             }, {});
 
             listingSubdirectories = body.subDirectories.reduce(function (m, item) {
-              var itemPath = path + item.name + '/';
+              var fullItemPath = fullPath + item.name + '/';
               
               // mrhTODO until SAFE API supports eTags make them manually:
               // Create eTag manually (any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3)
-              var eTagWithQuotes =  '"' + itemPath + '-' + item.createdOn + '-' + item.modifiedOn + '"';
+              var eTagWithQuotes = ( ENABLE_ETAGS ? '"' + fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '"' : undefined );
                 
               // Add file info to cache
               var fileInfo = { 
-                path: itemPath,
+                fullPath: fullItemPath,
                 etag: eTagWithQuotes,
               };
               
-              self._fileInfoCache.set(itemPath, fileInfo);
-              RS.log('..._fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
+              self._fileInfoCache.set(fullItemPath, fileInfo);
+              RS.log('..._fileInfoCache.set(directory: ' + fullItemPath  + ')' );
               m[item.name + '/'] = fileInfo;
               return m;
             }, {});
@@ -507,14 +520,14 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
             for (var attrname in listingSubdirectories) {   listing[attrname] = listingSubdirectories[attrname]; }          
           }
 
-          RS.log('SafeNetwork._getFolder(' + path + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
+          RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
           return Promise.resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE, revision: folderETagWithoutQuotes });
         }, (err) => {
-          RS.log('safeNFS.getDir("' + path + '") failed: ' + err)
+          RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err.statusCode )
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
       }, (err) => {
-        RS.log('_getFileInfo("' + path + '") failed: ' + err)
+        RS.log('_getFileInfo("' + fullPath + '") failed: ' + err)
         return Promise.reject(err);
       });
     },
@@ -531,7 +544,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
           return self._createFolder(parentFolder);
         }
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + path + '") failed: ' + err)
+        RS.log('REJECTING!!! _getFileInfo("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -553,12 +566,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
 //          self._shareIfNeeded(folderPath);  // mrhTODO what's this? (was part of dropbox.js)
           return Promise.resolve(response);
         }, (err) => {
-          RS.log('safeNFS.createDir("' + folderPath + '") failed: ' + err)
+          RS.log('safeNFS.createDir("' + folderPath + '") failed: ' + err.errorCode + ' ' + err.description)
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
 
       }, (err) => {
-        RS.log('_makeParentPath("' + folderPath + '") failed: ' + err)
+        RS.log('_makeParentPath("' + folderPath + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -607,7 +620,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
             return self._createFolder(fullPath).then(function () {
               return self._getFileInfo(fullPath);
             }, (err) => {
-              RS.log('_createFolder("' + fullPath + '") failed: ' + err)
+              RS.log('_createFolder("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
               return Promise.reject(err);
             });
           }
@@ -615,7 +628,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
         
         return Promise.resolve(info);         // Pass back info (null if doesn't exist)
       }, (err) => {
-        RS.log('_getFolder("' + parentPath(fullPath) + '") failed: ' + err)
+        RS.log('_getFolder("' + parentPath(fullPath) + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
       
