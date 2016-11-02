@@ -9,7 +9,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.
 //LAUNCHER_URL = 'http://api.safenet'; // For live tests using Firefox/Chrome with proxy configured, and running SAFE Launcher locally
 //LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser, no proxy needed, and running SAFE Launcher locally
 
-ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
+ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
 (function (global) {
   /**
@@ -210,7 +210,7 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
     // mrhTODO           when API stable, best may be to store contentType in the file not as metadata
     
     put: function (path, body, contentType, options) {
-      RS.log('SafeNetwork.put(' + path + ',...)' );
+      RS.log('SafeNetwork.put(' + path + ', ' + (options ? ( '{IfMatch: ' + options.IfMatch + ', IfNoneMatch: ' + options.IfNoneMatch + '})') : 'null)' ) );
       var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
 
       // putDone - handle PUT response codes, optionally decodes metadata from JSON format response
@@ -222,18 +222,15 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
         // mrhTODO so the response.statusCode checks here are untested
         if (response.statusCode >= 200 && response.statusCode < 300) {
           return self._getFileInfo(fullPath).then( function (fileInfo){
-
-            var etagWithoutQuotes;
-            if (typeof(fileInfo.ETag) === 'string') {
-              etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
-            }
             
+            var etagWithoutQuotes = ( typeof(fileInfo.ETag) === 'string' ? fileInfo.ETag : undefined );            
             return Promise.resolve({statusCode: 200, 'contentType': contentType, revision: etagWithoutQuotes});
           }, (err) => {
             RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
             return Promise.reject(err);
           });
         } else if (response.statusCode === 412) {   // Precondition failed
+          RS.log('putDone(...) conflict - resolving with statusCode 412');
           return Promise.resolve({statusCode: 412, revision: 'conflict'});
         } else {
           return Promise.reject(new Error("PUT failed with status " + response.statusCode + " (" + response.responseText + ")"));
@@ -272,10 +269,7 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
           return Promise.resolve({statusCode: 200});
         }
 
-        var etagWithoutQuotes;
-        if (typeof(fileInfo.ETag) === 'string') {
-          etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
-        }
+        var etagWithoutQuotes = ( typeof(fileInfo.ETag) === 'string' ? fileInfo.ETag : undefined );
         if (ENABLE_ETAGS && options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
           return {statusCode: 412, revision: etagWithoutQuotes};
         }
@@ -341,52 +335,49 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
       });
     },
 
-    _createFile: function (path, body, contentType, options) {
-      RS.log('SafeNetwork._createFile(' + path + ',...)' );
+    _createFile: function (fullPath, body, contentType, options) {
+      RS.log('SafeNetwork._createFile(' + fullPath + ',...)' );
       var self = this;
       
       // Ensure path exists by recursively calling create on parent folder
-      return self._makeParentPath(path).then(function (parentPath) {
+      return self._makeParentPath(fullPath).then(function (parentPath) {
         
-        return window.safeNFS.createFile(self.token, path, body, contentType, body.length, null, self.isPathShared).then(function (response) {
-          // self._shareIfNeeded(path);  // mrhTODO what's this?
+        return window.safeNFS.createFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (response) {
+          // self._shareIfNeeded(fullPath);  // mrhTODO what's this?
           
           self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
           return Promise.resolve({statusCode: 200});
         }, (err) => {
-          RS.log('REJECTING!!! _createFile("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
+          RS.log('REJECTING!!! _createFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
           return Promise.reject(err);
         });
       }, (err) => {
-        RS.log('REJECTING!!! _makeParentPath("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('REJECTING!!! _makeParentPath("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
 
     // For reference see WireClient#get (wireclient.js)
-    _getFile: function (path, options) {
-      RS.log('SafeNetwork._getFile(' + path + ', ...)' );
-      if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
+    _getFile: function (fullPath, options) {
+      RS.log('SafeNetwork._getFile(' + fullPath + ', ...)' );
+      if (! this.connected) { return Promise.reject("not connected (fullPath: " + fullPath + ")"); }
       var revCache = this._revCache;
       var self = this;
 
       var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
-      var url = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);
+      var url = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(fullPath);
 
       // Check if file exists. Creates parent folder if that doesn't exist.
-      return self._getFileInfo(path).then(function (fileInfo) {
-        var etagWithoutQuotes;
-        if (fileInfo && typeof(fileInfo.ETag) === 'string') {
-          etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
-        }
+      return self._getFileInfo(fullPath).then(function (fileInfo) {
+        var etagWithoutQuotes = fileInfo.ETag; // mrhTODO don't need this I think: ( fileInfo.ETag && typeof(fileInfo.ETag) === 'string' ? fileInfo.ETag : undefined );
 
         // Request is only for changed file, so if eTag matches return "304 Not Modified"
         // mrhTODO strictly this should be asked of SAFE API, but until versioning supported, we cache last eTags
-        if (ENABLE_ETAGS && options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
+        if (ENABLE_ETAGS && options && options.ifNoneMatch && etagWIthoutQuotes && (etagWithoutQuotes === options.ifNoneMatch)) {
           return Promise.resolve({statusCode: 304});
         }
           
-        return window.safeNFS.getFile(self.token, path, self.isPathShared).then(function (body) {
+        return window.safeNFS.getFile(self.token, fullPath, self.isPathShared).then(function (body) {
           
           /* SAFE NFS API file-metadata - disabled for now:
           var fileMetadata = response.getResponseHeader('file-metadata');
@@ -418,11 +409,11 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
          
           return Promise.resolve( retResponse );
         }, (err) => {
-          RS.log('REJECTING!!! safeNFS.getFile("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
+          RS.log('REJECTING!!! safeNFS.getFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -433,8 +424,8 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
     // For reference see WireClient#get (wireclient.js) summarised as follows:
     // - parse JSON (spec example: https://github.com/remotestorage/spec/blob/master/release/draft-dejong-remotestorage-07.txt#L223-L235)
     // - return a map of item names to item object mapping values for "Etag:", "Content-Type:" and "Content-Length:"
-    // - NOTE: dropbox.js only provides etag, safenetwork.js provides etag and Content-Length but not Content-Type
-    // - NOTE: safenetwork.js etag values are faked (ie not provided by launcher) but functionally adequate
+    // - NOTE: googledrive.js only provides ETag, safenetwork.js provides ETag, Content-Length but not Content-Type
+    // - NOTE: safenetwork.js ETag values are faked (ie not provided by launcher) but functionally adequate
       
     _getFolder: function (fullPath, options) {
       RS.log('SafeNetwork._getFolder(' + fullPath + ', ...)' );
@@ -477,14 +468,14 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
 
               // mrhTODO: Until SAFE API supports eTags make them manually:
               // mrhTODO: any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3
-              var eTagWithQuotes = '"' + fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '-' + item.size + '"';
+              var eTagWithoutQuotes = fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '-' + item.size;
                 
               // Add file info to cache
               var fileInfo = {
                 fullPath: fullItemPath, // Used by _fileInfoCache() but nothing else
                 
                 // Remaining members must pass RS.js test: sync.js#corruptServerItemsMap()
-                ETag: eTagWithQuotes,
+                ETag: eTagWithoutQuotes,
                 'Content-Length': item.size,
                 'Content-Type': metadata.mimetype,  // metadata.mimetype currently faked (see above)
               };
@@ -500,12 +491,12 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
               
               // mrhTODO until SAFE API supports eTags make them manually:
               // Create eTag manually (any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3)
-              var eTagWithQuotes = '"' + fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn + '"';
+              var eTagWithoutQuotes = fullItemPath + '-' + item.createdOn + '-' + item.modifiedOn;
                 
               // Add file info to cache
               var fileInfo = { 
                 fullPath: fullItemPath,
-                etag: eTagWithQuotes,
+                ETag: eTagWithoutQuotes,
               };
               
               self._fileInfoCache.set(fullItemPath, fileInfo);
@@ -521,9 +512,9 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
           }
 
           RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
-          return Promise.resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE, revision: folderETagWithoutQuotes });
+          return Promise.resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE/*, mrhTODO revision: folderETagWithoutQuotes*/ });
         }, (err) => {
-          RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err.statusCode )
+          RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err )
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
       }, (err) => {
@@ -532,10 +523,10 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
       });
     },
 
-    // Ensure path exists by recursively calling _createFolder if the parent doesn't exist
-    _makeParentPath: function (path) {
-      RS.log('SafeNetwork._makeParentPath(' + path + ')' );
-      var parentFolder = parentPath(path);
+    // Ensure fullPath exists by recursively calling _createFolder if the parent doesn't exist
+    _makeParentPath: function (fullPath) {
+      RS.log('SafeNetwork._makeParentPath(' + fullPath + ')' );
+      var parentFolder = parentPath(fullPath);
       var self = this;
       return self._getFileInfo(parentFolder).then(function (parentInfo) {
         if (parentInfo) {
@@ -544,7 +535,7 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
           return self._createFolder(parentFolder);
         }
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -620,7 +611,7 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
             return self._createFolder(fullPath).then(function () {
               return self._getFileInfo(fullPath);
             }, (err) => {
-              RS.log('_createFolder("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+              RS.log('_createFolder("' + fullPath + '") ERROR statusCode: ' + err.statusCode )
               return Promise.reject(err);
             });
           }
@@ -628,7 +619,7 @@ ENABLE_ETAGS = false;   // false disables ifMatch / ifNoneMatch checks
         
         return Promise.resolve(info);         // Pass back info (null if doesn't exist)
       }, (err) => {
-        RS.log('_getFolder("' + parentPath(fullPath) + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('_getFolder("' + parentPath(fullPath) + '") ERROR statusCode: ' + err.statusCode )
         return Promise.reject(err);
       });
       
