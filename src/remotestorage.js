@@ -544,9 +544,8 @@
      * Note that SafeNetwork (SAFE Network) backend does not require an API key from
      * an authority as in the case of most cloud services, so setApiKeys() is
      * used to define the application related information that is passed to 
-     * an authorisation gateway app (SAFE Launcher). The gateway app then asks the
-     * user directly, whether to "Allow" or "Deny" the access privileges being
-     * requested by the particular app.
+     * an authorisation gateway (SAFE Launcher). The gateway can return a stored
+     * authorisation token or may asks the user for permission to generating one.
      * 
      * See also the 'backends' example in the starter-kit (deprecated). Note that 
      * support for both these backends is still experimental.
@@ -574,10 +573,10 @@
         } else if (type === 'googledrive' && (typeof this.googledrive === 'undefined' ||
                                               this.googledrive.clientId !== keys.clientId)) {
           RemoteStorage.GoogleDrive._rs_init(this);
-        }
-      } else if (type === 'safenetwork' && (typeof this.safenetwork === 'undefined' ||
+        } else if (type === 'safenetwork' && (typeof this.safenetwork === 'undefined' ||
                                               this.safenetwork.clientId !== keys.clientId)) {
           RemoteStorage.SafeNetwork._rs_init(this);
+        }
       } else {
         delete this.apiKeys[type];
       }
