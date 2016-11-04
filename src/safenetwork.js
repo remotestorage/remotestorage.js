@@ -170,17 +170,15 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       self.appKeys = appApiKeys.app;
       
       tokenKey = SETTINGS_KEY + ':token';
-      return window.safeAuth.authorise(self.appKeys, tokenKey).then( function(res) {   // mrhTODO - am leaving off local storage key
+      window.safeAuth.authorise(self.appKeys, tokenKey).then( function(res) {   // mrhTODO - am leaving off local storage key
         // Save session info
         self.configure({ 
             token:          res.token,                  // Auth token
             permissions:    res.permissions,   // List of permissions approved by the user
           });
-
       }, (err) => {
         RS.log('SafeNetwork Authorisation Failed');
         RS.log(err);
-        return this; //mrhTODO reject promise?
       });
     },
     
@@ -297,8 +295,8 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
     // mrhTODO - replace _updateFile / _createFile with single _putFile (as POST /nfs/file now does both)
     // mrhTODO contentType is ignored on update (to change it would require file delete and create before update)
-    _updateFile: function (path, body, contentType, options) {
-      RS.log('SafeNetwork._updateFile(' + path + ',...)' );
+    _updateFile: function (fullPath, body, contentType, options) {
+      RS.log('SafeNetwork._updateFile(' + fullPath + ',...)' );
       var self = this;
 
       /* mrhTODO GoogleDrive only I think...
@@ -308,29 +306,13 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       }
 */
       
-      // STORE/UPDATE FILE CONTENT (PUT) (https://maidsafe.readme.io/docs/nfs-update-file-content)
-      var queryParams = 'offset=0';
-      var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
-      var urlPUT = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);//mrhTODO + '?' + queryParams;
-
-      // mrhTODO I'm not sure what header/content-type needed for encrypted data
-      // mrhTODO Should CT denote the type that is encrypted, or say it's encrypted?
-      var optionsPUT = {
-          url: urlPUT,
-        headers: {
-          'Content-Type': contentType
-        },
-        body: body,
-      };
-
-      // mrhTODO googledrive does two PUTs, one initiates resumable tx, the second sends data - review when streaming API avail
-      return window.safeNFS.createFile(self.token, path, body, contentType, body.length, null, self.isPathShared).then(function (response) {
-        // self._shareIfNeeded(path);  // mrhTODO what's this? (was part of dropbox.js)
+      return window.safeNFS.createFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (response) {
+        // self._shareIfNeeded(fullPath);  // mrhTODO what's this? (was part of dropbox.js)
 
         self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
         return response;
       }, (err) => {
-        RS.log('REJECTING!!! safeNFS.createFile("' + path + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('REJECTING!!! safeNFS.createFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -390,21 +372,15 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           // Refer to baseclient.js#getFile for retResponse spec (note getFile header comment wrong!)
           var retResponse = {
             statusCode: 200, 
-            body: body, 
+            body: JSON.stringify(body),     // mrhTODO not sure stringify() needed, but without it RS.local copies of nodes differ when loaded from SAFE
+                                            // mrhTODO RS ISSUE: is it a bug that RS#get accepts a string *or an object* for body? Should it only accept a string?
             revision: etagWithoutQuotes,
           };
 
-          
-          if (fileInfo){
-            retResponse.contentType = fileInfo.mimetype;
-          
-          /* mrhTODO already done by safe-js NFS getFile
-            // mrhTODO: This is intended to parse remotestorage JSON format objects, so when saving those
-            // mrhTODO: it may be necessary to set mimeType in the saved file-metadata
-            if (retResponse.contentType.match(/^application\/json/)) {
-                retResponse.body = response.__parsedResponseBody__;
-            }            
-          */
+          retResponse.contentType = 'application/json; charset=UTF-8';   // mrhTODO googledrive.js#put always sets this type, so fairly safe default until SAFE NFS supports save/get of content type
+
+          if (fileInfo && fileInfo['Content-Type'] ){
+            retResponse.contentType = fileInfo['Content-Type'];
           }
          
           return Promise.resolve( retResponse );
@@ -463,7 +439,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
                 metadata = JSON.parse(metadata);
               }
               else {
-                metadata = { mimetype: 'application/json' };  // mrhTODO fake it until implemented - should never be used
+                metadata = { mimetype: 'application/json; charset=UTF-8' };  // mrhTODO fake it until implemented - should never be used
               }
 
               // mrhTODO: Until SAFE API supports eTags make them manually:
@@ -477,7 +453,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
                 // Remaining members must pass RS.js test: sync.js#corruptServerItemsMap()
                 ETag: eTagWithoutQuotes,
                 'Content-Length': item.size,
-                'Content-Type': metadata.mimetype,  // metadata.mimetype currently faked (see above)
+                'Content-Type': metadata.mimetype,  // metadata.mimetype currently faked (see above) mrhTODO, see next
               };
 
               self._fileInfoCache.set(fullItemPath, fileInfo);
@@ -631,6 +607,11 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
   //    1) config.clientId not present
   //    2) it uses hookIt() (and in _rs_cleanup() unHookIt()) instead of inline assignements
   //       which causes dropbox version  to also call hookSync() and hookGetItemURL()
+  //
+  // mrhTODO re-above, also need to check if app calling setApiKeys for multiple backends breaks this
+  // mrhTODO and may cause problems with starting sync?
+  // mrhTODO Maybe the hookIt stuff in Dropbox allows chaining, but not yet in GD or SN?
+  //
   RS.SafeNetwork._rs_init = function (remoteStorage) {
 
     var config = remoteStorage.apiKeys.safenetwork;
