@@ -48,7 +48,6 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
   
   var hasLocalStorage;// mrhTODO look at use of this
   var SETTINGS_KEY = 'remotestorage:safenetwork';
-  var cleanPath = RS.WireClient.cleanPath;
   var PATH_PREFIX = '/remotestorage/';  // mrhTODO app configurable?
   
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
@@ -185,7 +184,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     // For reference see WireClient#get (wireclient.js)
     get: function (path, options) {
       RS.log('SafeNetwork.get(' + path + ',...)' );
-      var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
+      var fullPath = ( PATH_PREFIX + '/' + path ).replace(/\/+/g, '/');
 
       if (path.substr(-1) === '/') {
         return this._getFolder(fullPath, options);
@@ -209,7 +208,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     
     put: function (path, body, contentType, options) {
       RS.log('SafeNetwork.put(' + path + ', ' + (options ? ( '{IfMatch: ' + options.IfMatch + ', IfNoneMatch: ' + options.IfNoneMatch + '})') : 'null)' ) );
-      var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
+      var fullPath = ( PATH_PREFIX + '/' + path ).replace(/\/+/g, '/');
 
       // putDone - handle PUT response codes, optionally decodes metadata from JSON format response
       var self = this;
@@ -224,7 +223,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
             var etagWithoutQuotes = ( typeof(fileInfo.ETag) === 'string' ? fileInfo.ETag : undefined );            
             return Promise.resolve({statusCode: 200, 'contentType': contentType, revision: etagWithoutQuotes});
           }, (err) => {
-            RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+            RS.log('REJECTING!!! ' + err.message)
             return Promise.reject(err);
           });
         } else if (response.statusCode === 412) {   // Precondition failed
@@ -244,7 +243,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           return self._createFile(fullPath, body, contentType, options).then(putDone);
         }
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
     },
@@ -256,7 +255,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     //
     'delete': function (path, options) {
       RS.log('SafeNetwork.delete(' + path + ',...)' );
-      var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
+      var fullPath = ( PATH_PREFIX + '/' + path ).replace(/\/+/g, '/');
 
       RS.log('SafeNetwork.delete: ' + fullPath + ', ...)' );
       var self = this;
@@ -288,7 +287,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         });
 
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.statusCode)
+        RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
     },
@@ -346,9 +345,6 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       var revCache = this._revCache;
       var self = this;
 
-      var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
-      var url = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(fullPath);
-
       // Check if file exists. Creates parent folder if that doesn't exist.
       return self._getFileInfo(fullPath).then(function (fileInfo) {
         var etagWithoutQuotes = fileInfo.ETag; // mrhTODO don't need this I think: ( fileInfo.ETag && typeof(fileInfo.ETag) === 'string' ? fileInfo.ETag : undefined );
@@ -389,7 +385,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
     },
@@ -424,11 +420,12 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
             var folderETagWithoutQuotes = fullPath + '-' + body.info.createdOn + '-' + body.info.modifiedOn;
             RS.log('..folder eTag: ' + folderETagWithoutQuotes);
             
-            var folderMetadata;
+            var folderMetadata = {};
             if ( body.info.metadata ){ 
               folderMetadata = body.info.metadata; 
-              RS.log('..folder metadata: ' + folderMetadata);
             }
+            folderMetadata.ETag = folderETagWithoutQuotes;
+            RS.log('..folder metadata: ' + JSON.stringify(folderMetadata));
             
             listingFiles = body.files.reduce(function (m, item) {
               var fullItemPath = fullPath + item.name;
@@ -511,7 +508,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           return self._createFolder(parentFolder);
         }
       }, (err) => {
-        RS.log('REJECTING!!! _getFileInfo("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
     },
@@ -591,6 +588,10 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
               return Promise.reject(err);
             });
           }
+          else {                                // file, doesn't exist
+            //RS.log('_getFileInfo(' + fullPath + ') file does not exist, no fileInfo available ')
+            return Promise.reject(new Error('_getFileInfo(' + fullPath + ') file does not exist, no fileInfo available'));            
+          }
         }
         
         return Promise.resolve(info);         // Pass back info (null if doesn't exist)
@@ -608,7 +609,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
   //    2) it uses hookIt() (and in _rs_cleanup() unHookIt()) instead of inline assignements
   //       which causes dropbox version  to also call hookSync() and hookGetItemURL()
   //
-  // mrhTODO re-above, also need to check if app calling setApiKeys for multiple backends breaks this
+  // mrhTODO re-above, also need to check if app calling setAPIKeys for multiple backends breaks this
   // mrhTODO and may cause problems with starting sync?
   // mrhTODO Maybe the hookIt stuff in Dropbox allows chaining, but not yet in GD or SN?
   //
