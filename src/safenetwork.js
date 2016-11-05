@@ -589,8 +589,8 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
             });
           }
           else {                                // file, doesn't exist
-            //RS.log('_getFileInfo(' + fullPath + ') file does not exist, no fileInfo available ')
-            return Promise.reject(new Error('_getFileInfo(' + fullPath + ') file does not exist, no fileInfo available'));            
+            RS.log('_getFileInfo(' + fullPath + ') file does not exist, no fileInfo available ')
+            return Promise.resolve(null);            
           }
         }
         
