@@ -351,7 +351,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
         // Request is only for changed file, so if eTag matches return "304 Not Modified"
         // mrhTODO strictly this should be asked of SAFE API, but until versioning supported, we cache last eTags
-        if (ENABLE_ETAGS && options && options.ifNoneMatch && etagWIthoutQuotes && (etagWithoutQuotes === options.ifNoneMatch)) {
+        if (ENABLE_ETAGS && options && options.ifNoneMatch && etagWithoutQuotes && (etagWithoutQuotes === options.ifNoneMatch)) {
           return Promise.resolve({statusCode: 304});
         }
           
