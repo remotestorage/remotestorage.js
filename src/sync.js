@@ -932,7 +932,7 @@
           }
         });
       }, function (err) {
-        console.error('[Sync] Error', err);
+        RemoteStorage.log('[Sync] Error', err);
         delete self._timeStarted[task.path];
         delete self._running[task.path];
         self._emit('req-done');
