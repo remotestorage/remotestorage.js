@@ -903,7 +903,6 @@
       .then(function (completed) {
         delete self._timeStarted[task.path];
         delete self._running[task.path];
-        self.remote.online = true;
 
         if (completed) {
           if (self._tasks[task.path]) {
