@@ -75,7 +75,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       });
     });
     env.rs = new RemoteStorage();
-    RemoteStorage.eventHandling(env.rs, 'error');
+    RemoteStorage.eventHandling(env.rs, 'error', 'network-offline', 'network-online');
     env.client = new RemoteStorage.WireClient(env.rs);
     env.connectedClient = new RemoteStorage.WireClient(env.rs);
     env.baseURI = 'https://example.com/storage/test';
@@ -89,8 +89,12 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
     env.busy = new test.Stub(function(){});
     env.done = new test.Stub(function(){});
+    env.networkOffline = new test.Stub(function(){});
+    env.networkOnline = new test.Stub(function(){});
     env.connectedClient.on('wire-busy', env.busy);
     env.connectedClient.on('wire-done', env.done);
+    env.rs.on('network-offline', env.networkOffline);
+    env.rs.on('network-online', env.networkOnline);
 
     test.done();
   }
@@ -178,6 +182,75 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
         }
       },
+
+      {
+        desc: "client.get() with request failure emits network-offline if remote.online was true",
+        run: function(env,test){
+          env.connectedClient.online = true;
+          env.connectedClient.get('/foo').then(function(){
+          }, function (err) {
+            test.assertAnd(env.networkOffline.numCalled, 1);
+            test.done();
+          });
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+        }
+      },
+
+      {
+        desc: "client.get() with request failure does not emit network-offline if remote.online was false",
+        run: function(env,test){
+          env.connectedClient.online = false;
+          env.connectedClient.get('/foo').then(function(){
+          }, function (err) {
+            test.assertAnd(env.networkOffline.numCalled, 0);
+            test.done();
+          });
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+        }
+      },
+
+      {
+        desc: "client.get() with success emits network-online if remote.online was false",
+        run: function(env,test){
+          env.connectedClient.online = false;
+          env.connectedClient.get('/foo').then(function(){
+            test.assertAnd(env.networkOnline.numCalled, 1);
+            test.done();
+          });
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+            req.status = 200;
+            req.response = new ArrayBufferMock('response-body');
+            req._onload();
+          }, 10);
+        }
+      },
+
+      {
+        desc: "client.get() with success does not emit network-online if remote.online was true",
+        run: function(env,test){
+          env.connectedClient.online = true;
+          env.connectedClient.get('/foo').then(function(){
+            test.assertAnd(env.networkOnline.numCalled, 0);
+            test.done();
+          });
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+            req.status = 200;
+            req.response = new ArrayBufferMock('response-body');
+            req._onload();
+          }, 10);
+        }
+      },
+
 
       {
         desc: "client.get() of a folder emits wire-busy and wire-done on success, and sets remote.online to true",

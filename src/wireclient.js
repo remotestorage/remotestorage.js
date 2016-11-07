@@ -179,6 +179,7 @@
    * Class : RemoteStorage.WireClient
    **/
   RS.WireClient = function (rs) {
+    this.rs = rs;
     this.connected = false;
 
     /**
@@ -190,7 +191,8 @@
      *   Fired when the wireclient connect method realizes that it is in
      *   possession of a token and href
      **/
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+    RS.eventHandling(this, 'change', 'connected', 'not-connected',
+                           'wire-busy', 'wire-done');
 
     onErrorCb = function (error){
       if (error instanceof RemoteStorage.Unauthorized) {
@@ -276,13 +278,17 @@
         body: body,
         headers: headers,
         responseType: 'arraybuffer'
-      }).then(function (response) {
+      }).then(function(response) {
+        if (!self.online) {
+          self.online = true;
+          self.rs._emit('network-online');
+        }
         self._emit('wire-done', {
           method: method,
           isFolder: isFolder(uri),
           success: true
         });
-        self.online = true;
+
         if (isErrorStatus(response.status)) {
           RemoteStorage.log('[WireClient] Error response status', response.status);
           if (getEtag) {
@@ -318,11 +324,16 @@
           }
         }
       }, function (error) {
+        if (self.online) {
+          self.online = false;
+          self.rs._emit('network-offline');
+        }
         self._emit('wire-done', {
           method: method,
           isFolder: isFolder(uri),
           success: false
         });
+
         return Promise.reject(error);
       });
     },

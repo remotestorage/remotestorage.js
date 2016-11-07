@@ -869,7 +869,6 @@
           error = new RemoteStorage.Unauthorized();
         } else if (status.networkProblems) {
           error = new RemoteStorage.SyncError('Network request failed.');
-          this.remote.online = false;
         } else {
           error = new Error('HTTP response code ' + status.statusCode + ' received.');
         }
