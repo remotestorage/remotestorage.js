@@ -796,9 +796,6 @@
     },
 
     interpretStatus: function (statusCode) {
-      // if (typeof statusCode.length === 'number') {
-      //   statusCode = statusCode[0];
-      // }
       if (statusCode === 'offline' || statusCode === 'timeout') {
         return {
           successful:      false,
