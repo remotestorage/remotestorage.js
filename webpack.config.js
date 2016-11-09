@@ -1,4 +1,4 @@
-var webpack = require('webpack')
+var webpack = require('webpack');
 var isProd = (process.env.NODE_ENV === 'production');
 
 // minimize only in production
