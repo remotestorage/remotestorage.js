@@ -1,4 +1,4 @@
-var webpack = require('webpack');
+var webpack = require('webpack')
 var isProd = (process.env.NODE_ENV === 'production');
 
 // minimize only in production
@@ -9,10 +9,13 @@ module.exports = {
   // source map not in production
   devtool: !isProd && 'source-map',
   output: {
-    filename: __dirname + '/build/build.js',
+    filename: __dirname + '/build/remotestorage.js',
     library: 'RemoteStorage',
     libraryTarget: 'umd',
     umdNamedDefine: true
+  },
+  node: {
+    global: false
   },
   externals: [ 'xmlhttprequest' ],
   plugins: plugins
