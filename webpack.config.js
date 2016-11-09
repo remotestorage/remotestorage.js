@@ -14,9 +14,6 @@ module.exports = {
     libraryTarget: 'umd',
     umdNamedDefine: true
   },
-  node: {
-    global: false
-  },
   externals: [ 'xmlhttprequest' ],
   plugins: plugins
 };
