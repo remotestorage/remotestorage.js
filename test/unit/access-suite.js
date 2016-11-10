@@ -1,20 +1,17 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define([ './src/init', 'fs'], function( RemoteStorage, fs, undefined) {
+define([ 'require', 'fs'], function( require, fs, undefined) {
   var suites = [];
 
   suites.push({
     name: "access",
     desc: "access knows all about the scope we claimed and which paths that gives us access to",
     setup: function(env, test) {
+
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      if (global.rs_access) {
-        RemoteStorage.access = global.rs_access;
-      } else {
-        global.rs_access = RemoteStorage.access;
-      }
+      RemoteStorage.Access = require('../../src/access');
 
       env.Access = RemoteStorage.Access;
 
