@@ -17,6 +17,5 @@ require('./localstorage');
 require('./baseclient/types');
 require('./env');
 require('./access');
-require('./assets');
 require('./discover');
 require('./authorize');
