@@ -9,7 +9,7 @@ module.exports = {
   // source map not in production
   devtool: !isProd && 'source-map',
   output: {
-    filename: __dirname + '/build/remotestorage.js',
+    filename: __dirname + '/release/' + (isProd?'stable':'head') + '/remotestorage.js',
     library: 'RemoteStorage',
     libraryTarget: 'umd',
     umdNamedDefine: true
