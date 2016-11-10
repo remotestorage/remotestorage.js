@@ -178,6 +178,8 @@
     this.on('ready', this.fireInitial.bind(this));
   };
 
+  RemoteStorage.Access = require('./access');
+  
   RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
   RemoteStorage.DiscoveryError = function (message) {
@@ -809,7 +811,21 @@
    * Property: access
    *
    * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
-   *
+  */
+
+  Object.defineProperty(RemoteStorage.prototype, 'access', {
+    get: function() {
+      var access = new RemoteStorage.Access();
+      Object.defineProperty(this, 'access', {
+        value: access
+      });
+      return access;
+    },
+    configurable: true
+  });
+
+
+  /**
    *
    * Property: caching
    *

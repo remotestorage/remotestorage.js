@@ -1,5 +1,3 @@
-  var RemoteStorage = require('./remotestorage');
-
   var SETTINGS_KEY = "remotestorage:access";
 
   /**
@@ -7,11 +5,11 @@
    *
    * Keeps track of claimed access and scopes.
    */
-  RemoteStorage.Access = function() {
+  var Access = function() {
     this.reset();
   };
 
-  RemoteStorage.Access.prototype = {
+  Access.prototype = {
 
     /**
      * Method: claim
@@ -129,7 +127,7 @@
    * Holds an array of claimed scopes in the form
    * > { name: "<scope-name>", mode: "<mode>" }
    */
-  Object.defineProperty(RemoteStorage.Access.prototype, 'scopes', {
+  Object.defineProperty(Access.prototype, 'scopes', {
     get: function() {
       return Object.keys(this.scopeModeMap).map(function(key) {
         return { name: key, mode: this.scopeModeMap[key] };
@@ -137,7 +135,7 @@
     }
   });
 
-  Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
+  Object.defineProperty(Access.prototype, 'scopeParameter', {
     get: function() {
       return this.scopes.map(function(scope) {
         return this._scopeNameForParameter(scope) + ':' + scope.mode;
@@ -145,16 +143,7 @@
     }
   });
 
-  // Documented in src/remotestorage.js
-  Object.defineProperty(RemoteStorage.prototype, 'access', {
-    get: function() {
-      var access = new RemoteStorage.Access();
-      Object.defineProperty(this, 'access', {
-        value: access
-      });
-      return access;
-    },
-    configurable: true
-  });
 
-  RemoteStorage.Access._rs_init = function() {};
+  Access._rs_init = function() {};
+
+  module.exports = Access;
