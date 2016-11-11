@@ -189,7 +189,7 @@
     RemoteStorage.eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
             'error', 'features-loaded', 'connecting', 'authing',
-            'sync-interval-change','wire-busy', 'wire-done',
+            'sync-interval-change', 'wire-busy', 'wire-done',
             'network-offline', 'network-online'
     );
 
