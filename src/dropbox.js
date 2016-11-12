@@ -636,6 +636,7 @@
           self.online = false;
           self.rs._emit('network-offline');
         }
+        return Promise.reject(error);
       });
     },
 

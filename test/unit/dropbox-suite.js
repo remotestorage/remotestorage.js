@@ -9,7 +9,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
   function setup(env, test) {
     global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error', 'connected');
+      RemoteStorage.eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
     };
     RemoteStorage.log = function () {};
     RemoteStorage.prototype = {
@@ -720,7 +720,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             sync: function() {
               test.assert(fetchDeltaCalled, true);
             }
-          }
+          };
 
           RemoteStorage.Dropbox._rs_init(env.rs);
 
