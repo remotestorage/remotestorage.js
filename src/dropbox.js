@@ -847,7 +847,7 @@
     }
   };
 
-  //hooking and unhooking the sync
+  // Hooking and unhooking the sync
 
   function hookSync(rs) {
     if (rs._dropboxOrigSync) { return; } // already hooked
@@ -866,7 +866,7 @@
     delete rs._dropboxOrigSync;
   }
 
-  // hooking and unhooking getItemURL
+  // Hooking and unhooking getItemURL
 
   function hookGetItemURL(rs) {
     if (rs._origBaseClientGetItemURL) { return; }
