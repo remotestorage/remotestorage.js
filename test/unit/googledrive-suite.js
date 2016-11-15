@@ -10,7 +10,7 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
   function setup (env, test) {
     global.localStorage = {};
     global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error');
+      RemoteStorage.eventHandling(this, 'error', 'network-offline', 'network-online');
     };
     RemoteStorage.log = function () {};
     RemoteStorage.prototype = {

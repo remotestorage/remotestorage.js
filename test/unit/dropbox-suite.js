@@ -8,9 +8,9 @@ define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks']
   var suites = [];
 
   function setup(env, test) {
-    // global.RemoteStorage = function () {
-    //   RemoteStorage.eventHandling(this, 'error', 'connected');
-    // };
+    global.RemoteStorage = function () {
+      RemoteStorage.eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
+    };
     RemoteStorage.log = function () {};
     // RemoteStorage.prototype.setBackend = function (b) {
     //   this.backend = b;
@@ -714,7 +714,7 @@ define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks']
             sync: function() {
               test.assert(fetchDeltaCalled, true);
             }
-          }
+          };
 
           RemoteStorage.Dropbox._rs_init(env.rs);
 

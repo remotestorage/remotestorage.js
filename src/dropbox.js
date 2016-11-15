@@ -613,15 +613,32 @@
      */
     _request: function (method, url, options) {
       var self = this;
+
       if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + this.token;
-      return RS.WireClient.request.call(this, method, url, options).then(function (xhr) {
-        //503 means retry this later
+
+      return RS.WireClient.request.call(this, method, url, options).then(function(xhr) {
+        // 503 means retry this later
         if (xhr && xhr.status === 503) {
+          if (self.online) {
+            self.online = false;
+            self.rs._emit('network-offline');
+          }
           return global.setTimeout(self._request(method, url, options), 3210);
         } else {
+          if (!self.online) {
+            self.online = true;
+            self.rs._emit('network-online');
+          }
+
           return Promise.resolve(xhr);
         }
+      }, function(error) {
+        if (self.online) {
+          self.online = false;
+          self.rs._emit('network-offline');
+        }
+        return Promise.reject(error);
       });
     },
 
@@ -849,7 +866,7 @@
     }
   };
 
-  //hooking and unhooking the sync
+  // Hooking and unhooking the sync
 
   function hookSync(rs) {
     if (rs._dropboxOrigSync) { return; } // already hooked
@@ -868,7 +885,7 @@
     delete rs._dropboxOrigSync;
   }
 
-  // hooking and unhooking getItemURL
+  // Hooking and unhooking getItemURL
 
   function hookGetItemURL(rs) {
     if (rs._origBaseClientGetItemURL) { return; }

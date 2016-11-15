@@ -418,15 +418,28 @@
 
     _request: function (method, url, options) {
       var self = this;
+
       if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + self.token;
-      return RS.WireClient.request(method, url, options).then(function (xhr) {
-        // google tokens expire from time to time...
+
+      return RS.WireClient.request.call(this, method, url, options).then(function(xhr) {
+        // Google tokens expire from time to time...
         if (xhr && xhr.status === 401) {
           self.connect();
           return;
+        } else {
+          if (!self.online) {
+            self.online = true;
+            self.rs._emit('network-online');
+          }
+          return Promise.resolve(xhr);
         }
-        return xhr;
+      }, function(error) {
+        if (self.online) {
+          self.online = false;
+          self.rs._emit('network-offline');
+        }
+        return Promise.reject(error);
       });
     }
   };
