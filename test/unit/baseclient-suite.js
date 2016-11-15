@@ -1,10 +1,9 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, Promise, mocks, tv4) {
+define(['./src/config', './src/baseclient', 'bluebird', 'test/helpers/mocks', 'tv4'], 
+       function (config, BaseClient, Promise, mocks, tv4) {
 
-  global.Promise = Promise;
-  global.tv4 = tv4;
   var suites = [];
 
   suites.push({
@@ -14,7 +13,6 @@ define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, 
       mocks.defineMocks(env);
 
       global.RemoteStorage = function() {};
-      RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         onChange: function(basePath, handler) {
           this.onChange = handler;
@@ -26,43 +24,17 @@ define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, 
           }
         }
       };
-      RemoteStorage.config = {
-        changeEvents: {
-          remote: true
-        } 
-      };
 
-      // if (global.rs_util) {
-      //   RemoteStorage.util = global.rs_util;
-      // } else {
-      //   global.rs_util = RemoteStorage.util;
-      // }
+      config .changeEvents = { remote: true };
 
-      // if (global.rs_eventhandling) {
-      //   RemoteStorage.eventHandling = global.rs_eventhandling;
-      // } else {
-      //   global.rs_eventhandling = RemoteStorage.eventHandling;
-      // }
-
-      // if (global.rs_wireclient) {
-      //   RemoteStorage.WireClient = global.rs_wireclient;
-      // } else {
-      //   global.rs_wireclient = RemoteStorage.WireClient;
-      // }
-
-      require('../../lib/Math.uuid');
-      RemoteStorage.BaseClient = require('../../src/baseclient')
-      // if (global.rs_baseclient_with_types) {
-      //   RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-      // } else {
-      //   global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-      // }
+      // require('../../lib/Math.uuid');
+      // global.BaseClient = require('../../src/baseclient')
       test.done();
     },
     beforeEach: function(env, test) {
       env.storage = new RemoteStorage();
       env.storage.access = new FakeAccess();
-      env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
+      env.client = new BaseClient(env.storage, '/foo/');
       test.done();
     },
     tests: [
@@ -79,7 +51,7 @@ define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, 
         desc: "it doesn't accept non-folder paths",
         run: function(env, test) {
           try {
-            new RemoteStorage.BaseClient(env.storage, '/foo');
+            new BaseClient(env.storage, '/foo');
             test.result(false);
           } catch(e) {
             test.done();
@@ -90,9 +62,9 @@ define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, 
       {
         desc: "it detects the module name correctly",
         run: function(env, test) {
-          var rootClient = new RemoteStorage.BaseClient(env.storage, '/');
-          var moduleClient = new RemoteStorage.BaseClient(env.storage, '/contacts/');
-          var nestedClient = new RemoteStorage.BaseClient(env.storage, '/email/credentials/');
+          var rootClient = new BaseClient(env.storage, '/');
+          var moduleClient = new BaseClient(env.storage, '/contacts/');
+          var nestedClient = new BaseClient(env.storage, '/email/credentials/');
           test.assertAnd(rootClient.moduleName, 'root');
           test.assertAnd(moduleClient.moduleName, 'contacts');
           test.assertAnd(nestedClient.moduleName, 'email');
@@ -108,7 +80,7 @@ define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, 
             test.assertAnd(path, '/foo/');
             test.done();
           };
-          var client = new RemoteStorage.BaseClient(env.storage, '/foo/');
+          var client = new BaseClient(env.storage, '/foo/');
         }
       },
 
@@ -139,9 +111,9 @@ define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, 
           onChange: function() {}
         };
       }
-      if (typeof(RemoteStorage.BaseClient) !== 'function') {
+      if (typeof(BaseClient) !== 'function') {
         require('../../src/eventhandling');
-        RemoteStorage.BaseClient = require('../../src/baseclient');
+        BaseClient = require('../../src/baseclient');
       }
       test.done();
     },
@@ -149,7 +121,7 @@ define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, 
     beforeEach: function(env, test) {
       env.storage = new RemoteStorage();
       env.storage.access = new FakeAccess();
-      env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
+      env.client = new BaseClient(env.storage, '/foo/');
       test.done();
     },
 
@@ -476,7 +448,7 @@ define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, 
         desc: "values in change events are JSON-parsed when possible",
         run: function(env, test) {
           var storage = new RemoteStorage();
-          var client = new RemoteStorage.BaseClient(storage, '/foo/');
+          var client = new BaseClient(storage, '/foo/');
           var expected = [{
             path: '/foo/a',
             origin: 'remote',

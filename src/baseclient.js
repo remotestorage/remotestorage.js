@@ -4,12 +4,12 @@
                 replacement + ' instead.');
   }
 
-  // require('./eventhandling.js');
+  var eventHandling = require('./eventhandling');
   var RemoteStorage = require('./remotestorage');
   var util = require('./util');
+  var config = require('./config');
+  require('../lib/Math.uuid');
 
-  // var RS = require('./remotestorage');
-  // var RemoteStorage = RS;
 
   /**
    * Class: RemoteStorage.BaseClient
@@ -155,7 +155,7 @@
      * the remote store in asynchronous synchronization (see example above).
      **/
 
-    RemoteStorage.eventHandling(this, 'change');
+    eventHandling(this, 'change');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
   };
@@ -580,7 +580,7 @@
     },
 
     _fireChange: function (event) {
-      if (RemoteStorage.config.changeEvents[event.origin]) {
+      if (config.changeEvents[event.origin]) {
         ['new', 'old', 'lastCommon'].forEach(function (fieldNamePrefix) {
           if ((!event[fieldNamePrefix+'ContentType'])
               || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType']))) {
@@ -683,3 +683,4 @@
    **/
 
 module.exports = BaseClient;
+require('./types');

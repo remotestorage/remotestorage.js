@@ -16,7 +16,7 @@
       if (typeof(handler) !== 'function') {
         throw new Error('Argument handler should be a function');
       }
-      log('[Eventhandling] Adding event listener', eventName, handler);
+      // log('[Eventhandling] Adding event listener', eventName, handler);
       this._validateEvent(eventName);
       this._handlers[eventName].push(handler);
     },

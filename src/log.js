@@ -1,8 +1,8 @@
-var RemoteStorage = require('./remotestorage');
-console.log(RemoteStorage, 'log')
+// var RemoteStorage = require('./remotestorage');
+var config = require('./config');
 
 module.exports = function () {
-  // if (RemoteStorage.config.logging) {
+  if (config.logging) {
     console.log.apply(console, arguments);
-  // }
+  }
 };

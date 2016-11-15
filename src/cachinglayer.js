@@ -1,3 +1,5 @@
+  var util = require('./util');
+  var config = require('./config');
   var RemoteStorage = require('./remotestorage');
 
   /**
@@ -13,10 +15,10 @@
    * talk to.
    */
 
-  var isFolder = RemoteStorage.util.isFolder;
-  var isDocument = RemoteStorage.util.isDocument;
-  var deepClone = RemoteStorage.util.deepClone;
-  var equal = RemoteStorage.util.equal;
+  var isFolder = util.isFolder;
+  var isDocument = util.isDocument;
+  var deepClone = util.deepClone;
+  var equal = util.equal;
 
   function getLatest(node) {
     if (typeof(node) !== 'object' || typeof(node.path) !== 'string') {
@@ -65,7 +67,7 @@
     return true;
   }
 
-  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
+  var pathsFromRoot = util.pathsFromRoot;
 
   function makeNode(path) {
     var node = { path: path, common: { } };
@@ -169,7 +171,7 @@
           }
           return nodes;
         } catch (e) {
-          RemoteStorage.log('[Cachinglayer] Error during PUT', nodes, i, e);
+          log('[Cachinglayer] Error during PUT', nodes, i, e);
           throw e;
         }
       }
@@ -212,7 +214,6 @@
         return nodes;
       });
     },
-
     flush: function (path) {
       var self = this;
       return self._getAllDescendentPaths(path).then(function (paths) {
@@ -236,13 +237,13 @@
     },
 
     _emitChange: function (obj) {
-      if (RemoteStorage.config.changeEvents[obj.origin]) {
+      if (config.changeEvents[obj.origin]) {
         this._emit('change', obj);
       }
     },
 
     fireInitial: function () {
-      if (!RemoteStorage.config.changeEvents.local) {
+      if (!config.changeEvents.local) {
         return;
       }
       var self = this;
@@ -319,7 +320,7 @@
         var existingNodes = deepClone(nodes);
         var changeEvents = [];
         var node;
-        var equal = RemoteStorage.util.equal;
+        var equal = util.equal;
 
         nodes = _processNodes(paths, nodes);
 
@@ -420,8 +421,10 @@
    *   };
    *   (end code)
    */
-  RemoteStorage.cachingLayer = function (object) {
+  var cachingLayer = function (object) {
     for (var key in methods) {
       object[key] = methods[key];
     }
   };
+
+  module.exports = cachingLayer;

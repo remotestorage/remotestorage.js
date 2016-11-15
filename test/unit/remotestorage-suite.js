@@ -1,9 +1,8 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteStorage, require, tv4) {
-  global.Promise = Promise;
-  global.tv4 = tv4;
+define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/log', './src/sync', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
+       function (Promise, RemoteStorage, SyncedGetPutDelete, log, Sync, Dropbox, config, eventHandling, require, tv4) {
 
   var suites = [];
 
@@ -17,7 +16,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
         this._emit('not-connected');
       }
     };
-    RemoteStorage.eventHandling(this, 'connected', 'disconnected', 'not-connected');
+    eventHandling(this, 'connected', 'disconnected', 'not-connected');
   }
 
   function fakeRequest(path) {
@@ -67,24 +66,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      if (global.rs_rs) {
-        global.RemoteStorage = global.rs_rs;
-      } else {
-        global.rs_rs = RemoteStorage;
-      }
-
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
+     
       RemoteStorage.Discover = function(userAddress) {
         var pending = Promise.defer();
         if (userAddress === "someone@somewhere") {
@@ -100,7 +82,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
     beforeEach: function(env, test) {
       var remoteStorage = new RemoteStorage();
       env.rs = remoteStorage;
-      RemoteStorage.config.cordovaRedirectUri = undefined;
+      config.cordovaRedirectUri = undefined;
       test.done();
     },
 
@@ -180,11 +162,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
       {
         desc: "#setApiKeys initializes the configured backend when it's not initialized yet",
         run: function(env, test) {
-          RemoteStorage.Dropbox = {
-            _rs_init: function(remoteStorage) {
-              test.done();
-            }
-          }
+          Dropbox._rs_init = test.done;
 
           env.rs.setApiKeys('dropbox', { appKey: 'testkey' });
         }
@@ -197,11 +175,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
             clientId: 'old key'
           };
 
-          RemoteStorage.Dropbox = {
-            _rs_init: function(remoteStorage) {
-              test.done();
-            }
-          }
+          Dropbox._rs_init = test.done;
 
           env.rs.setApiKeys('dropbox', { appKey: 'new key' });
         }
@@ -214,11 +188,9 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
             clientId: 'old key'
           };
 
-          RemoteStorage.Dropbox = {
-            _rs_init: function(remoteStorage) {
+          Dropbox._rs_init = function(remoteStorage) {
               test.fail('Backend got reinitialized again although the key did not change.');
             }
-          }
 
           env.rs.setApiKeys('dropbox', { appKey: 'old key' });
           test.done();
@@ -300,10 +272,8 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
           var initsCalled = 0;
 
           // Mock feature to be loaded on initialization
-          RemoteStorage.Sync = {
-            _rs_init: function() {},
-            _rs_cleanup: function() {}
-          };
+          Sync._rs_init = function() {};
+          Sync._rs_cleanup = function() {};
 
           var loadedHandler = function() {
             initsCalled++;
@@ -318,7 +288,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
               env.rs._init();
             } else if (initsCalled === 3) {
               env.rs.removeEventListener('features-loaded', loadedHandler);
-              delete RemoteStorage.Sync;
+              // delete Sync;
               test.done();
             }
           }
@@ -392,7 +362,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
       {
         desc: "#connect throws DiscoveryError on timeout of RemoteStorage.Discover",
         run: function(env, test) {
-          RemoteStorage.config.discoveryTimeout = 500;
+          config.discoveryTimeout = 500;
           env.rs.on('error', function(e) {
             test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
             test.done();
@@ -405,7 +375,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
         desc: "maxAge defaults to false when not connected",
         run: function(env, test) {
           var rs = {
-            get: RemoteStorage.SyncedGetPutDelete.get,
+            get: SyncedGetPutDelete.get,
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -427,7 +397,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
         desc: "maxAge defaults to false when not online",
         run: function(env, test) {
           var rs = {
-            get: RemoteStorage.SyncedGetPutDelete.get,
+            get: SyncedGetPutDelete.get,
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -452,7 +422,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
         desc: "maxAge defaults to 2*getSyncInterval when connected",
         run: function(env, test) {
           var rs = {
-            get: RemoteStorage.SyncedGetPutDelete.get,
+            get: SyncedGetPutDelete.get,
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -481,7 +451,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
         desc: "Set Cordova redirect URI config with valid URI",
         run: function(env, test) {
           env.rs.setCordovaRedirectUri('https://hyperchannel.kosmos.org');
-          test.assert(RemoteStorage.config.cordovaRedirectUri, 'https://hyperchannel.kosmos.org');
+          test.assert(config.cordovaRedirectUri, 'https://hyperchannel.kosmos.org');
         }
       },
 
@@ -491,7 +461,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
           try {
             env.rs.setCordovaRedirectUri('yolo');
           } catch(e) {
-            test.assert(typeof RemoteStorage.config.cordovaRedirectUri, 'undefined');
+            test.assert(typeof config.cordovaRedirectUri, 'undefined');
             test.done();
             throw(e);
           }
@@ -516,7 +486,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
       {
         desc: "exports the global RemoteStorage function",
         run: function(env, test) {
-          test.assertType(global.RemoteStorage, 'function');
+          test.assertType(RemoteStorage, 'function');
         }
       },
 
@@ -525,7 +495,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
         run: function(env, test) {
           replaceConsoleLog();
           try {
-            RemoteStorage.log('message');
+            log('message');
             assertNoConsoleLog(test);
           } catch(e) {
             restoreConsoleLog();
@@ -540,12 +510,12 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
         run: function(env, test) {
           replaceConsoleLog();
           try {
-            RemoteStorage.config.logging = true;
-            RemoteStorage.log('foo', 'bar', 'baz');
+            config.logging = true;
+            log('foo', 'bar', 'baz');
             assertConsoleLog(test, 'foo', 'bar', 'baz');
           } catch(e) {
             restoreConsoleLog();
-            RemoteStorage.config.logging = false;
+            config.logging = false;
             throw e;
           }
           restoreConsoleLog();
@@ -558,37 +528,7 @@ define(['bluebird', './src/init', 'require', 'tv4'], function (Promise, RemoteSt
     name: "remoteStorage",
     desc: "the RemoteStorage instance - without a connected remote",
     setup: function(env, test) {
-      if (global.rs_rs) {
-        global.RemoteStorage = global.rs_rs;
-      } else {
-        global.rs_rs = RemoteStorage;
-      }
-
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-
-      require('../../lib/Math.uuid');
-      if (global.rs_baseclient_with_types) {
-        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-      } else {
-        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-      }
-
+     
       RemoteStorage.prototype.remote = new FakeRemote(false);
       test.assertType(RemoteStorage, 'function');
     },

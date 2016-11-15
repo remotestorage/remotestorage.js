@@ -1,56 +1,29 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks'], function (RemoteStorage, Promise, backend, mocks, undefined) {
+define(['require', './src/dropbox', './src/wireclient', './src/eventhandling', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function (require, Dropbox, WireClient, eventHandling, Promise, backend, mocks, undefined) {
 
   global.Promise = Promise;
 
   var suites = [];
 
   function setup(env, test) {
+    var RS = require('./src/remotestorage');
     global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
+      eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
     };
     RemoteStorage.log = function () {};
-    // RemoteStorage.prototype.setBackend = function (b) {
-    //   this.backend = b;
-    // }
+    RemoteStorage.prototype.setBackend = function (b) {
+      this.backend = b;
+    }
    
-    // RemoteStorage.prototype.localStorageAvailable = function () {
-    //   return false;
-    // }
+    RemoteStorage.prototype.localStorageAvailable = function () {
+      return false;
+    }
 
-    // RemoteStorage.Unauthorized = function () {};
+    RemoteStorage.Unauthorized = RS.Unauthorized;
 
-    // if (global.rs_util) {
-    //   RemoteStorage.util = global.rs_util;
-    // } else {
-    //   global.rs_util = RemoteStorage.util;
-    // }
-
-    // if (global.rs_baseclient_with_types) {
-    //   RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-    // } else {
-    //   global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-    // }
-
-    // if (global.rs_eventhandling) {
-    //   RemoteStorage.eventHandling = global.rs_eventhandling;
-    // } else {
-    //   global.rs_eventhandling = RemoteStorage.eventHandling;
-    // }
-
-    // if (global.rs_wireclient) {
-    //   RemoteStorage.WireClient = global.rs_wireclient;
-    // } else {
-    //   global.rs_wireclient = RemoteStorage.WireClient;
-    // }
-
-    // if (global.rs_dropbox) {
-    //   RemoteStorage.Dropbox = global.rs_dropbox;
-    // } else {
-    //   global.rs_dropbox = RemoteStorage.Dropbox;
-    // }
 
     test.done();
   }
@@ -86,8 +59,8 @@ define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks']
     });
     env.rs = new RemoteStorage();
     env.rs.apiKeys = { dropbox: {appKey: 'testkey'} };
-    env.client = new RemoteStorage.Dropbox(env.rs);
-    env.connectedClient = new RemoteStorage.Dropbox(env.rs);
+    env.client = new Dropbox(env.rs);
+    env.connectedClient = new Dropbox(env.rs);
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({
@@ -573,7 +546,7 @@ define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks']
         desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
         timeout: 2000,
         run: function (env, test) {
-          RemoteStorage.WireClient.REQUEST_TIMEOUT = 1000;
+          WireClient.REQUEST_TIMEOUT = 1000;
           env.connectedClient.get('/foo').then(function () {
             test.result(false);
           }, function (error) {
@@ -690,13 +663,13 @@ define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks']
           var rs = new RemoteStorage();
           rs.apiKeys= { dropbox: {appKey: 'testkey'} };
 
-          test.assertAnd(allHandlers(), 4, "before init found "+allHandlers()+" handlers") ;
+          test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
 
-          RemoteStorage.Dropbox._rs_init(rs);
-          test.assertAnd(allHandlers(), 5, "after init found "+allHandlers()+" handlers") ;
+          Dropbox._rs_init(rs);
+          test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
 
-          RemoteStorage.Dropbox._rs_cleanup(rs);
-          test.assertAnd(allHandlers(), 4, "after cleanup found "+allHandlers()+" handlers") ;
+          Dropbox._rs_cleanup(rs);
+          test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
 
           test.done();
         }
@@ -716,7 +689,7 @@ define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks']
             }
           };
 
-          RemoteStorage.Dropbox._rs_init(env.rs);
+          Dropbox._rs_init(env.rs);
 
           env.rs.dropbox.fetchDelta = function() {
             fetchDeltaCalled = true;

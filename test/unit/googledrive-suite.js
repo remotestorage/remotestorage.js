@@ -1,7 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks'], function (Promise, RemoteStorage, backend, mocks, undefined) {
+define(['bluebird', './src/eventhandling', './src/googledrive', './src/remotestorage', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function (Promise, eventHandling, GoogleDrive, RS, backend, mocks, undefined) {
 
   global.Promise = Promise;
 
@@ -10,39 +11,14 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
   function setup (env, test) {
     global.localStorage = {};
     global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error', 'network-offline', 'network-online');
+      eventHandling(this, 'error', 'network-offline', 'network-online');
     };
-    RemoteStorage.log = function () {};
     RemoteStorage.prototype = {
       setBackend: function (b){
         this.backend = b;
       }
     };
-    global.RemoteStorage.Unauthorized = function () {};
-
-    if (global.rs_util) {
-      RemoteStorage.util = global.rs_util;
-    } else {
-      global.rs_util = RemoteStorage.util;
-    }
-
-    if (global.rs_eventhandling) {
-      RemoteStorage.eventHandling = global.rs_eventhandling;
-    } else {
-      global.rs_eventhandling = RemoteStorage.eventHandling;
-    }
-
-    if (global.rs_wireclient) {
-      RemoteStorage.WireClient = global.rs_wireclient;
-    } else {
-      global.rs_wireclient = RemoteStorage.WireClient;
-    }
-
-    if (global.rs_googledrive) {
-      RemoteStorage.GoogleDrive = global.rs_googledrive;
-    } else {
-      global.rs_googledrive = RemoteStorage.GoogleDrive;
-    }
+    global.RemoteStorage.Unauthorized = RS.Unauthorized;
 
     test.done();
   }
@@ -78,8 +54,8 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
     });
     env.rs = new RemoteStorage();
     env.rs.apiKeys= { googledrive: {clientId: 'testkey'} };
-    env.client = new RemoteStorage.GoogleDrive(env.rs);
-    env.connectedClient = new RemoteStorage.GoogleDrive(env.rs);
+    env.client = new GoogleDrive(env.rs);
+    env.connectedClient = new GoogleDrive(env.rs);
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({

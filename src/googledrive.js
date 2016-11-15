@@ -22,6 +22,9 @@
 
   var RS = require('./remotestorage');
   var RemoteStorage = RS;
+  var Authorize = require('./authorize');
+  var WireClient = require('./wireclient');
+  var eventHandling = require('./eventhandling');
 
   var BASE_URL = 'https://www.googleapis.com';
   var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -80,9 +83,9 @@
     }
   };
 
-  RS.GoogleDrive = function (remoteStorage, clientId) {
+  var GoogleDrive = function (remoteStorage, clientId) {
 
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+    eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     this.rs = remoteStorage;
     this.clientId = clientId;
@@ -90,7 +93,7 @@
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
   };
 
-  RS.GoogleDrive.prototype = {
+  GoogleDrive.prototype = {
     connected: false,
     online: true,
 
@@ -109,7 +112,7 @@
 
     connect: function () {
       this.rs.setBackend('googledrive');
-      RS.Authorize(this.rs, AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
+      Authorize(this.rs, AUTH_URL, AUTH_SCOPE, String(Authorize.getLocation()), this.clientId);
     },
 
     stopWaitingForToken: function () {
@@ -422,7 +425,7 @@
       if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + self.token;
 
-      return RS.WireClient.request.call(this, method, url, options).then(function(xhr) {
+      return WireClient.request.call(this, method, url, options).then(function(xhr) {
         // Google tokens expire from time to time...
         if (xhr && xhr.status === 401) {
           self.connect();
@@ -444,7 +447,7 @@
     }
   };
 
-  RS.GoogleDrive._rs_init = function (remoteStorage) {
+  GoogleDrive._rs_init = function (remoteStorage) {
     var config = remoteStorage.apiKeys.googledrive;
     if (config) {
       remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.clientId);
@@ -455,11 +458,11 @@
     }
   };
 
-  RS.GoogleDrive._rs_supported = function (rs) {
+  GoogleDrive._rs_supported = function (rs) {
     return true;
   };
 
-  RS.GoogleDrive._rs_cleanup = function (remoteStorage) {
+  GoogleDrive._rs_cleanup = function (remoteStorage) {
     remoteStorage.setBackend(undefined);
     if (remoteStorage._origRemote) {
       remoteStorage.remote = remoteStorage._origRemote;
@@ -467,3 +470,5 @@
     }
   };
 
+
+  module.exports = GoogleDrive;
