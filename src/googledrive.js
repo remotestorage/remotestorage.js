@@ -395,6 +395,29 @@
       });
     },
 
+    /**
+     * Method: info
+     *
+     * Fetches the user's info from dropbox and returns a promise for it.
+     *
+     * Returns:
+     *
+     *   A promise to the user's info
+     */
+    info: function () {
+      var url = BASE_URL + '/drive/v2/about';
+      // requesting user info(mainly for userAdress)
+      return this._request('GET', url, {}).then(function (resp){
+        try {
+          var info = JSON.parse(resp.responseText);
+          return Promise.resolve(info);
+        } catch (e) {
+          return Promise.reject(e);
+        }
+      });
+    },
+
+
     _request: function (method, url, options) {
       var self = this;
 

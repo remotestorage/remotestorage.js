@@ -1,4 +1,4 @@
-  var RemoteStorage = require('./remotestorage');
+  var log = require('./log');
   
   /**
    * Interface: eventhandling
@@ -16,7 +16,7 @@
       if (typeof(handler) !== 'function') {
         throw new Error('Argument handler should be a function');
       }
-      RemoteStorage.log('[Eventhandling] Adding event listener', eventName, handler);
+      log('[Eventhandling] Adding event listener', eventName, handler);
       this._validateEvent(eventName);
       this._handlers[eventName].push(handler);
     },
@@ -96,7 +96,7 @@
    *   // myObject.on('something-else', function () {});
    *   (end code)
    */
-  RemoteStorage.eventHandling = function (object) {
+ module.exports = function (object) {
     var eventNames = Array.prototype.slice.call(arguments, 1);
     for (var key in methods) {
       object[key] = methods[key];

@@ -14,7 +14,7 @@ require('./googledrive');
 require('./indexeddb');
 require('./inmemorystorage');
 require('./localstorage');
-require('./baseclient/types');
+require('./types');
 require('./env');
 require('./access');
 require('./discover');

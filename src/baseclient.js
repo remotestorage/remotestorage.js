@@ -4,8 +4,12 @@
                 replacement + ' instead.');
   }
 
-  var RS = require('./remotestorage');
-  var RemoteStorage = RS;
+  // require('./eventhandling.js');
+  var RemoteStorage = require('./remotestorage');
+  var util = require('./util');
+
+  // var RS = require('./remotestorage');
+  // var RemoteStorage = RS;
 
   /**
    * Class: RemoteStorage.BaseClient
@@ -28,7 +32,7 @@
    * <remove> operates on either objects or files (but not folders, folders are
    * created and removed implictly).
    */
-  RS.BaseClient = function (storage, base) {
+  var BaseClient = function (storage, base) {
     if (base[base.length - 1] !== '/') {
       throw "Not a folder: " + base;
     }
@@ -151,12 +155,12 @@
      * the remote store in asynchronous synchronization (see example above).
      **/
 
-    RS.eventHandling(this, 'change');
+    RemoteStorage.eventHandling(this, 'change');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
   };
 
-  RS.BaseClient.prototype = {
+  BaseClient.prototype = {
 
     extend: function (object) {
       for (var key in object) {
@@ -171,7 +175,7 @@
      * Returns a new <BaseClient> operating on a subpath of the current <base> path.
      */
     scope: function (path) {
-      return new RS.BaseClient(this.storage, this.makePath(path));
+      return new BaseClient(this.storage, this.makePath(path));
     },
 
     // folder operations
@@ -592,7 +596,7 @@
       }
     },
 
-    _cleanPath: RemoteStorage.util.cleanPath,
+    _cleanPath: util.cleanPath,
 
     /**
      * Method: getItemURL
@@ -645,8 +649,8 @@
    *   (end code)
    *
    */
-  RS.BaseClient._rs_init = function () {
-    RS.prototype.scope = function (path) {
+  BaseClient._rs_init = function () {
+    RemoteStorage.prototype.scope = function (path) {
       if (typeof(path) !== 'string') {
         throw 'Argument \'path\' of baseClient.scope must be a string';
       }
@@ -655,7 +659,7 @@
         var escapedPath = path.replace(/(['\\])/g, '\\$1');
         console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
       }
-      return new RS.BaseClient(this, path);
+      return new BaseClient(this, path);
     };
   };
 
@@ -678,3 +682,4 @@
    * <RemoteStorage.BaseClient.Types>
    **/
 
+module.exports = BaseClient;

@@ -33,7 +33,7 @@ var RemoteStorage = require('./remotestorage');
     }
   }
 
-  RemoteStorage.util = {
+  var util = {
     getEventEmitter: function () {
       var object = {};
       var args = Array.prototype.slice.call(arguments);
@@ -418,11 +418,4 @@ var RemoteStorage = require('./remotestorage');
 
   };
 
-  if (!RemoteStorage.prototype.util) {
-    Object.defineProperty(RemoteStorage.prototype, 'util', {
-      get: function () {
-        console.log('DEPRECATION WARNING: remoteStorage.util was moved to RemoteStorage.util');
-        return RemoteStorage.util;
-      }
-    });
-  }
+  module.exports = util

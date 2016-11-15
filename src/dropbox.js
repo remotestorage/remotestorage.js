@@ -1,6 +1,9 @@
   var RS = require('./remotestorage');
   var RemoteStorage = RS;
 
+  var Authorize = require('./authorize');
+  var BaseClient = require('./baseclient');
+
   /**
    * File: Dropbox
    *
@@ -235,7 +238,7 @@
       if (this.token){
         hookIt(this.rs);
       } else {
-        RS.Authorize(this.rs, AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
+        Authorize(this.rs, AUTH_URL, '', String(Authorize.getLocation()), this.clientId);
       }
     },
 
@@ -906,8 +909,8 @@
 
   function hookGetItemURL(rs) {
     if (rs._origBaseClientGetItemURL) { return; }
-    rs._origBaseClientGetItemURL = RS.BaseClient.prototype.getItemURL;
-    RS.BaseClient.prototype.getItemURL = function (path){
+    rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
+    BaseClient.prototype.getItemURL = function (path){
       var ret = rs.dropbox._itemRefs[path];
       return  ret ? ret : '';
     };
@@ -915,7 +918,7 @@
 
   function unHookGetItemURL(rs){
     if (! rs._origBaseClientGetItemURL) { return; }
-    RS.BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
+    BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
     delete rs._origBaseClientGetItemURL;
   }
 
