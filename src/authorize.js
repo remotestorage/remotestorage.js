@@ -1,8 +1,10 @@
-  var RemoteStorage = require('./remotestorage');
+var log = require('./log');
+var util = require('./util');
+var RemoteStorage = require('./remotestorage');
   
   function extractParams(url) {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
-    var location = url || RemoteStorage.Authorize.getLocation().href,
+    var location = url || Authorize.getLocation().href,
         hashPos  = location.indexOf('#'),
         hash;
     if (hashPos === -1) { return; }
@@ -36,7 +38,7 @@
   }
 
   RemoteStorage.ImpliedAuth = function (storageApi, redirectUri) {
-    RemoteStorage.log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
+    log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
     // Set a fixed access token, signalling to not send it as Bearer
     remoteStorage.remote.configure({
       token: RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN
@@ -44,11 +46,11 @@
     document.location = redirectUri;
   };
 
-  RemoteStorage.Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
-    RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+  var Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
+    log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
 
     // keep track of the discovery data during redirect if we can't save it in localStorage
-    if (!RemoteStorage.util.localStorageAvailable() &&
+    if (!util.localStorageAvailable() &&
         remoteStorage.backend === 'remotestorage') {
       redirectUri += redirectUri.indexOf('#') > 0 ? '&' : '#';
 
@@ -73,7 +75,7 @@
     url += '&response_type=token';
 
     if (global.cordova) {
-      return RemoteStorage.Authorize.openWindow(
+      return Authorize.openWindow(
           url,
           redirectUri,
           'location=yes,clearsessioncache=yes,clearcache=yes'
@@ -89,10 +91,10 @@
         });
     }
 
-    RemoteStorage.Authorize.setLocation(url);
+    Authorize.setLocation(url);
   };
 
-  RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN = false;
+  Authorize.IMPLIED_FAKE_TOKEN = false;
 
   RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
     this.access.setStorageType(this.remote.storageType);
@@ -100,11 +102,11 @@
 
     var redirectUri = global.cordova ?
       cordovaRedirectUri :
-      String(RemoteStorage.Authorize.getLocation());
+      String(Authorize.getLocation());
 
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
-    RemoteStorage.Authorize(this, authURL, scope, redirectUri, clientId);
+    Authorize(this, authURL, scope, redirectUri, clientId);
   };
 
   /**
@@ -112,7 +114,7 @@
    *
    * Override this method if access to document.location is forbidden
    */
-  RemoteStorage.Authorize.getLocation = function () {
+  Authorize.getLocation = function () {
     return global.document.location;
   };
 
@@ -121,7 +123,7 @@
    *
    * Override this method if access to document.location is forbidden
    */
-  RemoteStorage.Authorize.setLocation = function (location) {
+  Authorize.setLocation = function (location) {
     if (typeof location === 'string') {
       global.document.location.href = location;
     } else if (typeof location === 'object') {
@@ -134,7 +136,7 @@
   /**
    * Open new InAppBrowser window for OAuth in Cordova
    */
-  RemoteStorage.Authorize.openWindow = function (url, redirectUri, options) {
+  Authorize.openWindow = function (url, redirectUri, options) {
     var pending = Promise.defer();
     var newWindow = global.open(url, '_blank', options);
 
@@ -174,12 +176,12 @@
     RemoteStorage.ImpliedAuth(this.remote.storageApi, String(document.location));
   };
 
-  RemoteStorage.Authorize._rs_supported = function () {
+  Authorize._rs_supported = function () {
     return typeof(document) !== 'undefined';
   };
 
   var onFeaturesLoaded;
-  RemoteStorage.Authorize._rs_init = function (remoteStorage) {
+  Authorize._rs_init = function (remoteStorage) {
 
     onFeaturesLoaded = function () {
       var authParamsUsed = false;
@@ -205,8 +207,8 @@
           authParamsUsed = true;
         }
         if (params.state) {
-          location = RemoteStorage.Authorize.getLocation();
-          RemoteStorage.Authorize.setLocation(location.href.split('#')[0]+'#'+params.state);
+          location = Authorize.getLocation();
+          Authorize.setLocation(location.href.split('#')[0]+'#'+params.state);
         }
       }
       if (!authParamsUsed) {
@@ -216,12 +218,14 @@
     var params = extractParams(),
         location;
     if (params) {
-      location = RemoteStorage.Authorize.getLocation();
+      location = Authorize.getLocation();
       location.hash = '';
     }
     remoteStorage.on('features-loaded', onFeaturesLoaded);
   };
 
-  RemoteStorage.Authorize._rs_cleanup = function (remoteStorage) {
+  Authorize._rs_cleanup = function (remoteStorage) {
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
+
+  module.exports = Authorize

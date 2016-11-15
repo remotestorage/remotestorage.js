@@ -1,6 +1,6 @@
 
-var RemoteStorage = require('./remotestorage')
-
+// var RemoteStorage = require('./remotestorage')
+var log = require('./log');
 
 function shareFirst(path) {
   return ( this.backend === 'dropbox' &&
@@ -16,7 +16,7 @@ var SyncedGetPutDelete = {
              this.remote.connected && this.remote.online) {
           maxAge = 2*this.getSyncInterval();
         } else {
-          RemoteStorage.log('Not setting default maxAge, because remote is offline or not connected');
+          log('Not setting default maxAge, because remote is offline or not connected');
           maxAge = false;
         }
       }

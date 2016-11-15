@@ -1,52 +1,22 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
+define(['../src/init'], function(RemoteStorage) {
   var suites = [];
 
   suites.push({
     name: "BaseClient.Types",
     desc: "Type and schema handling",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      RemoteStorage.prototype = {
-        onChange: function() {},
-        caching: {
+      RemoteStorage.prototype.onChange = function() {},
+      RemoteStorage.prototype.caching = {
           _rootPaths: {},
           set: function(path, value) {
             this._rootPaths[path] = value;
           }
         }
-      };
 
-      require('src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      require('src/eventhandling');
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      require('src/wireclient');
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-
-      require('src/baseclient.js');
-      require('src/baseclient/types');
-      if (global.rs_baseclient_with_types) {
-        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-      } else {
-        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-      }
       test.done();
     },
 

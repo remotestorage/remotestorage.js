@@ -8,49 +8,49 @@ define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks']
   var suites = [];
 
   function setup(env, test) {
-    global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error', 'connected');
-    };
+    // global.RemoteStorage = function () {
+    //   RemoteStorage.eventHandling(this, 'error', 'connected');
+    // };
     RemoteStorage.log = function () {};
-    RemoteStorage.prototype = {
-      setBackend: function (b){
-        this.backend = b;
-      },
-      localStorageAvailable: function () {
-        return false;
-      }
-    };
-    global.RemoteStorage.Unauthorized = function () {};
+    // RemoteStorage.prototype.setBackend = function (b) {
+    //   this.backend = b;
+    // }
+   
+    // RemoteStorage.prototype.localStorageAvailable = function () {
+    //   return false;
+    // }
 
-    if (global.rs_util) {
-      RemoteStorage.util = global.rs_util;
-    } else {
-      global.rs_util = RemoteStorage.util;
-    }
+    // RemoteStorage.Unauthorized = function () {};
 
-    if (global.rs_baseclient_with_types) {
-      RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-    } else {
-      global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-    }
+    // if (global.rs_util) {
+    //   RemoteStorage.util = global.rs_util;
+    // } else {
+    //   global.rs_util = RemoteStorage.util;
+    // }
 
-    if (global.rs_eventhandling) {
-      RemoteStorage.eventHandling = global.rs_eventhandling;
-    } else {
-      global.rs_eventhandling = RemoteStorage.eventHandling;
-    }
+    // if (global.rs_baseclient_with_types) {
+    //   RemoteStorage.BaseClient = global.rs_baseclient_with_types;
+    // } else {
+    //   global.rs_baseclient_with_types = RemoteStorage.BaseClient;
+    // }
 
-    if (global.rs_wireclient) {
-      RemoteStorage.WireClient = global.rs_wireclient;
-    } else {
-      global.rs_wireclient = RemoteStorage.WireClient;
-    }
+    // if (global.rs_eventhandling) {
+    //   RemoteStorage.eventHandling = global.rs_eventhandling;
+    // } else {
+    //   global.rs_eventhandling = RemoteStorage.eventHandling;
+    // }
 
-    if (global.rs_dropbox) {
-      RemoteStorage.Dropbox = global.rs_dropbox;
-    } else {
-      global.rs_dropbox = RemoteStorage.Dropbox;
-    }
+    // if (global.rs_wireclient) {
+    //   RemoteStorage.WireClient = global.rs_wireclient;
+    // } else {
+    //   global.rs_wireclient = RemoteStorage.WireClient;
+    // }
+
+    // if (global.rs_dropbox) {
+    //   RemoteStorage.Dropbox = global.rs_dropbox;
+    // } else {
+    //   global.rs_dropbox = RemoteStorage.Dropbox;
+    // }
 
     test.done();
   }
@@ -690,13 +690,13 @@ define(['./src/init', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks']
           var rs = new RemoteStorage();
           rs.apiKeys= { dropbox: {appKey: 'testkey'} };
 
-          test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
+          test.assertAnd(allHandlers(), 4, "before init found "+allHandlers()+" handlers") ;
 
           RemoteStorage.Dropbox._rs_init(rs);
-          test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
+          test.assertAnd(allHandlers(), 5, "after init found "+allHandlers()+" handlers") ;
 
           RemoteStorage.Dropbox._rs_cleanup(rs);
-          test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
+          test.assertAnd(allHandlers(), 4, "after cleanup found "+allHandlers()+" handlers") ;
 
           test.done();
         }

@@ -6,29 +6,29 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
   var suites = [];
 
   function setup(env, test) {
-    global.RemoteStorage = function() {};
+    // global.RemoteStorage = function() {};
     RemoteStorage.log = function() {};
-    global.RemoteStorage.Unauthorized = function() {};
-    global.RemoteStorage.SyncError = function() {};
-    global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
+    RemoteStorage.Unauthorized = function() {};
+    RemoteStorage.SyncError = function() {};
+    RemoteStorage.prototype.localStorageAvailable = function() { return false; };
 
-    if (global.rs_util) {
-      RemoteStorage.util = global.rs_util;
-    } else {
-      global.rs_util = RemoteStorage.util;
-    }
+    // if (global.rs_util) {
+    //   RemoteStorage.util = global.rs_util;
+    // } else {
+    //   global.rs_util = RemoteStorage.util;
+    // }
 
-    if (global.rs_eventhandling) {
-      RemoteStorage.eventHandling = global.rs_eventhandling;
-    } else {
-      global.rs_eventhandling = RemoteStorage.eventHandling;
-    }
+    // if (global.rs_eventhandling) {
+    //   RemoteStorage.eventHandling = global.rs_eventhandling;
+    // } else {
+    //   global.rs_eventhandling = RemoteStorage.eventHandling;
+    // }
 
-    if (global.rs_wireclient) {
-      RemoteStorage.WireClient = global.rs_wireclient;
-    } else {
-      global.rs_wireclient = RemoteStorage.WireClient;
-    }
+    // if (global.rs_wireclient) {
+    //   RemoteStorage.WireClient = global.rs_wireclient;
+    // } else {
+    //   global.rs_wireclient = RemoteStorage.WireClient;
+    // }
 
     RemoteStorage.Authorize = {
       IMPLIED_FAKE_TOKEN: false

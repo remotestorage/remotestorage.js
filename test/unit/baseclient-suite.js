@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/init', 'bluebird', 'require', 'test/helpers/mocks', 'tv4'], function (RemoteStorage, Promise, require, mocks, tv4) {
+define(['require', 'bluebird', 'test/helpers/mocks', 'tv4'], function (require, Promise, mocks, tv4) {
 
   global.Promise = Promise;
   global.tv4 = tv4;
@@ -29,33 +29,34 @@ define(['./src/init', 'bluebird', 'require', 'test/helpers/mocks', 'tv4'], funct
       RemoteStorage.config = {
         changeEvents: {
           remote: true
-        }
+        } 
       };
 
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
+      // if (global.rs_util) {
+      //   RemoteStorage.util = global.rs_util;
+      // } else {
+      //   global.rs_util = RemoteStorage.util;
+      // }
 
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
+      // if (global.rs_eventhandling) {
+      //   RemoteStorage.eventHandling = global.rs_eventhandling;
+      // } else {
+      //   global.rs_eventhandling = RemoteStorage.eventHandling;
+      // }
 
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
+      // if (global.rs_wireclient) {
+      //   RemoteStorage.WireClient = global.rs_wireclient;
+      // } else {
+      //   global.rs_wireclient = RemoteStorage.WireClient;
+      // }
 
       require('../../lib/Math.uuid');
-      if (global.rs_baseclient_with_types) {
-        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-      } else {
-        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-      }
+      RemoteStorage.BaseClient = require('../../src/baseclient')
+      // if (global.rs_baseclient_with_types) {
+      //   RemoteStorage.BaseClient = global.rs_baseclient_with_types;
+      // } else {
+      //   global.rs_baseclient_with_types = RemoteStorage.BaseClient;
+      // }
       test.done();
     },
     beforeEach: function(env, test) {
@@ -139,8 +140,8 @@ define(['./src/init', 'bluebird', 'require', 'test/helpers/mocks', 'tv4'], funct
         };
       }
       if (typeof(RemoteStorage.BaseClient) !== 'function') {
-        require('./src/eventhandling');
-        require('./src/baseclient');
+        require('../../src/eventhandling');
+        RemoteStorage.BaseClient = require('../../src/baseclient');
       }
       test.done();
     },

@@ -107,6 +107,7 @@
 
     // Initial configuration property settings.
     if (typeof cfg === 'object') {
+      RemoteStorage.config = {}
       RemoteStorage.config.logging = !!cfg.logging;
       RemoteStorage.config.cordovaRedirectUri = cfg.cordovaRedirectUri;
     }
@@ -166,6 +167,8 @@
   };
 
   RemoteStorage.Access = require('./access');
+  RemoteStorage.util = require('./util');
+  RemoteStorage.eventHandling = require('./eventhandling');
   
   RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
@@ -189,11 +192,7 @@
    * (In node.js you can also enable logging during remoteStorage object
    * creation. See: <RemoteStorage>).
    */
-  RemoteStorage.log = function () {
-    if (RemoteStorage.config.logging) {
-      console.log.apply(console, arguments);
-    }
-  };
+
 
   RemoteStorage.config = {
     logging: false,
@@ -207,6 +206,7 @@
     cordovaRedirectUri: undefined
   };
 
+  RemoteStorage.log = require('./log');
   RemoteStorage.prototype = {
 
     /**
