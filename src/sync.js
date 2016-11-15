@@ -796,9 +796,6 @@
     },
 
     interpretStatus: function (statusCode) {
-      // if (typeof statusCode.length === 'number') {
-      //   statusCode = statusCode[0];
-      // }
       if (statusCode === 'offline' || statusCode === 'timeout') {
         return {
           successful:      false,
@@ -932,7 +929,7 @@
           }
         });
       }, function (err) {
-        console.error('[Sync] Error', err);
+        RemoteStorage.log('[Sync] Error', err);
         delete self._timeStarted[task.path];
         delete self._running[task.path];
         self._emit('req-done');

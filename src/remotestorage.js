@@ -182,7 +182,7 @@
   RemoteStorage.Access = require('./access');
   RemoteStorage.util = require('./util');
   RemoteStorage.eventHandling = require('./eventhandling');
-  
+  RemoteStorage.Authorize = require('./authorize');
   RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
   RemoteStorage.DiscoveryError = function (message) {
