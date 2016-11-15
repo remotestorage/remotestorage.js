@@ -1,15 +1,17 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['../src/init'], function(RemoteStorage) {
+define(['require'], function(require) {
   var suites = [];
 
   suites.push({
     name: "BaseClient.Types",
     desc: "Type and schema handling",
     setup: function(env, test) {
+      global.BaseClient = require('../src/baseclient');
+      global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      RemoteStorage.prototype.onChange = function() {},
+      RemoteStorage.prototype.onChange = function() {};
       RemoteStorage.prototype.caching = {
           _rootPaths: {},
           set: function(path, value) {
@@ -24,7 +26,7 @@ define(['../src/init'], function(RemoteStorage) {
       {
         desc: "#inScope returns all schemas defined for the given module",
         run: function(env, test) {
-          var Types = RemoteStorage.BaseClient.Types;
+          var Types = BaseClient.Types;
           Types.declare('foo', 'a', 'http://foo/a', { type: 'object' });
           Types.declare('foo', 'b', 'http://foo/b', { type: 'object' });
           Types.declare('bar', 'c', 'http://bar/c', { type: 'object' });
@@ -52,7 +54,7 @@ define(['../src/init'], function(RemoteStorage) {
             some: 'value'
           };
           env.storage = new RemoteStorage();
-          env.client = new RemoteStorage.BaseClient(env.storage, '/contacts/');
+          env.client = new BaseClient(env.storage, '/contacts/');
           env.client._attachType(obj, 'contact');
           test.assertAnd(obj, {
             some: 'value',
@@ -69,7 +71,7 @@ define(['../src/init'], function(RemoteStorage) {
             some: 'value'
           };
           env.storage = new RemoteStorage();
-          env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
+          env.client = new BaseClient(env.storage, '/foo/');
           env.client._attachType(obj, 'ba/F');
           test.assertAnd(obj, {
             some: 'value',

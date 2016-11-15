@@ -3,6 +3,9 @@
 
   var Authorize = require('./authorize');
   var BaseClient = require('./baseclient');
+  var WireClient = require('./wireclient');
+  var util = require('./util');
+  var eventHandling = require('./eventhandling');
 
   /**
    * File: Dropbox
@@ -54,7 +57,7 @@
    * Map a local path to a path in DropBox.
    */
   var getDropboxPath = function (path) {
-    return RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
+    return WireClient.cleanPath(PATH_PREFIX + '/' + path);
   };
 
   var encodeQuery = function (obj) {
@@ -178,7 +181,7 @@
   /**
    * Class: RemoteStorage.Dropbox
    */
-  RS.Dropbox = function (rs) {
+  var Dropbox = function (rs) {
 
     this.rs = rs;
     this.connected = false;
@@ -198,7 +201,7 @@
       }
     };
 
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+    eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     rs.on('error', onErrorCb);
 
     this.clientId = rs.apiKeys.dropbox.appKey;
@@ -223,7 +226,7 @@
     }
   };
 
-  RS.Dropbox.prototype = {
+  Dropbox.prototype = {
     online: true,
 
     /**
@@ -387,7 +390,7 @@
             resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
           var pending = Promise.defer();
 
-          RS.WireClient.readBinaryData(resp.response, mime, function (result) {
+          WireClient.readBinaryData(resp.response, mime, function (result) {
             pending.resolve({
               statusCode: status,
               body: result,
@@ -442,7 +445,7 @@
       }
 
       if ((!contentType.match(/charset=/)) &&
-          (body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body))) {
+          (body instanceof ArrayBuffer || WireClient.isArrayBufferView(body))) {
         contentType += '; charset=binary';
       }
 
@@ -624,7 +627,7 @@
         isFolder: isFolder(url)
       });
 
-      return RS.WireClient.request.call(this, method, url, options).then(function(xhr) {
+      return WireClient.request.call(this, method, url, options).then(function(xhr) {
         // 503 means retry this later
         if (xhr && xhr.status === 503) {
           if (self.online) {
@@ -700,7 +703,7 @@
         try {
           delta = JSON.parse(response.responseText);
         } catch(error) {
-          RS.log('fetchDeltas can not parse response',error);
+          log('fetchDeltas can not parse response',error);
           return Promise.reject("can not parse response of fetchDelta : "+error.message);
         }
         // break if no entries found
@@ -957,21 +960,21 @@
     unHookGetItemURL(rs);
   }
 
-  RS.Dropbox._rs_init = function (rs) {
-    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+  Dropbox._rs_init = function (rs) {
+    hasLocalStorage = util.localStorageAvailable();
     if ( rs.apiKeys.dropbox ) {
-      rs.dropbox = new RS.Dropbox(rs);
+      rs.dropbox = new Dropbox(rs);
     }
     if (rs.backend === 'dropbox') {
       hookIt(rs);
     }
   };
 
-  RS.Dropbox._rs_supported = function () {
+  Dropbox._rs_supported = function () {
     return true;
   };
 
-  RS.Dropbox._rs_cleanup = function (rs) {
+  Dropbox._rs_cleanup = function (rs) {
     unHookIt(rs);
     if (hasLocalStorage){
       delete localStorage[SETTINGS_KEY];
@@ -979,3 +982,6 @@
     rs.removeEventListener('error', onErrorCb);
     rs.setBackend(undefined);
   };
+
+
+  module.exports = Dropbox;

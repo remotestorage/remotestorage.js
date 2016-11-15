@@ -1,38 +1,24 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks'], function(Promise, RemoteStorage, backend, mocks, undefined) {
+define(['bluebird', 'require', 'test/behavior/backend', 'test/helpers/mocks'], function(Promise, require, backend, mocks, undefined) {
   global.Promise = Promise;
   var suites = [];
 
   function setup(env, test) {
-    // global.RemoteStorage = function() {};
+    var RS = require('./src/remotestorage');
+    global.RemoteStorage = function() {};
+
     RemoteStorage.log = function() {};
-    RemoteStorage.Unauthorized = function() {};
+    RemoteStorage.Unauthorized = RS.Unauthorized;
     RemoteStorage.SyncError = function() {};
     RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-
-    // if (global.rs_util) {
-    //   RemoteStorage.util = global.rs_util;
-    // } else {
-    //   global.rs_util = RemoteStorage.util;
-    // }
-
-    // if (global.rs_eventhandling) {
-    //   RemoteStorage.eventHandling = global.rs_eventhandling;
-    // } else {
-    //   global.rs_eventhandling = RemoteStorage.eventHandling;
-    // }
-
-    // if (global.rs_wireclient) {
-    //   RemoteStorage.WireClient = global.rs_wireclient;
-    // } else {
-    //   global.rs_wireclient = RemoteStorage.WireClient;
-    // }
+    RemoteStorage.eventHandling = require('./src/eventhandling');
 
     RemoteStorage.Authorize = {
       IMPLIED_FAKE_TOKEN: false
     };
+    global.WireClient = require('./src/wireclient')
     test.done();
   }
 
@@ -73,8 +59,8 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
     });
     env.rs = new RemoteStorage();
     RemoteStorage.eventHandling(env.rs, 'error', 'network-offline', 'network-online');
-    env.client = new RemoteStorage.WireClient(env.rs);
-    env.connectedClient = new RemoteStorage.WireClient(env.rs);
+    env.client = new WireClient(env.rs);
+    env.connectedClient = new WireClient(env.rs);
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({
@@ -637,16 +623,16 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
           env.connectedClient.configure({
             storageApi: 'draft-dejong-remotestorage-01'
           });
-          var request = RemoteStorage.WireClient.request;
+          var request = WireClient.request;
 
-          RemoteStorage.WireClient.request = function(method, url, options) {
-            RemoteStorage.WireClient.request = request;
+          WireClient.request = function(method, url, options) {
+            WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A%252FB/bar', url);
           };
 
           env.connectedClient.put('/foo/A%2FB/bar', 'baz' , 'text/plain');
 
-          RemoteStorage.WireClient.request = request;
+          WireClient.request = request;
         }
       },
 
@@ -656,16 +642,16 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
           env.connectedClient.configure({
             storageApi: 'draft-dejong-remotestorage-01'
           });
-          var request = RemoteStorage.WireClient.request;
+          var request = WireClient.request;
 
-          RemoteStorage.WireClient.request = function(method, url, options) {
-            RemoteStorage.WireClient.request = request;
+          WireClient.request = function(method, url, options) {
+            WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A%20B/bar', url);
           };
 
           env.connectedClient.put('/foo/A B/bar', 'baz' , 'text/plain');
 
-          RemoteStorage.WireClient.request = request;
+          WireClient.request = request;
         }
       },
 
@@ -675,16 +661,16 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
           env.connectedClient.configure({
             storageApi: 'draft-dejong-remotestorage-01'
           });
-          var request = RemoteStorage.WireClient.request;
+          var request = WireClient.request;
 
-          RemoteStorage.WireClient.request = function(method, url, options) {
-            RemoteStorage.WireClient.request = request;
+          WireClient.request = function(method, url, options) {
+            WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
           };
 
           env.connectedClient.put('/foo/A/B/C/D/E', 'baz' , 'text/plain');
 
-          RemoteStorage.WireClient.request = request;
+          WireClient.request = request;
         }
       },
 
@@ -694,16 +680,16 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
           env.connectedClient.configure({
             storageApi: 'draft-dejong-remotestorage-01'
           });
-          var request = RemoteStorage.WireClient.request;
+          var request = WireClient.request;
 
-          RemoteStorage.WireClient.request = function(method, url, options) {
-            RemoteStorage.WireClient.request = request;
+          WireClient.request = function(method, url, options) {
+            WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
           };
 
           env.connectedClient.put('/foo/A//B/C///D/E', 'baz' , 'text/plain');
 
-          RemoteStorage.WireClient.request = request;
+          WireClient.request = request;
         }
       },
 
@@ -771,7 +757,7 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
         desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
         timeout: 3000,
         run: function(env, test) {
-          RemoteStorage.WireClient.REQUEST_TIMEOUT = 1000;
+          WireClient.REQUEST_TIMEOUT = 1000;
           env.connectedClient.get('/foo').then(function() {
             test.result(false);
           }, function (error) {
@@ -1030,10 +1016,10 @@ define(['bluebird', './src/init', 'test/behavior/backend', 'test/helpers/mocks']
           RemoteStorage.eventHandling(rs, 'error');
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
 
-          RemoteStorage.WireClient._rs_init(rs);
+          WireClient._rs_init(rs);
           test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
 
-          RemoteStorage.WireClient._rs_cleanup(rs);
+          WireClient._rs_cleanup(rs);
           test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
 
           test.done();

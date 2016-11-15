@@ -30,7 +30,10 @@
     return Promise.resolve(r);
   }
 
+  var util = require('./util')
   var SyncedGetPutDelete = require('./syncedgetputdelete');
+  var Dropbox = require('./dropbox');
+  var GoogleDrive = require('./googledrive');
   /**
    * Class: RemoteStorage
    *
@@ -118,13 +121,15 @@
      **/
 
     // Initial configuration property settings.
+    var config = require('./config');
     if (typeof cfg === 'object') {
-      RemoteStorage.config = {}
-      RemoteStorage.config.logging = !!cfg.logging;
-      RemoteStorage.config.cordovaRedirectUri = cfg.cordovaRedirectUri;
+      // RemoteStorage.config = {}
+      config.logging = !!cfg.logging;
+      config.cordovaRedirectUri = cfg.cordovaRedirectUri;
     }
 
-    RemoteStorage.eventHandling(
+    var eventHandling = require('./eventhandling');
+    eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
             'error', 'features-loaded', 'connecting', 'authing',
             'sync-interval-change', 'wire-busy', 'wire-done',
@@ -146,7 +151,7 @@
 
     this.apiKeys = {};
 
-    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+    hasLocalStorage = util.localStorageAvailable();
 
     if (hasLocalStorage) {
       try {
@@ -207,7 +212,7 @@
    */
 
 
-  RemoteStorage.config = {
+  config = {
     logging: false,
     changeEvents: {
       local:    true,
@@ -219,7 +224,7 @@
     cordovaRedirectUri: undefined
   };
 
-  RemoteStorage.log = require('./log');
+  var log = require('./log');
   RemoteStorage.prototype = {
 
     /**
@@ -302,7 +307,7 @@
       }
 
       if (global.cordova) {
-        if (typeof RemoteStorage.config.cordovaRedirectUri !== 'string') {
+        if (typeof config.cordovaRedirectUri !== 'string') {
           this._emit('error', new RemoteStorage.DiscoveryError("Please supply a custom HTTPS redirect URI for your Cordova app"));
           return;
         }
@@ -319,7 +324,7 @@
 
       var discoveryTimeout = setTimeout(function () {
         this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
-      }.bind(this), RemoteStorage.config.discoveryTimeout);
+      }.bind(this), config.discoveryTimeout);
 
       RemoteStorage.Discover(userAddress).then(function (info) {
         // Info contains fields: href, storageApi, authURL (optional), properties
@@ -332,10 +337,10 @@
           if (info.authURL) {
             if (typeof token === 'undefined') {
               // Normal authorization step; the default way to connect
-              this.authorize(info.authURL, RemoteStorage.config.cordovaRedirectUri);
+              this.authorize(info.authURL, config.cordovaRedirectUri);
             } else if (typeof token === 'string') {
               // Token supplied directly by app/developer/user
-              RemoteStorage.log('Skipping authorization sequence and connecting with known token');
+              log('Skipping authorization sequence and connecting with known token');
               this.remote.configure({ token: token });
             } else {
               throw new Error("Supplied bearer token must be a string");
@@ -383,7 +388,7 @@
         i++;
         if (i >= n) {
           this._init();
-          RemoteStorage.log('Done cleaning up, emitting disconnected and disconnect events');
+          log('Done cleaning up, emitting disconnected and disconnect events');
           this._emit('disconnected');
         }
       }.bind(this);
@@ -441,7 +446,7 @@
      * Enable remoteStorage logging.
      */
     enableLog: function () {
-      RemoteStorage.config.logging = true;
+      config.logging = true;
     },
 
     /**
@@ -450,7 +455,7 @@
      * Disable remoteStorage logging
      */
     disableLog: function () {
-      RemoteStorage.config.logging = false;
+      config.logging = false;
     },
 
     /**
@@ -459,7 +464,7 @@
      * The same as <RemoteStorage.log>.
      */
     log: function () {
-      RemoteStorage.log.apply(RemoteStorage, arguments);
+      log.apply(RemoteStorage, arguments);
     },
 
     /**
@@ -480,10 +485,10 @@
         this.apiKeys[type] = keys;
         if (type === 'dropbox' && (typeof this.dropbox === 'undefined' ||
                                    this.dropbox.clientId !== keys.appKey)) {
-          RemoteStorage.Dropbox._rs_init(this);
+          Dropbox._rs_init(this);
         } else if (type === 'googledrive' && (typeof this.googledrive === 'undefined' ||
                                               this.googledrive.clientId !== keys.clientId)) {
-          RemoteStorage.GoogleDrive._rs_init(this);
+          GoogleDrive._rs_init(this);
         }
       } else {
         delete this.apiKeys[type];
@@ -506,7 +511,7 @@
       if (typeof uri !== 'string' || !uri.match(/http(s)?\:\/\//)) {
         throw new Error("Cordova redirect URI must be a URI string");
       }
-      RemoteStorage.config.cordovaRedirectUri = uri;
+      config.cordovaRedirectUri = uri;
     },
 
     /**
@@ -825,6 +830,11 @@
   });
 
 
+  // TODO clean up/harmonize how modules are loaded and/or document this architecture properly
+  //
+  // At this point the global remoteStorage object has not been created yet.
+  // Only its prototype exists so far, so we define a self-constructing
+  // property on there:
   /**
    *
    * Property: caching
@@ -833,7 +843,20 @@
    *
    * Not available in no-cache builds.
    *
-   *
+   */
+  var Caching = require('./caching');
+  Object.defineProperty(RemoteStorage.prototype, 'caching', {
+    configurable: true,
+    get: function () {
+      var caching = new Caching();
+      Object.defineProperty(this, 'caching', {
+        value: caching
+      });
+      return caching;
+    }
+  });
+
+   /*
    * Property: remote
    *
    * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.

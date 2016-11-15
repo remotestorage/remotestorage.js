@@ -1,14 +1,18 @@
   var RemoteStorage = require('./remotestorage');
+  var util = require('./util');
+  var Env = require('./env');
+  var eventHandling = require('./eventhandling');
+  var log = require('./log');
   
   var syncInterval = 10000,
       backgroundSyncInterval = 60000,
       isBackground = false;
 
-  var isFolder = RemoteStorage.util.isFolder;
-  var isDocument = RemoteStorage.util.isDocument;
-  var equal = RemoteStorage.util.equal;
-  var deepClone = RemoteStorage.util.deepClone;
-  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
+  var isFolder = util.isFolder;
+  var isDocument = util.isDocument;
+  var equal = util.equal;
+  var deepClone = util.deepClone;
+  var pathsFromRoot = util.pathsFromRoot;
 
   function taskFor(action, path, promise) {
     return {
@@ -39,11 +43,11 @@
       rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
     }
 
-    RemoteStorage.Env.on("background", function () {
+    Env.on("background", function () {
       handleVisibilityChange(false);
     });
 
-    RemoteStorage.Env.on("foreground", function () {
+    Env.on("foreground", function () {
       handleVisibilityChange(true);
     });
   }
@@ -75,7 +79,7 @@
    * folder GET comes in, it gives information about all the documents it
    * contains (this is the `markChildren` function).
    **/
-  RemoteStorage.Sync = function (setLocal, setRemote, setAccess, setCaching) {
+  var Sync = function (setLocal, setRemote, setAccess, setCaching) {
     this.local = setLocal;
     this.local.onDiff(function (path) {
       this.addTask(path);
@@ -87,14 +91,14 @@
     this._tasks = {};
     this._running = {};
     this._timeStarted = {};
-    RemoteStorage.eventHandling(this, 'done', 'req-done');
+    eventHandling(this, 'done', 'req-done');
     this.caching.onActivate(function (path) {
       this.addTask(path);
       this.doTasks();
     }.bind(this));
   };
 
-  RemoteStorage.Sync.prototype = {
+  Sync.prototype = {
 
     now: function () {
       return new Date().getTime();
@@ -205,7 +209,7 @@
         }
 
         if (this.isCorrupt(node)) {
-          RemoteStorage.log('[Sync] WARNING: corrupt node in local cache', node);
+          log('[Sync] WARNING: corrupt node in local cache', node);
           if (typeof(node) === 'object' && node.path) {
             this.addTask(node.path);
             num++;
@@ -325,7 +329,7 @@
       for (var path in nodes) {
         // Strategy is 'FLUSH' and no local changes exist
         if (this.caching.checkPath(path) === 'FLUSH' && nodes[path] && !nodes[path].local) {
-          RemoteStorage.log('[Sync] Flushing', path);
+          log('[Sync] Flushing', path);
           nodes[path] = undefined; // Cause node to be flushed from cache
         }
       }
@@ -434,7 +438,7 @@
         delete node.remote;
       } else if (node.remote.body !== undefined) {
         // keep/revert:
-        RemoteStorage.log('[Sync] Emitting keep/revert');
+        log('[Sync] Emitting keep/revert');
 
         this.local._emitChange({
           origin:         'conflict',
@@ -746,7 +750,7 @@
         }
 
         if (conflict) {
-          RemoteStorage.log('[Sync] We have a conflict');
+          log('[Sync] We have a conflict');
 
           if (!node.remote || node.remote.revision !== revision) {
             node.remote = {
@@ -809,7 +813,7 @@
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict:   (statusCode === 412),
-        unAuth:     ((statusCode === 401 && this.remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) ||
+        unAuth:     ((statusCode === 401 && this.remote.token !== Authorize.IMPLIED_FAKE_TOKEN) ||
                      statusCode === 402 || statusCode === 403),
         notFound:   (statusCode === 404),
         changed:    (statusCode !== 304),
@@ -830,7 +834,7 @@
         return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function (dataFromFetch) {
           if (isFolder(path)) {
             if (this.corruptServerItemsMap(bodyOrItemsMap)) {
-              RemoteStorage.log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
+              log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
               return false;
             } else {
               return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function () {
@@ -892,7 +896,7 @@
       return task.promise.then(function (r) {
         return self.handleResponse(task.path, task.action, r);
       }, function (err) {
-        RemoteStorage.log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
+        log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
         return self.handleResponse(task.path, task.action, {statusCode: 'offline'});
       })
 
@@ -914,7 +918,7 @@
         self.collectTasks(false).then(function () {
           // See if there are any more tasks that are not refresh tasks
           if (!self.hasTasks() || self.stopped) {
-            RemoteStorage.log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(self._tasks).length, self.stopped);
+            log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(self._tasks).length, self.stopped);
             if (!self.done) {
               self.done = true;
               self._emit('done');
@@ -929,7 +933,7 @@
           }
         });
       }, function (err) {
-        RemoteStorage.log('[Sync] Error', err);
+        log('[Sync] Error', err);
         delete self._timeStarted[task.path];
         delete self._running[task.path];
         self._emit('req-done');
@@ -1111,7 +1115,7 @@
     }
 
     this.sync.on('done', function () {
-      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
+      log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (!this.sync.stopped) {
         if (this._syncTimer) {
           clearTimeout(this._syncTimer);
@@ -1125,11 +1129,11 @@
 
   RemoteStorage.prototype.stopSync = function () {
     if (this.sync) {
-      RemoteStorage.log('[Sync] Stopping sync');
+      log('[Sync] Stopping sync');
       this.sync.stopped = true;
     } else {
       // TODO When is this ever the case and what is syncStopped for then?
-      RemoteStorage.log('[Sync] Will instantiate sync stopped');
+      log('[Sync] Will instantiate sync stopped');
       this.syncStopped = true;
     }
   };
@@ -1142,27 +1146,27 @@
 
   var syncCycleCb;
   var remoteStorageInstance
-  RemoteStorage.Sync._rs_init = function (remoteStorage) {
+  Sync._rs_init = function (remoteStorage) {
     remoteStorageInstance = remoteStorage
     syncCycleCb = function () {
-      RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
-      if (RemoteStorage.Env.isBrowser()) {
+      log('[Sync] syncCycleCb calling syncCycle');
+      if (Env.isBrowser()) {
         handleVisibility.bind(remoteStorage)();
       }
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
-        remoteStorage.sync = new RemoteStorage.Sync(
+        remoteStorage.sync = new Sync(
             remoteStorage.local, remoteStorage.remote, remoteStorage.access,
             remoteStorage.caching);
 
         if (remoteStorage.syncStopped) {
-          RemoteStorage.log('[Sync] Instantiating sync stopped');
+          log('[Sync] Instantiating sync stopped');
           remoteStorage.sync.stopped = true;
           delete remoteStorage.syncStopped;
         }
       }
 
-      RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
+      log('[Sync] syncCycleCb calling syncCycle');
       remoteStorage.syncCycle();
     };
 
@@ -1175,10 +1179,11 @@
     remoteStorage.on('connected', syncOnConnect);
   };
 
-  RemoteStorage.Sync._rs_cleanup = function (remoteStorage) {
+  Sync._rs_cleanup = function (remoteStorage) {
     remoteStorage.stopSync();
     remoteStorage.removeEventListener('ready', syncCycleCb);
     remoteStorage.removeEventListener('connected', syncOnConnect);
     delete remoteStorage.sync;
   };
 
+  module.exports = Sync;

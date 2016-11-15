@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/init', 'bluebird'], function (RemoteStorage, Promise) {
+define(['require', './src/util', './src/config', './src/inmemorystorage', 'bluebird'], function (require, util, config, InMemoryStorage, Promise) {
   global.Promise = Promise;
   var suites = [];
 
@@ -21,36 +21,13 @@ define(['./src/init', 'bluebird'], function (RemoteStorage, Promise) {
     setup: function (env, test) {
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
-      global.RemoteStorage.config = {
-        changeEvents: { local: true, window: false, remote: true, conflict: true }
-      };
+      config.changeEvents = { local: true, window: false, remote: true, conflict: true }
 
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      if ( global.rs_eventhandling ) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      if (global.rs_cachinglayer) {
-        RemoteStorage.cachingLayer = global.rs_cachinglayer;
-      } else {
-        global.rs_cachinglayer = RemoteStorage.cachingLayer;
-      }
-      if (global.rs_ims) {
-        RemoteStorage.InMemoryStorage = global.rs_ims;
-      } else {
-        global.rs_ims = RemoteStorage.InMemoryStorage;
-      }
       test.done();
     },
 
     beforeEach: function (env, test) {
-      env.ims = new RemoteStorage.InMemoryStorage();
+      env.ims = new InMemoryStorage();
       test.done();
     },
 
@@ -111,7 +88,7 @@ define(['./src/init', 'bluebird'], function (RemoteStorage, Promise) {
         desc: "locally created documents are considered outdated",
         run: function (env, test) {
           env.ims.put('/new/document', 'content', 'text/plain').then(function () {
-            var paths = RemoteStorage.util.pathsFromRoot('/new/document');
+            var paths = util.pathsFromRoot('/new/document');
             env.ims.getNodes(paths).then(function (nodes) {
               test.assert(env.ims._getInternals().isOutdated(nodes, 1000), true);
             });
@@ -173,7 +150,7 @@ define(['./src/init', 'bluebird'], function (RemoteStorage, Promise) {
             origin: 'local'
           };
 
-          RemoteStorage.config.changeEvents.local = false;
+          config.changeEvents.local = false;
 
           env.ims.on('change', function(event) {
             test.result(false, 'change event should not have been fired');
@@ -280,7 +257,7 @@ define(['./src/init', 'bluebird'], function (RemoteStorage, Promise) {
       {
         desc: "updating a node doesn't emit change event when nothing changed",
         run: function (env, test) {
-          RemoteStorage.config.changeEvents.window = true;
+          config.changeEvents.window = true;
 
           env.ims.put('/some/test/document', 'same content', 'same/type').then(function () {
             env.ims.on('change', function(event) {
@@ -288,7 +265,7 @@ define(['./src/init', 'bluebird'], function (RemoteStorage, Promise) {
             });
 
             env.ims.put('/some/test/document', 'same content', 'same/type').then(function() {
-              RemoteStorage.config.changeEvents.window = true;
+              config.changeEvents.window = true;
               test.done();
             });
           });
@@ -298,7 +275,7 @@ define(['./src/init', 'bluebird'], function (RemoteStorage, Promise) {
       {
         desc: "updating a binary node doesn't emit change event when nothing changed",
         run: function (env, test) {
-          RemoteStorage.config.changeEvents.window = true;
+          config.changeEvents.window = true;
 
           env.ims.put('/some/test/binary', stringToArrayBuffer('some test data'), 'same/type; charset=binary').then(function () {
             env.ims.on('change', function(event) {
@@ -306,7 +283,7 @@ define(['./src/init', 'bluebird'], function (RemoteStorage, Promise) {
             });
 
             env.ims.put('/some/test/binary', stringToArrayBuffer('some test data'), 'same/type; charset=binary').then(function() {
-              RemoteStorage.config.changeEvents.window = true;
+              config.changeEvents.window = true;
               test.done();
             });
           });

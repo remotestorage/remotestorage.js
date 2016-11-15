@@ -1,4 +1,9 @@
   var RemoteStorage = require('./remotestorage');
+  var cachingLayer = require('./cachinglayer')
+  var log = require('./log');
+  var eventHandling = require('./eventhandling');
+  var util = require('./util');
+
   /**
    * Class: RemoteStorage.LocalStorage
    *
@@ -8,10 +13,10 @@
   var NODES_PREFIX = "remotestorage:cache:nodes:";
   var CHANGES_PREFIX = "remotestorage:cache:changes:";
 
-  RemoteStorage.LocalStorage = function () {
-    RemoteStorage.cachingLayer(this);
-    RemoteStorage.log('[LocalStorage] Registering events');
-    RemoteStorage.eventHandling(this, 'change', 'local-events-done');
+  var LocalStorage = function () {
+    cachingLayer(this);
+    log('[LocalStorage] Registering events');
+    eventHandling(this, 'change', 'local-events-done');
   };
 
   function b64ToUint6(nChr) {
@@ -42,7 +47,7 @@
     return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX;
   }
 
-  RemoteStorage.LocalStorage.prototype = {
+  LocalStorage.prototype = {
 
     getNodes: function (paths) {
       var nodes = {};
@@ -87,14 +92,14 @@
 
   };
 
-  RemoteStorage.LocalStorage._rs_init = function () {};
+  LocalStorage._rs_init = function () {};
 
-  RemoteStorage.LocalStorage._rs_supported = function () {
-    return RemoteStorage.util.localStorageAvailable();
+  LocalStorage._rs_supported = function () {
+    return util.localStorageAvailable();
   };
 
   // TODO tests missing!
-  RemoteStorage.LocalStorage._rs_cleanup = function () {
+  LocalStorage._rs_cleanup = function () {
     var keys = [];
 
     for (var i = 0, len = localStorage.length; i < len; i++) {
@@ -105,7 +110,9 @@
     }
 
     keys.forEach(function (key) {
-      RemoteStorage.log('[LocalStorage] Removing', key);
+      log('[LocalStorage] Removing', key);
       delete localStorage[key];
     });
   };
+
+  module.exports = LocalStorage;

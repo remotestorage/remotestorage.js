@@ -1,5 +1,6 @@
-  var RemoteStorage = require('./remotestorage');
-  require('webfinger.js');
+  var WebFinger = require('webfinger.js');
+  var log = require('./log');
+  var util = require('./util');
 
   // feature detection flags
   var haveXMLHttpRequest, hasLocalStorage;
@@ -31,7 +32,7 @@
    *   properties - Webfinger link properties
    **/
 
-  RemoteStorage.Discover = function (userAddress) {
+  var Discover = function (userAddress) {
     if (userAddress in cachedInfo) {
       return Promise.resolve(cachedInfo[userAddress]);
     }
@@ -50,7 +51,7 @@
       } else if ((typeof response.idx.links.remotestorage !== 'object') ||
                  (typeof response.idx.links.remotestorage.length !== 'number') ||
                  (response.idx.links.remotestorage.length <= 0)) {
-        RemoteStorage.log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.json));
+        log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.json));
         return pending.reject("WebFinger record for " + userAddress + " does not have remotestorage defined in the links section.");
       }
 
@@ -73,8 +74,8 @@
     return pending.promise;
   };
 
-  RemoteStorage.Discover._rs_init = function (remoteStorage) {
-    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+  Discover._rs_init = function (remoteStorage) {
+    hasLocalStorage = util.localStorageAvailable();
     if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
@@ -84,13 +85,16 @@
     }
   };
 
-  RemoteStorage.Discover._rs_supported = function () {
+  Discover._rs_supported = function () {
     haveXMLHttpRequest = !! global.XMLHttpRequest;
     return haveXMLHttpRequest;
   };
 
-  RemoteStorage.Discover._rs_cleanup = function () {
+  Discover._rs_cleanup = function () {
     if (hasLocalStorage) {
       delete localStorage[SETTINGS_KEY];
     }
   };
+
+
+  module.exports = Discover;

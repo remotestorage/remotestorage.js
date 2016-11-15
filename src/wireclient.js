@@ -1,5 +1,10 @@
   var RS = require('./remotestorage');
   var RemoteStorage = RS;
+  var log = require('./log');
+  var util = require('./util');
+  var eventHandling = require('./eventhandling');
+  var Authorize = require('./authorize');
+
   /**
    * Class: RemoteStorage.WireClient
    *
@@ -69,8 +74,8 @@
     };
   }
 
-  var isFolder = RemoteStorage.util.isFolder;
-  var cleanPath = RemoteStorage.util.cleanPath;
+  var isFolder = util.isFolder;
+  var cleanPath = util.cleanPath;
 
   function addQuotes(str) {
     if (typeof(str) !== 'string') {
@@ -177,7 +182,7 @@
   /**
    * Class : RemoteStorage.WireClient
    **/
-  RS.WireClient = function (rs) {
+  var WireClient = function (rs) {
     this.rs = rs;
     this.connected = false;
 
@@ -190,7 +195,7 @@
      *   Fired when the wireclient connect method realizes that it is in
      *   possession of a token and href
      **/
-    RS.eventHandling(this, 'change', 'connected', 'not-connected',
+    eventHandling(this, 'change', 'connected', 'not-connected',
                            'wire-busy', 'wire-done');
 
     onErrorCb = function (error){
@@ -216,9 +221,9 @@
     }
   };
 
-  RS.WireClient.REQUEST_TIMEOUT = 30000;
+  WireClient.REQUEST_TIMEOUT = 30000;
 
-  RS.WireClient.prototype = {
+  WireClient.prototype = {
     /**
      * Property: token
      *
@@ -264,7 +269,7 @@
       var reqType;
       var self = this;
 
-      if (token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) {
+      if (token !== Authorize.IMPLIED_FAKE_TOKEN) {
         headers['Authorization'] = 'Bearer ' + token;
       }
 
@@ -273,7 +278,7 @@
         isFolder: isFolder(uri)
       });
 
-      return RS.WireClient.request(method, uri, {
+      return WireClient.request(method, uri, {
         body: body,
         headers: headers,
         responseType: 'arraybuffer'
@@ -289,7 +294,7 @@
         });
 
         if (isErrorStatus(response.status)) {
-          RemoteStorage.log('[WireClient] Error response status', response.status);
+          log('[WireClient] Error response status', response.status);
           if (getEtag) {
             revision = stripQuotes(response.getResponseHeader('ETag'));
           } else {
@@ -299,7 +304,7 @@
         } else if (isSuccessStatus(response.status) ||
                    (response.status === 200 && method !== 'GET')) {
           revision = stripQuotes(response.getResponseHeader('ETag'));
-          RemoteStorage.log('[WireClient] Successful request', revision);
+          log('[WireClient] Successful request', revision);
           return Promise.resolve({statusCode: response.status, revision: revision});
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
@@ -313,11 +318,11 @@
           var charset = determineCharset(mimeType);
 
           if ((!mimeType) || charset === 'binary') {
-            RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
+            log('[WireClient] Successful request with unknown or binary mime-type', revision);
             return Promise.resolve({statusCode: response.status, body: response.response, contentType: mimeType, revision: revision});
           } else {
             return getTextFromArrayBuffer(response.response, charset).then(function (body) {
-              RemoteStorage.log('[WireClient] Successful request', revision);
+              log('[WireClient] Successful request', revision);
               return Promise.resolve({statusCode: response.status, body: body, contentType: mimeType, revision: revision});
             });
           }
@@ -502,24 +507,24 @@
   };
 
   // Shared cleanPath used by Dropbox
-  RS.WireClient.cleanPath = cleanPath;
+  WireClient.cleanPath = cleanPath;
 
   // Shared isArrayBufferView used by WireClient and Dropbox
-  RS.WireClient.isArrayBufferView = isArrayBufferView;
+  WireClient.isArrayBufferView = isArrayBufferView;
 
-  RS.WireClient.readBinaryData = readBinaryData;
+  WireClient.readBinaryData = readBinaryData;
 
   // Shared request function used by WireClient, GoogleDrive and Dropbox.
-  RS.WireClient.request = function (method, url, options) {
+  WireClient.request = function (method, url, options) {
     var pending = Promise.defer();
-    RemoteStorage.log('[WireClient]', method, url);
+    log('[WireClient]', method, url);
 
     var timedOut = false;
 
     var timer = setTimeout(function () {
       timedOut = true;
       pending.reject('timeout');
-    }, RS.WireClient.REQUEST_TIMEOUT);
+    }, WireClient.REQUEST_TIMEOUT);
 
     var xhr = new XMLHttpRequest();
     xhr.open(method, url, true);
@@ -555,7 +560,7 @@
     return pending.promise;
   };
 
-  Object.defineProperty(RemoteStorage.WireClient.prototype, 'storageType', {
+  Object.defineProperty(WireClient.prototype, 'storageType', {
     get: function () {
       if (this.storageApi) {
         var spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
@@ -565,20 +570,22 @@
   });
 
 
-  RS.WireClient._rs_init = function (remoteStorage) {
-    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
-    remoteStorage.remote = new RS.WireClient(remoteStorage);
+  WireClient._rs_init = function (remoteStorage) {
+    hasLocalStorage = util.localStorageAvailable();
+    remoteStorage.remote = new WireClient(remoteStorage);
     this.online = true;
   };
 
-  RS.WireClient._rs_supported = function () {
+  WireClient._rs_supported = function () {
     return !! global.XMLHttpRequest;
   };
 
-  RS.WireClient._rs_cleanup = function (remoteStorage){
+  WireClient._rs_cleanup = function (remoteStorage){
     if (hasLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
     remoteStorage.removeEventListener('error', onErrorCb);
   };
 
+
+  module.exports = WireClient;

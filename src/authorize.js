@@ -95,7 +95,6 @@ var RemoteStorage = require('./remotestorage');
   };
 
   Authorize.IMPLIED_FAKE_TOKEN = false;
-  console.log(RemoteStorage, 'son qui')
   
   // RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
   //   this.access.setStorageType(this.remote.storageType);

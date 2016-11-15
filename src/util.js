@@ -106,12 +106,12 @@ var RemoteStorage = require('./remotestorage');
     },
 
     isDocument: function (path) {
-      return !RemoteStorage.util.isFolder(path);
+      return !util.isFolder(path);
     },
 
     baseName: function (path) {
       var parts = path.split('/');
-      if (this.isFolder(path)) {
+      if (util.isFolder(path)) {
         return parts[parts.length-2]+'/';
       } else {
         return parts[parts.length-1];
@@ -163,7 +163,7 @@ var RemoteStorage = require('./remotestorage');
         }
 
         for (var i = 0, c = a.length; i < c; i++) {
-          if (!RemoteStorage.util.equal(a[i], b[i], seen)) {
+          if (!util.equal(a[i], b[i], seen)) {
             return false;
           }
         }
@@ -198,7 +198,7 @@ var RemoteStorage = require('./remotestorage');
             seenArg.push(b[key]);
           }
 
-          if (!RemoteStorage.util.equal(a[key], b[key], seenArg)) {
+          if (!util.equal(a[key], b[key], seenArg)) {
             return false;
           }
         }
@@ -208,8 +208,8 @@ var RemoteStorage = require('./remotestorage');
     },
 
     equalObj: function (obj1, obj2) {
-      console.warn('DEPRECATION WARNING: RemoteStorage.util.equalObj has been replaced by RemoteStorage.util.equal.');
-      return RemoteStorage.util.equal(obj1, obj2);
+      console.warn('DEPRECATION WARNING: util.equalObj has been replaced by util.equal.');
+      return util.equal(obj1, obj2);
     },
 
     deepClone: function (obj) {

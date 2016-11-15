@@ -1,5 +1,4 @@
 
-// var RemoteStorage = require('./remotestorage')
 var log = require('./log');
 
 function shareFirst(path) {

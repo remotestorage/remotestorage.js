@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/init'], function (RemoteStorage) {
+define(['./src/wireclient', './src/remotestorage'], function (WireClient, RemoteStorage) {
   var suites = [];
 	var oldReadBinaryData;
 
@@ -10,16 +10,12 @@ define(['./src/init'], function (RemoteStorage) {
     desc: "Low-level remotestorage client used in NodeJS",
     setup: function(env, test) {
 
-      RemoteStorage.Authorize = {
-        IMPLIED_FAKE_TOKEN: false
-      };
-
-      test.assertType(global.RemoteStorage, 'function');
+      test.assertType(RemoteStorage, 'function');
     },
 
     takedown: function(env, test) {
-      if (typeof RemoteStorage.WireClient !== 'undefined') {
-         RemoteStorage.WireClient.readBinaryData = oldReadBinaryData;
+      if (typeof WireClient !== 'undefined') {
+         WireClient.readBinaryData = oldReadBinaryData;
       }
       test.done();
     },
@@ -54,7 +50,7 @@ define(['./src/init'], function (RemoteStorage) {
         });
       });
       env.rs = new RemoteStorage();
-      env.connectedClient = new RemoteStorage.WireClient(env.rs);
+      env.connectedClient = new WireClient(env.rs);
       env.baseURI = 'https://example.com/storage/test';
       env.token = 'foobarbaz';
       env.connectedClient.configure({

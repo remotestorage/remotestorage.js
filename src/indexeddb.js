@@ -38,24 +38,26 @@
    *
    */
 
-  var RS = require('./remotestorage');
-  var RemoteStorage = RS;
+  var log = require('./log');
+  var cachingLayer = require('./cachinglayer');
+  var eventHandling = require('./eventhandling');
+  var util = require('./util');
 
   var DB_VERSION = 2;
 
   var DEFAULT_DB_NAME = 'remotestorage';
   var DEFAULT_DB;
 
-  RS.IndexedDB = function (database) {
+  var IndexedDB = function (database) {
     this.db = database || DEFAULT_DB;
 
     if (!this.db) {
-      RemoteStorage.log("[IndexedDB] Failed to open DB");
+      log("[IndexedDB] Failed to open DB");
       return undefined;
     }
 
-    RS.cachingLayer(this);
-    RS.eventHandling(this, 'change', 'local-events-done');
+    cachingLayer(this);
+    eventHandling(this, 'change', 'local-events-done');
 
     this.getsRunning = 0;
     this.putsRunning = 0;
@@ -87,14 +89,14 @@
     this.changesRunning = {};
   };
 
-  RS.IndexedDB.prototype = {
+  IndexedDB.prototype = {
     getNodes: function (paths) {
       var misses = [], fromCache = {};
       for (var i = 0, len = paths.length; i < len; i++) {
         if (this.changesQueued[paths[i]] !== undefined) {
-          fromCache[paths[i]] = RemoteStorage.util.deepClone(this.changesQueued[paths[i]] || undefined);
+          fromCache[paths[i]] = util.deepClone(this.changesQueued[paths[i]] || undefined);
         } else if(this.changesRunning[paths[i]] !== undefined) {
-          fromCache[paths[i]] = RemoteStorage.util.deepClone(this.changesRunning[paths[i]] || undefined);
+          fromCache[paths[i]] = util.deepClone(this.changesRunning[paths[i]] || undefined);
         } else {
           misses.push(paths[i]);
         }
@@ -179,7 +181,7 @@
 
       this.putsRunning++;
 
-      RemoteStorage.log('[IndexedDB] Starting put', nodes, this.putsRunning);
+      log('[IndexedDB] Starting put', nodes, this.putsRunning);
 
       for (var path in nodes) {
         var node = nodes[path];
@@ -187,14 +189,14 @@
           try {
             nodesStore.put(node);
           } catch(e) {
-            RemoteStorage.log('[IndexedDB] Error while putting', node, e);
+            log('[IndexedDB] Error while putting', node, e);
             throw e;
           }
         } else {
           try {
             nodesStore.delete(path);
           } catch(e) {
-            RemoteStorage.log('[IndexedDB] Error while removing', nodesStore, node, e);
+            log('[IndexedDB] Error while removing', nodesStore, node, e);
             throw e;
           }
         }
@@ -202,7 +204,7 @@
 
       transaction.oncomplete = function () {
         this.putsRunning--;
-        RemoteStorage.log('[IndexedDB] Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
+        log('[IndexedDB] Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
         pending.resolve();
       }.bind(this);
 
@@ -225,10 +227,10 @@
 
       this.db.close();
 
-      RS.IndexedDB.clean(this.db.name, function() {
-        RS.IndexedDB.open(dbName, function (err, other) {
+      IndexedDB.clean(this.db.name, function() {
+        IndexedDB.open(dbName, function (err, other) {
           if (err) {
-            RemoteStorage.log('[IndexedDB] Error while resetting local storage', err);
+            log('[IndexedDB] Error while resetting local storage', err);
           } else {
             // hacky!
             self.db = other;
@@ -263,7 +265,7 @@
 
   };
 
-  RS.IndexedDB.open = function (name, callback) {
+  IndexedDB.open = function (name, callback) {
     var timer = setTimeout(function () {
       callback("timeout trying to open db");
     }, 10000);
@@ -272,7 +274,7 @@
       var req = indexedDB.open(name, DB_VERSION);
 
       req.onerror = function () {
-        RemoteStorage.log('[IndexedDB] Opening DB failed', req);
+        log('[IndexedDB] Opening DB failed', req);
 
         clearTimeout(timer);
         callback(req.error);
@@ -281,14 +283,14 @@
       req.onupgradeneeded = function (event) {
         var db = req.result;
 
-        RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
+        log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
 
         if (event.oldVersion !== 1) {
-          RemoteStorage.log("[IndexedDB] Creating object store: nodes");
+          log("[IndexedDB] Creating object store: nodes");
           db.createObjectStore('nodes', { keyPath: 'path' });
         }
 
-        RemoteStorage.log("[IndexedDB] Creating object store: changes");
+        log("[IndexedDB] Creating object store: changes");
 
         db.createObjectStore('changes', { keyPath: 'path' });
       };
@@ -299,9 +301,9 @@
         // check if all object stores exist
         var db = req.result;
         if(!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
-          RemoteStorage.log("[IndexedDB] Missing object store. Resetting the database.");
-          RS.IndexedDB.clean(name, function() {
-            RS.IndexedDB.open(name, callback);
+          log("[IndexedDB] Missing object store. Resetting the database.");
+          IndexedDB.clean(name, function() {
+            IndexedDB.open(name, callback);
           });
           return;
         }
@@ -309,22 +311,22 @@
         callback(null, req.result);
       };
     } catch(error) {
-      RemoteStorage.log("[IndexedDB] Failed to open database: " + error);
-      RemoteStorage.log("[IndexedDB] Resetting database and trying again.");
+      log("[IndexedDB] Failed to open database: " + error);
+      log("[IndexedDB] Resetting database and trying again.");
 
       clearTimeout(timer);
 
-      RS.IndexedDB.clean(name, function() {
-        RS.IndexedDB.open(name, callback);
+      IndexedDB.clean(name, function() {
+        IndexedDB.open(name, callback);
       });
     };
   };
 
-  RS.IndexedDB.clean = function (databaseName, callback) {
+  IndexedDB.clean = function (databaseName, callback) {
     var req = indexedDB.deleteDatabase(databaseName);
 
     req.onsuccess = function () {
-      RemoteStorage.log('[IndexedDB] Done removing DB');
+      log('[IndexedDB] Done removing DB');
       callback();
     };
 
@@ -333,10 +335,10 @@
     };
   };
 
-  RS.IndexedDB._rs_init = function (remoteStorage) {
+  IndexedDB._rs_init = function (remoteStorage) {
     var pending = Promise.defer();
 
-    RS.IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
+    IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
       if (err) {
         pending.reject(err);
       } else {
@@ -349,7 +351,7 @@
     return pending.promise;
   };
 
-  RS.IndexedDB._rs_supported = function () {
+  IndexedDB._rs_supported = function () {
     var pending = Promise.defer();
 
     global.indexedDB = global.indexedDB    || global.webkitIndexedDB ||
@@ -387,17 +389,19 @@
     return pending.promise;
   };
 
-  RS.IndexedDB._rs_cleanup = function (remoteStorage) {
+  IndexedDB._rs_cleanup = function (remoteStorage) {
     var pending = Promise.defer();
 
     if (remoteStorage.local) {
       remoteStorage.local.closeDB();
     }
 
-    RS.IndexedDB.clean(DEFAULT_DB_NAME, function () {
+    IndexedDB.clean(DEFAULT_DB_NAME, function () {
       pending.resolve();
     });
 
     return pending.promise;
   };
 
+
+  module.exports = IndexedDB;
