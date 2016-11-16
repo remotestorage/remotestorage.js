@@ -214,8 +214,8 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       var self = this;
       function putDone(response) {
         RS.log('SafeNetwork.put putDone(statusCode: ' + response.statusCode + ') for path: ' + path );
-
-        // mrhTODO SAFE API v0.5: _createFile/_updateFile lack version support
+        
+        // mrhTODO SAFE API v0.6: _createFile/_updateFile lack version support
         // mrhTODO so the response.statusCode checks here are untested
         if (response.statusCode >= 200 && response.statusCode < 300) {
           return self._getFileInfo(fullPath).then( function (fileInfo){
@@ -292,7 +292,6 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       });
     },
 
-    // mrhTODO contentType is currently ignored - can I use safeNFS.renameFile to set it?
     _updateFile: function (fullPath, body, contentType, options) {
       RS.log('SafeNetwork._updateFile(' + fullPath + ',...)' );
       var self = this;
@@ -304,11 +303,13 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       }
 */
       
-      return window.safeNFS.createOrUpdateFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (response) {
+      return window.safeNFS.createOrUpdateFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (result) {
         // self._shareIfNeeded(fullPath);  // mrhTODO what's this? (was part of dropbox.js)
 
+        var response = { statusCode: ( result ? 200 : 400  ) }; // mrhTODO currently just a response that resolves to truthy (may be extended to return status?)
+        
         self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
-        return response;
+        return Promise.resolve( response );
       }, function (err){
         RS.log('REJECTING!!! safeNFS.createOrUpdateFile("' + fullPath + '") failed: ' + err.message)
         return Promise.reject(err);
@@ -322,11 +323,13 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       // Ensure path exists by recursively calling create on parent folder
       return self._makeParentPath(fullPath).then(function (parentPath) {
         
-        return window.safeNFS.createFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (response) {
+        return window.safeNFS.createFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (result) {
           // self._shareIfNeeded(fullPath);  // mrhTODO what's this?
-          
+
+          var response = { statusCode: ( result ? 200 : 400  ) }; // mrhTODO currently just a response that resolves to truthy (may be extended to return status?)
+
           self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
-          return Promise.resolve({statusCode: 200});
+          return Promise.resolve(response);
         }, function (err){
           RS.log('REJECTING!!! _createFile("' + fullPath + '") failed: ' + err.message)
           return Promise.reject(err);
@@ -353,8 +356,8 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         if (ENABLE_ETAGS && options && options.ifNoneMatch && etagWithoutQuotes && (etagWithoutQuotes === options.ifNoneMatch)) {
           return Promise.resolve({statusCode: 304});
         }
-          
-        return window.safeNFS.getFile(self.token, fullPath, self.isPathShared).then(function (body) {
+        
+        return window.safeNFS.getFile(self.token, fullPath, 'json', self.isPathShared).then(function (body) {
           
           /* SAFE NFS API file-metadata - disabled for now:
           var fileMetadata = response.getResponseHeader('file-metadata');
