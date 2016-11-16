@@ -282,7 +282,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
             return Promise.reject('safeNFS deleteFunction("' + fullPath + '") failed: ' + success );
           }
         }, function (err){
-          RS.log('REJECTING!!! deleteFunction("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+          RS.log('REJECTING!!! deleteFunction("' + fullPath + '") failed: ' + err.message)
           return Promise.reject(err);
         });
 
@@ -310,7 +310,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
         return response;
       }, function (err){
-        RS.log('REJECTING!!! safeNFS.createOrUpdateFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('REJECTING!!! safeNFS.createOrUpdateFile("' + fullPath + '") failed: ' + err.message)
         return Promise.reject(err);
       });
     },
@@ -328,11 +328,11 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
           return Promise.resolve({statusCode: 200});
         }, function (err){
-          RS.log('REJECTING!!! _createFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+          RS.log('REJECTING!!! _createFile("' + fullPath + '") failed: ' + err.message)
           return Promise.reject(err);
         });
       }, function (err){
-        RS.log('REJECTING!!! _makeParentPath("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('REJECTING!!! _makeParentPath("' + fullPath + '") failed: ' + err.message)
         return Promise.reject(err);
       });
     },
@@ -380,7 +380,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
          
           return Promise.resolve( retResponse );
         }, function (err){
-          RS.log('REJECTING!!! safeNFS.getFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+          RS.log('REJECTING!!! safeNFS.getFile("' + fullPath + '") failed: ' + err.message)
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
       }, function (err){
@@ -529,12 +529,12 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 //          self._shareIfNeeded(folderPath);  // mrhTODO what's this? (was part of dropbox.js)
           return Promise.resolve(response);
         }, function (err){
-          RS.log('safeNFS.createDir("' + folderPath + '") failed: ' + err.errorCode + ' ' + err.description)
+          RS.log('safeNFS.createDir("' + folderPath + '") failed: ' + err.message)
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
 
       }, function (err){
-        RS.log('_makeParentPath("' + folderPath + '") failed: ' + err.errorCode + ' ' + err.description)
+        RS.log('_makeParentPath("' + folderPath + '") failed: ' + err.message)
         return Promise.reject(err);
       });
     },
