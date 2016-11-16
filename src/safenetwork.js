@@ -175,7 +175,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
             token:          res.token,                  // Auth token
             permissions:    res.permissions,   // List of permissions approved by the user
           });
-      }, (err) => {
+      }, function (err){
         RS.log('SafeNetwork Authorisation Failed');
         RS.log(err);
       });
@@ -222,7 +222,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
             
             var etagWithoutQuotes = ( typeof(fileInfo.ETag) === 'string' ? fileInfo.ETag : undefined );            
             return Promise.resolve({statusCode: 200, 'contentType': contentType, revision: etagWithoutQuotes});
-          }, (err) => {
+          }, function (err){
             RS.log('REJECTING!!! ' + err.message)
             return Promise.reject(err);
           });
@@ -242,7 +242,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         } else {
           return self._createFile(fullPath, body, contentType, options).then(putDone);
         }
-      }, (err) => {
+      }, function (err){
         RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
@@ -281,19 +281,18 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           } else {
             return Promise.reject('safeNFS deleteFunction("' + fullPath + '") failed: ' + success );
           }
-        }, (err) => {
+        }, function (err){
           RS.log('REJECTING!!! deleteFunction("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
           return Promise.reject(err);
         });
 
-      }, (err) => {
+      }, function (err){
         RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
     },
 
-    // mrhTODO - replace _updateFile / _createFile with single _putFile (as POST /nfs/file now does both)
-    // mrhTODO contentType is ignored on update (to change it would require file delete and create before update)
+    // mrhTODO contentType is currently ignored - can I use safeNFS.renameFile to set it?
     _updateFile: function (fullPath, body, contentType, options) {
       RS.log('SafeNetwork._updateFile(' + fullPath + ',...)' );
       var self = this;
@@ -305,13 +304,13 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       }
 */
       
-      return window.safeNFS.createFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (response) {
+      return window.safeNFS.createOrUpdateFile(self.token, fullPath, body, contentType, body.length, null, self.isPathShared).then(function (response) {
         // self._shareIfNeeded(fullPath);  // mrhTODO what's this? (was part of dropbox.js)
 
         self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
         return response;
-      }, (err) => {
-        RS.log('REJECTING!!! safeNFS.createFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
+      }, function (err){
+        RS.log('REJECTING!!! safeNFS.createOrUpdateFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
     },
@@ -328,11 +327,11 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           
           self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
           return Promise.resolve({statusCode: 200});
-        }, (err) => {
+        }, function (err){
           RS.log('REJECTING!!! _createFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
           return Promise.reject(err);
         });
-      }, (err) => {
+      }, function (err){
         RS.log('REJECTING!!! _makeParentPath("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
@@ -380,11 +379,11 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           }
          
           return Promise.resolve( retResponse );
-        }, (err) => {
+        }, function (err){
           RS.log('REJECTING!!! safeNFS.getFile("' + fullPath + '") failed: ' + err.errorCode + ' ' + err.description)
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
-      }, (err) => {
+      }, function (err){
         RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
@@ -486,11 +485,11 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
           RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
           return Promise.resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE/*, mrhTODO revision: folderETagWithoutQuotes*/ });
-        }, (err) => {
+        }, function (err){
           RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err )
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
-      }, (err) => {
+      }, function (err){
         RS.log('_getFileInfo("' + fullPath + '") failed: ' + err)
         return Promise.reject(err);
       });
@@ -507,7 +506,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         } else {
           return self._createFolder(parentFolder);
         }
-      }, (err) => {
+      }, function (err){
         RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
@@ -529,12 +528,12 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         return window.safeNFS.createDir(self.token, folderPath, self.isPrivate, self.userMetadata, self.isPathShared).then(function (response) {
 //          self._shareIfNeeded(folderPath);  // mrhTODO what's this? (was part of dropbox.js)
           return Promise.resolve(response);
-        }, (err) => {
+        }, function (err){
           RS.log('safeNFS.createDir("' + folderPath + '") failed: ' + err.errorCode + ' ' + err.description)
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
 
-      }, (err) => {
+      }, function (err){
         RS.log('_makeParentPath("' + folderPath + '") failed: ' + err.errorCode + ' ' + err.description)
         return Promise.reject(err);
       });
@@ -583,7 +582,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           if (fullPath.substr(-1) === '/') {    // folder, so create it
             return self._createFolder(fullPath).then(function () {
               return self._getFileInfo(fullPath);
-            }, (err) => {
+            }, function (err){
               RS.log('_createFolder("' + fullPath + '") ERROR statusCode: ' + err.statusCode )
               return Promise.reject(err);
             });
@@ -595,7 +594,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         }
         
         return Promise.resolve(info);         // Pass back info (null if doesn't exist)
-      }, (err) => {
+      }, function (err){
         RS.log('_getFolder("' + parentPath(fullPath) + '") ERROR statusCode: ' + err.statusCode )
         return Promise.reject(err);
       });
