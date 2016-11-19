@@ -85,10 +85,6 @@ var RemoteStorage = require('./remotestorage');
             token: authResult.access_token
           });
         })
-        .then(null, function(error) {
-          console.error(error);
-          remoteStorage.widget.view.setState('initial');
-        });
     }
 
     Authorize.setLocation(url);
@@ -108,6 +104,11 @@ var RemoteStorage = require('./remotestorage');
 
   //   Authorize(this, authURL, scope, redirectUri, clientId);
   // };
+  // 
+  // 
+  Authorize.Unauthorized = function () { Error.apply(this, arguments); };
+  Authorize.Unauthorized.prototype = Object.create(Error.prototype);
+
 
   /**
    * Get current document location
@@ -172,8 +173,8 @@ var RemoteStorage = require('./remotestorage');
     return pending.promise;
   };
 
-  // RemoteStorage.prototype.impliedauth = function () {
-  //   RemoteStorage.ImpliedAuth(this.remote.storageApi, String(document.location));
+  // RS.prototype.impliedauth = function () {
+  //   RS.ImpliedAuth(this.remote.storageApi, String(document.location));
   // };
 
   Authorize._rs_supported = function () {
@@ -228,4 +229,4 @@ var RemoteStorage = require('./remotestorage');
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
 
-  module.exports = Authorize
+  module.exports = Authorize;

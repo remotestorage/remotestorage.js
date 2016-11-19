@@ -5,7 +5,6 @@
   }
 
   var eventHandling = require('./eventhandling');
-  var RemoteStorage = require('./remotestorage');
   var util = require('./util');
   var config = require('./config');
   require('../lib/Math.uuid');
@@ -650,17 +649,7 @@
    *
    */
   BaseClient._rs_init = function () {
-    RemoteStorage.prototype.scope = function (path) {
-      if (typeof(path) !== 'string') {
-        throw 'Argument \'path\' of baseClient.scope must be a string';
-      }
-
-      if (!this.access.checkPathPermission(path, 'r')) {
-        var escapedPath = path.replace(/(['\\])/g, '\\$1');
-        console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
-      }
-      return new BaseClient(this, path);
-    };
+    
   };
 
   /* e.g.:

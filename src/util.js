@@ -1,10 +1,10 @@
+var eventHandling = require('./eventhandling');
 /**
  * Class: RemoteStorage.Util
  *
  * Provides reusable utility functions at RemoteStorage.util
  *
  */
-var RemoteStorage = require('./remotestorage');
   /**
    * Function: fixArrayBuffers
    *
@@ -38,7 +38,7 @@ var RemoteStorage = require('./remotestorage');
       var object = {};
       var args = Array.prototype.slice.call(arguments);
       args.unshift(object);
-      RemoteStorage.eventHandling.apply(RemoteStorage, args);
+      eventHandling.apply(RemoteStorage, args);
       object.emit = object._emit;
       return object;
     },

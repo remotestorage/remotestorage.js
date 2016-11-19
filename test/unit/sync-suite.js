@@ -2,7 +2,8 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['bluebird', 'test/helpers/mocks', './src/init'], function(Promise, mocks, RemoteStorage) {
+define(['bluebird', 'require', './src/sync', './src/inmemorystorage', './src/eventhandling', 'test/helpers/mocks'], 
+       function(Promise, require, Sync, InMemoryStorage, eventHandling, mocks) {
   global.Promise = Promise;
 
   var suites = [];
@@ -24,62 +25,25 @@ define(['bluebird', 'test/helpers/mocks', './src/init'], function(Promise, mocks
       mocks.defineMocks(env);
 
       global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
+        eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
       };
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
-      RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
-      RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
-
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-
-      if (global.rs_eventhandling){
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      if (global.rs_cachinglayer) {
-        RemoteStorage.cachingLayer = global.rs_cachinglayer;
-      } else {
-        global.rs_cachinglayer = RemoteStorage.cachingLayer;
-      }
-
-      if (global.rs_ims) {
-        RemoteStorage.InMemoryStorage = global.rs_ims;
-      } else {
-        global.rs_ims = RemoteStorage.InMemoryStorage;
-      }
-
-      if (global.rs_sync) {
-        RemoteStorage.Sync = global.rs_sync;
-      } else {
-        global.rs_sync = RemoteStorage.Sync;
-      }
-
-      if (global.rs_authorize) {
-        RemoteStorage.Authorize = global.rs_authorize;
-      } else {
-        global.rs_authorize = RemoteStorage.Authorize;
-      }
+      // RemoteStorage.Unauthorized = RS.Unauthorized;
+      global.Authorize = require('./src/authorize');
 
       test.done();
     },
 
     beforeEach: function(env, test){
       env.rs = new RemoteStorage();
-      env.rs.local = new RemoteStorage.InMemoryStorage(env.rs);
+      env.rs.local = new InMemoryStorage(env.rs);
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
-      env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
+      env.rs.sync = new Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
       global.remoteStorage = env.rs;
 
       env.rs.sync.numThreads = 5;
@@ -106,7 +70,7 @@ define(['bluebird', 'test/helpers/mocks', './src/init'], function(Promise, mocks
       },
 
       {
-        desc: "RemoteStorage.sync() returns immediately if not connected",
+        desc: "sync() returns immediately if not connected",
         run: function(env,test){
           var failed = false;
           env.rs.remote.connected = false;
@@ -134,10 +98,10 @@ define(['bluebird', 'test/helpers/mocks', './src/init'], function(Promise, mocks
 
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers");
 
-          RemoteStorage.Sync._rs_init(env.rs);
+          Sync._rs_init(env.rs);
           test.assertAnd(allHandlers(), 2, "after init found "+allHandlers()+" handlers");
 
-          RemoteStorage.Sync._rs_cleanup(env.rs);
+          Sync._rs_cleanup(env.rs);
           test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers");
 
           test.done();
@@ -151,7 +115,7 @@ define(['bluebird', 'test/helpers/mocks', './src/init'], function(Promise, mocks
             test.done();
           }
 
-          RemoteStorage.Sync._rs_init(env.rs);
+          Sync._rs_init(env.rs);
 
           env.rs._emit('connected');
         }
@@ -164,7 +128,7 @@ define(['bluebird', 'test/helpers/mocks', './src/init'], function(Promise, mocks
             test.assert(env.rs._handlers['connected'].length, 0, "connect handler still exists");
           }
 
-          RemoteStorage.Sync._rs_init(env.rs);
+          Sync._rs_init(env.rs);
 
           env.rs._emit('connected');
         }
@@ -173,7 +137,7 @@ define(['bluebird', 'test/helpers/mocks', './src/init'], function(Promise, mocks
       {
         desc : "Custom connected event handlers get called after Sync adapter removed its own handler",
         run : function(env, test) {
-          RemoteStorage.Sync._rs_init(env.rs);
+          Sync._rs_init(env.rs);
 
           env.rs.on('connected', function() {
             test.done();
@@ -188,7 +152,7 @@ define(['bluebird', 'test/helpers/mocks', './src/init'], function(Promise, mocks
         run : function(env, test) {
           test.assertAnd(typeof env.rs.sync, "object", "sync is not defined");
 
-          RemoteStorage.Sync._rs_cleanup(env.rs);
+          Sync._rs_cleanup(env.rs);
 
           test.assert(typeof env.rs.sync, "undefined", "sync is still defined after cleanup");
         }
@@ -961,7 +925,7 @@ define(['bluebird', 'test/helpers/mocks', './src/init'], function(Promise, mocks
         desc: "handleResponse emits Unauthorized error for status 401",
         run: function(env, test) {
           env.rs.on('error', function(err) {
-            if (err instanceof RemoteStorage.Unauthorized) {
+            if (err instanceof Authorize.Unauthorized) {
               test.result(true, "handleResponse() emitted Unauthorized error");
             } else {
               test.result(false);

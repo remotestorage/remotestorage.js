@@ -1,4 +1,3 @@
-// var RemoteStorage = require('./remotestorage');
 var config = require('./config');
 
 module.exports = function () {

@@ -1,11 +1,9 @@
-  var RS = require('./remotestorage');
-  var RemoteStorage = RS;
-
   var Authorize = require('./authorize');
   var BaseClient = require('./baseclient');
   var WireClient = require('./wireclient');
   var util = require('./util');
   var eventHandling = require('./eventhandling');
+  // var RemoteStorage = require('./remotestorage');
 
   /**
    * File: Dropbox
@@ -189,7 +187,7 @@
     var self = this;
 
     onErrorCb = function (error){
-      if (error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof Authorize.Unauthorized) {
         // Delete all the settings - see the documentation of wireclient.configure
         self.configure({
           userAddress: null,
@@ -691,7 +689,7 @@
         // break if status != 200
         if (response.status !== 200 ) {
           if (response.status === 400) {
-            self.rs._emit('error', new RemoteStorage.Unauthorized());
+            self.rs._emit('error', new Authorize.Unauthorized());
             return Promise.resolve(args);
           } else {
             return Promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);

@@ -20,8 +20,6 @@
    * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
    **/
 
-  var RS = require('./remotestorage');
-  var RemoteStorage = RS;
   var Authorize = require('./authorize');
   var WireClient = require('./wireclient');
   var eventHandling = require('./eventhandling');
@@ -469,7 +467,7 @@
   GoogleDrive._rs_init = function (remoteStorage) {
     var config = remoteStorage.apiKeys.googledrive;
     if (config) {
-      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.clientId);
+      remoteStorage.googledrive = new GoogleDrive(remoteStorage, config.clientId);
       if (remoteStorage.backend === 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;

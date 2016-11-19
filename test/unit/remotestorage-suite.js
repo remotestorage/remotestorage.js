@@ -1,8 +1,8 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/log', './src/sync', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
-       function (Promise, RemoteStorage, SyncedGetPutDelete, log, Sync, Dropbox, config, eventHandling, require, tv4) {
+define(['bluebird','./src/log', './src/sync', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
+       function (Promise, log, Sync, Dropbox, config, eventHandling, require, tv4) {
 
   var suites = [];
 
@@ -66,7 +66,8 @@ define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/lo
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-     
+      global.RemoteStorage = require('./src/remotestorage');
+
       RemoteStorage.Discover = function(userAddress) {
         var pending = Promise.defer();
         if (userAddress === "someone@somewhere") {
@@ -75,8 +76,9 @@ define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/lo
         return  pending.promise;
       };
       global.localStorage = {};
-      RemoteStorage.prototype.remote = new FakeRemote();
+      RemoteStorage.prototype.remote = FakeRemote;
       test.done();
+      global.Authorize = require('./src/authorize');
     },
 
     beforeEach: function(env, test) {
@@ -92,7 +94,7 @@ define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/lo
         run: function (env, test) {
           var success = false;
           env.rs.on('error', function (e) {
-            if (e instanceof RemoteStorage.Unauthorized) {
+            if (e instanceof Authorize.Unauthorized) {
               success = true;
             }
           });
@@ -108,7 +110,7 @@ define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/lo
         run: function(env, test) {
           var success = false;
           env.rs.on('error', function(e) {
-            if (e instanceof RemoteStorage.Unauthorized) {
+            if (e instanceof Authorize.Unauthorized) {
               success = true;
             }
           });
@@ -123,7 +125,7 @@ define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/lo
         run: function (env, test) {
           var success = false;
           env.rs.on('error', function (e) {
-            if (e instanceof RemoteStorage.Unauthorized) {
+            if (e instanceof Authorize.Unauthorized) {
               success = true;
             }
           });
@@ -375,7 +377,7 @@ define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/lo
         desc: "maxAge defaults to false when not connected",
         run: function(env, test) {
           var rs = {
-            get: SyncedGetPutDelete.get,
+            get: RemoteStorage.SyncedGetPutDelete.get.bind(this),
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -397,7 +399,7 @@ define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/lo
         desc: "maxAge defaults to false when not online",
         run: function(env, test) {
           var rs = {
-            get: SyncedGetPutDelete.get,
+            get: RemoteStorage.SyncedGetPutDelete.get.bind(this),
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -422,7 +424,7 @@ define(['bluebird', './src/remotestorage', './src/syncedgetputdelete', './src/lo
         desc: "maxAge defaults to 2*getSyncInterval when connected",
         run: function(env, test) {
           var rs = {
-            get: SyncedGetPutDelete.get,
+            get: RemoteStorage.SyncedGetPutDelete.get.bind(this),
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');

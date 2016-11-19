@@ -1,6 +1,5 @@
   var util = require('./util');
   var config = require('./config');
-  var RemoteStorage = require('./remotestorage');
 
   /**
    * Interface: cachinglayer

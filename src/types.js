@@ -1,4 +1,3 @@
-  var RemoteStorage = require('./remotestorage');
   var tv4 = require('tv4');
   var BaseClient = require('./baseclient')
 
