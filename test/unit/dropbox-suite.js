@@ -2,14 +2,13 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 define(['require', './src/dropbox', './src/wireclient', './src/eventhandling', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks'], 
-       function (require, Dropbox, WireClient, eventHandling, Promise, backend, mocks, undefined) {
+       function ( require, Dropbox, WireClient, eventHandling, Promise, backend, mocks) {
 
   global.Promise = Promise;
 
   var suites = [];
 
   function setup(env, test) {
-    var RS = require('./src/remotestorage');
     global.RemoteStorage = function () {
       eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
     };
@@ -22,8 +21,7 @@ define(['require', './src/dropbox', './src/wireclient', './src/eventhandling', '
       return false;
     }
 
-    RemoteStorage.Unauthorized = RS.Unauthorized;
-
+    global.Authorize = require('./src/authorize');
 
     test.done();
   }
@@ -535,7 +533,8 @@ define(['require', './src/dropbox', './src/wireclient', './src/eventhandling', '
       {
         desc: "WireClient destroys the bearer token after Unauthorized Error",
         run: function (env, test){
-          env.rs._emit('error', new RemoteStorage.Unauthorized());
+          var e = new Authorize.Unauthorized();
+          env.rs._emit('error', e);
           setTimeout(function () {
             test.assert(env.connectedClient.token, null);
           }, 100);

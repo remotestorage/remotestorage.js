@@ -1,5 +1,4 @@
-  var RS = require('./remotestorage');
-  var RemoteStorage = RS;
+  // var RemoteStorage = require('./remotestorage');
   var log = require('./log');
   var util = require('./util');
   var eventHandling = require('./eventhandling');
@@ -199,7 +198,7 @@
                            'wire-busy', 'wire-done');
 
     onErrorCb = function (error){
-      if (error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof Authorize.Unauthorized) {
         this.configure({token: null});
       }
     }.bind(this);

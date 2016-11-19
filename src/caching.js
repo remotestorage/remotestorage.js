@@ -22,7 +22,6 @@
    *
    **/
 
-  var RemoteStorage = require('./remotestorage');
   var util = require('./util');
   var log = require('./log');
   var SETTINGS_KEY = "remotestorage:caching";

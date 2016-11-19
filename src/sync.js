@@ -3,6 +3,7 @@
   var Env = require('./env');
   var eventHandling = require('./eventhandling');
   var log = require('./log');
+  var Authorize = require('./authorize');
   
   var syncInterval = 10000,
       backgroundSyncInterval = 60000,
@@ -870,7 +871,7 @@
       // Unsuccessful
         var error;
         if (status.unAuth) {
-          error = new RemoteStorage.Unauthorized();
+          error = new Authorize.Unauthorized();
         } else if (status.networkProblems) {
           error = new RemoteStorage.SyncError('Network request failed.');
         } else {

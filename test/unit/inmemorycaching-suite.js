@@ -24,7 +24,7 @@ define(['bluebird', './src/config', './src/inmemorystorage'], function (Promise,
       test.done();
     },
 
-    tests: [
+  tests: [
       {
         desc: "#get loads a node from local",
         run: function (env, test) {

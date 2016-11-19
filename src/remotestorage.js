@@ -25,7 +25,7 @@
 
   function emitUnauthorized(r) {
     if (r.statusCode === 403  || r.statusCode === 401) {
-      this._emit('error', new RemoteStorage.Unauthorized());
+      this._emit('error', new Authorize.Unauthorized());
     }
     return Promise.resolve(r);
   }
@@ -34,6 +34,11 @@
   var SyncedGetPutDelete = require('./syncedgetputdelete');
   var Dropbox = require('./dropbox');
   var GoogleDrive = require('./googledrive');
+  var Discover = require('./discover');
+  var BaseClient = require('./baseclient');
+  var config = require('./config');
+  var Authorize = require('./authorize');
+
   /**
    * Class: RemoteStorage
    *
@@ -121,7 +126,6 @@
      **/
 
     // Initial configuration property settings.
-    var config = require('./config');
     if (typeof cfg === 'object') {
       // RemoteStorage.config = {}
       config.logging = !!cfg.logging;
@@ -165,7 +169,7 @@
     var origOn = this.on;
 
     this.on = function (eventName, handler) {
-      if (eventName === 'ready' && this.remote.connected && this._allLoaded) {
+      if (eventName === 'ready' && this.remote && this.remote.connected && this._allLoaded) {
         setTimeout(handler, 0);
       } else if (eventName === 'features-loaded' && this._allLoaded) {
         setTimeout(handler, 0);
@@ -184,10 +188,10 @@
     this.on('ready', this.fireInitial.bind(this));
   };
 
-  RemoteStorage.Access = require('./access');
-  RemoteStorage.util = require('./util');
-  RemoteStorage.eventHandling = require('./eventhandling');
-  RemoteStorage.Authorize = require('./authorize');
+  // RemoteStorage.Access = require('./access');
+  // RemoteStorage.util = require('./util');
+  // RemoteStorage.eventHandling = require('./eventhandling');
+  // RemoteStorage.Authorize = require('./authorize');
   RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
   RemoteStorage.DiscoveryError = function (message) {
@@ -197,9 +201,7 @@
 
   RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
 
-  RemoteStorage.Unauthorized = function () { Error.apply(this, arguments); };
-  RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
-
+  // RemoteStorage.Unauthorized = Authorize.Unauthorized;
   /**
    * Method: RemoteStorage.log
    *
@@ -212,17 +214,15 @@
    */
 
 
-  config = {
-    logging: false,
-    changeEvents: {
+  config.logging = false;
+  config.changeEvents = {
       local:    true,
       window:   false,
       remote:   true,
       conflict: true
-    },
-    discoveryTimeout: 10000,
-    cordovaRedirectUri: undefined
-  };
+    };
+  config.discoveryTimeout = 10000;
+  config.cordovaRedirectUri = undefined;
 
   var log = require('./log');
   RemoteStorage.prototype = {
@@ -312,7 +312,7 @@
         this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
       }.bind(this), config.discoveryTimeout);
 
-      RemoteStorage.Discover(userAddress).then(function (info) {
+      Discover(userAddress).then(function (info) {
         // Info contains fields: href, storageApi, authURL (optional), properties
 
         clearTimeout(discoveryTimeout);
@@ -588,7 +588,6 @@
         'Caching',
         'Discover',
         'Authorize',
-        'Widget',
         'IndexedDB',
         'LocalStorage',
         'InMemoryStorage',
@@ -612,7 +611,7 @@
               'InMemoryStorage'
             ].some(function (cachingLayer) {
               if (features.some(function (feature) { return feature.name === cachingLayer; })) {
-                features.local = RemoteStorage[cachingLayer];
+                features.local = require('./' + cachingLayer.toLowerCase());
                 return true;
               }
             });
@@ -623,12 +622,13 @@
       }
 
       function featureInitialized(name) {
+        var feature = require('./' + name.toLowerCase())
         self.log("[RemoteStorage] [FEATURE "+name+"] initialized.");
         features.push({
           name : name,
-          init :  RemoteStorage[name]._rs_init,
+          init :  feature._rs_init,
           supported : true,
-          cleanup : RemoteStorage[name]._rs_cleanup
+          cleanup : feature._rs_cleanup
         });
         featureDone();
       }
@@ -646,9 +646,10 @@
       }
 
       function initFeature(name) {
+        var feature = require('./' + name.toLowerCase())
         var initResult;
         try {
-          initResult = RemoteStorage[name]._rs_init(self);
+          initResult = feature._rs_init(self);
         } catch(e) {
           featureFailed(name, e);
           return;
@@ -664,8 +665,9 @@
       }
 
       featureList.forEach(function (featureName) {
+        var feature = require('./' + featureName.toLowerCase())
         self.log("[RemoteStorage] [FEATURE " + featureName + "] initializing...");
-        var impl = RemoteStorage[featureName];
+        var impl = feature;
         var supported;
 
         if (impl) {
@@ -784,7 +786,22 @@
           });
         }
       });
+    },
+
+
+    scope: function (path) {
+      if (typeof(path) !== 'string') {
+        throw 'Argument \'path\' of baseClient.scope must be a string';
+      }
+
+      if (!this.access.checkPathPermission(path, 'r')) {
+        var escapedPath = path.replace(/(['\\])/g, '\\$1');
+        console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
+      }
+      return new BaseClient(this, path);
     }
+
+
   };
 
   /**
@@ -803,10 +820,10 @@
    *
    * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
   */
-
+  var Access = require('./access');
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {
-      var access = new RemoteStorage.Access();
+      var access = new Access();
       Object.defineProperty(this, 'access', {
         value: access
       });

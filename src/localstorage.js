@@ -1,4 +1,3 @@
-  var RemoteStorage = require('./remotestorage');
   var cachingLayer = require('./cachinglayer')
   var log = require('./log');
   var eventHandling = require('./eventhandling');

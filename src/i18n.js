@@ -1,11 +1,9 @@
   /**
-   * Class: RemoteStorage.I18n
+   * Class: I18n
    *
    * TODO add documentation
    **/
 
-  var RemoteStorage = require('./remotestorage');
-  
   var dictionary = {
     "view_info": 'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',
     "view_connect": "<strong>Connect</strong> remote storage",
@@ -19,7 +17,7 @@
     "view_unauthorized": "Unauthorized! Click here to reconnect."
   };
 
- RemoteStorage.I18n = {
+var I18n = {
 
     translate: function () {
       var str    = arguments[0],
@@ -44,3 +42,5 @@
     _rs_init: function() {
     }
   };
+
+  module.exports = I18n;

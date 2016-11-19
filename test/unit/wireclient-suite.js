@@ -1,24 +1,18 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'require', 'test/behavior/backend', 'test/helpers/mocks'], function(Promise, require, backend, mocks, undefined) {
+define(['bluebird', './src/wireclient', './src/authorize', './src/eventhandling', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function(Promise, WireClient, Authorize, eventHandling, backend, mocks, undefined) {
   global.Promise = Promise;
   var suites = [];
 
   function setup(env, test) {
-    var RS = require('./src/remotestorage');
     global.RemoteStorage = function() {};
 
-    RemoteStorage.log = function() {};
-    RemoteStorage.Unauthorized = RS.Unauthorized;
-    RemoteStorage.SyncError = function() {};
-    RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-    RemoteStorage.eventHandling = require('./src/eventhandling');
+    global.RemoteStorage.log = function() {};
+    global.RemoteStorage.SyncError = function() {};
+    global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
 
-    RemoteStorage.Authorize = {
-      IMPLIED_FAKE_TOKEN: false
-    };
-    global.WireClient = require('./src/wireclient')
     test.done();
   }
 
@@ -58,7 +52,7 @@ define(['bluebird', 'require', 'test/behavior/backend', 'test/helpers/mocks'], f
       });
     });
     env.rs = new RemoteStorage();
-    RemoteStorage.eventHandling(env.rs, 'error', 'network-offline', 'network-online');
+    eventHandling(env.rs, 'error', 'network-offline', 'network-online');
     env.client = new WireClient(env.rs);
     env.connectedClient = new WireClient(env.rs);
     env.baseURI = 'https://example.com/storage/test';
@@ -735,7 +729,7 @@ define(['bluebird', 'require', 'test/behavior/backend', 'test/helpers/mocks'], f
       {
         desc: "WireClient destroys the bearer token after Unauthorized Error",
         run: function(env, test){
-          env.rs._emit('error', new RemoteStorage.Unauthorized());
+          env.rs._emit('error', new Authorize.Unauthorized());
           setTimeout(function() {
             test.assert(env.connectedClient.token, null);
           }, 100);
@@ -1013,7 +1007,7 @@ define(['bluebird', 'require', 'test/behavior/backend', 'test/helpers/mocks'], f
             return l;
           }
           var rs = new RemoteStorage();
-          RemoteStorage.eventHandling(rs, 'error');
+          eventHandling(rs, 'error');
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
 
           WireClient._rs_init(rs);
