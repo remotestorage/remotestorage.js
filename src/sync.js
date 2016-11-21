@@ -1,4 +1,4 @@
-  var RemoteStorage = require('./remotestorage');
+  // var RemoteStorage = require('./remotestorage');
   var util = require('./util');
   var Env = require('./env');
   var eventHandling = require('./eventhandling');
@@ -873,7 +873,7 @@
         if (status.unAuth) {
           error = new Authorize.Unauthorized();
         } else if (status.networkProblems) {
-          error = new RemoteStorage.SyncError('Network request failed.');
+          error = new Sync.SyncError('Network request failed.');
         } else {
           error = new Error('HTTP response code ' + status.statusCode + ' received.');
         }
@@ -1022,128 +1022,7 @@
     },
   };
 
-  /**
-   * Method: getSyncInterval
-   *
-   * Get the value of the sync interval when application is in the foreground
-   *
-   * Returns a number of milliseconds
-   *
-   */
-  RemoteStorage.prototype.getSyncInterval = function () {
-    return syncInterval;
-  };
 
-  /**
-   * Method: setSyncInterval
-   *
-   * Set the value of the sync interval when application is in the foreground
-   *
-   * Parameters:
-   *   interval - sync interval in milliseconds
-   *
-   */
-  RemoteStorage.prototype.setSyncInterval = function (interval) {
-    if (!isValidInterval(interval)) {
-      throw interval + " is not a valid sync interval";
-    }
-    var oldValue = syncInterval;
-    syncInterval = parseInt(interval, 10);
-    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
-  };
-
-  /**
-   * Method: getBackgroundSyncInterval
-   *
-   * Get the value of the sync interval when application is in the background
-   *
-   * Returns a number of milliseconds
-   *
-   */
-  RemoteStorage.prototype.getBackgroundSyncInterval = function () {
-    return backgroundSyncInterval;
-  };
-
-  /**
-   * Method: setBackgroundSyncInterval
-   *
-   * Set the value of the sync interval when the application is in the background
-   *
-   * Parameters:
-   *   interval - sync interval in milliseconds
-   *
-   */
-  RemoteStorage.prototype.setBackgroundSyncInterval = function (interval) {
-    if(!isValidInterval(interval)) {
-      throw interval + " is not a valid sync interval";
-    }
-    var oldValue = backgroundSyncInterval;
-    backgroundSyncInterval = parseInt(interval, 10);
-    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
-  };
-
-  /**
-   * Method: getCurrentSyncInterval
-   *
-   * Get the value of the current sync interval
-   *
-   * Returns a number of milliseconds
-   *
-   */
-  RemoteStorage.prototype.getCurrentSyncInterval = function () {
-    return isBackground ? backgroundSyncInterval : syncInterval;
-  };
-
-  var SyncError = function (originalError) {
-    var msg = 'Sync failed: ';
-    if (typeof(originalError) === 'object' && 'message' in originalError) {
-      msg += originalError.message;
-    } else {
-      msg += originalError;
-    }
-    this.originalError = originalError;
-    this.message = msg;
-  };
-
-  SyncError.prototype = new Error();
-  SyncError.prototype.constructor = SyncError;
-
-  RemoteStorage.SyncError = SyncError;
-
-  RemoteStorage.prototype.syncCycle = function () {
-    if (this.sync.stopped) {
-      return;
-    }
-
-    this.sync.on('done', function () {
-      log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
-      if (!this.sync.stopped) {
-        if (this._syncTimer) {
-          clearTimeout(this._syncTimer);
-        }
-        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
-      }
-    }.bind(this));
-
-    this.sync.sync();
-  };
-
-  RemoteStorage.prototype.stopSync = function () {
-    if (this.sync) {
-      log('[Sync] Stopping sync');
-      this.sync.stopped = true;
-    } else {
-      // TODO When is this ever the case and what is syncStopped for then?
-      log('[Sync] Will instantiate sync stopped');
-      this.syncStopped = true;
-    }
-  };
-
-  RemoteStorage.prototype.startSync = function () {
-    this.sync.stopped = false;
-    this.syncStopped = false;
-    this.sync.sync();
-  };
 
   var syncCycleCb;
   var remoteStorageInstance
@@ -1168,6 +1047,7 @@
       }
 
       log('[Sync] syncCycleCb calling syncCycle');
+      console.error('PORCODDIO !!!')
       remoteStorage.syncCycle();
     };
 

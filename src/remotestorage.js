@@ -38,6 +38,8 @@
   var BaseClient = require('./baseclient');
   var config = require('./config');
   var Authorize = require('./authorize');
+  var Sync = require('./sync');
+
 
   /**
    * Class: RemoteStorage
@@ -193,6 +195,20 @@
   // RemoteStorage.eventHandling = require('./eventhandling');
   // RemoteStorage.Authorize = require('./authorize');
   RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
+
+  RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
+    this.access.setStorageType(this.remote.storageType);
+    var scope = this.access.scopeParameter;
+
+    var redirectUri = global.cordova ?
+      cordovaRedirectUri :
+      String(Authorize.getLocation());
+
+    var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+
+    Authorize(this, authURL, scope, redirectUri, clientId);
+  };
+  
 
   RemoteStorage.DiscoveryError = function (message) {
     Error.apply(this, arguments);
@@ -603,8 +619,8 @@
         featuresDone++;
         if (featuresDone === featureList.length) {
           setTimeout(function () {
-            features.caching = !!RemoteStorage.Caching;
-            features.sync = !!RemoteStorage.Sync;
+            features.caching = !!Caching;
+            features.sync = !!Sync;
             [
               'IndexedDB',
               'LocalStorage',
@@ -647,6 +663,7 @@
 
       function initFeature(name) {
         var feature = require('./' + name.toLowerCase())
+        // console.error('SONO DENTRO INITFEATURE: ', name)
         var initResult;
         try {
           initResult = feature._rs_init(self);
@@ -831,6 +848,142 @@
     },
     configurable: true
   });
+
+
+
+
+
+
+
+  /**
+   * Method: getSyncInterval
+   *
+   * Get the value of the sync interval when application is in the foreground
+   *
+   * Returns a number of milliseconds
+   *
+  //  */
+  RemoteStorage.prototype.getSyncInterval = function () {
+    return syncInterval;
+  };
+
+  /**
+   * Method: setSyncInterval
+   *
+   * Set the value of the sync interval when application is in the foreground
+   *
+   * Parameters:
+   *   interval - sync interval in milliseconds
+   *
+   */
+  RemoteStorage.prototype.setSyncInterval = function (interval) {
+    if (!isValidInterval(interval)) {
+      throw interval + " is not a valid sync interval";
+    }
+    var oldValue = syncInterval;
+    syncInterval = parseInt(interval, 10);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+
+  /**
+   * Method: getBackgroundSyncInterval
+   *
+   * Get the value of the sync interval when application is in the background
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getBackgroundSyncInterval = function () {
+    return backgroundSyncInterval;
+  };
+
+  /**
+   * Method: setBackgroundSyncInterval
+   *
+   * Set the value of the sync interval when the application is in the background
+   *
+   * Parameters:
+   *   interval - sync interval in milliseconds
+   *
+   */
+  RemoteStorage.prototype.setBackgroundSyncInterval = function (interval) {
+    if(!isValidInterval(interval)) {
+      throw interval + " is not a valid sync interval";
+    }
+    var oldValue = backgroundSyncInterval;
+    backgroundSyncInterval = parseInt(interval, 10);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+
+  /**
+   * Method: getCurrentSyncInterval
+   *
+   * Get the value of the current sync interval
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getCurrentSyncInterval = function () {
+    return isBackground ? backgroundSyncInterval : syncInterval;
+  };
+
+  var SyncError = function (originalError) {
+    var msg = 'Sync failed: ';
+    if (typeof(originalError) === 'object' && 'message' in originalError) {
+      msg += originalError.message;
+    } else {
+      msg += originalError;
+    }
+    this.originalError = originalError;
+    this.message = msg;
+  };
+
+  SyncError.prototype = new Error();
+  SyncError.prototype.constructor = SyncError;
+
+  Sync.SyncError = SyncError;
+
+
+  var syncInterval = 10000,
+      backgroundSyncInterval = 60000,
+      isBackground = false;
+  RemoteStorage.prototype.syncCycle = function () {
+    if (this.sync.stopped) {
+      return;
+    }
+
+    this.sync.on('done', function () {
+      log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
+      if (!this.sync.stopped) {
+        if (this._syncTimer) {
+          clearTimeout(this._syncTimer);
+        }
+        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
+      }
+    }.bind(this));
+
+    this.sync.sync();
+  };
+
+  RemoteStorage.prototype.stopSync = function () {
+    if (this.sync) {
+      log('[Sync] Stopping sync');
+      this.sync.stopped = true;
+    } else {
+      // TODO When is this ever the case and what is syncStopped for then?
+      log('[Sync] Will instantiate sync stopped');
+      this.syncStopped = true;
+    }
+  };
+
+  RemoteStorage.prototype.startSync = function () {
+    this.sync.stopped = false;
+    this.syncStopped = false;
+    this.sync.sync();
+  };
+
+
+
 
 
   // TODO clean up/harmonize how modules are loaded and/or document this architecture properly

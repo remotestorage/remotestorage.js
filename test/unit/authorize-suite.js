@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define([ 'require', 'fs'], function(require, fs, undefined) {
+define([ 'require', './src/authorize', 'fs'], function(require, Authorize, fs) {
   var suites = [];
 
   suites.push({
@@ -10,7 +10,6 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      RemoteStorage.Authorize = require('../../src/authorize');
 
       test.done();
     },
@@ -39,7 +38,7 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
           href: ''
         }
       };
-      RemoteStorage.Authorize.setLocation({ href: 'http://foo/bar' } );
+      Authorize.setLocation({ href: 'http://foo/bar' } );
       test.done();
     },
 
@@ -59,7 +58,7 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
 
           this.localStorageAvailable = function() { return true; };
 
-          RemoteStorage.Authorize(this, authUrl, scope, redirectUri, clientId);
+          Authorize(this, authUrl, scope, redirectUri, clientId);
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&state=custom%2Fpath&response_type=token';
           test.assert(document.location.href, expectedUrl);
@@ -76,7 +75,7 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
 
           this.localStorageAvailable = function() { return true; };
 
-          RemoteStorage.Authorize(this, authUrl, scope, redirectUri, clientId);
+          Authorize(this, authUrl, scope, redirectUri, clientId);
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&response_type=token';
           test.assert(document.location.href, expectedUrl);
@@ -86,15 +85,15 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
       {
         desc: "document.location getter",
         run: function(env, test) {
-          test.assert(RemoteStorage.Authorize.getLocation().href, "http://foo/bar");
+          test.assert(Authorize.getLocation().href, "http://foo/bar");
         }
       },
 
       {
         desc: "document.location setter",
         run: function(env, test) {
-          RemoteStorage.Authorize.setLocation("https://bar/foo");
-          test.assert(RemoteStorage.Authorize.getLocation().href, "https://bar/foo");
+          Authorize.setLocation("https://bar/foo");
+          test.assert(Authorize.getLocation().href, "https://bar/foo");
         }
       },
 
@@ -102,8 +101,8 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
         desc: "_rs_init removes params from the fragment",
         run: function(env, test) {
           document.location.href = 'http://foo/bar#foo=bar';
-          RemoteStorage.Authorize._rs_init(new RemoteStorage());
-          test.assert(RemoteStorage.Authorize.getLocation().hash, '');
+          Authorize._rs_init(new RemoteStorage());
+          test.assert(Authorize.getLocation().hash, '');
         }
       },
 
@@ -111,7 +110,7 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
         desc: "_rs_init sets up a features-loaded handler",
         run: function(env, test) {
           var storage = new RemoteStorage();
-          RemoteStorage.Authorize._rs_init(storage);
+          Authorize._rs_init(storage);
           test.assert(storage._handlers['features-loaded'].length, 1);
         }
       },
@@ -145,11 +144,11 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
           };
 
           document.location.href = 'http://foo/bar#access_token=my-token&state=foo%3Dbar%26rsDiscovery%3Dencodeddata';
-          RemoteStorage.Authorize._rs_init(storage);
+          Authorize._rs_init(storage);
 
           storage._handlers['features-loaded'][0]();
 
-          test.assertAnd(RemoteStorage.Authorize.getLocation().href, 'http://foo/bar#foo=bar');
+          test.assertAnd(Authorize.getLocation().href, 'http://foo/bar#foo=bar');
           test.done();
         }
       },
@@ -159,7 +158,7 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#access_token=my-token';
-          RemoteStorage.Authorize._rs_init(storage);
+          Authorize._rs_init(storage);
           storage.remote = {
             configure: function(settings) {
               test.assert(settings.token, 'my-token');
@@ -174,7 +173,7 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#access_token=my-token&state=custom%2Fpath';
-          RemoteStorage.Authorize._rs_init(storage);
+          Authorize._rs_init(storage);
           storage.remote = {
             configure: function(settings) {}
           };
@@ -189,7 +188,7 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#remotestorage=nil%40heahdk.net';
-          RemoteStorage.Authorize._rs_init(storage);
+          Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');
           };
@@ -202,7 +201,7 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#a=b';
-          RemoteStorage.Authorize._rs_init(storage);
+          Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');
           };
@@ -220,7 +219,7 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#a=b';
-          RemoteStorage.Authorize._rs_init(storage);
+          Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');
           };
@@ -238,9 +237,9 @@ define([ 'require', 'fs'], function(require, fs, undefined) {
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#access_token=my-token';
-          RemoteStorage.Authorize._rs_init(storage);
+          Authorize._rs_init(storage);
           test.assertAnd(storage._handlers['features-loaded'].length, 1);
-          RemoteStorage.Authorize._rs_cleanup(storage);
+          Authorize._rs_cleanup(storage);
           test.assertAnd(storage._handlers['features-loaded'].length, 0);
           test.done();
         }

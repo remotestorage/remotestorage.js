@@ -1,6 +1,6 @@
 var log = require('./log');
 var util = require('./util');
-var RemoteStorage = require('./remotestorage');
+// var RemoteStorage = require('./remotestorage');
   
   function extractParams(url) {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
@@ -37,14 +37,14 @@ var RemoteStorage = require('./remotestorage');
     }, {});
   }
 
-  RemoteStorage.ImpliedAuth = function (storageApi, redirectUri) {
-    log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
-    // Set a fixed access token, signalling to not send it as Bearer
-    remoteStorage.remote.configure({
-      token: Authorize.IMPLIED_FAKE_TOKEN
-    });
-    document.location = redirectUri;
-  };
+  // RemoteStorage.ImpliedAuth = function (storageApi, redirectUri) {
+  //   log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
+  //   // Set a fixed access token, signalling to not send it as Bearer
+  //   remoteStorage.remote.configure({
+  //     token: Authorize.IMPLIED_FAKE_TOKEN
+  //   });
+  //   document.location = redirectUri;
+  // };
 
   var Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
     log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
