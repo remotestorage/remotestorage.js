@@ -1,14 +1,16 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird','./src/log', './src/sync', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
-       function (Promise, log, Sync, Dropbox, config, eventHandling, require, tv4) {
+define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
+       function (Promise, log, Dropbox, config, eventHandling, require, tv4) {
 
   var suites = [];
 
   var consoleLog, fakeLogs;
+  global.Promise = Promise;
 
   function FakeRemote(connected) {
+    console.error('DENTRO FAKE REMOTE !')
     this.connected = (typeof connected === 'boolean') ? connected : true;
     this.configure = function() {};
     this.stopWaitingForToken = function() {
@@ -20,6 +22,7 @@ define(['bluebird','./src/log', './src/sync', './src/dropbox', './src/config', '
   }
 
   function fakeRequest(path) {
+    console.error('FAKE REQUEST !', path)
     if (path === '/testing403') {
       return Promise.resolve({statusCode: 403});
     } else {
@@ -68,17 +71,20 @@ define(['bluebird','./src/log', './src/sync', './src/dropbox', './src/config', '
     setup:  function(env, test) {
       global.RemoteStorage = require('./src/remotestorage');
 
-      RemoteStorage.Discover = function(userAddress) {
-        var pending = Promise.defer();
-        if (userAddress === "someone@somewhere") {
-          pending.reject('in this test, discovery fails for that address');
-        }
-        return  pending.promise;
-      };
-      global.localStorage = {};
-      RemoteStorage.prototype.remote = FakeRemote;
+      // console.error('DP{P IL REQIRE !')
+      // global.RemoteStorage.Discover = function(userAddress) {
+      //   var pending = Promise.defer();
+      //   if (userAddress === "someone@somewhere") {
+      //     pending.reject('in this test, discovery fails for that address');
+      //   }
+      //   return  pending.promise;
+      // };
+      // console.error('DP{P IL REQIRE !')
+      // global.localStorage = {};
+      // global.RemoteStorage.prototype.remote = FakeRemote;
+      // console.error('DP{P IL REQIRE !')
       test.done();
-      global.Authorize = require('./src/authorize');
+      // global.Authorize = require('./src/authorize');
     },
 
     beforeEach: function(env, test) {
@@ -99,6 +105,7 @@ define(['bluebird','./src/log', './src/sync', './src/dropbox', './src/config', '
             }
           });
           env.rs.get('/testing403').then(function (r) {
+            console.trace();
             test.assertAnd(r.statusCode, 403);
             test.assert(success, true);
           });

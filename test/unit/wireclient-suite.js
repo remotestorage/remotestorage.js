@@ -1,8 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', './src/wireclient', './src/authorize', './src/eventhandling', 'test/behavior/backend', 'test/helpers/mocks'], 
-       function(Promise, WireClient, Authorize, eventHandling, backend, mocks, undefined) {
+define(['bluebird', './src/sync', './src/wireclient', './src/authorize', './src/eventhandling', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function(Promise, Sync, WireClient, Authorize, eventHandling, backend, mocks, undefined) {
   global.Promise = Promise;
   var suites = [];
 
@@ -10,7 +10,6 @@ define(['bluebird', './src/wireclient', './src/authorize', './src/eventhandling'
     global.RemoteStorage = function() {};
 
     global.RemoteStorage.log = function() {};
-    global.RemoteStorage.SyncError = function() {};
     global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
 
     test.done();
@@ -740,7 +739,7 @@ define(['bluebird', './src/wireclient', './src/authorize', './src/eventhandling'
         desc: "WireClient is not marked offline after SyncError",
         run: function(env, test){
           env.connectedClient.online = true;
-          env.rs._emit('error', new RemoteStorage.SyncError());
+          env.rs._emit('error', new Sync.SyncError());
           setTimeout(function() {
             test.assert(env.connectedClient.online, true);
           }, 100);

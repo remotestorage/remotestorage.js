@@ -3,6 +3,8 @@
   var WireClient = require('./wireclient');
   var util = require('./util');
   var eventHandling = require('./eventhandling');
+  var Sync = require('./sync');
+  
   // var RemoteStorage = require('./remotestorage');
 
   /**
@@ -736,7 +738,7 @@
         return Promise.resolve(args);
       }, function (err) {
         this.rs.log('fetchDeltas', err);
-        this.rs._emit('error', new RemoteStorage.SyncError('fetchDeltas failed.' + err));
+        this.rs._emit('error', new Sync.SyncError('fetchDeltas failed.' + err));
         return Promise.resolve(args);
       }.bind(this)).then(function () {
         if (self._revCache) {
@@ -894,7 +896,7 @@
     rs.sync.sync = function () {
       return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
         then(rs._dropboxOrigSync, function (err) {
-          rs._emit('error', new RemoteStorage.SyncError(err));
+          rs._emit('error', new Sync.SyncError(err));
           return Promise.reject(err);
         });
     }.bind(rs);

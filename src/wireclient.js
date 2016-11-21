@@ -570,6 +570,7 @@
 
 
   WireClient._rs_init = function (remoteStorage) {
+    console.error('VADO DI REMOTE WIRECLIENT!')
     hasLocalStorage = util.localStorageAvailable();
     remoteStorage.remote = new WireClient(remoteStorage);
     this.online = true;

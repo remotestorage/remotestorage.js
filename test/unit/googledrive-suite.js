@@ -1,8 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', './src/eventhandling', './src/googledrive', './src/remotestorage', 'test/behavior/backend', 'test/helpers/mocks'], 
-       function (Promise, eventHandling, GoogleDrive, RS, backend, mocks, undefined) {
+define(['bluebird', 'require', './src/eventhandling', './src/googledrive', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function (Promise, require, eventHandling, GoogleDrive, backend, mocks) {
 
   global.Promise = Promise;
 
@@ -18,7 +18,8 @@ define(['bluebird', './src/eventhandling', './src/googledrive', './src/remotesto
         this.backend = b;
       }
     };
-    global.RemoteStorage.Unauthorized = RS.Unauthorized;
+
+    global.Authorize = require('./src/authorize');
 
     test.done();
   }

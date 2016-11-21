@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 define(['require', './src/dropbox', './src/wireclient', './src/eventhandling', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks'], 
-       function ( require, Dropbox, WireClient, eventHandling, Promise, backend, mocks) {
+       function (require, Dropbox, WireClient, eventHandling, Promise, backend, mocks) {
 
   global.Promise = Promise;
 
