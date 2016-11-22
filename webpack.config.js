@@ -5,7 +5,7 @@ var isProd = (process.env.NODE_ENV === 'production');
 var plugins = isProd ? [new webpack.optimize.UglifyJsPlugin({minimize: true})] : []
 
 module.exports = {
-  entry: './src/init.js',
+  entry: ['./src/remotestorage.js'],
   // source map not in production
   devtool: isProd ? 'source-map' : '',
   output: {
