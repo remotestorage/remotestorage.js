@@ -73,7 +73,8 @@
    * folder GET comes in, it gives information about all the documents it
    * contains (this is the `markChildren` function).
    **/
-  var Sync = function (setLocal, setRemote, setAccess, setCaching) {
+  var Sync = function (remoteStorage, setLocal, setRemote, setAccess, setCaching) {
+    this.remoteStorage = remoteStorage;
     this.local = setLocal;
     this.local.onDiff(function (path) {
       this.addTask(path);
@@ -785,6 +786,7 @@
     },
 
     dealWithFailure: function (path, action, statusMeaning) {
+
       return this.local.getNodes([path]).then(function (nodes) {
         if (nodes[path]) {
           delete nodes[path].push;
@@ -872,7 +874,7 @@
         }
 
         return this.dealWithFailure(path, action, status).then(function () {
-          remoteStorageInstance._emit('error', error);
+          this.remoteStorage._emit('error', error);
           throw error;
         });
       }
@@ -1018,9 +1020,7 @@
 
 
   var syncCycleCb;
-  var remoteStorageInstance
   Sync._rs_init = function (remoteStorage) {
-    remoteStorageInstance = remoteStorage
     syncCycleCb = function () {
       if (!config.cache) return false
       log('[Sync] syncCycleCb calling syncCycle');
@@ -1029,7 +1029,7 @@
       }
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
-        remoteStorage.sync = new Sync(
+        remoteStorage.sync = new Sync(remoteStorage,
             remoteStorage.local, remoteStorage.remote, remoteStorage.access,
             remoteStorage.caching);
 
@@ -1059,5 +1059,22 @@
     remoteStorage.removeEventListener('connected', syncOnConnect);
     delete remoteStorage.sync;
   };
+
+  
+  var SyncError = function (originalError) {
+    var msg = 'Sync failed: ';
+    if (typeof(originalError) === 'object' && 'message' in originalError) {
+      msg += originalError.message;
+    } else {
+      msg += originalError;
+    }
+    this.originalError = originalError;
+    this.message = msg;
+  };
+
+  SyncError.prototype = new Error();
+  SyncError.prototype.constructor = SyncError;
+
+  Sync.SyncError = SyncError;
 
   module.exports = Sync;
