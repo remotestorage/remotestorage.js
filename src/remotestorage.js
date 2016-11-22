@@ -953,6 +953,7 @@
   Sync.SyncError = SyncError;
 
 
+  /* TOFIX (in sync.js also... has to be a shared property */
   var syncInterval = 10000,
       backgroundSyncInterval = 60000,
       isBackground = false;
