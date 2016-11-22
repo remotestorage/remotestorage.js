@@ -67,25 +67,26 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      global.RemoteStorage = require('./src/remotestorage');
       global.Sync = require('./src/sync');
       global.config = require('./src/config')
+      global.RemoteStorage = require('./src/remotestorage');
+      global.Authorize = require('./src/authorize');
 
       config.cache = false
-      // global.RemoteStorage.Discover = function(userAddress) {
-      //   var pending = Promise.defer();
-      //   if (userAddress === "someone@somewhere") {
-      //     pending.reject('in this test, discovery fails for that address');
-      //   }
-      //   return  pending.promise;
-      // };
-      // global.localStorage = {};
+      global.RemoteStorage.Discover = function(userAddress) {
+        var pending = Promise.defer();
+        if (userAddress === "someone@somewhere") {
+          pending.reject('in this test, discovery fails for that address');
+        }
+        return  pending.promise;
+      };
+      global.localStorage = {};
       // RemoteStorage.prototype.remote = new FakeRemote();
       test.done();
-      // global.Authorize = require('./src/authorize');
     },
 
     beforeEach: function(env, test) {
+      console.error('-----------')
       var remoteStorage = new RemoteStorage();
       remoteStorage.remote = new FakeRemote(true);
       env.rs = remoteStorage;
@@ -277,14 +278,15 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
       {
         desc: "cleanup functions don't bloat up on repeated initialization",
         run: function(env, test) {
+          console.error('APPENA NEL TEST')
           var initsCalled = 0;
-          console.error(env.rs._cleanups[0])
           // Mock feature to be loaded on initialization
-          Sync._rs_init = function() {};
-          Sync._rs_cleanup = function() {};
+          Sync._rs_init = function Sync_rs_init() {};
+          Sync._rs_cleanup = function Sync_rs_cleanup() {};
           var loadedHandler = function() {
-            console.log(env.rs._cleanups[0])
+            console.log(env.rs._cleanups)
             initsCalled++;
+            console.error('DENTRO LOADHANDLER!', initsCalled)
 
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
               test.assertAnd(env.rs._cleanups.length, 0);
@@ -300,9 +302,10 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
               test.done();
             }
           }
-
-          console.error(env.rs._cleanups)
+          
+          console.error('prima di onFeatures-loaded')
           env.rs.on('features-loaded', loadedHandler);
+          console.error('prima di rs_init')
           env.rs._init();
         }
       },
@@ -384,7 +387,7 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
         desc: "maxAge defaults to false when not connected",
         run: function(env, test) {
           var rs = {
-            get: RemoteStorage.SyncedGetPutDelete.get.bind(this),
+            get: SyncedGetPutDelete.get,
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -528,6 +531,7 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
             throw e;
           }
           restoreConsoleLog();
+          config.logging = false;
         }
       }
     ]

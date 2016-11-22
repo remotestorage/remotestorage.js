@@ -27,18 +27,14 @@ define(['bluebird', 'require', 'test/helpers/mocks'],
       global.RemoteStorage = function(){
         eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
       };
-      // global.RemoteStorage.log = function() {};
-      // global.RemoteStorage.config = {
-      //   changeEvents: { local: true, window: false, remote: true, conflict: true }
-      // };
-      // RemoteStorage.Unauthorized = RS.Unauthorized;
-      var RS = require('./src/remotestorage');
+       global.RemoteStorage.log = function() {};
       global.Authorize = require('./src/authorize');
       global.config = require('./src/config');
       global.eventHandling = require('./src/eventhandling');
       global.Sync = require('./src/sync');
       global.InMemoryStorage = require('./src/inmemorystorage');
 
+      var RS = require('./src/remotestorage');
       RemoteStorage.prototype.stopSync = RS.prototype.stopSync;
       RemoteStorage.prototype.startSync = RS.prototype.startSync;
       RemoteStorage.prototype.getSyncInterval = RS.prototype.getSyncInterval;
@@ -55,7 +51,7 @@ define(['bluebird', 'require', 'test/helpers/mocks'],
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
-      env.rs.sync = new Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
+      env.rs.sync = new Sync(env.rs, env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
       global.remoteStorage = env.rs;
 
       env.rs.sync.numThreads = 5;
@@ -937,14 +933,13 @@ define(['bluebird', 'require', 'test/helpers/mocks'],
         desc: "handleResponse emits Unauthorized error for status 401",
         run: function(env, test) {
           env.rs.on('error', function(err) {
-            console.error(err)
             if (err instanceof Authorize.Unauthorized) {
               test.result(true, "handleResponse() emitted Unauthorized error");
             } else {
               test.result(false);
             }
           });
-          return env.rs.sync.handleResponse(undefined, undefined, {statusCode: 401});
+          return env.rs.sync.handleResponse(undefined, undefined, {statusCode: 401}).catch(function(){});
         }
       },
 
