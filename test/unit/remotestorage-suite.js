@@ -1,8 +1,8 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
-       function (Promise, log, Dropbox, config, eventHandling, require, tv4) {
+define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
+       function (Promise, SyncedGetPutDelete, Authorize, log, Dropbox, config, eventHandling, require, tv4) {
 
   var suites = [];
 
@@ -10,7 +10,6 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
   global.Promise = Promise;
 
   function FakeRemote(connected) {
-    console.error('DENTRO FAKE REMOTE !')
     this.connected = (typeof connected === 'boolean') ? connected : true;
     this.configure = function() {};
     this.stopWaitingForToken = function() {
@@ -22,7 +21,6 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
   }
 
   function fakeRequest(path) {
-    console.error('FAKE REQUEST !', path)
     if (path === '/testing403') {
       return Promise.resolve({statusCode: 403});
     } else {
@@ -70,8 +68,10 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
       global.RemoteStorage = require('./src/remotestorage');
+      global.Sync = require('./src/sync');
+      global.config = require('./src/config')
 
-      // console.error('DP{P IL REQIRE !')
+      config.cache = false
       // global.RemoteStorage.Discover = function(userAddress) {
       //   var pending = Promise.defer();
       //   if (userAddress === "someone@somewhere") {
@@ -79,16 +79,15 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
       //   }
       //   return  pending.promise;
       // };
-      // console.error('DP{P IL REQIRE !')
       // global.localStorage = {};
-      // global.RemoteStorage.prototype.remote = FakeRemote;
-      // console.error('DP{P IL REQIRE !')
+      // RemoteStorage.prototype.remote = new FakeRemote();
       test.done();
       // global.Authorize = require('./src/authorize');
     },
 
     beforeEach: function(env, test) {
       var remoteStorage = new RemoteStorage();
+      remoteStorage.remote = new FakeRemote(true);
       env.rs = remoteStorage;
       config.cordovaRedirectUri = undefined;
       test.done();
@@ -105,7 +104,6 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
             }
           });
           env.rs.get('/testing403').then(function (r) {
-            console.trace();
             test.assertAnd(r.statusCode, 403);
             test.assert(success, true);
           });
@@ -233,6 +231,7 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
           };
 
           env.rs = new RemoteStorage();
+          env.rs.remote = new FakeRemote(false)
 
           env.rs.connect('user@ho.st');
           test.assert(localStorage.getItem('remotestorage:backend'), 'remotestorage');
@@ -279,12 +278,12 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
         desc: "cleanup functions don't bloat up on repeated initialization",
         run: function(env, test) {
           var initsCalled = 0;
-
+          console.error(env.rs._cleanups[0])
           // Mock feature to be loaded on initialization
           Sync._rs_init = function() {};
           Sync._rs_cleanup = function() {};
-
           var loadedHandler = function() {
+            console.log(env.rs._cleanups[0])
             initsCalled++;
 
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
@@ -302,6 +301,7 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
             }
           }
 
+          console.error(env.rs._cleanups)
           env.rs.on('features-loaded', loadedHandler);
           env.rs._init();
         }
@@ -406,7 +406,7 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
         desc: "maxAge defaults to false when not online",
         run: function(env, test) {
           var rs = {
-            get: RemoteStorage.SyncedGetPutDelete.get.bind(this),
+            get: SyncedGetPutDelete.get,
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -431,7 +431,7 @@ define(['bluebird','./src/log', './src/dropbox', './src/config', './src/eventhan
         desc: "maxAge defaults to 2*getSyncInterval when connected",
         run: function(env, test) {
           var rs = {
-            get: RemoteStorage.SyncedGetPutDelete.get.bind(this),
+            get: SyncedGetPutDelete.get,
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');

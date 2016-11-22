@@ -129,7 +129,6 @@
 
     // Initial configuration property settings.
     if (typeof cfg === 'object') {
-      // RemoteStorage.config = {}
       config.logging = !!cfg.logging;
       config.cordovaRedirectUri = cfg.cordovaRedirectUri;
     }
@@ -194,7 +193,7 @@
   // RemoteStorage.util = require('./util');
   // RemoteStorage.eventHandling = require('./eventhandling');
   // RemoteStorage.Authorize = require('./authorize');
-  RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
+  // RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
   RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
     this.access.setStorageType(this.remote.storageType);
@@ -236,7 +235,8 @@
       window:   false,
       remote:   true,
       conflict: true
-    };
+  };
+  config.cache = true;
   config.discoveryTimeout = 10000;
   config.cordovaRedirectUri = undefined;
 
@@ -552,7 +552,7 @@
 
       this._loadFeatures(function (features) {
         this.log('[RemoteStorage] All features loaded');
-        this.local = features.local && new features.local();
+        this.local = config.cache && features.local && new features.local();
         // this.remote set by WireClient._rs_init as lazy property on
         // RS.prototype
 
@@ -562,7 +562,6 @@
         } else if (this.remote) {
           this._setGPD(this.remote, this.remote);
         }
-
         if (this.remote) {
           this.remote.on('connected', function (){
             fireReady();
@@ -633,7 +632,7 @@
         featuresDone++;
         if (featuresDone === featureList.length) {
           setTimeout(function () {
-            features.caching = !!Caching;
+            features.caching = !!Caching && config.cache;
             features.sync = !!Sync;
             [
               'IndexedDB',
@@ -676,8 +675,9 @@
       }
 
       function initFeature(name) {
+
+        // if (config.cache && name === 'Sync') return
         var feature = require('./' + name.toLowerCase())
-        // console.error('SONO DENTRO INITFEATURE: ', name)
         var initResult;
         try {
           initResult = feature._rs_init(self);
@@ -880,6 +880,15 @@
   RemoteStorage.prototype.getSyncInterval = function () {
     return syncInterval;
   };
+
+    /**
+   * Check if interval is valid: numeric and between 1000ms and 3600000ms
+   *
+   */
+  function isValidInterval(interval) {
+    return (typeof interval === 'number' && interval > 1000 && interval < 3600000);
+  }
+
 
   /**
    * Method: setSyncInterval

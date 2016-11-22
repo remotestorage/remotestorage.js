@@ -2,8 +2,8 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['bluebird', 'require', './src/sync', './src/inmemorystorage', './src/eventhandling', 'test/helpers/mocks'], 
-       function(Promise, require, Sync, InMemoryStorage, eventHandling, mocks) {
+define(['bluebird', 'require', 'test/helpers/mocks'], 
+       function(Promise, require, mocks) {
   global.Promise = Promise;
 
   var suites = [];
@@ -27,12 +27,24 @@ define(['bluebird', 'require', './src/sync', './src/inmemorystorage', './src/eve
       global.RemoteStorage = function(){
         eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
       };
-      global.RemoteStorage.log = function() {};
-      global.RemoteStorage.config = {
-        changeEvents: { local: true, window: false, remote: true, conflict: true }
-      };
+      // global.RemoteStorage.log = function() {};
+      // global.RemoteStorage.config = {
+      //   changeEvents: { local: true, window: false, remote: true, conflict: true }
+      // };
       // RemoteStorage.Unauthorized = RS.Unauthorized;
+      var RS = require('./src/remotestorage');
       global.Authorize = require('./src/authorize');
+      global.config = require('./src/config');
+      global.eventHandling = require('./src/eventhandling');
+      global.Sync = require('./src/sync');
+      global.InMemoryStorage = require('./src/inmemorystorage');
+
+      RemoteStorage.prototype.stopSync = RS.prototype.stopSync;
+      RemoteStorage.prototype.startSync = RS.prototype.startSync;
+      RemoteStorage.prototype.getSyncInterval = RS.prototype.getSyncInterval;
+      RemoteStorage.prototype.setSyncInterval = RS.prototype.setSyncInterval;
+      RemoteStorage.prototype.isValidInterval = RS.prototype.isValidInterval;
+
 
       test.done();
     },
@@ -925,6 +937,7 @@ define(['bluebird', 'require', './src/sync', './src/inmemorystorage', './src/eve
         desc: "handleResponse emits Unauthorized error for status 401",
         run: function(env, test) {
           env.rs.on('error', function(err) {
+            console.error(err)
             if (err instanceof Authorize.Unauthorized) {
               test.result(true, "handleResponse() emitted Unauthorized error");
             } else {

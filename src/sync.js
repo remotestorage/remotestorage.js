@@ -4,6 +4,7 @@
   var eventHandling = require('./eventhandling');
   var log = require('./log');
   var Authorize = require('./authorize');
+  var config = require('./config');
   
   var syncInterval = 10000,
       backgroundSyncInterval = 60000,
@@ -53,13 +54,6 @@
     });
   }
 
-  /**
-   * Check if interval is valid: numeric and between 1000ms and 3600000ms
-   *
-   */
-  function isValidInterval(interval) {
-    return (typeof interval === 'number' && interval > 1000 && interval < 3600000);
-  }
 
   /**
    * Class: RemoteStorage.Sync
@@ -1029,6 +1023,7 @@
   Sync._rs_init = function (remoteStorage) {
     remoteStorageInstance = remoteStorage
     syncCycleCb = function () {
+      if (!config.cache) return false
       log('[Sync] syncCycleCb calling syncCycle');
       if (Env.isBrowser()) {
         handleVisibility.bind(remoteStorage)();
@@ -1047,7 +1042,6 @@
       }
 
       log('[Sync] syncCycleCb calling syncCycle');
-      console.error('PORCODDIO !!!')
       remoteStorage.syncCycle();
     };
 
