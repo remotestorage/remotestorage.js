@@ -8,11 +8,7 @@ function shareFirst(path) {
 
 var SyncedGetPutDelete = {
   get: function (path, maxAge) {
-    // what's this here? Is remoteStorage ?
-    var self = this;
-    console.error('sono qui' , this)
     if (this.local) {
-      console.error('sono dentr local !')
       if (maxAge === undefined) {
         if ((typeof this.remote === 'object') &&
              this.remote.connected && this.remote.online) {

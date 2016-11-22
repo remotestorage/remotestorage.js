@@ -6,6 +6,7 @@
   var Authorize = require('./authorize');
   var config = require('./config');
   
+  /* TOFIX */
   var syncInterval = 10000,
       backgroundSyncInterval = 60000,
       isBackground = false;
@@ -33,9 +34,7 @@
   }
 
   function handleVisibility() {
-    var hidden,
-        visibilityChange,
-        rs = this;
+    var rs = this;
 
     function handleVisibilityChange(fg) {
       var oldValue, newValue;

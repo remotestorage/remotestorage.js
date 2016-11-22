@@ -265,7 +265,6 @@
       }
 
       var revision;
-      var reqType;
       var self = this;
 
       if (token !== Authorize.IMPLIED_FAKE_TOKEN) {
@@ -307,7 +306,6 @@
           return Promise.resolve({statusCode: response.status, revision: revision});
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
-          var body;
           if (getEtag) {
             revision = stripQuotes(response.getResponseHeader('ETag'));
           } else {

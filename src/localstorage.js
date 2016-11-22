@@ -18,25 +18,6 @@
     eventHandling(this, 'change', 'local-events-done');
   };
 
-  function b64ToUint6(nChr) {
-    return nChr > 64 && nChr < 91 ?
-      nChr - 65
-      : nChr > 96 && nChr < 123 ?
-      nChr - 71
-      : nChr > 47 && nChr < 58 ?
-      nChr + 4
-      : nChr === 43 ?
-      62
-      : nChr === 47 ?
-      63
-      :
-      0;
-  }
-
-  function isBinary(node) {
-    return node.match(/charset=binary/);
-  }
-
   function isRemoteStorageKey(key) {
     return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX ||
            key.substr(0, CHANGES_PREFIX.length) === CHANGES_PREFIX;

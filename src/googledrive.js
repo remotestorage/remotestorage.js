@@ -279,7 +279,7 @@
     _getFolder: function (path, options) {
       var self = this;
       return self._getFileId(path).then(function (id) {
-        var query, fields, data, i, etagWithoutQuotes, itemsMap;
+        var query, fields, data, etagWithoutQuotes, itemsMap;
         if (! id) {
           return Promise.resolve({statusCode: 404});
         }

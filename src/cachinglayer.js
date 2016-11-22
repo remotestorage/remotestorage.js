@@ -51,7 +51,7 @@
   }
 
   function isOutdated(nodes, maxAge) {
-    var path, node;
+    var path;
     for (path in nodes) {
       if (nodes[path] && nodes[path].remote) {
         return true;
@@ -139,7 +139,6 @@
 
     put: function (path, body, contentType) {
       var paths = pathsFromRoot(path);
-      var self = this;
 
       function _processNodes(paths, nodes) {
         try {
