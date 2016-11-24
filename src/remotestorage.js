@@ -41,8 +41,6 @@
 
   var SyncedGetPutDelete = {
     get: function (path, maxAge) {
-      console.error('sono qui dentro e il this mi sa che e', this)
-      console.error(this.sync)
       var self = this;
       if (this.local) {
         if (maxAge === undefined) {
@@ -229,12 +227,10 @@
 
     this.on = function (eventName, handler) {
       if(eventName === 'features-loaded') {
-        console.error('sono dentro this.on ', eventName, this)
       }
       if (eventName === 'ready' && this.remote && this.remote.connected && this._allLoaded) {
         setTimeout(handler, 0);
       } else if (eventName === 'features-loaded' && this._allLoaded) {
-        console.error('boh dai diocane SIIII')
         setTimeout(handler, 0);
       }
       return origOn.call(this, eventName, handler);
@@ -599,7 +595,6 @@
       }
 
       this._loadFeatures(function (features) {
-        console.error('sono qui dentro loadFeatures')
         this.log('[RemoteStorage] All features loaded');
         this.local = config.cache && features.local && new features.local();
         // this.remote set by WireClient._rs_init as lazy property on
@@ -634,7 +629,6 @@
 
         try {
           this._allLoaded = true;
-          console.error('_allLoaded Lancio feature-loaded!')
           this._emit('features-loaded');
         } catch(exc) {
           logError(exc);
@@ -685,29 +679,23 @@
             features.caching = !!Caching && config.cache;
             features.sync = !!Sync;
 
-            console.error('prima di questo')
             var cachingModule = {
               'IndexedDB': require('./indexeddb'),
               'LocalStorage': require('./localstorage'),
               'InMemoryStorage': require('./inmemorystorage')
             };
 
-            console.error('dopo di questo !');
+
             [
               'IndexedDB',
               'LocalStorage',
               'InMemoryStorage'
             ].some(function (cachingLayer) {
-              console.error('sono qua', cachingLayer, features.map(function(f){return f.name}))
               if (features.some(function (feature) { return feature.name === cachingLayer; })) {
-                console.error('uso ' , feature.name , 'come cachingModule')
-                features.local = cachingModule[feature.name]
+                features.local = cachingModule[cachingLayer]
                 return true;
-              } else {
-                console.error('porcoddio')
               }
             });
-            console.error('1 sono qui e sto per lanciare tutte cose !')
             self.features = features;
             callback(features);
           }, 0);
@@ -1016,7 +1004,7 @@
 
 
 
-  /* TOFIX (in sync.js also... has to be a shared property */
+  /* TOFIX (in sync.js also... has to be a shared property) */
   var syncInterval = 10000,
       backgroundSyncInterval = 60000,
       isBackground = false;
@@ -1050,12 +1038,11 @@
   };
 
   RemoteStorage.prototype.startSync = function () {
+    if (!config.cache) return
     this.sync.stopped = false;
     this.syncStopped = false;
     this.sync.sync();
   };
-
-
 
 
 
