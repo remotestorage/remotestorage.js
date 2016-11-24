@@ -24,7 +24,6 @@
 
   var util = require('./util');
   var log = require('./log');
-  var SETTINGS_KEY = "remotestorage:caching";
 
   var containingFolder = util.containingFolder;
 

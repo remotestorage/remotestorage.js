@@ -86,7 +86,6 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
     },
 
     beforeEach: function(env, test) {
-      console.error('-----------')
       var remoteStorage = new RemoteStorage();
       remoteStorage.remote = new FakeRemote(true);
       env.rs = remoteStorage;
@@ -272,21 +271,19 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
           });
 
           env.rs.disconnect();
+          // config.cache = true
         }
       },
 
       {
         desc: "cleanup functions don't bloat up on repeated initialization",
         run: function(env, test) {
-          console.error('APPENA NEL TEST')
           var initsCalled = 0;
           // Mock feature to be loaded on initialization
           Sync._rs_init = function Sync_rs_init() {};
           Sync._rs_cleanup = function Sync_rs_cleanup() {};
           var loadedHandler = function() {
-            console.log(env.rs._cleanups)
             initsCalled++;
-            console.error('DENTRO LOADHANDLER!', initsCalled)
 
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
               test.assertAnd(env.rs._cleanups.length, 0);
@@ -303,9 +300,7 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
             }
           }
           
-          console.error('prima di onFeatures-loaded')
           env.rs.on('features-loaded', loadedHandler);
-          console.error('prima di rs_init')
           env.rs._init();
         }
       },
