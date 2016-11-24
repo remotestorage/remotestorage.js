@@ -7,7 +7,7 @@ var plugins = isProd ? [new webpack.optimize.UglifyJsPlugin({minimize: true})] :
 module.exports = {
   entry: ['./src/remotestorage.js'],
   // source map not in production
-  devtool: isProd ? 'source-map' : '',
+  devtool: isProd ? '#source-map' : '#eval-source-map',
   output: {
     filename: __dirname + '/release/' + (isProd?'stable':'head') + '/remotestorage.js',
     library: 'RemoteStorage',
@@ -15,5 +15,18 @@ module.exports = {
     umdNamedDefine: true
   },
   externals: [ 'xmlhttprequest' ],
-  plugins: plugins
+  plugins: plugins,
+  module: {
+    loaders: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        loader: 'babel-loader',
+        query: {
+          presets: ['es2015']
+        }
+
+      }
+    ]
+  }
 };
