@@ -5,7 +5,7 @@
       isBackground = false;
 
 
-  Env = function () {
+  var Env = function () {
     return env;
   };
 
