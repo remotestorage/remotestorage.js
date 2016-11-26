@@ -284,7 +284,7 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
           Sync._rs_cleanup = function Sync_rs_cleanup() {};
           var loadedHandler = function() {
             initsCalled++;
-
+            
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
               test.assertAnd(env.rs._cleanups.length, 0);
             } else {

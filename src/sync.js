@@ -1005,10 +1005,10 @@
           try {
             this.doTasks();
           } catch(e) {
-            console.error('[Sync] doTasks error', e);
+            log('[Sync] doTasks error', e);
           }
         }.bind(this), function (e) {
-          console.error('[Sync] Sync error', e);
+          log('[Sync] Sync error', e);
           throw new Error('Local cache unavailable');
         });
       } else {
@@ -1019,8 +1019,9 @@
 
 
 
-  var syncCycleCb;
+  var syncCycleCb, syncOnConnect;
   Sync._rs_init = function (remoteStorage) {
+
     syncCycleCb = function () {
       if (!config.cache) return false
       log('[Sync] syncCycleCb calling syncCycle');
