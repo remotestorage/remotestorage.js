@@ -359,7 +359,7 @@ define(['./src/config', './src/eventhandling', './src/inmemorystorage', './src/s
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
-      env.rs.sync = new Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
+      env.rs.sync = new Sync(env.rs, env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
       global.remoteStorage = env.rs;
       test.done();
     },

@@ -7,9 +7,9 @@
   var config = require('./config');
   
   /* TOFIX */
-  var syncInterval = 10000,
-      backgroundSyncInterval = 60000,
-      isBackground = false;
+  // var syncInterval = 10000,
+  //     backgroundSyncInterval = 60000,
+  //     isBackground = false;
 
   var isFolder = util.isFolder;
   var isDocument = util.isDocument;
@@ -39,7 +39,7 @@
     function handleVisibilityChange(fg) {
       var oldValue, newValue;
       oldValue = rs.getCurrentSyncInterval();
-      isBackground = !fg;
+      config.isBackground = !fg;
       newValue = rs.getCurrentSyncInterval();
       rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
     }
@@ -234,8 +234,8 @@
         if (!node.common.timestamp) {
           return true;
         }
-        return (this.now() - node.common.timestamp > syncInterval);
-      }
+        return (this.now() - node.common.timestamp > config.syncInterval);
+      }config
       return false;
     },
 
@@ -1058,6 +1058,7 @@
     remoteStorage.stopSync();
     remoteStorage.removeEventListener('ready', syncCycleCb);
     remoteStorage.removeEventListener('connected', syncOnConnect);
+    remoteStorage.sync = undefined
     delete remoteStorage.sync;
   };
 

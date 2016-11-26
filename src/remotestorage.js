@@ -291,7 +291,7 @@
    */
 
 
-  config.logging = true;
+  config.logging = false;
   config.changeEvents = {
       local:    true,
       window:   false,
