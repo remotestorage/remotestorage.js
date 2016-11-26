@@ -235,7 +235,7 @@
           return true;
         }
         return (this.now() - node.common.timestamp > config.syncInterval);
-      }config
+      }
       return false;
     },
 
