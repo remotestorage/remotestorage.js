@@ -39,6 +39,8 @@
   var Authorize = require('./authorize');
   var Sync = require('./sync');
 
+
+
   var SyncedGetPutDelete = {
     get: function (path, maxAge) {
       var self = this;
@@ -253,20 +255,22 @@
   // RemoteStorage.Authorize = require('./authorize');
   // RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
-  RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
-    this.access.setStorageType(this.remote.storageType);
-    var scope = this.access.scopeParameter;
+  RemoteStorage.Authorize = Authorize;
+  // RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
+  //   this.access.setStorageType(this.remote.storageType);
+  //   var scope = this.access.scopeParameter;
 
-    var redirectUri = global.cordova ?
-      cordovaRedirectUri :
-      String(Authorize.getLocation());
+  //   var redirectUri = global.cordova ?
+  //     cordovaRedirectUri :
+  //     String(Authorize.getLocation());
 
-    var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+  //   var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
-    Authorize(this, authURL, scope, redirectUri, clientId);
-  };
+  //   Authorize(this, authURL, scope, redirectUri, clientId);
+  // };
   
 
+  RemoteStorage.SyncError = Sync.SyncError;
   RemoteStorage.DiscoveryError = function (message) {
     Error.apply(this, arguments);
     this.message = message;
@@ -287,7 +291,7 @@
    */
 
 
-  config.logging = false;
+  config.logging = true;
   config.changeEvents = {
       local:    true,
       window:   false,
@@ -300,6 +304,19 @@
 
   var log = require('./log');
   RemoteStorage.prototype = {
+    authorize: function authorize(authURL, cordovaRedirectUri) {
+      this.access.setStorageType(this.remote.storageType);
+      var scope = this.access.scopeParameter;
+
+      var redirectUri = global.cordova ?
+        cordovaRedirectUri :
+        String(Authorize.getLocation());
+
+      var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+
+      Authorize(this, authURL, scope, redirectUri, clientId);
+    },
+  
 
     /**
      * Property: remote
@@ -882,10 +899,134 @@
         console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
       }
       return new BaseClient(this, path);
+    },
+
+
+
+
+    /**
+     * Method: getSyncInterval
+     *
+     * Get the value of the sync interval when application is in the foreground
+     *
+     * Returns a number of milliseconds
+     *
+    //  */
+    getSyncInterval: function () {
+      return config.syncInterval;
+    },
+
+    /**
+     * Method: setSyncInterval
+     *
+     * Set the value of the sync interval when application is in the foreground
+     *
+     * Parameters:
+     *   interval - sync interval in milliseconds
+     *
+     */
+    setSyncInterval: function (interval) {
+      if (!isValidInterval(interval)) {
+        throw interval + " is not a valid sync interval";
+      }
+      var oldValue = config.syncInterval;
+      syncInterval = parseInt(interval, 10);
+      this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+    },
+
+    /**
+     * Method: getBackgroundSyncInterval
+     *
+     * Get the value of the sync interval when application is in the background
+     *
+     * Returns a number of milliseconds
+     *
+     */
+    getBackgroundSyncInterval: function () {
+      return config.backgroundSyncInterval;
+    },
+
+    /**
+     * Method: setBackgroundSyncInterval
+     *
+     * Set the value of the sync interval when the application is in the background
+     *
+     * Parameters:
+     *   interval - sync interval in milliseconds
+     *
+     */
+    setBackgroundSyncInterval: function (interval) {
+      if(!isValidInterval(interval)) {
+        throw interval + " is not a valid sync interval";
+      }
+      var oldValue = config.backgroundSyncInterval;
+      config.backgroundSyncInterval = parseInt(interval, 10);
+      this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+    },
+
+    /**
+     * Method: getCurrentSyncInterval
+     *
+     * Get the value of the current sync interval
+     *
+     * Returns a number of milliseconds
+     *
+     */
+    getCurrentSyncInterval: function () {
+      return config.isBackground ? config.backgroundSyncInterval : config.syncInterval;
+    },
+
+
+
+    syncCycle: function () {
+      if (this.sync.stopped) {
+        return;
+      }
+
+      this.sync.on('done', function () {
+        log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
+        if (!this.sync.stopped) {
+          if (this._syncTimer) {
+            clearTimeout(this._syncTimer);
+          }
+          this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
+        }
+      }.bind(this));
+
+      this.sync.sync();
+    },
+
+    stopSync: function () {
+      if (this.sync) {
+        log('[Sync] Stopping sync');
+        this.sync.stopped = true;
+      } else {
+        // TODO When is this ever the case and what is syncStopped for then?
+        log('[Sync] Will instantiate sync stopped');
+        this.syncStopped = true;
+      }
+    },
+
+    startSync: function () {
+      if (!config.cache) return
+      this.sync.stopped = false;
+      this.syncStopped = false;
+      this.sync.sync();
     }
 
 
   };
+
+
+    /**
+   * Check if interval is valid: numeric and between 1000ms and 3600000ms
+   *
+   */
+  function isValidInterval(interval) {
+    return (typeof interval === 'number' && interval > 1000 && interval < 3600000);
+  }
+
+
 
   /**
    * Property: connected
@@ -916,133 +1057,13 @@
   });
 
 
+    /* TOFIX (in sync.js also... has to be a shared property) */
+    config.syncInterval = 10000,
+    config.backgroundSyncInterval = 60000,
+    config.isBackground = false;
 
 
 
-
-
-  /**
-   * Method: getSyncInterval
-   *
-   * Get the value of the sync interval when application is in the foreground
-   *
-   * Returns a number of milliseconds
-   *
-  //  */
-  RemoteStorage.prototype.getSyncInterval = function () {
-    return syncInterval;
-  };
-
-    /**
-   * Check if interval is valid: numeric and between 1000ms and 3600000ms
-   *
-   */
-  function isValidInterval(interval) {
-    return (typeof interval === 'number' && interval > 1000 && interval < 3600000);
-  }
-
-
-  /**
-   * Method: setSyncInterval
-   *
-   * Set the value of the sync interval when application is in the foreground
-   *
-   * Parameters:
-   *   interval - sync interval in milliseconds
-   *
-   */
-  RemoteStorage.prototype.setSyncInterval = function (interval) {
-    if (!isValidInterval(interval)) {
-      throw interval + " is not a valid sync interval";
-    }
-    var oldValue = syncInterval;
-    syncInterval = parseInt(interval, 10);
-    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
-  };
-
-  /**
-   * Method: getBackgroundSyncInterval
-   *
-   * Get the value of the sync interval when application is in the background
-   *
-   * Returns a number of milliseconds
-   *
-   */
-  RemoteStorage.prototype.getBackgroundSyncInterval = function () {
-    return backgroundSyncInterval;
-  };
-
-  /**
-   * Method: setBackgroundSyncInterval
-   *
-   * Set the value of the sync interval when the application is in the background
-   *
-   * Parameters:
-   *   interval - sync interval in milliseconds
-   *
-   */
-  RemoteStorage.prototype.setBackgroundSyncInterval = function (interval) {
-    if(!isValidInterval(interval)) {
-      throw interval + " is not a valid sync interval";
-    }
-    var oldValue = backgroundSyncInterval;
-    backgroundSyncInterval = parseInt(interval, 10);
-    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
-  };
-
-  /**
-   * Method: getCurrentSyncInterval
-   *
-   * Get the value of the current sync interval
-   *
-   * Returns a number of milliseconds
-   *
-   */
-  RemoteStorage.prototype.getCurrentSyncInterval = function () {
-    return isBackground ? backgroundSyncInterval : syncInterval;
-  };
-
-
-
-  /* TOFIX (in sync.js also... has to be a shared property) */
-  var syncInterval = 10000,
-      backgroundSyncInterval = 60000,
-      isBackground = false;
-  RemoteStorage.prototype.syncCycle = function () {
-    if (this.sync.stopped) {
-      return;
-    }
-
-    this.sync.on('done', function () {
-      log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
-      if (!this.sync.stopped) {
-        if (this._syncTimer) {
-          clearTimeout(this._syncTimer);
-        }
-        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
-      }
-    }.bind(this));
-
-    this.sync.sync();
-  };
-
-  RemoteStorage.prototype.stopSync = function () {
-    if (this.sync) {
-      log('[Sync] Stopping sync');
-      this.sync.stopped = true;
-    } else {
-      // TODO When is this ever the case and what is syncStopped for then?
-      log('[Sync] Will instantiate sync stopped');
-      this.syncStopped = true;
-    }
-  };
-
-  RemoteStorage.prototype.startSync = function () {
-    if (!config.cache) return
-    this.sync.stopped = false;
-    this.syncStopped = false;
-    this.sync.sync();
-  };
 
 
 

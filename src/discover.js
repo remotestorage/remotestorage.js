@@ -1,6 +1,6 @@
-  var WebFinger = require('webfinger.js');
   var log = require('./log');
   var util = require('./util');
+  require('webfinger.js');
 
   // feature detection flags
   var haveXMLHttpRequest, hasLocalStorage;
