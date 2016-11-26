@@ -1,10 +1,24 @@
-var eventHandling = require('./eventhandling');
-/**
- * Class: RemoteStorage.Util
- *
- * Provides reusable utility functions at RemoteStorage.util
- *
- */
+// Reusable utility functions
+
+
+const eventHandling = require('./eventhandling');
+
+
+// wrapper to implement defer() functionality
+Promise.defer = function () {
+  var resolve, reject;
+  var promise = new Promise(function() {
+    resolve = arguments[0];
+    reject = arguments[1];
+  });
+  return {
+      resolve: resolve,
+    reject: reject,
+    promise: promise
+  };
+};
+
+
   /**
    * Function: fixArrayBuffers
    *
@@ -34,16 +48,20 @@ var eventHandling = require('./eventhandling');
   }
 
   var util = {
-    getEventEmitter: function () {
-      var object = {};
-      var args = Array.prototype.slice.call(arguments);
-      args.unshift(object);
-      eventHandling.apply(RemoteStorage, args);
-      object.emit = object._emit;
-      return object;
+    logError(error) {
+      if (typeof(error) === 'string') {
+        console.error(error);
+      } else {
+        console.error(error.message, error.stack);
+      }
     },
 
-    extend: function (target) {
+
+    getGlobalContext () {
+      return (typeof(window) !== 'undefined' ? window : global)
+    },
+
+    extend (target) {
       var sources = Array.prototype.slice.call(arguments, 1);
       sources.forEach(function (source) {
         for (var key in source) {
@@ -53,12 +71,12 @@ var eventHandling = require('./eventhandling');
       return target;
     },
 
-    asyncEach: function (array, callback) {
+    asyncEach (array, callback) {
       return this.asyncMap(array, callback).
         then(function () { return array; });
     },
 
-    asyncMap: function (array, callback) {
+    asyncMap (array, callback) {
       var pending = Promise.defer();
       var n = array.length, i = 0;
       var results = [], errors = [];
@@ -90,7 +108,7 @@ var eventHandling = require('./eventhandling');
       return pending.promise;
     },
 
-    containingFolder: function (path) {
+    containingFolder (path) {
       if (path === '') {
         return '/';
       }
@@ -101,15 +119,15 @@ var eventHandling = require('./eventhandling');
       return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
     },
 
-    isFolder: function (path) {
+    isFolder (path) {
       return path.substr(-1) === '/';
     },
 
-    isDocument: function (path) {
+    isDocument (path) {
       return !util.isFolder(path);
     },
 
-    baseName: function (path) {
+    baseName (path) {
       var parts = path.split('/');
       if (util.isFolder(path)) {
         return parts[parts.length-2]+'/';
@@ -118,13 +136,13 @@ var eventHandling = require('./eventhandling');
       }
     },
 
-    cleanPath: function (path) {
+    cleanPath (path) {
       return path.replace(/\/+/g, '/')
                  .split('/').map(encodeURIComponent).join('/')
                  .replace(/'/g, '%27');
     },
 
-    bindAll: function (object) {
+    bindAll (object) {
       for (var key in this) {
         if (typeof(object[key]) === 'function') {
           object[key] = object[key].bind(object);
@@ -132,7 +150,7 @@ var eventHandling = require('./eventhandling');
       }
     },
 
-    equal: function (a, b, seen) {
+    equal (a, b, seen) {
       var key;
       seen = seen || [];
 
@@ -207,12 +225,12 @@ var eventHandling = require('./eventhandling');
       return true;
     },
 
-    equalObj: function (obj1, obj2) {
+    equalObj (obj1, obj2) {
       console.warn('DEPRECATION WARNING: util.equalObj has been replaced by util.equal.');
       return util.equal(obj1, obj2);
     },
 
-    deepClone: function (obj) {
+    deepClone (obj) {
       var clone;
       if (obj === undefined) {
         return undefined;
@@ -223,7 +241,7 @@ var eventHandling = require('./eventhandling');
       }
     },
 
-    pathsFromRoot: function (path) {
+    pathsFromRoot (path) {
       var paths = [path];
       var parts = path.replace(/\/$/, '').split('/');
 
@@ -235,7 +253,7 @@ var eventHandling = require('./eventhandling');
     },
 
     /* jshint ignore:start */
-    md5sum: function(str) {
+    md5sum (str) {
       //
       // http://www.myersdaily.org/joseph/javascript/md5.js
       //
@@ -404,12 +422,14 @@ var eventHandling = require('./eventhandling');
     /* jshint ignore:end */
 
 
-    localStorageAvailable: function() {
-      if (!('localStorage' in global)) { return false }
+    localStorageAvailable () {
+      const context = util.getGlobalContext();
+
+      if (!('localStorage' in context)) { return false }
 
       try {
-        global.localStorage.setItem('rs-check', 1);
-        global.localStorage.removeItem('rs-check');
+        context.localStorage.setItem('rs-check', 1);
+        context.localStorage.removeItem('rs-check');
         return true;
       } catch(error) {
         return false;
