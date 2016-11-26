@@ -1,5 +1,3617 @@
-!function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t(require("xmlhttprequest")):"function"==typeof define&&define.amd?define("RemoteStorage",["xmlhttprequest"],t):"object"==typeof exports?exports.RemoteStorage=t(require("xmlhttprequest")):e.RemoteStorage=t(e.xmlhttprequest)}(this,function(e){return function(e){function t(n){if(r[n])return r[n].exports;var o=r[n]={exports:{},id:n,loaded:!1};return e[n].call(o.exports,o,o.exports,t),o.loaded=!0,o.exports}var r={};return t.m=e,t.c=r,t.p="",t(0)}([function(e,t,r){e.exports=r(1)},function(e,t,r){(function(t){function n(e){"string"==typeof e?console.error(e):console.error(e.message,e.stack)}function o(e){return 403!==e.statusCode&&401!==e.statusCode||this._emit("error",new p.Unauthorized),Promise.resolve(e)}function i(e){return"number"==typeof e&&e>1e3&&e<36e5}var s;Promise.defer=function(){var e,t,r=new Promise(function(){e=arguments[0],t=arguments[1]});return{resolve:e,reject:t,promise:r}};var a=r(2),u=r(6),c=r(7),h=r(20),l=r(21),f=r(9),d=r(5),p=r(8),m=r(18),g=function(e){"object"==typeof e&&(d.logging=!!e.logging,d.cordovaRedirectUri=e.cordovaRedirectUri);var t=r(3);if(t(this,"ready","connected","disconnected","not-connected","conflict","error","features-loaded","connecting","authing","sync-interval-change","wire-busy","wire-done","network-offline","network-online"),this._pending=[],this._setGPD({get:this._pendingGPD("get"),put:this._pendingGPD("put"),delete:this._pendingGPD("delete")}),this._cleanups=[],this._pathHandlers={change:{}},this.apiKeys={},s=a.localStorageAvailable()){try{this.apiKeys=JSON.parse(localStorage.getItem("remotestorage:api-keys"))||{}}catch(e){}this.setBackend(localStorage.getItem("remotestorage:backend")||"remotestorage")}var n=this.on;this.on=function(e,t){return"ready"===e&&this.remote&&this.remote.connected&&this._allLoaded?setTimeout(t,0):"features-loaded"===e&&this._allLoaded&&setTimeout(t,0),n.call(this,e,t)},this._init(),this.fireInitial=function(){this.local&&setTimeout(this.local.fireInitial.bind(this.local),0)}.bind(this),this.on("ready",this.fireInitial.bind(this))};g.prototype.authorize=function(e,r){this.access.setStorageType(this.remote.storageType);var n=this.access.scopeParameter,o=t.cordova?r:String(p.getLocation()),i=o.match(/^(https?:\/\/[^\/]+)/)[0];p(this,e,n,o,i)},g.DiscoveryError=function(e){Error.apply(this,arguments),this.message=e},g.DiscoveryError.prototype=Object.create(Error.prototype),d.logging=!1,d.changeEvents={local:!0,window:!1,remote:!0,conflict:!0},d.cache=!0,d.discoveryTimeout=1e4,d.cordovaRedirectUri=void 0;var y=r(4);g.prototype={connect:function(e,r){if(this.setBackend("remotestorage"),e.indexOf("@")<0)return void this._emit("error",new g.DiscoveryError("User address doesn't contain an @."));if(t.cordova){if("string"!=typeof d.cordovaRedirectUri)return void this._emit("error",new g.DiscoveryError("Please supply a custom HTTPS redirect URI for your Cordova app"));if(!t.cordova.InAppBrowser)return void this._emit("error",new g.DiscoveryError("Please include the InAppBrowser Cordova plugin to enable OAuth"))}this.remote.configure({userAddress:e}),this._emit("connecting");var n=setTimeout(function(){this._emit("error",new g.DiscoveryError("No storage information found for this user address."))}.bind(this),d.discoveryTimeout);l(e).then(function(t){if(clearTimeout(n),this._emit("authing"),t.userAddress=e,this.remote.configure(t),!this.remote.connected)if(t.authURL)if("undefined"==typeof r)this.authorize(t.authURL,d.cordovaRedirectUri);else{if("string"!=typeof r)throw new Error("Supplied bearer token must be a string");y("Skipping authorization sequence and connecting with known token"),this.remote.configure({token:r})}else this.impliedauth()}.bind(this),function(e){clearTimeout(n),this._emit("error",new g.DiscoveryError("No storage information found for this user address."))}.bind(this))},disconnect:function(){this.remote&&this.remote.configure({userAddress:null,href:null,storageApi:null,token:null,properties:null}),this._setGPD({get:this._pendingGPD("get"),put:this._pendingGPD("put"),delete:this._pendingGPD("delete")});var e=this._cleanups.length,t=0,r=function(){t++,t>=e&&(this._init(),y("Done cleaning up, emitting disconnected and disconnect events"),this._emit("disconnected"))}.bind(this);e>0?this._cleanups.forEach(function(e){var t=e(this);"object"==typeof t&&"function"==typeof t.then?t.then(r):r()}.bind(this)):r()},setBackend:function(e){this.backend=e,s&&(e?localStorage.setItem("remotestorage:backend",e):localStorage.removeItem("remotestorage:backend"))},onChange:function(e,t){this._pathHandlers.change[e]||(this._pathHandlers.change[e]=[]),this._pathHandlers.change[e].push(t)},enableLog:function(){d.logging=!0},disableLog:function(){d.logging=!1},log:function(){y.apply(g,arguments)},setApiKeys:function(e,t){t?(this.apiKeys[e]=t,"dropbox"!==e||"undefined"!=typeof this.dropbox&&this.dropbox.clientId===t.appKey?"googledrive"!==e||"undefined"!=typeof this.googledrive&&this.googledrive.clientId===t.clientId||h._rs_init(this):c._rs_init(this)):delete this.apiKeys[e],s&&localStorage.setItem("remotestorage:api-keys",JSON.stringify(this.apiKeys))},setCordovaRedirectUri:function(e){if("string"!=typeof e||!e.match(/http(s)?\:\/\//))throw new Error("Cordova redirect URI must be a URI string");d.cordovaRedirectUri=e},_init:function(){function e(){try{r||(t._emit("ready"),r=!0)}catch(e){console.error("'ready' failed: ",e,e.stack),t._emit("error",e)}}var t=this,r=!1;this._loadFeatures(function(r){this.log("[RemoteStorage] All features loaded"),this.local=d.cache&&r.local&&new r.local,this.local&&this.remote?(this._setGPD(u,this),this._bindChange(this.local)):this.remote&&this._setGPD(this.remote,this.remote),this.remote&&(this.remote.on("connected",function(){e(),t._emit("connected")}),this.remote.on("not-connected",function(){e(),t._emit("not-connected")}),this.remote.connected&&(e(),t._emit("connected")),this.hasFeature("Authorize")||this.remote.stopWaitingForToken()),this._collectCleanupFunctions();try{this._allLoaded=!0,this._emit("features-loaded")}catch(e){n(e),this._emit("error",e)}this._processPending()}.bind(this))},_collectCleanupFunctions:function(){this._cleanups=[];for(var e=0;e<this.features.length;e++){var t=this.features[e].cleanup;"function"==typeof t&&this._cleanups.push(t)}},_loadFeatures:function(e){function t(){c++,c===a.length&&setTimeout(function(){u.caching=!!P&&d.cache,u.sync=!!m,["IndexedDB","LocalStorage","InMemoryStorage"].some(function(e){if(u.some(function(t){return t.name===e}))return u.local=r(24)("./"+e.toLowerCase()),!0}),h.features=u,e(u)},0)}function n(e){var n=r(24)("./"+e.toLowerCase());h.log("[RemoteStorage] [FEATURE "+e+"] initialized."),u.push({name:e,init:n._rs_init,supported:!0,cleanup:n._rs_cleanup}),t()}function o(e,r){h.log("[RemoteStorage] [FEATURE "+e+"] initialization failed ( "+r+")"),t()}function i(e,r){h.log(""),r||t()}function s(e){var t,i=r(24)("./"+e.toLowerCase());try{t=i._rs_init(h)}catch(t){return void o(e,t)}"object"==typeof t&&"function"==typeof t.then?t.then(function(){n(e)},function(t){o(e,t)}):n(e)}var a=["WireClient","I18n","Dropbox","GoogleDrive","Access","Caching","Discover","Authorize","IndexedDB","LocalStorage","InMemoryStorage","Sync","BaseClient","Env"],u=[],c=0,h=this;a.forEach(function(e){var t=r(24)("./"+e.toLowerCase());h.log("[RemoteStorage] [FEATURE "+e+"] initializing...");var n,o=t;o?(n=!o._rs_supported||o._rs_supported(),"object"==typeof n?n.then(function(){i(e,!0),s(e)},function(){i(e,!1)}):"boolean"==typeof n&&(i(e,n),n&&s(e))):i(e,!1)})},hasFeature:function(e){for(var t=this.features.length-1;t>=0;t--)if(this.features[t].name===e)return this.features[t].supported;return!1},_setGPD:function(e,t){function r(e){return function(){return e.apply(t,arguments).then(o.bind(this))}}this.get=r(e.get),this.put=r(e.put),this.delete=r(e.delete)},_pendingGPD:function(e){return function(){var t=Promise.defer();return this._pending.push({method:e,args:Array.prototype.slice.call(arguments),promise:t}),t.promise}.bind(this)},_processPending:function(){this._pending.forEach(function(e){try{this[e.method].apply(this,e.args).then(e.promise.resolve,e.promise.reject)}catch(t){e.promise.reject(t)}}.bind(this)),this._pending=[]},_bindChange:function(e){e.on("change",this._dispatchEvent.bind(this,"change"))},_dispatchEvent:function(e,t){var r=this;Object.keys(this._pathHandlers[e]).forEach(function(n){var o=n.length;t.path.substr(0,o)===n&&r._pathHandlers[e][n].forEach(function(e){var o={};for(var i in t)o[i]=t[i];o.relativePath=t.path.replace(new RegExp("^"+n),"");try{e(o)}catch(e){console.error("'change' handler failed: ",e,e.stack),r._emit("error",e)}})})},scope:function(e){if("string"!=typeof e)throw"Argument 'path' of baseClient.scope must be a string";if(!this.access.checkPathPermission(e,"r")){var t=e.replace(/(['\\])/g,"\\$1");console.warn("WARNING: please call remoteStorage.access.claim('"+t+"', 'r') (read only) or remoteStorage.access.claim('"+t+"', 'rw') (read/write) first")}return new f(this,e)}},Object.defineProperty(g.prototype,"connected",{get:function(){return this.remote.connected}});var v=r(25);Object.defineProperty(g.prototype,"access",{get:function(){var e=new v;return Object.defineProperty(this,"access",{value:e}),e},configurable:!0}),g.prototype.getSyncInterval=function(){return _},g.prototype.setSyncInterval=function(e){if(!i(e))throw e+" is not a valid sync interval";var t=_;_=parseInt(e,10),this._emit("sync-interval-change",{oldValue:t,newValue:e})},g.prototype.getBackgroundSyncInterval=function(){return w},g.prototype.setBackgroundSyncInterval=function(e){if(!i(e))throw e+" is not a valid sync interval";var t=w;w=parseInt(e,10),this._emit("sync-interval-change",{oldValue:t,newValue:e})},g.prototype.getCurrentSyncInterval=function(){return E?w:_};var b=function(e){var t="Sync failed: ";t+="object"==typeof e&&"message"in e?e.message:e,this.originalError=e,this.message=t};b.prototype=new Error,b.prototype.constructor=b,m.SyncError=b;var _=1e4,w=6e4,E=!1;g.prototype.syncCycle=function(){this.sync.stopped||(this.sync.on("done",function(){y("[Sync] Sync done. Setting timer to",this.getCurrentSyncInterval()),this.sync.stopped||(this._syncTimer&&clearTimeout(this._syncTimer),this._syncTimer=setTimeout(this.sync.sync.bind(this.sync),this.getCurrentSyncInterval()))}.bind(this)),this.sync.sync())},g.prototype.stopSync=function(){this.sync?(y("[Sync] Stopping sync"),this.sync.stopped=!0):(y("[Sync] Will instantiate sync stopped"),this.syncStopped=!0)},g.prototype.startSync=function(){this.sync.stopped=!1,this.syncStopped=!1,this.sync.sync()};var P=r(26);Object.defineProperty(g.prototype,"caching",{configurable:!0,get:function(){var e=new P;return Object.defineProperty(this,"caching",{value:e}),e}}),e.exports=g}).call(t,function(){return this}())},function(e,t,r){(function(t){function n(e,t){var r,o,i;if("object"==typeof e&&!Array.isArray(e)&&null!==e)for(r in e)"object"==typeof e[r]&&null!==e[r]&&("[object ArrayBuffer]"===e[r].toString()?(t[r]=new ArrayBuffer(e[r].byteLength),o=new Int8Array(e[r]),i=new Int8Array(t[r]),i.set(o)):n(e[r],t[r]))}var o=r(3),i={getEventEmitter:function(){var e={},t=Array.prototype.slice.call(arguments);return t.unshift(e),o.apply(RemoteStorage,t),e.emit=e._emit,e},extend:function(e){var t=Array.prototype.slice.call(arguments,1);return t.forEach(function(t){for(var r in t)e[r]=t[r]}),e},asyncEach:function(e,t){return this.asyncMap(e,t).then(function(){return e})},asyncMap:function(e,t){function r(){i++,i===o&&n.resolve(s,a)}var n=Promise.defer(),o=e.length,i=0,s=[],a=[];return e.forEach(function(e,n){var o;try{o=t(e)}catch(e){r(),a[n]=e}"object"==typeof o&&"function"==typeof o.then?o.then(function(e){s[n]=e,r()},function(e){a[n]=e,r()}):(r(),s[n]=o)}),n.promise},containingFolder:function(e){if(""===e)return"/";if(!e)throw"Path not given!";return e.replace(/\/+/g,"/").replace(/[^\/]+\/?$/,"")},isFolder:function(e){return"/"===e.substr(-1)},isDocument:function(e){return!i.isFolder(e)},baseName:function(e){var t=e.split("/");return i.isFolder(e)?t[t.length-2]+"/":t[t.length-1]},cleanPath:function(e){return e.replace(/\/+/g,"/").split("/").map(encodeURIComponent).join("/").replace(/'/g,"%27")},bindAll:function(e){for(var t in this)"function"==typeof e[t]&&(e[t]=e[t].bind(e))},equal:function(e,t,r){var n;if(r=r||[],typeof e!=typeof t)return!1;if("number"==typeof e||"boolean"==typeof e||"string"==typeof e)return e===t;if("function"==typeof e)return e.toString()===t.toString();if(e instanceof ArrayBuffer&&t instanceof ArrayBuffer&&(e=new Uint8Array(e),t=new Uint8Array(t)),e instanceof Array){if(e.length!==t.length)return!1;for(var o=0,s=e.length;o<s;o++)if(!i.equal(e[o],t[o],r))return!1}else{for(n in e)if(e.hasOwnProperty(n)&&!(n in t))return!1;for(n in t)if(t.hasOwnProperty(n)){if(!(n in e))return!1;var a;if("object"==typeof t[n]){if(r.indexOf(t[n])>=0)continue;a=r.slice(),a.push(t[n])}if(!i.equal(e[n],t[n],a))return!1}}return!0},equalObj:function(e,t){return console.warn("DEPRECATION WARNING: util.equalObj has been replaced by util.equal."),i.equal(e,t)},deepClone:function(e){var t;return void 0===e?void 0:(t=JSON.parse(JSON.stringify(e)),n(e,t),t)},pathsFromRoot:function(e){for(var t=[e],r=e.replace(/\/$/,"").split("/");r.length>1;)r.pop(),t.push(r.join("/")+"/");return t},md5sum:function(e){function t(e,t){var r=e[0],a=e[1],u=e[2],c=e[3];r=n(r,a,u,c,t[0],7,-680876936),c=n(c,r,a,u,t[1],12,-389564586),u=n(u,c,r,a,t[2],17,606105819),a=n(a,u,c,r,t[3],22,-1044525330),r=n(r,a,u,c,t[4],7,-176418897),c=n(c,r,a,u,t[5],12,1200080426),u=n(u,c,r,a,t[6],17,-1473231341),a=n(a,u,c,r,t[7],22,-45705983),r=n(r,a,u,c,t[8],7,1770035416),c=n(c,r,a,u,t[9],12,-1958414417),u=n(u,c,r,a,t[10],17,-42063),a=n(a,u,c,r,t[11],22,-1990404162),r=n(r,a,u,c,t[12],7,1804603682),c=n(c,r,a,u,t[13],12,-40341101),u=n(u,c,r,a,t[14],17,-1502002290),a=n(a,u,c,r,t[15],22,1236535329),r=o(r,a,u,c,t[1],5,-165796510),c=o(c,r,a,u,t[6],9,-1069501632),u=o(u,c,r,a,t[11],14,643717713),a=o(a,u,c,r,t[0],20,-373897302),r=o(r,a,u,c,t[5],5,-701558691),c=o(c,r,a,u,t[10],9,38016083),u=o(u,c,r,a,t[15],14,-660478335),a=o(a,u,c,r,t[4],20,-405537848),r=o(r,a,u,c,t[9],5,568446438),c=o(c,r,a,u,t[14],9,-1019803690),u=o(u,c,r,a,t[3],14,-187363961),a=o(a,u,c,r,t[8],20,1163531501),r=o(r,a,u,c,t[13],5,-1444681467),c=o(c,r,a,u,t[2],9,-51403784),u=o(u,c,r,a,t[7],14,1735328473),a=o(a,u,c,r,t[12],20,-1926607734),r=i(r,a,u,c,t[5],4,-378558),c=i(c,r,a,u,t[8],11,-2022574463),u=i(u,c,r,a,t[11],16,1839030562),a=i(a,u,c,r,t[14],23,-35309556),r=i(r,a,u,c,t[1],4,-1530992060),c=i(c,r,a,u,t[4],11,1272893353),u=i(u,c,r,a,t[7],16,-155497632),a=i(a,u,c,r,t[10],23,-1094730640),r=i(r,a,u,c,t[13],4,681279174),c=i(c,r,a,u,t[0],11,-358537222),u=i(u,c,r,a,t[3],16,-722521979),a=i(a,u,c,r,t[6],23,76029189),r=i(r,a,u,c,t[9],4,-640364487),c=i(c,r,a,u,t[12],11,-421815835),u=i(u,c,r,a,t[15],16,530742520),a=i(a,u,c,r,t[2],23,-995338651),r=s(r,a,u,c,t[0],6,-198630844),c=s(c,r,a,u,t[7],10,1126891415),u=s(u,c,r,a,t[14],15,-1416354905),a=s(a,u,c,r,t[5],21,-57434055),r=s(r,a,u,c,t[12],6,1700485571),c=s(c,r,a,u,t[3],10,-1894986606),u=s(u,c,r,a,t[10],15,-1051523),a=s(a,u,c,r,t[1],21,-2054922799),r=s(r,a,u,c,t[8],6,1873313359),c=s(c,r,a,u,t[15],10,-30611744),u=s(u,c,r,a,t[6],15,-1560198380),a=s(a,u,c,r,t[13],21,1309151649),r=s(r,a,u,c,t[4],6,-145523070),c=s(c,r,a,u,t[11],10,-1120210379),u=s(u,c,r,a,t[2],15,718787259),a=s(a,u,c,r,t[9],21,-343485551),e[0]=d(r,e[0]),e[1]=d(a,e[1]),e[2]=d(u,e[2]),e[3]=d(c,e[3])}function r(e,t,r,n,o,i){return t=d(d(t,e),d(n,i)),d(t<<o|t>>>32-o,r)}function n(e,t,n,o,i,s,a){return r(t&n|~t&o,e,t,i,s,a)}function o(e,t,n,o,i,s,a){return r(t&o|n&~o,e,t,i,s,a)}function i(e,t,n,o,i,s,a){return r(t^n^o,e,t,i,s,a)}function s(e,t,n,o,i,s,a){return r(n^(t|~o),e,t,i,s,a)}function a(e){txt="";var r,n=e.length,o=[1732584193,-271733879,-1732584194,271733878];for(r=64;r<=e.length;r+=64)t(o,u(e.substring(r-64,r)));e=e.substring(r-64);var i=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];for(r=0;r<e.length;r++)i[r>>2]|=e.charCodeAt(r)<<(r%4<<3);if(i[r>>2]|=128<<(r%4<<3),r>55)for(t(o,i),r=0;r<16;r++)i[r]=0;return i[14]=8*n,t(o,i),o}function u(e){var t,r=[];for(t=0;t<64;t+=4)r[t>>2]=e.charCodeAt(t)+(e.charCodeAt(t+1)<<8)+(e.charCodeAt(t+2)<<16)+(e.charCodeAt(t+3)<<24);return r}function c(e){for(var t="",r=0;r<4;r++)t+=f[e>>8*r+4&15]+f[e>>8*r&15];return t}function h(e){for(var t=0;t<e.length;t++)e[t]=c(e[t]);return e.join("")}function l(e){return h(a(e))}var f="0123456789abcdef".split(""),d=function(e,t){return e+t&4294967295};return"5d41402abc4b2a76b9719d911017c592"!==l("hello")&&(d=function(e,t){var r=(65535&e)+(65535&t),n=(e>>16)+(t>>16)+(r>>16);return n<<16|65535&r}),l(e)},localStorageAvailable:function(){if(!("localStorage"in t))return!1;try{return t.localStorage.setItem("rs-check",1),t.localStorage.removeItem("rs-check"),!0}catch(e){return!1}}};e.exports=i}).call(t,function(){return this}())},function(e,t,r){var n=r(4),o={addEventListener:function(e,t){if("string"!=typeof e)throw new Error("Argument eventName should be a string");if("function"!=typeof t)throw new Error("Argument handler should be a function");n("[Eventhandling] Adding event listener",e,t),this._validateEvent(e),this._handlers[e].push(t)},removeEventListener:function(e,t){this._validateEvent(e);for(var r=this._handlers[e].length,n=0;n<r;n++)if(this._handlers[e][n]===t)return void this._handlers[e].splice(n,1)},_emit:function(e){this._validateEvent(e);var t=Array.prototype.slice.call(arguments,1);this._handlers[e].slice().forEach(function(e){e.apply(this,t)})},_validateEvent:function(e){if(!(e in this._handlers))throw new Error("Unknown event: "+e)},_delegateEvent:function(e,t){t.on(e,function(t){this._emit(e,t)}.bind(this))},_addEvent:function(e){this._handlers[e]=[]}};o.on=o.addEventListener,e.exports=function(e){var t=Array.prototype.slice.call(arguments,1);for(var r in o)e[r]=o[r];e._handlers={},t.forEach(function(t){e._addEvent(t)})}},function(e,t,r){var n=r(5);e.exports=function(){n.logging&&console.log.apply(console,arguments)}},function(e,t){var r={};e.exports=r},function(e,t,r){function n(e){return"dropbox"===this.backend&&e.match(/^\/public\/.*[^\/]$/)}var o=r(4),i={get:function(e,t){if(this.local){void 0===t&&("object"==typeof this.remote&&this.remote.connected&&this.remote.online?t=2*this.getSyncInterval():(o("Not setting default maxAge, because remote is offline or not connected"),t=!1));var r=function(e){return e!==!1&&"number"!=typeof e};return r(t)?Promise.reject("Argument 'maxAge' must be false or a number"):this.local.get(e,t,this.sync.queueGetRequest.bind(this.sync))}return this.remote.get(e)},put:function(e,t,r){return n.bind(this)(e)?i._wrapBusyDone.call(this,this.remote.put(e,t,r)):this.local?this.local.put(e,t,r):i._wrapBusyDone.call(this,this.remote.put(e,t,r))},delete:function(e){return this.local?this.local.delete(e):i._wrapBusyDone.call(this,this.remote.delete(e))},_wrapBusyDone:function(e){var t=this;return this._emit("wire-busy"),e.then(function(e){return t._emit("wire-done",{success:!0}),Promise.resolve(e)},function(e){return t._emit("wire-done",{success:!1}),Promise.reject(e)})}};e.exports=i},function(e,t,r){(function(t){function n(e){this.defaultValue=e,this._storage={},this.set=this.justSet,this.delete=this.justDelete}function o(e){e._dropboxOrigSync||(e._dropboxOrigSync=e.sync.sync.bind(e.sync),e.sync.sync=function(){return this.dropbox.fetchDelta.apply(this.dropbox,arguments).then(e._dropboxOrigSync,function(t){e._emit("error",new v.SyncError(t))})}.bind(e))}function i(e){e._dropboxOrigSync&&(e.sync.sync=e._dropboxOrigSync,delete e._dropboxOrigSync)}function s(e){e._origBaseClientGetItemURL||(e._origBaseClientGetItemURL=p.prototype.getItemURL,p.prototype.getItemURL=function(t){var r=e.dropbox._itemRefs[t];return r?r:""})}function a(e){e._origBaseClientGetItemURL&&(p.prototype.getItemURL=e._origBaseClientGetItemURL,delete e._origBaseClientGetItemURL)}function u(e){e._origRemote||(e._origRemote=e.remote,e.remote=e.dropbox)}function c(e){e._origRemote&&(e.remote=e._origRemote,delete e._origRemote)}function h(e){u(e),e.sync?o(e):e.on("connected",function(){e.sync&&o(e)}),s(e)}function l(e){c(e),i(e),a(e)}var f,d=r(8),p=r(9),m=r(13),g=r(2),y=r(3),v=r(18),b="https://www.dropbox.com/1/oauth2/authorize",_="remotestorage:dropbox",w="/remotestorage",E=function(e){return m.cleanPath(w+"/"+e)},P=function(e){var t=[];for(var r in e)e.hasOwnProperty(r)&&t.push(encodeURIComponent(r)+"="+encodeURIComponent(e[r]));return t.join("&")};n.prototype={get:function(e){e=e.toLowerCase();var t=this._storage[e];return"undefined"==typeof t&&(t=this.defaultValue,this._storage[e]=t),t},propagateSet:function(e,t){return e=e.toLowerCase(),this._storage[e]===t?t:(this._propagate(e,t),this._storage[e]=t,t)},propagateDelete:function(e){return e=e.toLowerCase(),this._propagate(e,this._storage[e]),delete this._storage[e]},_activatePropagation:function(){return this.set=this.propagateSet,this.delete=this.propagateDelete,!0},justSet:function(e,t){return e=e.toLowerCase(),this._storage[e]=t,t},justDelete:function(e,t){return e=e.toLowerCase(),delete this._storage[e]},_propagate:function(e,t){for(var r=e.split("/").slice(0,-1),n="",o=0,i=r.length;o<i;o++)n+=r[o]+"/",t||(t=this._storage[n]+1),this._storage[n]=t}};var T,A=function(e){this.rs=e,this.connected=!1,this.rs=e;var t=this;if(T=function(e){e instanceof d.Unauthorized&&t.configure({userAddress:null,href:null,storageApi:null,token:null,options:null})},y(this,"change","connected","wire-busy","wire-done","not-connected"),e.on("error",T),this.clientId=e.apiKeys.dropbox.appKey,this._revCache=new n("rev"),this._itemRefs={},this._metadataCache={},f){var r;try{r=JSON.parse(localStorage[_])}catch(e){}r&&this.configure(r);try{this._itemRefs=JSON.parse(localStorage[_+":shares"])}catch(e){}}this.connected&&setTimeout(this._emit.bind(this),0,"connected")};A.prototype={online:!0,connect:function(){this.rs.setBackend("dropbox"),this.token?h(this.rs):d(this.rs,b,"",String(d.getLocation()),this.clientId)},configure:function(e){"undefined"!=typeof e.userAddress&&(this.userAddress=e.userAddress),"undefined"!=typeof e.token&&(this.token=e.token),this.token?(this.connected=!0,this.userAddress||this.info().then(function(e){this.userAddress=e.display_name,this._emit("connected")}.bind(this))):this.connected=!1,f&&(localStorage[_]=JSON.stringify({userAddress:this.userAddress,token:this.token}))},stopWaitingForToken:function(){this.connected||this._emit("not-connected")},_getFolder:function(e,t){var r="https://api.dropbox.com/1/metadata/auto"+E(e),n=this._revCache,o=this;return this._request("GET",r,{}).then(function(t){var r=t.status;if(304===r)return Promise.resolve({statusCode:r});var i,s,a,u;try{s=JSON.parse(t.responseText)}catch(e){return Promise.reject(e)}return u=o._revCache.get(e),a="application/json; charset=UTF-8",s.contents&&(i=s.contents.reduce(function(t,r){var o=r.path.split("/").slice(-1)[0]+(r.is_dir?"/":"");return r.is_dir?t[o]={ETag:n.get(e+o)}:t[o]={ETag:r.rev},t},{})),Promise.resolve({statusCode:r,body:i,contentType:a,revision:u})})},get:function(e,t){if(!this.connected)return Promise.reject("not connected (path: "+e+")");var r="https://api-content.dropbox.com/1/files/auto"+E(e),n=this,o=this._revCache.get(e);return null===o?Promise.resolve({statusCode:404}):t&&t.ifNoneMatch&&o&&o===t.ifNoneMatch?Promise.resolve({statusCode:304}):"/"===e.substr(-1)?this._getFolder(e,t):this._request("GET",r,{}).then(function(t){var r,o,i,s,a=t.status;if(200!==a)return Promise.resolve({statusCode:a});o=t.responseText;try{r=JSON.parse(t.getResponseHeader("x-dropbox-metadata"))}catch(e){return Promise.reject(e)}if(i=r.mime_type,s=r.rev,n._revCache.set(e,s),n._shareIfNeeded(e),!t.getResponseHeader("Content-Type")||t.getResponseHeader("Content-Type").match(/charset=binary/)){var u=Promise.defer();return m.readBinaryData(t.response,i,function(e){u.resolve({statusCode:a,body:e,contentType:i,revision:s})}),u.promise}if(i&&i.search("application/json")>=0,!0)try{o=JSON.parse(o),i="application/json; charset=UTF-8"}catch(e){}return Promise.resolve({statusCode:a,body:o,contentType:i,revision:s})})},put:function(e,t,r,n){var o=this;if(!this.connected)throw new Error("not connected (path: "+e+")");var i=this._revCache.get(e);if(n&&n.ifMatch&&i&&i!==n.ifMatch)return Promise.resolve({statusCode:412,revision:i});if(n&&"*"===n.ifNoneMatch&&i&&"rev"!==i)return Promise.resolve({statusCode:412,revision:i});if(!r.match(/charset=/)&&(t instanceof ArrayBuffer||m.isArrayBufferView(t))&&(r+="; charset=binary"),t.length>157286400)return Promise.reject(new Error("Cannot upload file larger than 150MB"));var s,a=n&&(n.ifMatch||"*"===n.ifNoneMatch),u={body:t,contentType:r,path:e};return s=a?this._getMetadata(e).then(function(e){return n&&"*"===n.ifNoneMatch&&e?Promise.resolve({statusCode:412,revision:e.rev}):n&&n.ifMatch&&e&&e.rev!==n.ifMatch?Promise.resolve({statusCode:412,revision:e.rev}):o._uploadSimple(u)}):o._uploadSimple(u),s.then(function(t){return o._shareIfNeeded(e),t})},delete:function(e,t){var r=this;if(!this.connected)throw new Error("not connected (path: "+e+")");var n=this._revCache.get(e);return t&&t.ifMatch&&n&&t.ifMatch!==n?Promise.resolve({statusCode:412,revision:n}):t&&t.ifMatch?this._getMetadata(e).then(function(n){return t&&t.ifMatch&&n&&n.rev!==t.ifMatch?Promise.resolve({statusCode:412,revision:n.rev}):r._deleteSimple(e)}):r._deleteSimple(e)},_shareIfNeeded:function(e){e.match(/^\/public\/.*[^\/]$/)&&void 0===this._itemRefs[e]&&this.share(e)},share:function(e){var t=this,r="https://api.dropbox.com/1/media/auto"+E(e);return this._request("POST",r,{}).then(function(n){if(200!==n.status)return Promise.reject(new Error('Invalid Dropbox API response status when sharing "'+e+'":'+n.status));try{n=JSON.parse(n.responseText)}catch(t){return Promise.reject(new Error('Invalid Dropbox API response when sharing "'+e+'": '+n.responseText))}return t._itemRefs[e]=n.url,f&&(localStorage[_+":shares"]=JSON.stringify(t._itemRefs)),Promise.resolve(r)},function(t){return err.message='Sharing dropbox file or folder ("'+e+'") failed.'+err.message,Promise.reject(t)})},info:function(){var e="https://api.dropbox.com/1/account/info";return this._request("GET",e,{}).then(function(e){try{var t=JSON.parse(e.responseText);return Promise.resolve(t)}catch(e){return Promise.reject(e)}})},_request:function(e,r,n){var o=this;return n.headers||(n.headers={}),n.headers.Authorization="Bearer "+this.token,m.request.call(this,e,r,n).then(function(i){return i&&503===i.status?(o.online&&(o.online=!1,o.rs._emit("network-offline")),t.setTimeout(o._request(e,r,n),3210)):(o.online||(o.online=!0,o.rs._emit("network-online")),Promise.resolve(i))},function(e){return o.online&&(o.online=!1,o.rs._emit("network-offline")),Promise.reject(e)})},fetchDelta:function(){var e=Array.prototype.slice.call(arguments),t=this,r={path_prefix:w};return t._deltaCursor&&(r.cursor=t._deltaCursor),t._request("POST","https://api.dropbox.com/1/delta",{body:P(r),headers:{"Content-Type":"application/x-www-form-urlencoded"}}).then(function(r){if(200!==r.status)return 400===r.status?(t.rs._emit("error",new d.Unauthorized),Promise.resolve(e)):Promise.reject("dropbox.fetchDelta returned "+r.status+r.responseText);var o;try{o=JSON.parse(r.responseText)}catch(e){return log("fetchDeltas can not parse response",e),Promise.reject("can not parse response of fetchDelta : "+e.message)}return o.entries?(o.reset&&(t._revCache=new n("rev")),o.cursor&&(t._deltaCursor=o.cursor),o.entries.forEach(function(e){var r,n=e[0].substr(w.length);if(e[1]){if(e[1].is_dir)return;r=e[1].rev}else r=null;t._revCache.set(n,r)}),Promise.resolve(e)):Promise.reject("dropbox.fetchDeltas failed, no entries found")},function(e){this.rs.log("fetchDeltas",e),this.rs._emit("error",new v.SyncError("fetchDeltas failed."+e)),promise.reject(e)}).then(function(){if(t._revCache){var e=Array.prototype.slice.call(arguments);return t._revCache._activatePropagation(),Promise.resolve(e)}})},_getMetadata:function(e,t){var r=this,n=this._metadataCache[e],o="https://api.dropbox.com/1/metadata/auto"+E(e);return o+="?list="+(t&&t.list?"true":"false"),n&&n.hash&&(o+="&hash="+encodeURIComponent(n.hash)),this._request("GET",o,{}).then(function(t){if(304===t.status)return Promise.resolve(n);if(200===t.status){var o=JSON.parse(t.responseText);return r._metadataCache[e]=o,Promise.resolve(o)}return Promise.resolve()})},_uploadSimple:function(e){var t=this,r="https://api-content.dropbox.com/1/files_put/auto"+E(e.path)+"?";return e&&e.ifMatch&&(r+="parent_rev="+encodeURIComponent(e.ifMatch)),t._request("PUT",r,{body:e.body,headers:{"Content-Type":e.contentType}}).then(function(r){if(200!==r.status)return Promise.resolve({statusCode:r.status});var n;try{n=JSON.parse(r.responseText)}catch(e){return Promise.reject(e)}if(n.path!==E(e.path)){var o="https://api.dropbox.com/1/fileops/delete?root=auto&path="+encodeURIComponent(n.path);return t._request("POST",o,{}),t._getMetadata(e.path).then(function(e){return Promise.resolve({statusCode:412,revision:e.rev})})}return t._revCache.propagateSet(e.path,n.rev),Promise.resolve({statusCode:r.status})})},_deleteSimple:function(e){var t=this,r="https://api.dropbox.com/1/fileops/delete?root=auto&path="+encodeURIComponent(E(e));return t._request("POST",r,{}).then(function(r){return 406===r.status?Promise.reject(new Error("Cannot delete '"+e+"': too many files involved")):(200!==r.status&&404!==r.status||(t._revCache.delete(e),delete t._itemRefs[e]),Promise.resolve({statusCode:r.status}))})}},A._rs_init=function(e){f=g.localStorageAvailable(),e.apiKeys.dropbox&&(e.dropbox=new A(e)),"dropbox"===e.backend&&h(e)},A._rs_supported=function(){return!0},A._rs_cleanup=function(e){l(e),f&&delete localStorage[_],e.removeEventListener("error",T),e.setBackend(void 0)},e.exports=A}).call(t,function(){return this}())},function(e,t,r){(function(t){function n(e){var t,r=e||s.getLocation().href,n=r.indexOf("#");if(n!==-1&&(t=r.substring(n+1),t.indexOf("=")!==-1))return t.split("&").reduce(function(e,t){var r=t.split("=");if("state"===r[0]&&r[1].match(/rsDiscovery/)){var n=decodeURIComponent(r[1]),o=n.substr(n.indexOf("rsDiscovery=")).split("&")[0].split("=")[1];e.rsDiscovery=JSON.parse(atob(o)),n=n.replace(new RegExp("&?rsDiscovery="+o),""),n.length>0&&(e.state=n)}else e[decodeURIComponent(r[0])]=decodeURIComponent(r[1]);return e},{})}var o=r(4),i=r(2),s=function(e,r,n,a,u){if(o("[Authorize] authURL = ",r,"scope = ",n,"redirectUri = ",a,"clientId = ",u),!i.localStorageAvailable()&&"remotestorage"===e.backend){a+=a.indexOf("#")>0?"&":"#";var c={userAddress:e.remote.userAddress,href:e.remote.href,storageApi:e.remote.storageApi,properties:e.remote.properties};a+="rsDiscovery="+btoa(JSON.stringify(c))}var h=r,l=a.indexOf("#");return h+=r.indexOf("?")>0?"&":"?",h+="redirect_uri="+encodeURIComponent(a.replace(/#.*$/,"")),h+="&scope="+encodeURIComponent(n),h+="&client_id="+encodeURIComponent(u),l!==-1&&l+1!==a.length&&(h+="&state="+encodeURIComponent(a.substring(l+1))),h+="&response_type=token",t.cordova?s.openWindow(h,a,"location=yes,clearsessioncache=yes,clearcache=yes").then(function(t){e.remote.configure({token:t.access_token})}):void s.setLocation(h)};s.IMPLIED_FAKE_TOKEN=!1,s.Unauthorized=function(){Error.apply(this,arguments)},s.Unauthorized.prototype=Object.create(Error.prototype),s.getLocation=function(){return t.document.location},s.setLocation=function(e){if("string"==typeof e)t.document.location.href=e;else{if("object"!=typeof e)throw"Invalid location "+e;t.document.location=e}},s.openWindow=function(e,r,o){var i=Promise.defer(),s=t.open(e,"_blank",o);if(!s||s.closed)return i.reject("Authorization popup was blocked"),i.promise;var a=function(){i.reject("Authorization was canceled")},u=function(e){if(0===e.url.indexOf(r)){s.removeEventListener("exit",a),s.close();var t=n(e.url);return t?i.resolve(t):i.reject("Authorization error")}};return s.addEventListener("loadstart",u),s.addEventListener("exit",a),i.promise;
-},s._rs_supported=function(){return"undefined"!=typeof document};var a;s._rs_init=function(e){a=function(){var n=!1;if(r){if(r.error)throw"Authorization server errored: "+r.error;r.rsDiscovery&&e.remote.configure(r.rsDiscovery),r.access_token&&(e.remote.configure({token:r.access_token}),n=!0),r.remotestorage&&(e.connect(r.remotestorage),n=!0),r.state&&(t=s.getLocation(),s.setLocation(t.href.split("#")[0]+"#"+r.state))}n||e.remote.stopWaitingForToken()};var t,r=n();r&&(t=s.getLocation(),t.hash=""),e.on("features-loaded",a)},s._rs_cleanup=function(e){e.removeEventListener("features-loaded",a)},e.exports=s}).call(t,function(){return this}())},function(e,t,r){function n(e,t){console.log("WARNING: "+e+" is deprecated. Use "+t+" instead.")}var o=r(3),i=r(2),s=r(5);r(10);var a=function(e,t){if("/"!==t[t.length-1])throw"Not a folder: "+t;"/"===t&&(this.makePath=function(e){return("/"===e[0]?"":"/")+e}),this.storage=e,this.base=t;var r=this.base.split("/");r.length>2?this.moduleName=r[1]:this.moduleName="root",o(this,"change"),this.on=this.on.bind(this),e.onChange(this.base,this._fireChange.bind(this))};a.prototype={extend:function(e){for(var t in e)this[t]=e[t];return this},scope:function(e){return new a(this.storage,this.makePath(e))},getListing:function(e,t){if("string"!=typeof e)e="";else if(e.length>0&&"/"!==e[e.length-1])return Promise.reject("Not a folder: "+e);return this.storage.get(this.makePath(e),t).then(function(e){return 404===e.statusCode?{}:e.body})},getAll:function(e,t){if("string"!=typeof e)e="";else if(e.length>0&&"/"!==e[e.length-1])return Promise.reject("Not a folder: "+e);return this.storage.get(this.makePath(e),t).then(function(r){if(404===r.statusCode)return{};if("object"==typeof r.body){var n=Object.keys(r.body);if(0===n.length)return{};var o=n.map(function(n){return this.storage.get(this.makePath(e+n),t).then(function(e){if("string"==typeof e.body)try{e.body=JSON.parse(e.body)}catch(e){}"object"==typeof e.body&&(r.body[n]=e.body)})}.bind(this));return Promise.all(o).then(function(){return r.body})}}.bind(this))},getFile:function(e,t){return"string"!=typeof e?Promise.reject("Argument 'path' of baseClient.getFile must be a string"):this.storage.get(this.makePath(e),t).then(function(e){return{data:e.body,contentType:e.contentType,revision:e.revision}})},storeFile:function(e,t,r){return"string"!=typeof e?Promise.reject("Argument 'mimeType' of baseClient.storeFile must be a string"):"string"!=typeof t?Promise.reject("Argument 'path' of baseClient.storeFile must be a string"):"string"!=typeof r&&"object"!=typeof r?Promise.reject("Argument 'body' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView"):(this.storage.access.checkPathPermission(this.makePath(t),"rw")||console.warn("WARNING: Editing a document to which only read access ('r') was claimed"),this.storage.put(this.makePath(t),r,e).then(function(e){return 200===e.statusCode||201===e.statusCode?e.revision:Promise.reject("Request (PUT "+this.makePath(t)+") failed with status: "+e.statusCode)}.bind(this)))},getObject:function(e,t){return"string"!=typeof e?Promise.reject("Argument 'path' of baseClient.getObject must be a string"):this.storage.get(this.makePath(e),t).then(function(t){if("object"==typeof t.body)return t.body;if("string"==typeof t.body)try{return JSON.parse(t.body)}catch(t){throw"Not valid JSON: "+this.makePath(e)}else if("undefined"!=typeof t.body&&200===t.statusCode)return Promise.reject("Not an object: "+this.makePath(e))}.bind(this))},storeObject:function(e,t,r){if("string"!=typeof e)return Promise.reject("Argument 'typeAlias' of baseClient.storeObject must be a string");if("string"!=typeof t)return Promise.reject("Argument 'path' of baseClient.storeObject must be a string");if("object"!=typeof r)return Promise.reject("Argument 'object' of baseClient.storeObject must be an object");this._attachType(r,e);try{var n=this.validate(r);if(!n.valid)return Promise.reject(n)}catch(e){return Promise.reject(e)}return this.storage.put(this.makePath(t),JSON.stringify(r),"application/json; charset=UTF-8").then(function(e){return 200===e.statusCode||201===e.statusCode?e.revision:Promise.reject("Request (PUT "+this.makePath(t)+") failed with status: "+e.statusCode)}.bind(this))},remove:function(e){return"string"!=typeof e?Promise.reject("Argument 'path' of baseClient.remove must be a string"):(this.storage.access.checkPathPermission(this.makePath(e),"rw")||console.warn("WARNING: Removing a document to which only read access ('r') was claimed"),this.storage.delete(this.makePath(e)))},cache:function(e,t){if("string"!=typeof e)throw"Argument 'path' of baseClient.cache must be a string";if(t===!1?(n("caching strategy <false>",'<"FLUSH">'),t="FLUSH"):void 0===t?t="ALL":"string"!=typeof t&&(n("that caching strategy",'<"ALL">'),t="ALL"),"FLUSH"!==t&&"SEEN"!==t&&"ALL"!==t)throw'Argument \'strategy\' of baseclient.cache must be one of ["FLUSH", "SEEN", "ALL"]';return this.storage.caching.set(this.makePath(e),t),this},flush:function(e){return this.storage.local.flush(e)},makePath:function(e){return this.base+(e||"")},_fireChange:function(e){s.changeEvents[e.origin]&&(["new","old","lastCommon"].forEach(function(t){if((!e[t+"ContentType"]||/^application\/(.*)json(.*)/.exec(e[t+"ContentType"]))&&"string"==typeof e[t+"Value"])try{e[t+"Value"]=JSON.parse(e[t+"Value"])}catch(e){}}),this._emit("change",e))},_cleanPath:i.cleanPath,getItemURL:function(e){if("string"!=typeof e)throw"Argument 'path' of baseClient.getItemURL must be a string";return this.storage.connected?(e=this._cleanPath(this.makePath(e)),this.storage.remote.href+e):void 0},uuid:function(){return Math.uuid()}},a._rs_init=function(){},e.exports=a,r(11)},function(e,t){/*!
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory(require("xmlhttprequest"));
+	else if(typeof define === 'function' && define.amd)
+		define("RemoteStorage", ["xmlhttprequest"], factory);
+	else if(typeof exports === 'object')
+		exports["RemoteStorage"] = factory(require("xmlhttprequest"));
+	else
+		root["RemoteStorage"] = factory(root["xmlhttprequest"]);
+})(this, function(__WEBPACK_EXTERNAL_MODULE_22__) {
+return /******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId])
+/******/ 			return installedModules[moduleId].exports;
+/******/
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			exports: {},
+/******/ 			id: moduleId,
+/******/ 			loaded: false
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(0);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__(1);
+
+
+/***/ },
+/* 1 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	var hasLocalStorage;
+	
+	// wrapper to implement defer() functionality
+	Promise.defer = function () {
+	  var resolve, reject;
+	  var promise = new Promise(function () {
+	    resolve = arguments[0];
+	    reject = arguments[1];
+	  });
+	  return {
+	    resolve: resolve,
+	    reject: reject,
+	    promise: promise
+	  };
+	};
+	
+	function logError(error) {
+	  if (typeof error === 'string') {
+	    console.error(error);
+	  } else {
+	    console.error(error.message, error.stack);
+	  }
+	}
+	
+	function emitUnauthorized(r) {
+	  if (r.statusCode === 403 || r.statusCode === 401) {
+	    this._emit('error', new Authorize.Unauthorized());
+	  }
+	  return Promise.resolve(r);
+	}
+	
+	var util = __webpack_require__(2);
+	var Dropbox = __webpack_require__(6);
+	var GoogleDrive = __webpack_require__(19);
+	var Discover = __webpack_require__(20);
+	var BaseClient = __webpack_require__(8);
+	var config = __webpack_require__(5);
+	var Authorize = __webpack_require__(7);
+	var Sync = __webpack_require__(17);
+	
+	var SyncedGetPutDelete = {
+	  get: function get(path, maxAge) {
+	    var self = this;
+	    if (this.local) {
+	      if (maxAge === undefined) {
+	        if (_typeof(this.remote) === 'object' && this.remote.connected && this.remote.online) {
+	          maxAge = 2 * this.getSyncInterval();
+	        } else {
+	          _log('Not setting default maxAge, because remote is offline or not connected');
+	          maxAge = false;
+	        }
+	      }
+	      var maxAgeInvalid = function maxAgeInvalid(maxAge) {
+	        return maxAge !== false && typeof maxAge !== 'number';
+	      };
+	
+	      if (maxAgeInvalid(maxAge)) {
+	        return Promise.reject('Argument \'maxAge\' must be false or a number');
+	      }
+	      return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
+	    } else {
+	      return this.remote.get(path);
+	    }
+	  },
+	
+	  put: function put(path, body, contentType) {
+	    if (shareFirst.bind(this)(path)) {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	    } else if (this.local) {
+	      return this.local.put(path, body, contentType);
+	    } else {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	    }
+	  },
+	
+	  'delete': function _delete(path) {
+	    if (this.local) {
+	      return this.local.delete(path);
+	    } else {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
+	    }
+	  },
+	
+	  _wrapBusyDone: function _wrapBusyDone(result) {
+	    var self = this;
+	    this._emit('wire-busy');
+	    return result.then(function (r) {
+	      self._emit('wire-done', { success: true });
+	      return Promise.resolve(r);
+	    }, function (err) {
+	      self._emit('wire-done', { success: false });
+	      return Promise.reject(err);
+	    });
+	  }
+	};
+	
+	/**
+	 * Class: RemoteStorage
+	 *
+	 * TODO needs proper introduction and links to relevant classes etc
+	 *
+	 * Constructor for global remoteStorage object.
+	 *
+	 * This class primarily contains feature detection code and a global convenience API.
+	 *
+	 * Depending on which features are built in, it contains different attributes and
+	 * functions. See the individual features for more information.
+	 *
+	 *  (start code)
+	 *  var remoteStorage = new RemoteStorage({
+	 *    logging: true,  // defaults to false
+	 *    cordovaRedirectUri: 'https://app.mygreatapp.com' // defaults to undefined
+	 *  });
+	 *  (end code)
+	 */
+	var RemoteStorage = function RemoteStorage(cfg) {
+	  /**
+	   * Event: ready
+	   *
+	   * Fired when ready
+	   **/
+	  /**
+	   * Event: not-connected
+	   *
+	   * Fired when ready, but no storage connected ("anonymous mode")
+	   **/
+	  /**
+	   * Event: connected
+	   *
+	   * Fired when a remote storage has been connected
+	   **/
+	  /**
+	   * Event: disconnected
+	   *
+	   * Fired after disconnect
+	   **/
+	  /**
+	   * Event: error
+	   *
+	   * Fired when an error occurs
+	   *
+	   * Arguments:
+	   * the error
+	   **/
+	  /**
+	   * Event: features-loaded
+	   *
+	   * Fired when all features are loaded
+	   **/
+	  /**
+	   * Event: connecting
+	   *
+	   * Fired before webfinger lookup
+	   **/
+	  /**
+	   * Event: authing
+	   *
+	   * Fired before redirecting to the authing server
+	   **/
+	  /**
+	   * Event: wire-busy
+	   *
+	   * Fired when a wire request starts
+	   **/
+	  /**
+	   * Event: wire-done
+	   *
+	   * Fired when a wire request completes
+	   **/
+	  /**
+	   * Event: network-offline
+	   *
+	   * Fired once when a wire request fails for the first time, and
+	   * `remote.online` is set to false
+	   **/
+	  /**
+	   * Event: network-online
+	   *
+	   * Fired once when a wire request succeeds for the first time after a
+	   * failed one, and `remote.online` is set back to true
+	   **/
+	
+	  // Initial configuration property settings.
+	  if ((typeof cfg === 'undefined' ? 'undefined' : _typeof(cfg)) === 'object') {
+	    config.logging = !!cfg.logging;
+	    config.cordovaRedirectUri = cfg.cordovaRedirectUri;
+	  }
+	
+	  var eventHandling = __webpack_require__(3);
+	  eventHandling(this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict', 'error', 'features-loaded', 'connecting', 'authing', 'sync-interval-change', 'wire-busy', 'wire-done', 'network-offline', 'network-online');
+	
+	  // pending get/put/delete calls.
+	  this._pending = [];
+	
+	  this._setGPD({
+	    get: this._pendingGPD('get'),
+	    put: this._pendingGPD('put'),
+	    delete: this._pendingGPD('delete')
+	  });
+	
+	  this._cleanups = [];
+	
+	  this._pathHandlers = { change: {} };
+	
+	  this.apiKeys = {};
+	
+	  hasLocalStorage = util.localStorageAvailable();
+	
+	  if (hasLocalStorage) {
+	    try {
+	      this.apiKeys = JSON.parse(localStorage.getItem('remotestorage:api-keys')) || {};
+	    } catch (exc) {
+	      // ignored
+	    }
+	    this.setBackend(localStorage.getItem('remotestorage:backend') || 'remotestorage');
+	  }
+	
+	  var origOn = this.on;
+	
+	  this.on = function (eventName, handler) {
+	    if (eventName === 'features-loaded') {}
+	    if (eventName === 'ready' && this.remote && this.remote.connected && this._allLoaded) {
+	      setTimeout(handler, 0);
+	    } else if (eventName === 'features-loaded' && this._allLoaded) {
+	      setTimeout(handler, 0);
+	    }
+	    return origOn.call(this, eventName, handler);
+	  };
+	
+	  this._init();
+	
+	  this.fireInitial = function () {
+	    if (this.local) {
+	      setTimeout(this.local.fireInitial.bind(this.local), 0);
+	    }
+	  }.bind(this);
+	
+	  this.on('ready', this.fireInitial.bind(this));
+	};
+	
+	// RemoteStorage.Access = require('./access');
+	// RemoteStorage.util = require('./util');
+	// RemoteStorage.eventHandling = require('./eventhandling');
+	// RemoteStorage.Authorize = require('./authorize');
+	// RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
+	
+	RemoteStorage.Authorize = Authorize;
+	// RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
+	//   this.access.setStorageType(this.remote.storageType);
+	//   var scope = this.access.scopeParameter;
+	
+	//   var redirectUri = global.cordova ?
+	//     cordovaRedirectUri :
+	//     String(Authorize.getLocation());
+	
+	//   var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+	
+	//   Authorize(this, authURL, scope, redirectUri, clientId);
+	// };
+	
+	
+	RemoteStorage.SyncError = Sync.SyncError;
+	RemoteStorage.DiscoveryError = function (message) {
+	  Error.apply(this, arguments);
+	  this.message = message;
+	};
+	
+	RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
+	
+	// RemoteStorage.Unauthorized = Authorize.Unauthorized;
+	/**
+	 * Method: RemoteStorage.log
+	 *
+	 * Log using console.log, when remoteStorage logging is enabled.
+	 *
+	 * You can enable logging with <enableLog>.
+	 *
+	 * (In node.js you can also enable logging during remoteStorage object
+	 * creation. See: <RemoteStorage>).
+	 */
+	
+	config.logging = false;
+	config.changeEvents = {
+	  local: true,
+	  window: false,
+	  remote: true,
+	  conflict: true
+	};
+	config.cache = true;
+	config.discoveryTimeout = 10000;
+	config.cordovaRedirectUri = undefined;
+	
+	var _log = __webpack_require__(4);
+	RemoteStorage.prototype = {
+	  authorize: function authorize(authURL, cordovaRedirectUri) {
+	    this.access.setStorageType(this.remote.storageType);
+	    var scope = this.access.scopeParameter;
+	
+	    var redirectUri = global.cordova ? cordovaRedirectUri : String(Authorize.getLocation());
+	
+	    var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+	
+	    Authorize(this, authURL, scope, redirectUri, clientId);
+	  },
+	
+	  /**
+	   * Property: remote
+	   *
+	   * Properties:
+	   *
+	   *   connected   - Boolean, whether or not a remote store is connected
+	   *   online      - Boolean, whether last sync action was successful or not
+	   *   userAddress - String, the user address of the connected user
+	   *   properties  - String, the properties of the WebFinger link
+	   */
+	
+	  /**
+	   * Method: scope
+	   *
+	   * Returns a BaseClient with a certain scope (base path). Please use this method
+	   * only for debugging, and always use defineModule instead, to get access to a
+	   * BaseClient from a module in an app.
+	   *
+	   * Parameters:
+	   *
+	   *   scope - A string, with a leading and a trailing slash, specifying the
+	   *           base path of the BaseClient that will be returned.
+	   *
+	   * Code example:
+	   *
+	   * (start code)
+	   * remoteStorage.scope('/pictures/').getListing('');
+	   * remoteStorage.scope('/public/pictures/').getListing('');
+	   */
+	
+	  /**
+	   * Method: connect
+	   *
+	   * Connect to a remoteStorage server.
+	   *
+	   * Parameters:
+	   *   userAddress        - The user address (user@host) to connect to.
+	   *   token              - (optional) A bearer token acquired beforehand
+	   *
+	   * Discovers the WebFinger profile of the given user address and initiates
+	   * the OAuth dance.
+	   *
+	   * This method must be called *after* all required access has been claimed.
+	   * When using the connect widget, it will call this method itself.
+	   *
+	   * Special cases:
+	   *
+	   * 1. If a bearer token is supplied as second argument, the OAuth dance
+	   *    will be skipped and the supplied token be used instead. This is
+	   *    useful outside of browser environments, where the token has been
+	   *    acquired in a different way.
+	   *
+	   * 2. If the Webfinger profile for the given user address doesn't contain
+	   *    an auth URL, the library will assume that client and server have
+	   *    established authorization among themselves, which will omit bearer
+	   *    tokens in all requests later on. This is useful for example when using
+	   *    Kerberos and similar protocols.
+	   */
+	  connect: function connect(userAddress, token) {
+	    this.setBackend('remotestorage');
+	    if (userAddress.indexOf('@') < 0) {
+	      this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
+	      return;
+	    }
+	
+	    if (global.cordova) {
+	      if (typeof config.cordovaRedirectUri !== 'string') {
+	        this._emit('error', new RemoteStorage.DiscoveryError("Please supply a custom HTTPS redirect URI for your Cordova app"));
+	        return;
+	      }
+	      if (!global.cordova.InAppBrowser) {
+	        this._emit('error', new RemoteStorage.DiscoveryError("Please include the InAppBrowser Cordova plugin to enable OAuth"));
+	        return;
+	      }
+	    }
+	
+	    this.remote.configure({
+	      userAddress: userAddress
+	    });
+	    this._emit('connecting');
+	
+	    var discoveryTimeout = setTimeout(function () {
+	      this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
+	    }.bind(this), config.discoveryTimeout);
+	
+	    Discover(userAddress).then(function (info) {
+	      // Info contains fields: href, storageApi, authURL (optional), properties
+	
+	      clearTimeout(discoveryTimeout);
+	      this._emit('authing');
+	      info.userAddress = userAddress;
+	      this.remote.configure(info);
+	      if (!this.remote.connected) {
+	        if (info.authURL) {
+	          if (typeof token === 'undefined') {
+	            // Normal authorization step; the default way to connect
+	            this.authorize(info.authURL, config.cordovaRedirectUri);
+	          } else if (typeof token === 'string') {
+	            // Token supplied directly by app/developer/user
+	            _log('Skipping authorization sequence and connecting with known token');
+	            this.remote.configure({ token: token });
+	          } else {
+	            throw new Error("Supplied bearer token must be a string");
+	          }
+	        } else {
+	          // In lieu of an excplicit authURL, assume that the browser and
+	          // server handle any authorization needs; for instance, TLS may
+	          // trigger the browser to use a client certificate, or a 401 Not
+	          // Authorized response may make the browser send a Kerberos ticket
+	          // using the SPNEGO method.
+	          this.impliedauth();
+	        }
+	      }
+	    }.bind(this), function (err) {
+	      clearTimeout(discoveryTimeout);
+	      this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
+	    }.bind(this));
+	  },
+	
+	  /**
+	   * Method: disconnect
+	   *
+	   * "Disconnect" from remotestorage server to terminate current session.
+	   * This method clears all stored settings and deletes the entire local
+	   * cache.
+	   */
+	  disconnect: function disconnect() {
+	    if (this.remote) {
+	      this.remote.configure({
+	        userAddress: null,
+	        href: null,
+	        storageApi: null,
+	        token: null,
+	        properties: null
+	      });
+	    }
+	    this._setGPD({
+	      get: this._pendingGPD('get'),
+	      put: this._pendingGPD('put'),
+	      delete: this._pendingGPD('delete')
+	    });
+	    var n = this._cleanups.length,
+	        i = 0;
+	
+	    var oneDone = function () {
+	      i++;
+	      if (i >= n) {
+	        this._init();
+	        _log('Done cleaning up, emitting disconnected and disconnect events');
+	        this._emit('disconnected');
+	      }
+	    }.bind(this);
+	
+	    if (n > 0) {
+	      this._cleanups.forEach(function (cleanup) {
+	        var cleanupResult = cleanup(this);
+	        if ((typeof cleanupResult === 'undefined' ? 'undefined' : _typeof(cleanupResult)) === 'object' && typeof cleanupResult.then === 'function') {
+	          cleanupResult.then(oneDone);
+	        } else {
+	          oneDone();
+	        }
+	      }.bind(this));
+	    } else {
+	      oneDone();
+	    }
+	  },
+	
+	  setBackend: function setBackend(what) {
+	    this.backend = what;
+	    if (hasLocalStorage) {
+	      if (what) {
+	        localStorage.setItem('remotestorage:backend', what);
+	      } else {
+	        localStorage.removeItem('remotestorage:backend');
+	      }
+	    }
+	  },
+	
+	  /**
+	   * Method: onChange
+	   *
+	   * Add a "change" event handler to the given path. Whenever a "change"
+	   * happens (as determined by the backend, such as e.g.
+	   * <RemoteStorage.IndexedDB>) and the affected path is equal to or below
+	   * the given 'path', the given handler is called.
+	   *
+	   * You should usually not use this method directly, but instead use the
+	   * "change" events provided by <RemoteStorage.BaseClient>.
+	   *
+	   * Parameters:
+	   *   path    - Absolute path to attach handler to.
+	   *   handler - Handler function.
+	   */
+	  onChange: function onChange(path, handler) {
+	    if (!this._pathHandlers.change[path]) {
+	      this._pathHandlers.change[path] = [];
+	    }
+	    this._pathHandlers.change[path].push(handler);
+	  },
+	
+	  /**
+	   * Method: enableLog
+	   *
+	   * Enable remoteStorage logging.
+	   */
+	  enableLog: function enableLog() {
+	    config.logging = true;
+	  },
+	
+	  /**
+	   * Method: disableLog
+	   *
+	   * Disable remoteStorage logging
+	   */
+	  disableLog: function disableLog() {
+	    config.logging = false;
+	  },
+	
+	  /**
+	   * Method: log
+	   *
+	   * The same as <RemoteStorage.log>.
+	   */
+	  log: function log() {
+	    _log.apply(RemoteStorage, arguments);
+	  },
+	
+	  /**
+	   * Method: setApiKeys (experimental)
+	   *
+	   * Set API keys for (currently) GoogleDrive and/or Dropbox backend support.
+	   * See also the 'backends' example in the starter-kit. Note that support for
+	   * both these backends is still experimental.
+	   *
+	   * Parameters:
+	   *   type - string, either 'googledrive' or 'dropbox'
+	   *   keys - object, with one string field; 'clientId' for GoogleDrive, or
+	   *          'appKey' for Dropbox.
+	   *
+	   */
+	  setApiKeys: function setApiKeys(type, keys) {
+	    if (keys) {
+	      this.apiKeys[type] = keys;
+	      if (type === 'dropbox' && (typeof this.dropbox === 'undefined' || this.dropbox.clientId !== keys.appKey)) {
+	        Dropbox._rs_init(this);
+	      } else if (type === 'googledrive' && (typeof this.googledrive === 'undefined' || this.googledrive.clientId !== keys.clientId)) {
+	        GoogleDrive._rs_init(this);
+	      }
+	    } else {
+	      delete this.apiKeys[type];
+	    }
+	    if (hasLocalStorage) {
+	      localStorage.setItem('remotestorage:api-keys', JSON.stringify(this.apiKeys));
+	    }
+	  },
+	
+	  /**
+	   * Method: setCordovaRedirectUri
+	   *
+	   * Set redirect URI to be used for the OAuth redirect within the
+	   * in-app-browser window in Cordova apps.
+	   *
+	   * Parameters:
+	   *   uri - string, valid HTTP(S) URI
+	   */
+	  setCordovaRedirectUri: function setCordovaRedirectUri(uri) {
+	    if (typeof uri !== 'string' || !uri.match(/http(s)?\:\/\//)) {
+	      throw new Error("Cordova redirect URI must be a URI string");
+	    }
+	    config.cordovaRedirectUri = uri;
+	  },
+	
+	  /**
+	   ** INITIALIZATION
+	   **/
+	
+	  _init: function _init() {
+	    var self = this,
+	        readyFired = false;
+	
+	    function fireReady() {
+	      try {
+	        if (!readyFired) {
+	          self._emit('ready');
+	          readyFired = true;
+	        }
+	      } catch (e) {
+	        console.error("'ready' failed: ", e, e.stack);
+	        self._emit('error', e);
+	      }
+	    }
+	
+	    this._loadFeatures(function (features) {
+	      this.log('[RemoteStorage] All features loaded');
+	      this.local = config.cache && features.local && new features.local();
+	      // this.remote set by WireClient._rs_init as lazy property on
+	      // RS.prototype
+	
+	      if (this.local && this.remote) {
+	        this._setGPD(SyncedGetPutDelete, this);
+	        this._bindChange(this.local);
+	      } else if (this.remote) {
+	        this._setGPD(this.remote, this.remote);
+	      }
+	      if (this.remote) {
+	        this.remote.on('connected', function () {
+	          fireReady();
+	          self._emit('connected');
+	        });
+	        this.remote.on('not-connected', function () {
+	          fireReady();
+	          self._emit('not-connected');
+	        });
+	        if (this.remote.connected) {
+	          fireReady();
+	          self._emit('connected');
+	        }
+	
+	        if (!this.hasFeature('Authorize')) {
+	          this.remote.stopWaitingForToken();
+	        }
+	      }
+	
+	      this._collectCleanupFunctions();
+	
+	      try {
+	        this._allLoaded = true;
+	        this._emit('features-loaded');
+	      } catch (exc) {
+	        logError(exc);
+	        this._emit('error', exc);
+	      }
+	      this._processPending();
+	    }.bind(this));
+	  },
+	
+	  _collectCleanupFunctions: function _collectCleanupFunctions() {
+	    this._cleanups = [];
+	    for (var i = 0; i < this.features.length; i++) {
+	      var cleanup = this.features[i].cleanup;
+	      if (typeof cleanup === 'function') {
+	        this._cleanups.push(cleanup);
+	      }
+	    }
+	  },
+	
+	  /**
+	   ** FEATURE DETECTION
+	   **/
+	  _loadFeatures: function _loadFeatures(callback) {
+	    var featureList = ['WireClient', 'I18n', 'Dropbox', 'GoogleDrive', 'Access', 'Caching', 'Discover', 'Authorize', 'IndexedDB', 'LocalStorage', 'InMemoryStorage', 'Sync', 'BaseClient', 'Env'];
+	    var features = [];
+	    var featuresDone = 0;
+	    var self = this;
+	
+	    function featureDone() {
+	      featuresDone++;
+	      if (featuresDone === featureList.length) {
+	        setTimeout(function () {
+	          features.caching = !!Caching && config.cache;
+	          features.sync = !!Sync;
+	
+	          var cachingModule = {
+	            'IndexedDB': __webpack_require__(23),
+	            'LocalStorage': __webpack_require__(25),
+	            'InMemoryStorage': __webpack_require__(26)
+	          };
+	
+	          ['IndexedDB', 'LocalStorage', 'InMemoryStorage'].some(function (cachingLayer) {
+	            if (features.some(function (feature) {
+	              return feature.name === cachingLayer;
+	            })) {
+	              features.local = cachingModule[cachingLayer];
+	              return true;
+	            }
+	          });
+	          self.features = features;
+	          callback(features);
+	        }, 0);
+	      }
+	    }
+	
+	    function featureInitialized(name) {
+	      var feature = __webpack_require__(27)("./" + name.toLowerCase());
+	      self.log("[RemoteStorage] [FEATURE " + name + "] initialized.");
+	      features.push({
+	        name: name,
+	        init: feature._rs_init,
+	        supported: true,
+	        cleanup: feature._rs_cleanup
+	      });
+	      featureDone();
+	    }
+	
+	    function featureFailed(name, err) {
+	      self.log("[RemoteStorage] [FEATURE " + name + "] initialization failed ( " + err + ")");
+	      featureDone();
+	    }
+	
+	    function featureSupported(name, success) {
+	      self.log( true ? "" : " not" + " supported");
+	      if (!success) {
+	        featureDone();
+	      }
+	    }
+	
+	    function initFeature(name) {
+	
+	      // if (config.cache && name === 'Sync') return
+	      var feature = __webpack_require__(27)("./" + name.toLowerCase());
+	      var initResult;
+	      try {
+	        initResult = feature._rs_init(self);
+	      } catch (e) {
+	        featureFailed(name, e);
+	        return;
+	      }
+	      if ((typeof initResult === 'undefined' ? 'undefined' : _typeof(initResult)) === 'object' && typeof initResult.then === 'function') {
+	        initResult.then(function () {
+	          featureInitialized(name);
+	        }, function (err) {
+	          featureFailed(name, err);
+	        });
+	      } else {
+	        featureInitialized(name);
+	      }
+	    }
+	
+	    featureList.forEach(function (featureName) {
+	      var feature = __webpack_require__(27)("./" + featureName.toLowerCase());
+	      self.log("[RemoteStorage] [FEATURE " + featureName + "] initializing...");
+	      var impl = feature;
+	      var supported;
+	
+	      if (impl) {
+	        supported = !impl._rs_supported || impl._rs_supported();
+	
+	        if ((typeof supported === 'undefined' ? 'undefined' : _typeof(supported)) === 'object') {
+	          supported.then(function () {
+	            featureSupported(featureName, true);
+	            initFeature(featureName);
+	          }, function () {
+	            featureSupported(featureName, false);
+	          });
+	        } else if (typeof supported === 'boolean') {
+	          featureSupported(featureName, supported);
+	          if (supported) {
+	            initFeature(featureName);
+	          }
+	        }
+	      } else {
+	        featureSupported(featureName, false);
+	      }
+	    });
+	  },
+	
+	  /**
+	   * Method: hasFeature
+	   *
+	   * Checks whether a feature is enabled or not within remoteStorage.
+	   * Returns a boolean.
+	   *
+	   * Parameters:
+	   *   name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
+	   *
+	   * Example:
+	   *   (start code)
+	   *   if (remoteStorage.hasFeature('LocalStorage')) {
+	   *     console.log('LocalStorage is enabled!');
+	   *   }
+	   *   (end code)
+	   *
+	   */
+	  hasFeature: function hasFeature(feature) {
+	    for (var i = this.features.length - 1; i >= 0; i--) {
+	      if (this.features[i].name === feature) {
+	        return this.features[i].supported;
+	      }
+	    }
+	    return false;
+	  },
+	
+	  /**
+	   ** GET/PUT/DELETE INTERFACE HELPERS
+	   **/
+	
+	  _setGPD: function _setGPD(impl, context) {
+	    function wrap(func) {
+	      return function () {
+	        return func.apply(context, arguments).then(emitUnauthorized.bind(this));
+	      };
+	    }
+	    this.get = wrap(impl.get);
+	    this.put = wrap(impl.put);
+	    this.delete = wrap(impl.delete);
+	  },
+	
+	  _pendingGPD: function _pendingGPD(methodName) {
+	    return function () {
+	      var pending = Promise.defer();
+	      this._pending.push({
+	        method: methodName,
+	        args: Array.prototype.slice.call(arguments),
+	        promise: pending
+	      });
+	      return pending.promise;
+	    }.bind(this);
+	  },
+	
+	  _processPending: function _processPending() {
+	    this._pending.forEach(function (pending) {
+	      try {
+	        this[pending.method].apply(this, pending.args).then(pending.promise.resolve, pending.promise.reject);
+	      } catch (e) {
+	        pending.promise.reject(e);
+	      }
+	    }.bind(this));
+	    this._pending = [];
+	  },
+	
+	  /**
+	   ** CHANGE EVENT HANDLING
+	   **/
+	
+	  _bindChange: function _bindChange(object) {
+	    object.on('change', this._dispatchEvent.bind(this, 'change'));
+	  },
+	
+	  _dispatchEvent: function _dispatchEvent(eventName, event) {
+	    var self = this;
+	    Object.keys(this._pathHandlers[eventName]).forEach(function (path) {
+	      var pl = path.length;
+	      if (event.path.substr(0, pl) === path) {
+	        self._pathHandlers[eventName][path].forEach(function (handler) {
+	          var ev = {};
+	          for (var key in event) {
+	            ev[key] = event[key];
+	          }
+	          ev.relativePath = event.path.replace(new RegExp('^' + path), '');
+	          try {
+	            handler(ev);
+	          } catch (e) {
+	            console.error("'change' handler failed: ", e, e.stack);
+	            self._emit('error', e);
+	          }
+	        });
+	      }
+	    });
+	  },
+	
+	  scope: function scope(path) {
+	    if (typeof path !== 'string') {
+	      throw 'Argument \'path\' of baseClient.scope must be a string';
+	    }
+	
+	    if (!this.access.checkPathPermission(path, 'r')) {
+	      var escapedPath = path.replace(/(['\\])/g, '\\$1');
+	      console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
+	    }
+	    return new BaseClient(this, path);
+	  },
+	
+	  /**
+	   * Method: getSyncInterval
+	   *
+	   * Get the value of the sync interval when application is in the foreground
+	   *
+	   * Returns a number of milliseconds
+	   *
+	  //  */
+	  getSyncInterval: function getSyncInterval() {
+	    return config.syncInterval;
+	  },
+	
+	  /**
+	   * Method: setSyncInterval
+	   *
+	   * Set the value of the sync interval when application is in the foreground
+	   *
+	   * Parameters:
+	   *   interval - sync interval in milliseconds
+	   *
+	   */
+	  setSyncInterval: function setSyncInterval(interval) {
+	    if (!isValidInterval(interval)) {
+	      throw interval + " is not a valid sync interval";
+	    }
+	    var oldValue = config.syncInterval;
+	    syncInterval = parseInt(interval, 10);
+	    this._emit('sync-interval-change', { oldValue: oldValue, newValue: interval });
+	  },
+	
+	  /**
+	   * Method: getBackgroundSyncInterval
+	   *
+	   * Get the value of the sync interval when application is in the background
+	   *
+	   * Returns a number of milliseconds
+	   *
+	   */
+	  getBackgroundSyncInterval: function getBackgroundSyncInterval() {
+	    return config.backgroundSyncInterval;
+	  },
+	
+	  /**
+	   * Method: setBackgroundSyncInterval
+	   *
+	   * Set the value of the sync interval when the application is in the background
+	   *
+	   * Parameters:
+	   *   interval - sync interval in milliseconds
+	   *
+	   */
+	  setBackgroundSyncInterval: function setBackgroundSyncInterval(interval) {
+	    if (!isValidInterval(interval)) {
+	      throw interval + " is not a valid sync interval";
+	    }
+	    var oldValue = config.backgroundSyncInterval;
+	    config.backgroundSyncInterval = parseInt(interval, 10);
+	    this._emit('sync-interval-change', { oldValue: oldValue, newValue: interval });
+	  },
+	
+	  /**
+	   * Method: getCurrentSyncInterval
+	   *
+	   * Get the value of the current sync interval
+	   *
+	   * Returns a number of milliseconds
+	   *
+	   */
+	  getCurrentSyncInterval: function getCurrentSyncInterval() {
+	    return config.isBackground ? config.backgroundSyncInterval : config.syncInterval;
+	  },
+	
+	  syncCycle: function syncCycle() {
+	    if (this.sync.stopped) {
+	      return;
+	    }
+	
+	    this.sync.on('done', function () {
+	      _log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
+	      if (!this.sync.stopped) {
+	        if (this._syncTimer) {
+	          clearTimeout(this._syncTimer);
+	        }
+	        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
+	      }
+	    }.bind(this));
+	
+	    this.sync.sync();
+	  },
+	
+	  stopSync: function stopSync() {
+	    if (this.sync) {
+	      _log('[Sync] Stopping sync');
+	      this.sync.stopped = true;
+	    } else {
+	      // TODO When is this ever the case and what is syncStopped for then?
+	      _log('[Sync] Will instantiate sync stopped');
+	      this.syncStopped = true;
+	    }
+	  },
+	
+	  startSync: function startSync() {
+	    if (!config.cache) return;
+	    this.sync.stopped = false;
+	    this.syncStopped = false;
+	    this.sync.sync();
+	  }
+	
+	};
+	
+	/**
+	* Check if interval is valid: numeric and between 1000ms and 3600000ms
+	*
+	*/
+	function isValidInterval(interval) {
+	  return typeof interval === 'number' && interval > 1000 && interval < 3600000;
+	}
+	
+	/**
+	 * Property: connected
+	 *
+	 * Boolean property indicating if remoteStorage is currently connected.
+	 */
+	Object.defineProperty(RemoteStorage.prototype, 'connected', {
+	  get: function get() {
+	    return this.remote.connected;
+	  }
+	});
+	
+	/**
+	 * Property: access
+	 *
+	 * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
+	*/
+	var Access = __webpack_require__(28);
+	Object.defineProperty(RemoteStorage.prototype, 'access', {
+	  get: function get() {
+	    var access = new Access();
+	    Object.defineProperty(this, 'access', {
+	      value: access
+	    });
+	    return access;
+	  },
+	  configurable: true
+	});
+	
+	/* TOFIX (in sync.js also... has to be a shared property) */
+	config.syncInterval = 10000, config.backgroundSyncInterval = 60000, config.isBackground = false;
+	
+	// TODO clean up/harmonize how modules are loaded and/or document this architecture properly
+	//
+	// At this point the global remoteStorage object has not been created yet.
+	// Only its prototype exists so far, so we define a self-constructing
+	// property on there:
+	/**
+	 *
+	 * Property: caching
+	 *
+	 * Caching settings. A <RemoteStorage.Caching> instance.
+	 *
+	 * Not available in no-cache builds.
+	 *
+	 */
+	var Caching = __webpack_require__(29);
+	Object.defineProperty(RemoteStorage.prototype, 'caching', {
+	  configurable: true,
+	  get: function get() {
+	    var caching = new Caching();
+	    Object.defineProperty(this, 'caching', {
+	      value: caching
+	    });
+	    return caching;
+	  }
+	});
+	
+	/*
+	* Property: remote
+	*
+	* Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
+	*
+	*
+	* Property: local
+	*
+	* Access to the local caching backend used. Usually either a
+	* <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
+	*
+	* Not available in no-cache builds.
+	*/
+	
+	module.exports = RemoteStorage;
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 2 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	var eventHandling = __webpack_require__(3);
+	/**
+	 * Class: RemoteStorage.Util
+	 *
+	 * Provides reusable utility functions at RemoteStorage.util
+	 *
+	 */
+	/**
+	 * Function: fixArrayBuffers
+	 *
+	 * Takes an object and its copy as produced by the _deepClone function
+	 * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
+	 * of being cloned to new ArrayBuffers with the same content.
+	 *
+	 * It recurses into sub-objects, but skips arrays if they occur.
+	 */
+	function fixArrayBuffers(srcObj, dstObj) {
+	  var field, srcArr, dstArr;
+	  if ((typeof srcObj === 'undefined' ? 'undefined' : _typeof(srcObj)) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
+	    return;
+	  }
+	  for (field in srcObj) {
+	    if (_typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
+	      if (srcObj[field].toString() === '[object ArrayBuffer]') {
+	        dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
+	        srcArr = new Int8Array(srcObj[field]);
+	        dstArr = new Int8Array(dstObj[field]);
+	        dstArr.set(srcArr);
+	      } else {
+	        fixArrayBuffers(srcObj[field], dstObj[field]);
+	      }
+	    }
+	  }
+	}
+	
+	var util = {
+	  getEventEmitter: function getEventEmitter() {
+	    var object = {};
+	    var args = Array.prototype.slice.call(arguments);
+	    args.unshift(object);
+	    eventHandling.apply(RemoteStorage, args);
+	    object.emit = object._emit;
+	    return object;
+	  },
+	
+	  extend: function extend(target) {
+	    var sources = Array.prototype.slice.call(arguments, 1);
+	    sources.forEach(function (source) {
+	      for (var key in source) {
+	        target[key] = source[key];
+	      }
+	    });
+	    return target;
+	  },
+	
+	  asyncEach: function asyncEach(array, callback) {
+	    return this.asyncMap(array, callback).then(function () {
+	      return array;
+	    });
+	  },
+	
+	  asyncMap: function asyncMap(array, callback) {
+	    var pending = Promise.defer();
+	    var n = array.length,
+	        i = 0;
+	    var results = [],
+	        errors = [];
+	
+	    function oneDone() {
+	      i++;
+	      if (i === n) {
+	        pending.resolve(results, errors);
+	      }
+	    }
+	
+	    array.forEach(function (item, index) {
+	      var result;
+	      try {
+	        result = callback(item);
+	      } catch (exc) {
+	        oneDone();
+	        errors[index] = exc;
+	      }
+	      if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object' && typeof result.then === 'function') {
+	        result.then(function (res) {
+	          results[index] = res;oneDone();
+	        }, function (error) {
+	          errors[index] = error;oneDone();
+	        });
+	      } else {
+	        oneDone();
+	        results[index] = result;
+	      }
+	    });
+	
+	    return pending.promise;
+	  },
+	
+	  containingFolder: function containingFolder(path) {
+	    if (path === '') {
+	      return '/';
+	    }
+	    if (!path) {
+	      throw "Path not given!";
+	    }
+	
+	    return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
+	  },
+	
+	  isFolder: function isFolder(path) {
+	    return path.substr(-1) === '/';
+	  },
+	
+	  isDocument: function isDocument(path) {
+	    return !util.isFolder(path);
+	  },
+	
+	  baseName: function baseName(path) {
+	    var parts = path.split('/');
+	    if (util.isFolder(path)) {
+	      return parts[parts.length - 2] + '/';
+	    } else {
+	      return parts[parts.length - 1];
+	    }
+	  },
+	
+	  cleanPath: function cleanPath(path) {
+	    return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/').replace(/'/g, '%27');
+	  },
+	
+	  bindAll: function bindAll(object) {
+	    for (var key in this) {
+	      if (typeof object[key] === 'function') {
+	        object[key] = object[key].bind(object);
+	      }
+	    }
+	  },
+	
+	  equal: function equal(a, b, seen) {
+	    var key;
+	    seen = seen || [];
+	
+	    if ((typeof a === 'undefined' ? 'undefined' : _typeof(a)) !== (typeof b === 'undefined' ? 'undefined' : _typeof(b))) {
+	      return false;
+	    }
+	
+	    if (typeof a === 'number' || typeof a === 'boolean' || typeof a === 'string') {
+	      return a === b;
+	    }
+	
+	    if (typeof a === 'function') {
+	      return a.toString() === b.toString();
+	    }
+	
+	    if (a instanceof ArrayBuffer && b instanceof ArrayBuffer) {
+	      // Without the following conversion the browsers wouldn't be able to
+	      // tell the ArrayBuffer instances apart.
+	      a = new Uint8Array(a);
+	      b = new Uint8Array(b);
+	    }
+	
+	    // If this point has been reached, a and b are either arrays or objects.
+	
+	    if (a instanceof Array) {
+	      if (a.length !== b.length) {
+	        return false;
+	      }
+	
+	      for (var i = 0, c = a.length; i < c; i++) {
+	        if (!util.equal(a[i], b[i], seen)) {
+	          return false;
+	        }
+	      }
+	    } else {
+	      // Check that keys from a exist in b
+	      for (key in a) {
+	        if (a.hasOwnProperty(key) && !(key in b)) {
+	          return false;
+	        }
+	      }
+	
+	      // Check that keys from b exist in a, and compare the values
+	      for (key in b) {
+	        if (!b.hasOwnProperty(key)) {
+	          continue;
+	        }
+	
+	        if (!(key in a)) {
+	          return false;
+	        }
+	
+	        var seenArg;
+	
+	        if (_typeof(b[key]) === 'object') {
+	          if (seen.indexOf(b[key]) >= 0) {
+	            // Circular reference, don't attempt to compare this object.
+	            // If nothing else returns false, the objects match.
+	            continue;
+	          }
+	
+	          seenArg = seen.slice();
+	          seenArg.push(b[key]);
+	        }
+	
+	        if (!util.equal(a[key], b[key], seenArg)) {
+	          return false;
+	        }
+	      }
+	    }
+	
+	    return true;
+	  },
+	
+	  equalObj: function equalObj(obj1, obj2) {
+	    console.warn('DEPRECATION WARNING: util.equalObj has been replaced by util.equal.');
+	    return util.equal(obj1, obj2);
+	  },
+	
+	  deepClone: function deepClone(obj) {
+	    var clone;
+	    if (obj === undefined) {
+	      return undefined;
+	    } else {
+	      clone = JSON.parse(JSON.stringify(obj));
+	      fixArrayBuffers(obj, clone);
+	      return clone;
+	    }
+	  },
+	
+	  pathsFromRoot: function pathsFromRoot(path) {
+	    var paths = [path];
+	    var parts = path.replace(/\/$/, '').split('/');
+	
+	    while (parts.length > 1) {
+	      parts.pop();
+	      paths.push(parts.join('/') + '/');
+	    }
+	    return paths;
+	  },
+	
+	  /* jshint ignore:start */
+	  md5sum: function md5sum(str) {
+	    //
+	    // http://www.myersdaily.org/joseph/javascript/md5.js
+	    //
+	    function md5cycle(x, k) {
+	      var a = x[0],
+	          b = x[1],
+	          c = x[2],
+	          d = x[3];
+	
+	      a = ff(a, b, c, d, k[0], 7, -680876936);
+	      d = ff(d, a, b, c, k[1], 12, -389564586);
+	      c = ff(c, d, a, b, k[2], 17, 606105819);
+	      b = ff(b, c, d, a, k[3], 22, -1044525330);
+	      a = ff(a, b, c, d, k[4], 7, -176418897);
+	      d = ff(d, a, b, c, k[5], 12, 1200080426);
+	      c = ff(c, d, a, b, k[6], 17, -1473231341);
+	      b = ff(b, c, d, a, k[7], 22, -45705983);
+	      a = ff(a, b, c, d, k[8], 7, 1770035416);
+	      d = ff(d, a, b, c, k[9], 12, -1958414417);
+	      c = ff(c, d, a, b, k[10], 17, -42063);
+	      b = ff(b, c, d, a, k[11], 22, -1990404162);
+	      a = ff(a, b, c, d, k[12], 7, 1804603682);
+	      d = ff(d, a, b, c, k[13], 12, -40341101);
+	      c = ff(c, d, a, b, k[14], 17, -1502002290);
+	      b = ff(b, c, d, a, k[15], 22, 1236535329);
+	
+	      a = gg(a, b, c, d, k[1], 5, -165796510);
+	      d = gg(d, a, b, c, k[6], 9, -1069501632);
+	      c = gg(c, d, a, b, k[11], 14, 643717713);
+	      b = gg(b, c, d, a, k[0], 20, -373897302);
+	      a = gg(a, b, c, d, k[5], 5, -701558691);
+	      d = gg(d, a, b, c, k[10], 9, 38016083);
+	      c = gg(c, d, a, b, k[15], 14, -660478335);
+	      b = gg(b, c, d, a, k[4], 20, -405537848);
+	      a = gg(a, b, c, d, k[9], 5, 568446438);
+	      d = gg(d, a, b, c, k[14], 9, -1019803690);
+	      c = gg(c, d, a, b, k[3], 14, -187363961);
+	      b = gg(b, c, d, a, k[8], 20, 1163531501);
+	      a = gg(a, b, c, d, k[13], 5, -1444681467);
+	      d = gg(d, a, b, c, k[2], 9, -51403784);
+	      c = gg(c, d, a, b, k[7], 14, 1735328473);
+	      b = gg(b, c, d, a, k[12], 20, -1926607734);
+	
+	      a = hh(a, b, c, d, k[5], 4, -378558);
+	      d = hh(d, a, b, c, k[8], 11, -2022574463);
+	      c = hh(c, d, a, b, k[11], 16, 1839030562);
+	      b = hh(b, c, d, a, k[14], 23, -35309556);
+	      a = hh(a, b, c, d, k[1], 4, -1530992060);
+	      d = hh(d, a, b, c, k[4], 11, 1272893353);
+	      c = hh(c, d, a, b, k[7], 16, -155497632);
+	      b = hh(b, c, d, a, k[10], 23, -1094730640);
+	      a = hh(a, b, c, d, k[13], 4, 681279174);
+	      d = hh(d, a, b, c, k[0], 11, -358537222);
+	      c = hh(c, d, a, b, k[3], 16, -722521979);
+	      b = hh(b, c, d, a, k[6], 23, 76029189);
+	      a = hh(a, b, c, d, k[9], 4, -640364487);
+	      d = hh(d, a, b, c, k[12], 11, -421815835);
+	      c = hh(c, d, a, b, k[15], 16, 530742520);
+	      b = hh(b, c, d, a, k[2], 23, -995338651);
+	
+	      a = ii(a, b, c, d, k[0], 6, -198630844);
+	      d = ii(d, a, b, c, k[7], 10, 1126891415);
+	      c = ii(c, d, a, b, k[14], 15, -1416354905);
+	      b = ii(b, c, d, a, k[5], 21, -57434055);
+	      a = ii(a, b, c, d, k[12], 6, 1700485571);
+	      d = ii(d, a, b, c, k[3], 10, -1894986606);
+	      c = ii(c, d, a, b, k[10], 15, -1051523);
+	      b = ii(b, c, d, a, k[1], 21, -2054922799);
+	      a = ii(a, b, c, d, k[8], 6, 1873313359);
+	      d = ii(d, a, b, c, k[15], 10, -30611744);
+	      c = ii(c, d, a, b, k[6], 15, -1560198380);
+	      b = ii(b, c, d, a, k[13], 21, 1309151649);
+	      a = ii(a, b, c, d, k[4], 6, -145523070);
+	      d = ii(d, a, b, c, k[11], 10, -1120210379);
+	      c = ii(c, d, a, b, k[2], 15, 718787259);
+	      b = ii(b, c, d, a, k[9], 21, -343485551);
+	
+	      x[0] = add32(a, x[0]);
+	      x[1] = add32(b, x[1]);
+	      x[2] = add32(c, x[2]);
+	      x[3] = add32(d, x[3]);
+	    }
+	
+	    function cmn(q, a, b, x, s, t) {
+	      a = add32(add32(a, q), add32(x, t));
+	      return add32(a << s | a >>> 32 - s, b);
+	    }
+	
+	    function ff(a, b, c, d, x, s, t) {
+	      return cmn(b & c | ~b & d, a, b, x, s, t);
+	    }
+	
+	    function gg(a, b, c, d, x, s, t) {
+	      return cmn(b & d | c & ~d, a, b, x, s, t);
+	    }
+	
+	    function hh(a, b, c, d, x, s, t) {
+	      return cmn(b ^ c ^ d, a, b, x, s, t);
+	    }
+	
+	    function ii(a, b, c, d, x, s, t) {
+	      return cmn(c ^ (b | ~d), a, b, x, s, t);
+	    }
+	
+	    function md51(s) {
+	      txt = '';
+	      var n = s.length,
+	          state = [1732584193, -271733879, -1732584194, 271733878],
+	          i;
+	      for (i = 64; i <= s.length; i += 64) {
+	        md5cycle(state, md5blk(s.substring(i - 64, i)));
+	      }
+	      s = s.substring(i - 64);
+	      var tail = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+	      for (i = 0; i < s.length; i++) {
+	        tail[i >> 2] |= s.charCodeAt(i) << (i % 4 << 3);
+	      }tail[i >> 2] |= 0x80 << (i % 4 << 3);
+	      if (i > 55) {
+	        md5cycle(state, tail);
+	        for (i = 0; i < 16; i++) {
+	          tail[i] = 0;
+	        }
+	      }
+	      tail[14] = n * 8;
+	      md5cycle(state, tail);
+	      return state;
+	    }
+	
+	    function md5blk(s) {
+	      var md5blks = [],
+	          i;
+	      for (i = 0; i < 64; i += 4) {
+	        md5blks[i >> 2] = s.charCodeAt(i) + (s.charCodeAt(i + 1) << 8) + (s.charCodeAt(i + 2) << 16) + (s.charCodeAt(i + 3) << 24);
+	      }
+	      return md5blks;
+	    }
+	
+	    var hex_chr = '0123456789abcdef'.split('');
+	
+	    function rhex(n) {
+	      var s = '',
+	          j = 0;
+	      for (; j < 4; j++) {
+	        s += hex_chr[n >> j * 8 + 4 & 0x0F] + hex_chr[n >> j * 8 & 0x0F];
+	      }return s;
+	    }
+	
+	    function hex(x) {
+	      for (var i = 0; i < x.length; i++) {
+	        x[i] = rhex(x[i]);
+	      }return x.join('');
+	    }
+	
+	    function md5(s) {
+	      return hex(md51(s));
+	    }
+	
+	    var add32 = function add32(a, b) {
+	      return a + b & 0xFFFFFFFF;
+	    };
+	
+	    if (md5('hello') !== '5d41402abc4b2a76b9719d911017c592') {
+	      add32 = function add32(x, y) {
+	        var lsw = (x & 0xFFFF) + (y & 0xFFFF),
+	            msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+	        return msw << 16 | lsw & 0xFFFF;
+	      };
+	    }
+	
+	    return md5(str);
+	  },
+	  /* jshint ignore:end */
+	
+	  localStorageAvailable: function localStorageAvailable() {
+	    if (!('localStorage' in global)) {
+	      return false;
+	    }
+	
+	    try {
+	      global.localStorage.setItem('rs-check', 1);
+	      global.localStorage.removeItem('rs-check');
+	      return true;
+	    } catch (error) {
+	      return false;
+	    }
+	  }
+	
+	};
+	
+	module.exports = util;
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var log = __webpack_require__(4);
+	
+	/**
+	 * Interface: eventhandling
+	 */
+	var methods = {
+	  /**
+	   * Method: addEventListener
+	   *
+	   * Install an event handler for the given event name
+	   */
+	  addEventListener: function addEventListener(eventName, handler) {
+	    if (typeof eventName !== 'string') {
+	      throw new Error('Argument eventName should be a string');
+	    }
+	    if (typeof handler !== 'function') {
+	      throw new Error('Argument handler should be a function');
+	    }
+	    log('[Eventhandling] Adding event listener', eventName, handler);
+	    this._validateEvent(eventName);
+	    this._handlers[eventName].push(handler);
+	  },
+	
+	  /**
+	   * Method: removeEventListener
+	   *
+	   * Remove a previously installed event handler
+	   */
+	  removeEventListener: function removeEventListener(eventName, handler) {
+	    this._validateEvent(eventName);
+	    var hl = this._handlers[eventName].length;
+	    for (var i = 0; i < hl; i++) {
+	      if (this._handlers[eventName][i] === handler) {
+	        this._handlers[eventName].splice(i, 1);
+	        return;
+	      }
+	    }
+	  },
+	
+	  _emit: function _emit(eventName) {
+	    this._validateEvent(eventName);
+	    var args = Array.prototype.slice.call(arguments, 1);
+	    this._handlers[eventName].slice().forEach(function (handler) {
+	      handler.apply(this, args);
+	    });
+	  },
+	
+	  _validateEvent: function _validateEvent(eventName) {
+	    if (!(eventName in this._handlers)) {
+	      throw new Error("Unknown event: " + eventName);
+	    }
+	  },
+	
+	  _delegateEvent: function _delegateEvent(eventName, target) {
+	    target.on(eventName, function (event) {
+	      this._emit(eventName, event);
+	    }.bind(this));
+	  },
+	
+	  _addEvent: function _addEvent(eventName) {
+	    this._handlers[eventName] = [];
+	  }
+	};
+	
+	/**
+	 * Method: eventhandling.on
+	 *
+	 * Alias for <addEventListener>
+	 **/
+	methods.on = methods.addEventListener;
+	
+	/**
+	 * Function: eventHandling
+	 *
+	 * Mixes event handling functionality into an object.
+	 *
+	 * The first parameter is always the object to be extended.
+	 * All remaining parameter are expected to be strings, interpreted as valid event
+	 * names.
+	 *
+	 * Example:
+	 *   (start code)
+	 *   var MyConstructor = function () {
+	 *     eventHandling(this, 'connected', 'disconnected');
+	 *
+	 *     this._emit('connected');
+	 *     this._emit('disconnected');
+	 *     // This would throw an exception:
+	 *     // this._emit('something-else');
+	 *   };
+	 *
+	 *   var myObject = new MyConstructor();
+	 *   myObject.on('connected', function () { console.log('connected'); });
+	 *   myObject.on('disconnected', function () { console.log('disconnected'); });
+	 *   // This would throw an exception as well:
+	 *   // myObject.on('something-else', function () {});
+	 *   (end code)
+	 */
+	module.exports = function (object) {
+	  var eventNames = Array.prototype.slice.call(arguments, 1);
+	  for (var key in methods) {
+	    object[key] = methods[key];
+	  }
+	  object._handlers = {};
+	  eventNames.forEach(function (eventName) {
+	    object._addEvent(eventName);
+	  });
+	};
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var config = __webpack_require__(5);
+	
+	module.exports = function () {
+	  if (config.logging) {
+	    console.log.apply(console, arguments);
+	  }
+	};
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	"use strict";
+	
+	var config = {};
+	
+	module.exports = config;
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
+	
+	var Authorize = __webpack_require__(7);
+	var BaseClient = __webpack_require__(8);
+	var WireClient = __webpack_require__(12);
+	var util = __webpack_require__(2);
+	var eventHandling = __webpack_require__(3);
+	var Sync = __webpack_require__(17);
+	
+	// var RemoteStorage = require('./remotestorage');
+	
+	/**
+	 * File: Dropbox
+	 *
+	 * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
+	 *
+	 * Dropbox backend for RemoteStorage.js
+	 * This file exposes a get/put/delete interface which is compatible with
+	 * <RemoteStorage.WireClient>.
+	 *
+	 * When remoteStorage.backend is set to 'dropbox', this backend will
+	 * initialize and replace remoteStorage.remote with remoteStorage.dropbox.
+	 *
+	 * In order to ensure compatibility with the public folder, <BaseClient.getItemURL>
+	 * gets hijacked to return the Dropbox public share URL.
+	 *
+	 * To use this backend, you need to specify the Dropbox app key like so:
+	 *
+	 * (start code)
+	 *
+	 * remoteStorage.setApiKeys('dropbox', {
+	 *   appKey: 'your-app-key'
+	 * });
+	 *
+	 * (end code)
+	 *
+	 * An app key can be obtained by registering your app at https://www.dropbox.com/developers/apps
+	 *
+	 * Known issues:
+	 *
+	 *   - Storing files larger than 150MB is not yet supported
+	 *   - Listing and deleting folders with more than 10'000 files will cause problems
+	 *   - Content-Type is not fully supported due to limitations of the Dropbox API
+	 *   - Dropbox preserves cases but is not case-sensitive
+	 *   - getItemURL is asynchronous which means getIetmURL returns useful values
+	 *     after the syncCycle
+	 */
+	
+	var hasLocalStorage;
+	var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
+	var SETTINGS_KEY = 'remotestorage:dropbox';
+	var PATH_PREFIX = '/remotestorage';
+	
+	/**
+	 * Function: getDropboxPath(path)
+	 *
+	 * Map a local path to a path in DropBox.
+	 */
+	var getDropboxPath = function getDropboxPath(path) {
+	  return WireClient.cleanPath(PATH_PREFIX + '/' + path);
+	};
+	
+	var encodeQuery = function encodeQuery(obj) {
+	  var pairs = [];
+	
+	  for (var key in obj) {
+	    if (obj.hasOwnProperty(key)) {
+	      pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]));
+	    }
+	  }
+	
+	  return pairs.join('&');
+	};
+	
+	/**
+	 * class: LowerCaseCache
+	 *
+	 * A cache which automatically converts all keys to lower case and can
+	 * propagate changes up to parent folders.
+	 *
+	 * By default the set and delete methods are aliased to justSet and justDelete.
+	 *
+	 * Parameters:
+	 *
+	 *   defaultValue - the value that is returned for all keys that don't exist
+	 *                  in the cache
+	 */
+	function LowerCaseCache(defaultValue) {
+	  this.defaultValue = defaultValue;
+	  this._storage = {};
+	  this.set = this.justSet;
+	  this.delete = this.justDelete;
+	}
+	
+	LowerCaseCache.prototype = {
+	  /**
+	   * Method: get
+	   *
+	   * Get a value from the cache or defaultValue, if the key is not in the
+	   * cache.
+	   */
+	  get: function get(key) {
+	    key = key.toLowerCase();
+	    var stored = this._storage[key];
+	    if (typeof stored === 'undefined') {
+	      stored = this.defaultValue;
+	      this._storage[key] = stored;
+	    }
+	    return stored;
+	  },
+	
+	  /**
+	   * Method: propagateSet
+	   *
+	   * Set a value and also update the parent folders with that value.
+	   */
+	  propagateSet: function propagateSet(key, value) {
+	    key = key.toLowerCase();
+	    if (this._storage[key] === value) {
+	      return value;
+	    }
+	    this._propagate(key, value);
+	    this._storage[key] = value;
+	    return value;
+	  },
+	
+	  /**
+	   * Method: propagateDelete
+	   *
+	   * Delete a value and propagate the changes to the parent folders.
+	   */
+	  propagateDelete: function propagateDelete(key) {
+	    key = key.toLowerCase();
+	    this._propagate(key, this._storage[key]);
+	    return delete this._storage[key];
+	  },
+	
+	  _activatePropagation: function _activatePropagation() {
+	    this.set = this.propagateSet;
+	    this.delete = this.propagateDelete;
+	    return true;
+	  },
+	
+	  /**
+	   * Method: justSet
+	   *
+	   * Set a value without propagating.
+	   */
+	  justSet: function justSet(key, value) {
+	    key = key.toLowerCase();
+	    this._storage[key] = value;
+	    return value;
+	  },
+	
+	  /**
+	   * Method: justDelete
+	   *
+	   * Delete a value without propagating.
+	   */
+	  justDelete: function justDelete(key, value) {
+	    key = key.toLowerCase();
+	    return delete this._storage[key];
+	  },
+	
+	  _propagate: function _propagate(key, rev) {
+	    var folders = key.split('/').slice(0, -1);
+	    var path = '';
+	
+	    for (var i = 0, len = folders.length; i < len; i++) {
+	      path += folders[i] + '/';
+	      if (!rev) {
+	        rev = this._storage[path] + 1;
+	      }
+	      this._storage[path] = rev;
+	    }
+	  }
+	};
+	
+	var onErrorCb;
+	
+	/**
+	 * Class: RemoteStorage.Dropbox
+	 */
+	var Dropbox = function Dropbox(rs) {
+	
+	  this.rs = rs;
+	  this.connected = false;
+	  this.rs = rs;
+	  var self = this;
+	
+	  onErrorCb = function onErrorCb(error) {
+	    if (error instanceof Authorize.Unauthorized) {
+	      // Delete all the settings - see the documentation of wireclient.configure
+	      self.configure({
+	        userAddress: null,
+	        href: null,
+	        storageApi: null,
+	        token: null,
+	        options: null
+	      });
+	    }
+	  };
+	
+	  eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+	  rs.on('error', onErrorCb);
+	
+	  this.clientId = rs.apiKeys.dropbox.appKey;
+	  this._revCache = new LowerCaseCache('rev');
+	  this._itemRefs = {};
+	  this._metadataCache = {};
+	
+	  if (hasLocalStorage) {
+	    var settings;
+	    try {
+	      settings = JSON.parse(localStorage[SETTINGS_KEY]);
+	    } catch (e) {}
+	    if (settings) {
+	      this.configure(settings);
+	    }
+	    try {
+	      this._itemRefs = JSON.parse(localStorage[SETTINGS_KEY + ':shares']);
+	    } catch (e) {}
+	  }
+	  if (this.connected) {
+	    setTimeout(this._emit.bind(this), 0, 'connected');
+	  }
+	};
+	
+	Dropbox.prototype = {
+	  online: true,
+	
+	  /**
+	   * Method: connect
+	   *
+	   * Set the backed to 'dropbox' and start the authentication flow in order
+	   * to obtain an API token from Dropbox.
+	   */
+	  connect: function connect() {
+	    // TODO handling when token is already present
+	    this.rs.setBackend('dropbox');
+	    if (this.token) {
+	      hookIt(this.rs);
+	    } else {
+	      Authorize(this.rs, AUTH_URL, '', String(Authorize.getLocation()), this.clientId);
+	    }
+	  },
+	
+	  /**
+	   * Method : configure(settings)
+	   * Accepts its parameters according to the <RemoteStorage.WireClient>.
+	   * Sets the connected flag
+	   **/
+	  configure: function configure(settings) {
+	    // We only update this.userAddress if settings.userAddress is set to a string or to null:
+	    if (typeof settings.userAddress !== 'undefined') {
+	      this.userAddress = settings.userAddress;
+	    }
+	    // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
+	    if (typeof settings.token !== 'undefined') {
+	      this.token = settings.token;
+	    }
+	
+	    if (this.token) {
+	      this.connected = true;
+	      if (!this.userAddress) {
+	        this.info().then(function (info) {
+	          this.userAddress = info.display_name;
+	          this._emit('connected');
+	        }.bind(this));
+	      }
+	    } else {
+	      this.connected = false;
+	    }
+	    if (hasLocalStorage) {
+	      localStorage[SETTINGS_KEY] = JSON.stringify({
+	        userAddress: this.userAddress,
+	        token: this.token
+	      });
+	    }
+	  },
+	
+	  /**
+	   * Method: stopWaitingForToken
+	   *
+	   * Stop waiting for the token and emit not-connected
+	   */
+	  stopWaitingForToken: function stopWaitingForToken() {
+	    if (!this.connected) {
+	      this._emit('not-connected');
+	    }
+	  },
+	
+	  /**
+	   * Method: _getFolder
+	   *
+	   * Get all items in a folder.
+	   *
+	   * Parameters:
+	   *
+	   *   path - path of the folder to get, with leading slash
+	   *   options - not used
+	   *
+	   * Returns:
+	   *
+	   *  statusCode - HTTP status code
+	   *  body - array of the items found
+	   *  contentType - 'application/json; charset=UTF-8'
+	   *  revision - revision of the folder
+	   */
+	  _getFolder: function _getFolder(path, options) {
+	    // FIXME simplify promise handling
+	    var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
+	    var revCache = this._revCache;
+	    var self = this;
+	
+	    return this._request('GET', url, {}).then(function (resp) {
+	      var status = resp.status;
+	      if (status === 304) {
+	        return Promise.resolve({ statusCode: status });
+	      }
+	      var listing, body, mime, rev;
+	      try {
+	        body = JSON.parse(resp.responseText);
+	      } catch (e) {
+	        return Promise.reject(e);
+	      }
+	      rev = self._revCache.get(path);
+	      mime = 'application/json; charset=UTF-8';
+	      if (body.contents) {
+	        listing = body.contents.reduce(function (m, item) {
+	          var itemName = item.path.split('/').slice(-1)[0] + (item.is_dir ? '/' : '');
+	          if (item.is_dir) {
+	            m[itemName] = { ETag: revCache.get(path + itemName) };
+	          } else {
+	            m[itemName] = { ETag: item.rev };
+	          }
+	          return m;
+	        }, {});
+	      }
+	      return Promise.resolve({ statusCode: status, body: listing, contentType: mime, revision: rev });
+	    });
+	  },
+	
+	  /**
+	   * Method: get
+	   *
+	   * Compatible with <RemoteStorage.WireClient.get>
+	   *
+	   * Checks for the path in _revCache and decides based on that if file has
+	   * changed. Calls _getFolder is the path points to a folder.
+	   *
+	   * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+	   */
+	  get: function get(path, options) {
+	    if (!this.connected) {
+	      return Promise.reject("not connected (path: " + path + ")");
+	    }
+	    var url = 'https://api-content.dropbox.com/1/files/auto' + getDropboxPath(path);
+	    var self = this;
+	
+	    var savedRev = this._revCache.get(path);
+	    if (savedRev === null) {
+	      // file was deleted server side
+	      return Promise.resolve({ statusCode: 404 });
+	    }
+	    if (options && options.ifNoneMatch && savedRev && savedRev === options.ifNoneMatch) {
+	      // nothing changed.
+	      return Promise.resolve({ statusCode: 304 });
+	    }
+	
+	    //use _getFolder for folders
+	    if (path.substr(-1) === '/') {
+	      return this._getFolder(path, options);
+	    }
+	
+	    return this._request('GET', url, {}).then(function (resp) {
+	      var status = resp.status;
+	      var meta, body, mime, rev;
+	      if (status !== 200) {
+	        return Promise.resolve({ statusCode: status });
+	      }
+	
+	      body = resp.responseText;
+	      try {
+	        meta = JSON.parse(resp.getResponseHeader('x-dropbox-metadata'));
+	      } catch (e) {
+	        return Promise.reject(e);
+	      }
+	
+	      mime = meta.mime_type; //resp.getResponseHeader('Content-Type');
+	      rev = meta.rev;
+	      self._revCache.set(path, rev);
+	      self._shareIfNeeded(path); // The shared link expires every 4 hours
+	
+	      // handling binary
+	      if (!resp.getResponseHeader('Content-Type') || resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
+	        var pending = Promise.defer();
+	
+	        WireClient.readBinaryData(resp.response, mime, function (result) {
+	          pending.resolve({
+	            statusCode: status,
+	            body: result,
+	            contentType: mime,
+	            revision: rev
+	          });
+	        });
+	
+	        return pending.promise;
+	      }
+	
+	      // handling json (always try)
+	      if (mime && mime.search('application/json') >= 0 || true) {
+	        try {
+	          body = JSON.parse(body);
+	          mime = 'application/json; charset=UTF-8';
+	        } catch (e) {
+	          //Failed parsing Json, assume it is something else then
+	        }
+	      }
+	
+	      return Promise.resolve({ statusCode: status, body: body, contentType: mime, revision: rev });
+	    });
+	  },
+	
+	  /**
+	   * Method: put
+	   *
+	   * Compatible with <RemoteStorage.WireClient>
+	   *
+	   * Checks for the path in _revCache and decides based on that if file has
+	   * changed.
+	   *
+	   * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+	   */
+	  put: function put(path, body, contentType, options) {
+	    var self = this;
+	
+	    if (!this.connected) {
+	      throw new Error("not connected (path: " + path + ")");
+	    }
+	
+	    //check if file has changed and return 412
+	    var savedRev = this._revCache.get(path);
+	    if (options && options.ifMatch && savedRev && savedRev !== options.ifMatch) {
+	      return Promise.resolve({ statusCode: 412, revision: savedRev });
+	    }
+	    if (options && options.ifNoneMatch === '*' && savedRev && savedRev !== 'rev') {
+	      return Promise.resolve({ statusCode: 412, revision: savedRev });
+	    }
+	
+	    if (!contentType.match(/charset=/) && (body instanceof ArrayBuffer || WireClient.isArrayBufferView(body))) {
+	      contentType += '; charset=binary';
+	    }
+	
+	    if (body.length > 150 * 1024 * 1024) {
+	      //https://www.dropbox.com/developers/core/docs#chunked-upload
+	      return Promise.reject(new Error("Cannot upload file larger than 150MB"));
+	    }
+	
+	    var result;
+	    var needsMetadata = options && (options.ifMatch || options.ifNoneMatch === '*');
+	    var uploadParams = {
+	      body: body,
+	      contentType: contentType,
+	      path: path
+	    };
+	
+	    if (needsMetadata) {
+	      result = this._getMetadata(path).then(function (metadata) {
+	        if (options && options.ifNoneMatch === '*' && metadata) {
+	          // if !!metadata === true, the file exists
+	          return Promise.resolve({
+	            statusCode: 412,
+	            revision: metadata.rev
+	          });
+	        }
+	
+	        if (options && options.ifMatch && metadata && metadata.rev !== options.ifMatch) {
+	          return Promise.resolve({
+	            statusCode: 412,
+	            revision: metadata.rev
+	          });
+	        }
+	
+	        return self._uploadSimple(uploadParams);
+	      });
+	    } else {
+	      result = self._uploadSimple(uploadParams);
+	    }
+	
+	    return result.then(function (ret) {
+	      self._shareIfNeeded(path);
+	      return ret;
+	    });
+	  },
+	
+	  /**
+	   * Method: delete
+	   *
+	   * Compatible with <RemoteStorage.WireClient.delete>
+	   *
+	   * Checks for the path in _revCache and decides based on that if file has
+	   * changed.
+	   *
+	   * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+	   */
+	  'delete': function _delete(path, options) {
+	    var self = this;
+	
+	    if (!this.connected) {
+	      throw new Error("not connected (path: " + path + ")");
+	    }
+	
+	    //check if file has changed and return 412
+	    var savedRev = this._revCache.get(path);
+	    if (options && options.ifMatch && savedRev && options.ifMatch !== savedRev) {
+	      return Promise.resolve({ statusCode: 412, revision: savedRev });
+	    }
+	
+	    if (options && options.ifMatch) {
+	      return this._getMetadata(path).then(function (metadata) {
+	        if (options && options.ifMatch && metadata && metadata.rev !== options.ifMatch) {
+	          return Promise.resolve({
+	            statusCode: 412,
+	            revision: metadata.rev
+	          });
+	        }
+	
+	        return self._deleteSimple(path);
+	      });
+	    }
+	
+	    return self._deleteSimple(path);
+	  },
+	
+	  /**
+	   * Method: _shareIfNeeded
+	   *
+	   * Calls share, if the provided path resides in a public folder.
+	   */
+	  _shareIfNeeded: function _shareIfNeeded(path) {
+	    if (path.match(/^\/public\/.*[^\/]$/) && this._itemRefs[path] === undefined) {
+	      this.share(path);
+	    }
+	  },
+	
+	  /**
+	   * Method: share
+	   *
+	   * Gets a publicly-accessible URL for the path from Dropbox and stores it
+	   * in _itemRefs.
+	   *
+	   * Returns:
+	   *
+	   *   A promise for the URL
+	   */
+	  share: function share(path) {
+	    var self = this;
+	    var url = 'https://api.dropbox.com/1/media/auto' + getDropboxPath(path);
+	
+	    return this._request('POST', url, {}).then(function (response) {
+	      if (response.status !== 200) {
+	        return Promise.reject(new Error('Invalid Dropbox API response status when sharing "' + path + '":' + response.status));
+	      }
+	
+	      try {
+	        response = JSON.parse(response.responseText);
+	      } catch (e) {
+	        return Promise.reject(new Error('Invalid Dropbox API response when sharing "' + path + '": ' + response.responseText));
+	      }
+	
+	      self._itemRefs[path] = response.url;
+	
+	      if (hasLocalStorage) {
+	        localStorage[SETTINGS_KEY + ':shares'] = JSON.stringify(self._itemRefs);
+	      }
+	
+	      return Promise.resolve(url);
+	    }, function (error) {
+	      err.message = 'Sharing dropbox file or folder ("' + path + '") failed.' + err.message;
+	      return Promise.reject(error);
+	    });
+	  },
+	
+	  /**
+	   * Method: info
+	   *
+	   * Fetches the user's info from dropbox and returns a promise for it.
+	   *
+	   * Returns:
+	   *
+	   *   A promise to the user's info
+	   */
+	  info: function info() {
+	    var url = 'https://api.dropbox.com/1/account/info';
+	    // requesting user info(mainly for userAdress)
+	    return this._request('GET', url, {}).then(function (resp) {
+	      try {
+	        var info = JSON.parse(resp.responseText);
+	        return Promise.resolve(info);
+	      } catch (e) {
+	        return Promise.reject(e);
+	      }
+	    });
+	  },
+	
+	  /**
+	   * Method: _request
+	   *
+	   * Make a HTTP request.
+	   *
+	   * Options:
+	   *
+	   *   headers - an object containing the request headers
+	   *
+	   * Parameters:
+	   *
+	   *   method - the method to use
+	   *   url - the URL to make the request to
+	   *   options - see above
+	   */
+	  _request: function _request(method, url, options) {
+	    var self = this;
+	
+	    if (!options.headers) {
+	      options.headers = {};
+	    }
+	    options.headers['Authorization'] = 'Bearer ' + this.token;
+	
+	    return WireClient.request.call(this, method, url, options).then(function (xhr) {
+	      // 503 means retry this later
+	      if (xhr && xhr.status === 503) {
+	        if (self.online) {
+	          self.online = false;
+	          self.rs._emit('network-offline');
+	        }
+	        return global.setTimeout(self._request(method, url, options), 3210);
+	      } else {
+	        if (!self.online) {
+	          self.online = true;
+	          self.rs._emit('network-online');
+	        }
+	
+	        return Promise.resolve(xhr);
+	      }
+	    }, function (error) {
+	      if (self.online) {
+	        self.online = false;
+	        self.rs._emit('network-offline');
+	      }
+	      return Promise.reject(error);
+	    });
+	  },
+	
+	  /**
+	   * Method: fetchDelta
+	   *
+	   * Fetches the revision of all the files from dropbox API and puts them
+	   * into _revCache. These values can then be used to determine if something
+	   * has changed.
+	   */
+	  fetchDelta: function fetchDelta() {
+	    // TODO: Handle `has_more`
+	
+	    var args = Array.prototype.slice.call(arguments);
+	    var self = this;
+	    var body = { path_prefix: PATH_PREFIX };
+	
+	    if (self._deltaCursor) {
+	      body.cursor = self._deltaCursor;
+	    }
+	
+	    return self._request('POST', 'https://api.dropbox.com/1/delta', {
+	      body: encodeQuery(body),
+	      headers: {
+	        'Content-Type': 'application/x-www-form-urlencoded'
+	      }
+	    }).then(function (response) {
+	      // break if status != 200
+	      if (response.status !== 200) {
+	        if (response.status === 400) {
+	          self.rs._emit('error', new Authorize.Unauthorized());
+	          return Promise.resolve(args);
+	        } else {
+	          return Promise.reject("dropbox.fetchDelta returned " + response.status + response.responseText);
+	        }
+	        return;
+	      }
+	
+	      var delta;
+	      try {
+	        delta = JSON.parse(response.responseText);
+	      } catch (error) {
+	        log('fetchDeltas can not parse response', error);
+	        return Promise.reject("can not parse response of fetchDelta : " + error.message);
+	      }
+	      // break if no entries found
+	      if (!delta.entries) {
+	        return Promise.reject('dropbox.fetchDeltas failed, no entries found');
+	      }
+	
+	      // Dropbox sends the complete state
+	      if (delta.reset) {
+	        self._revCache = new LowerCaseCache('rev');
+	      }
+	
+	      //saving the cursor for requesting further deltas in relation to the cursor position
+	      if (delta.cursor) {
+	        self._deltaCursor = delta.cursor;
+	      }
+	
+	      //updating revCache
+	      delta.entries.forEach(function (entry) {
+	        var path = entry[0].substr(PATH_PREFIX.length);
+	        var rev;
+	        if (!entry[1]) {
+	          rev = null;
+	        } else {
+	          if (entry[1].is_dir) {
+	            return;
+	          }
+	          rev = entry[1].rev;
+	        }
+	        self._revCache.set(path, rev);
+	      });
+	      return Promise.resolve(args);
+	    }, function (err) {
+	      this.rs.log('fetchDeltas', err);
+	      this.rs._emit('error', new Sync.SyncError('fetchDeltas failed.' + err));
+	      promise.reject(err);
+	    }).then(function () {
+	      if (self._revCache) {
+	        var args = Array.prototype.slice.call(arguments);
+	        self._revCache._activatePropagation();
+	        return Promise.resolve(args);
+	      }
+	    });
+	  },
+	
+	  /**
+	   * Method: _getMetadata
+	   *
+	   * Gets metadata for a path (can point to either a file or a folder).
+	   *
+	   * Options:
+	   *
+	   *   list - if path points to a folder, specifies whether to list the
+	   *          metadata of the folder's children. False by default.
+	   *
+	   * Parameters:
+	   *
+	   *   path - the path to get metadata for
+	   *   options - see above
+	   *
+	   * Returns:
+	   *
+	   *   A promise for the metadata
+	   */
+	  _getMetadata: function _getMetadata(path, options) {
+	    var self = this;
+	    var cached = this._metadataCache[path];
+	    var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
+	    url += '?list=' + (options && options.list ? 'true' : 'false');
+	    if (cached && cached.hash) {
+	      url += '&hash=' + encodeURIComponent(cached.hash);
+	    }
+	    return this._request('GET', url, {}).then(function (resp) {
+	      if (resp.status === 304) {
+	        return Promise.resolve(cached);
+	      } else if (resp.status === 200) {
+	        var response = JSON.parse(resp.responseText);
+	        self._metadataCache[path] = response;
+	        return Promise.resolve(response);
+	      } else {
+	        // The file doesn't exist
+	        return Promise.resolve();
+	      }
+	    });
+	  },
+	
+	  /**
+	   * Method: _uploadSimple
+	   *
+	   * Upload a simple file (the size is no more than 150MB).
+	   *
+	   * Parameters:
+	   *
+	   *   ifMatch - same as for get
+	   *   path - path of the file
+	   *   body - contents of the file to upload
+	   *   contentType - mime type of the file
+	   *
+	   * Returns:
+	   *
+	   *   statusCode - HTTP status code
+	   *   revision - revision of the newly-created file, if any
+	   */
+	  _uploadSimple: function _uploadSimple(params) {
+	    var self = this;
+	    var url = 'https://api-content.dropbox.com/1/files_put/auto' + getDropboxPath(params.path) + '?';
+	
+	    if (params && params.ifMatch) {
+	      url += "parent_rev=" + encodeURIComponent(params.ifMatch);
+	    }
+	
+	    return self._request('PUT', url, {
+	      body: params.body,
+	      headers: {
+	        'Content-Type': params.contentType
+	      }
+	    }).then(function (resp) {
+	      if (resp.status !== 200) {
+	        return Promise.resolve({ statusCode: resp.status });
+	      }
+	
+	      var response;
+	
+	      try {
+	        response = JSON.parse(resp.responseText);
+	      } catch (e) {
+	        return Promise.reject(e);
+	      }
+	
+	      // Conflict happened. Delete the copy created by dropbox
+	      if (response.path !== getDropboxPath(params.path)) {
+	        var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
+	        self._request('POST', deleteUrl, {});
+	
+	        return self._getMetadata(params.path).then(function (metadata) {
+	          return Promise.resolve({
+	            statusCode: 412,
+	            revision: metadata.rev
+	          });
+	        });
+	      }
+	
+	      self._revCache.propagateSet(params.path, response.rev);
+	      return Promise.resolve({ statusCode: resp.status });
+	    });
+	  },
+	
+	  /**
+	   * Method: _deleteSimple
+	   *
+	   * Deletes a file or a folder. If the folder contains more than 10'000 items
+	   * (recursively) then the operation may not complete successfully. If that
+	   * is the case, an Error gets thrown.
+	   *
+	   * Parameters:
+	   *
+	   *   path - the path to delete
+	   *
+	   * Returns:
+	   *
+	   *   statusCode - HTTP status code
+	   */
+	  _deleteSimple: function _deleteSimple(path) {
+	    var self = this;
+	    var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(getDropboxPath(path));
+	
+	    return self._request('POST', url, {}).then(function (resp) {
+	      if (resp.status === 406) {
+	        // Too many files would be involved in the operation for it to
+	        // complete successfully.
+	        // TODO: Handle this somehow
+	        return Promise.reject(new Error("Cannot delete '" + path + "': too many files involved"));
+	      }
+	
+	      if (resp.status === 200 || resp.status === 404) {
+	        self._revCache.delete(path);
+	        delete self._itemRefs[path];
+	      }
+	
+	      return Promise.resolve({ statusCode: resp.status });
+	    });
+	  }
+	};
+	
+	// Hooking and unhooking the sync
+	
+	function hookSync(rs) {
+	  if (rs._dropboxOrigSync) {
+	    return;
+	  } // already hooked
+	  rs._dropboxOrigSync = rs.sync.sync.bind(rs.sync);
+	  rs.sync.sync = function () {
+	    return this.dropbox.fetchDelta.apply(this.dropbox, arguments).then(rs._dropboxOrigSync, function (err) {
+	      rs._emit('error', new Sync.SyncError(err));
+	    });
+	  }.bind(rs);
+	}
+	
+	function unHookSync(rs) {
+	  if (!rs._dropboxOrigSync) {
+	    return;
+	  } // not hooked
+	  rs.sync.sync = rs._dropboxOrigSync;
+	  delete rs._dropboxOrigSync;
+	}
+	
+	// Hooking and unhooking getItemURL
+	
+	function hookGetItemURL(rs) {
+	  if (rs._origBaseClientGetItemURL) {
+	    return;
+	  }
+	  rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
+	  BaseClient.prototype.getItemURL = function (path) {
+	    var ret = rs.dropbox._itemRefs[path];
+	    return ret ? ret : '';
+	  };
+	}
+	
+	function unHookGetItemURL(rs) {
+	  if (!rs._origBaseClientGetItemURL) {
+	    return;
+	  }
+	  BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
+	  delete rs._origBaseClientGetItemURL;
+	}
+	
+	function hookRemote(rs) {
+	  if (rs._origRemote) {
+	    return;
+	  }
+	  rs._origRemote = rs.remote;
+	  rs.remote = rs.dropbox;
+	}
+	
+	function unHookRemote(rs) {
+	  if (rs._origRemote) {
+	    rs.remote = rs._origRemote;
+	    delete rs._origRemote;
+	  }
+	}
+	
+	function hookIt(rs) {
+	  hookRemote(rs);
+	  if (rs.sync) {
+	    hookSync(rs);
+	  } else {
+	    // when sync is not available yet, we wait for the remote to be connected,
+	    // at which point sync should be available as well
+	    rs.on('connected', function () {
+	      if (rs.sync) {
+	        hookSync(rs);
+	      }
+	    });
+	  }
+	  hookGetItemURL(rs);
+	}
+	
+	function unHookIt(rs) {
+	  unHookRemote(rs);
+	  unHookSync(rs);
+	  unHookGetItemURL(rs);
+	}
+	
+	Dropbox._rs_init = function (rs) {
+	  hasLocalStorage = util.localStorageAvailable();
+	  if (rs.apiKeys.dropbox) {
+	    rs.dropbox = new Dropbox(rs);
+	  }
+	  if (rs.backend === 'dropbox') {
+	    hookIt(rs);
+	  }
+	};
+	
+	Dropbox._rs_supported = function () {
+	  return true;
+	};
+	
+	Dropbox._rs_cleanup = function (rs) {
+	  unHookIt(rs);
+	  if (hasLocalStorage) {
+	    delete localStorage[SETTINGS_KEY];
+	  }
+	  rs.removeEventListener('error', onErrorCb);
+	  rs.setBackend(undefined);
+	};
+	
+	module.exports = Dropbox;
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	var log = __webpack_require__(4);
+	var util = __webpack_require__(2);
+	// var RemoteStorage = require('./remotestorage');
+	
+	function extractParams(url) {
+	  //FF already decodes the URL fragment in document.location.hash, so use this instead:
+	  var location = url || Authorize.getLocation().href,
+	      hashPos = location.indexOf('#'),
+	      hash;
+	  if (hashPos === -1) {
+	    return;
+	  }
+	  hash = location.substring(hashPos + 1);
+	  // if hash is not of the form #key=val&key=val, it's probably not for us
+	  if (hash.indexOf('=') === -1) {
+	    return;
+	  }
+	  return hash.split('&').reduce(function (params, kvs) {
+	    var kv = kvs.split('=');
+	
+	    if (kv[0] === 'state' && kv[1].match(/rsDiscovery/)) {
+	      // extract rsDiscovery data from the state param
+	      var stateValue = decodeURIComponent(kv[1]);
+	      var encodedData = stateValue.substr(stateValue.indexOf('rsDiscovery=')).split('&')[0].split('=')[1];
+	
+	      params['rsDiscovery'] = JSON.parse(atob(encodedData));
+	
+	      // remove rsDiscovery param
+	      stateValue = stateValue.replace(new RegExp('\&?rsDiscovery=' + encodedData), '');
+	
+	      if (stateValue.length > 0) {
+	        params['state'] = stateValue;
+	      }
+	    } else {
+	      params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+	    }
+	
+	    return params;
+	  }, {});
+	}
+	
+	// RemoteStorage.ImpliedAuth = function (storageApi, redirectUri) {
+	//   log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
+	//   // Set a fixed access token, signalling to not send it as Bearer
+	//   remoteStorage.remote.configure({
+	//     token: Authorize.IMPLIED_FAKE_TOKEN
+	//   });
+	//   document.location = redirectUri;
+	// };
+	
+	var Authorize = function Authorize(remoteStorage, authURL, scope, redirectUri, clientId) {
+	  log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+	
+	  // keep track of the discovery data during redirect if we can't save it in localStorage
+	  if (!util.localStorageAvailable() && remoteStorage.backend === 'remotestorage') {
+	    redirectUri += redirectUri.indexOf('#') > 0 ? '&' : '#';
+	
+	    var discoveryData = {
+	      userAddress: remoteStorage.remote.userAddress,
+	      href: remoteStorage.remote.href,
+	      storageApi: remoteStorage.remote.storageApi,
+	      properties: remoteStorage.remote.properties
+	    };
+	
+	    redirectUri += 'rsDiscovery=' + btoa(JSON.stringify(discoveryData));
+	  }
+	
+	  var url = authURL,
+	      hashPos = redirectUri.indexOf('#');
+	  url += authURL.indexOf('?') > 0 ? '&' : '?';
+	  url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
+	  url += '&scope=' + encodeURIComponent(scope);
+	  url += '&client_id=' + encodeURIComponent(clientId);
+	  if (hashPos !== -1 && hashPos + 1 !== redirectUri.length) {
+	    url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos + 1));
+	  }
+	  url += '&response_type=token';
+	
+	  if (global.cordova) {
+	    return Authorize.openWindow(url, redirectUri, 'location=yes,clearsessioncache=yes,clearcache=yes').then(function (authResult) {
+	      remoteStorage.remote.configure({
+	        token: authResult.access_token
+	      });
+	    });
+	  }
+	
+	  Authorize.setLocation(url);
+	};
+	
+	Authorize.IMPLIED_FAKE_TOKEN = false;
+	
+	// RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
+	//   this.access.setStorageType(this.remote.storageType);
+	//   var scope = this.access.scopeParameter;
+	
+	//   var redirectUri = global.cordova ?
+	//     cordovaRedirectUri :
+	//     String(Authorize.getLocation());
+	
+	//   var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+	
+	//   Authorize(this, authURL, scope, redirectUri, clientId);
+	// };
+	// 
+	// 
+	Authorize.Unauthorized = function () {
+	  Error.apply(this, arguments);
+	};
+	Authorize.Unauthorized.prototype = Object.create(Error.prototype);
+	
+	/**
+	 * Get current document location
+	 *
+	 * Override this method if access to document.location is forbidden
+	 */
+	Authorize.getLocation = function () {
+	  return global.document.location;
+	};
+	
+	/**
+	 * Set current document location
+	 *
+	 * Override this method if access to document.location is forbidden
+	 */
+	Authorize.setLocation = function (location) {
+	  if (typeof location === 'string') {
+	    global.document.location.href = location;
+	  } else if ((typeof location === 'undefined' ? 'undefined' : _typeof(location)) === 'object') {
+	    global.document.location = location;
+	  } else {
+	    throw "Invalid location " + location;
+	  }
+	};
+	
+	/**
+	 * Open new InAppBrowser window for OAuth in Cordova
+	 */
+	Authorize.openWindow = function (url, redirectUri, options) {
+	  var pending = Promise.defer();
+	  var newWindow = global.open(url, '_blank', options);
+	
+	  if (!newWindow || newWindow.closed) {
+	    pending.reject('Authorization popup was blocked');
+	    return pending.promise;
+	  }
+	
+	  var handleExit = function handleExit() {
+	    pending.reject('Authorization was canceled');
+	  };
+	
+	  var handleLoadstart = function handleLoadstart(event) {
+	    if (event.url.indexOf(redirectUri) !== 0) {
+	      return;
+	    }
+	
+	    newWindow.removeEventListener('exit', handleExit);
+	    newWindow.close();
+	
+	    var authResult = extractParams(event.url);
+	
+	    if (!authResult) {
+	      return pending.reject('Authorization error');
+	    }
+	
+	    return pending.resolve(authResult);
+	  };
+	
+	  newWindow.addEventListener('loadstart', handleLoadstart);
+	  newWindow.addEventListener('exit', handleExit);
+	
+	  return pending.promise;
+	};
+	
+	// RS.prototype.impliedauth = function () {
+	//   RS.ImpliedAuth(this.remote.storageApi, String(document.location));
+	// };
+	
+	Authorize._rs_supported = function () {
+	  return typeof document !== 'undefined';
+	};
+	
+	var onFeaturesLoaded;
+	Authorize._rs_init = function (remoteStorage) {
+	
+	  onFeaturesLoaded = function onFeaturesLoaded() {
+	    var authParamsUsed = false;
+	    if (params) {
+	      if (params.error) {
+	        throw "Authorization server errored: " + params.error;
+	      }
+	
+	      // rsDiscovery came with the redirect, because it couldn't be
+	      // saved in localStorage
+	      if (params.rsDiscovery) {
+	        remoteStorage.remote.configure(params.rsDiscovery);
+	      }
+	
+	      if (params.access_token) {
+	        remoteStorage.remote.configure({
+	          token: params.access_token
+	        });
+	        authParamsUsed = true;
+	      }
+	      if (params.remotestorage) {
+	        remoteStorage.connect(params.remotestorage);
+	        authParamsUsed = true;
+	      }
+	      if (params.state) {
+	        location = Authorize.getLocation();
+	        Authorize.setLocation(location.href.split('#')[0] + '#' + params.state);
+	      }
+	    }
+	    if (!authParamsUsed) {
+	      remoteStorage.remote.stopWaitingForToken();
+	    }
+	  };
+	  var params = extractParams(),
+	      location;
+	  if (params) {
+	    location = Authorize.getLocation();
+	    location.hash = '';
+	  }
+	  remoteStorage.on('features-loaded', onFeaturesLoaded);
+	};
+	
+	Authorize._rs_cleanup = function (remoteStorage) {
+	  remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
+	};
+	
+	module.exports = Authorize;
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	function deprecate(thing, replacement) {
+	  console.log('WARNING: ' + thing + ' is deprecated. Use ' + replacement + ' instead.');
+	}
+	
+	var eventHandling = __webpack_require__(3);
+	var util = __webpack_require__(2);
+	var config = __webpack_require__(5);
+	__webpack_require__(9);
+	
+	/**
+	 * Class: RemoteStorage.BaseClient
+	 *
+	 * Provides a high-level interface to access data below a given root path.
+	 *
+	 * A BaseClient deals with three types of data: folders, objects and files.
+	 *
+	 * <getListing> returns a mapping of all items within a folder. Items that
+	 * end with a forward slash ("/") are child folders. For instance:
+	 * {
+	 *   'folder/': true,
+	 *   'document.txt': true
+	 * }
+	 *
+	 * <getObject> / <storeObject> operate on JSON objects. Each object has a type.
+	 *
+	 * <getFile> / <storeFile> operates on files. Each file has a MIME type.
+	 *
+	 * <remove> operates on either objects or files (but not folders, folders are
+	 * created and removed implictly).
+	 */
+	var BaseClient = function BaseClient(storage, base) {
+	  if (base[base.length - 1] !== '/') {
+	    throw "Not a folder: " + base;
+	  }
+	
+	  if (base === '/') {
+	    // allow absolute and relative paths for the root scope.
+	    this.makePath = function (path) {
+	      return (path[0] === '/' ? '' : '/') + path;
+	    };
+	  }
+	
+	  /**
+	   * Property: storage
+	   *
+	   * The <RemoteStorage> instance this <BaseClient> operates on.
+	   */
+	  this.storage = storage;
+	
+	  /**
+	   * Property: base
+	   *
+	   * Base path this <BaseClient> operates on.
+	   *
+	   * For the module's privateClient this would be /<moduleName>/, for the
+	   * corresponding publicClient /public/<moduleName>/.
+	   */
+	  this.base = base;
+	
+	  var parts = this.base.split('/');
+	  if (parts.length > 2) {
+	    this.moduleName = parts[1];
+	  } else {
+	    this.moduleName = 'root';
+	  }
+	
+	  // Defined in baseclient/types.js
+	  /**
+	   * Property: schemas
+	   *
+	   * Contains schema objects of all types known to the BaseClient instance
+	   **/
+	
+	  /**
+	   * Event: change
+	   *
+	   * Emitted when a node changes
+	   *
+	   * Arguments:
+	   *   event - Event object containing information about the changed node
+	   *
+	   * (start code)
+	   * {
+	   *    path: path, // Absolute path of the changed node, from the storage root
+	   *    relativePath: relativePath, // Path of the changed node, relative to this baseclient's scope root
+	   *    origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
+	   *    oldValue: oldBody, // Old body of the changed node (local version in conflicts; undefined if creation)
+	   *    newValue: newBody, // New body of the changed node (remote version in conflicts; undefined if deletion)
+	   *    lastCommonValue: lastCommonValue, //most recent known common ancestor body of 'yours' and 'theirs' in case of conflict
+	   *    oldContentType: oldContentType, // Old contentType of the changed node ('yours' for conflicts; undefined if creation)
+	   *    newContentType: newContentType, // New contentType of the changed node ('theirs' for conflicts; undefined if deletion)
+	   *    lastCommonContentType: lastCommonContentType // Most recent known common ancestor contentType of 'yours' and 'theirs' in case of conflict
+	   *  }
+	   * (end code)
+	   *
+	   * Example of an event with origin 'local' (fired on page load):
+	   *
+	   * (start code)
+	   * {
+	   *    path: '/public/design/color.txt',
+	   *    relativePath: 'color.txt',
+	   *    origin: 'local',
+	   *    oldValue: undefined,
+	   *    newValue: 'white',
+	   *    oldContentType: undefined,
+	   *    newContentType: 'text/plain'
+	   *  }
+	   * (end code)
+	   *
+	   * Example of a conflict:
+	   * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `RemoteStorage.config.changeEvents.window` to `true`,
+	   * then you will receive:
+	   *
+	   * (start code)
+	   * {
+	   *    path: '/public/design/color.txt',
+	   *    relativePath: 'color.txt',
+	   *    origin: 'window',
+	   *    oldValue: 'white',
+	   *    newValue: 'blue',
+	   *    oldContentType: 'text/plain',
+	   *    newContentType: 'text/plain'
+	   *  }
+	   * (end code)
+	   *
+	   * But when this change is pushed out by asynchronous synchronization, this change may rejected by the
+	   * server, if the remote version has in the meantime changed from 'white' to  for instance 'red'; this will then lead to a change
+	   * event with origin 'conflict' (usually a few seconds after the event with origin 'window', if you had that activated). Note
+	   * that since you already changed it from 'white' to 'blue' in the local version a few seconds ago, `oldValue` is now your local
+	   * value of 'blue':
+	   *
+	   * (start code)
+	   * {
+	   *    path: '/public/design/color.txt',
+	   *    relativePath: 'color.txt',
+	   *    origin: 'conflict',
+	   *    oldValue: 'blue',
+	   *    newValue: 'red',
+	   *    lastCommonValue: 'white',
+	   *    oldContentType: 'text/plain,
+	   *    newContentType: 'text/plain'
+	   *    lastCommonContentType: 'text/plain'
+	   *  }
+	   * (end code)
+	   *
+	   * In practice, you should always redraw your views to display the content of the `newValue` field when a change event is received,
+	   * regardless of its origin. Events with origin 'local' are fired conveniently during the page load, so that you can fill your views
+	   * when the page loads. Events with origin 'window' are fired whenever you change a value by calling a method on the baseClient;
+	   * these are disabled by default. Events with origin 'remote' are fired when remote changes are discovered during sync (only for caching
+	   * startegies 'SEEN' and 'ALL'). Events with origin 'conflict' are fired when a conflict occurs while pushing out your local changes to
+	   * the remote store in asynchronous synchronization (see example above).
+	   **/
+	
+	  eventHandling(this, 'change');
+	  this.on = this.on.bind(this);
+	  storage.onChange(this.base, this._fireChange.bind(this));
+	};
+	
+	BaseClient.prototype = {
+	
+	  extend: function extend(object) {
+	    for (var key in object) {
+	      this[key] = object[key];
+	    }
+	    return this;
+	  },
+	
+	  /**
+	   * Method: scope
+	   *
+	   * Returns a new <BaseClient> operating on a subpath of the current <base> path.
+	   */
+	  scope: function scope(path) {
+	    return new BaseClient(this.storage, this.makePath(path));
+	  },
+	
+	  // folder operations
+	
+	  /**
+	   * Method: getListing
+	   *
+	   * Get a list of child nodes below a given path.
+	   *
+	   * The callback semantics of getListing are identical to those of getObject.
+	   *
+	   * Parameters:
+	   *   path   - The path to query. It MUST end with a forward slash.
+	   *   maxAge - Either false or the maximum age of cached listing in
+	   *            milliseconds. Defaults to false in anonymous mode and to
+	   *            2*syncInterval in connected mode.
+	   *
+	   * Returns:
+	   *
+	   *   A promise for an object, representing child nodes. If the maxAge
+	   *   requirement cannot be met because of network problems, this promise
+	   *   will be rejected. If the maxAge requirement is set to false or the
+	   *   library is in offline state, the promise will always be fulfilled with
+	   *   data from the local store.
+	   *
+	   *   Keys ending in a forward slash represent *folder nodes*, while all
+	   *   other keys represent *data nodes*.
+	   *
+	   *   For spec versions <= 01, the data node information will contain only
+	   *   the item's ETag. For later spec versions, it will also contain the
+	   *   content type and -length of the item.
+	   *
+	   * Example:
+	   *   (start code)
+	   *   client.getListing('', false).then(function (listing) {
+	   *     // listing is for instance:
+	   *     // {
+	   *     //   'folder/': true,
+	   *     //   'document.txt': true
+	   *     // }
+	   *   });
+	   *   (end code)
+	   */
+	  getListing: function getListing(path, maxAge) {
+	    if (typeof path !== 'string') {
+	      path = '';
+	    } else if (path.length > 0 && path[path.length - 1] !== '/') {
+	      return Promise.reject("Not a folder: " + path);
+	    }
+	    return this.storage.get(this.makePath(path), maxAge).then(function (r) {
+	      return r.statusCode === 404 ? {} : r.body;
+	    });
+	  },
+	
+	  /**
+	   * Method: getAll
+	   *
+	   * Get all objects directly below a given path.
+	   *
+	   * Parameters:
+	   *   path   - Path to the folder.
+	   *   maxAge - Either false or the maximum age of cached objects in
+	   *            milliseconds. Defaults to false in anonymous mode and to
+	   *            2*syncInterval in connected mode.
+	   *
+	   * Returns:
+	   *   A promise for an object in the form { path : object, ... }. If the
+	   *   maxAge requirement cannot be met because of network problems, this
+	   *   promise will be rejected. If the maxAge requirement is set to false,
+	   *   the promise will always be fulfilled with data from the local store.
+	   *
+	   *   For items that are not JSON-stringified objects (e.g. stored using
+	   *   `storeFile` instead of `storeObject`), the object's value is filled in
+	   *   with `true`.
+	   *
+	   * Example:
+	   *   (start code)
+	   *   client.getAll('', false).then(function (objects) {
+	   *     for (var key in objects) {
+	   *       console.log('- ' + key + ': ', objects[key]);
+	   *     }
+	   *   });
+	   *   (end code)
+	   */
+	  getAll: function getAll(path, maxAge) {
+	    if (typeof path !== 'string') {
+	      path = '';
+	    } else if (path.length > 0 && path[path.length - 1] !== '/') {
+	      return Promise.reject("Not a folder: " + path);
+	    }
+	
+	    return this.storage.get(this.makePath(path), maxAge).then(function (r) {
+	      if (r.statusCode === 404) {
+	        return {};
+	      }
+	      if (_typeof(r.body) === 'object') {
+	        var keys = Object.keys(r.body);
+	        if (keys.length === 0) {
+	          // treat this like 404. it probably means a folder listing that
+	          // has changes that haven't been pushed out yet.
+	          return {};
+	        }
+	
+	        var calls = keys.map(function (key) {
+	          return this.storage.get(this.makePath(path + key), maxAge).then(function (o) {
+	            if (typeof o.body === 'string') {
+	              try {
+	                o.body = JSON.parse(o.body);
+	              } catch (e) {}
+	            }
+	            if (_typeof(o.body) === 'object') {
+	              r.body[key] = o.body;
+	            }
+	          });
+	        }.bind(this));
+	        return Promise.all(calls).then(function () {
+	          return r.body;
+	        });
+	      }
+	    }.bind(this));
+	  },
+	
+	  // file operations
+	
+	  /**
+	   * Method: getFile
+	   *
+	   * Get the file at the given path. A file is raw data, as opposed to
+	   * a JSON object (use <getObject> for that).
+	   *
+	   * Except for the return value structure, getFile works exactly like
+	   * getObject.
+	   *
+	   * Parameters:
+	   *   path   - See getObject.
+	   *   maxAge - Either false or the maximum age of cached file in
+	   *            milliseconds. Defaults to false in anonymous mode and to
+	   *            2*syncInterval in connected mode.
+	   *
+	   * Returns:
+	   *   A promise for an object:
+	   *
+	   *   mimeType - String representing the MIME Type of the document.
+	   *   data     - Raw data of the document (either a string or an ArrayBuffer)
+	   *
+	   *   If the maxAge requirement cannot be met because of network problems, this
+	   *   promise will be rejected. If the maxAge requirement is set to false, the
+	   *   promise will always be fulfilled with data from the local store.
+	   *
+	   * Example:
+	   *   (start code)
+	   *   // Display an image:
+	   *   client.getFile('path/to/some/image', false).then(function (file) {
+	   *     var blob = new Blob([file.data], { type: file.mimeType });
+	   *     var targetElement = document.findElementById('my-image-element');
+	   *     targetElement.src = window.URL.createObjectURL(blob);
+	   *   });
+	   *   (end code)
+	   */
+	  getFile: function getFile(path, maxAge) {
+	    if (typeof path !== 'string') {
+	      return Promise.reject('Argument \'path\' of baseClient.getFile must be a string');
+	    }
+	    return this.storage.get(this.makePath(path), maxAge).then(function (r) {
+	      return {
+	        data: r.body,
+	        contentType: r.contentType,
+	        revision: r.revision // (this is new)
+	      };
+	    });
+	  },
+	
+	  /**
+	   * Method: storeFile
+	   *
+	   * Store raw data at a given path.
+	   *
+	   * Parameters:
+	   *   mimeType - MIME media type of the data being stored
+	   *   path     - path relative to the module root. MAY NOT end in a forward slash.
+	   *   data     - string, ArrayBuffer or ArrayBufferView of raw data to store
+	   *
+	   * The given mimeType will later be returned, when retrieving the data
+	   * using <getFile>.
+	   *
+	   * Example (UTF-8 data):
+	   *   (start code)
+	   *   client.storeFile('text/html', 'index.html', '<h1>Hello World!</h1>');
+	   *   (end code)
+	   *
+	   * Example (Binary data):
+	   *   (start code)
+	   *   // MARKUP:
+	   *   <input type="file" id="file-input">
+	   *   // CODE:
+	   *   var input = document.getElementById('file-input');
+	   *   var file = input.files[0];
+	   *   var fileReader = new FileReader();
+	   *
+	   *   fileReader.onload = function () {
+	   *     client.storeFile(file.type, file.name, fileReader.result);
+	   *   };
+	   *
+	   *   fileReader.readAsArrayBuffer(file);
+	   *   (end code)
+	   *
+	   */
+	  storeFile: function storeFile(mimeType, path, body) {
+	    if (typeof mimeType !== 'string') {
+	      return Promise.reject('Argument \'mimeType\' of baseClient.storeFile must be a string');
+	    }
+	    if (typeof path !== 'string') {
+	      return Promise.reject('Argument \'path\' of baseClient.storeFile must be a string');
+	    }
+	    if (typeof body !== 'string' && (typeof body === 'undefined' ? 'undefined' : _typeof(body)) !== 'object') {
+	      return Promise.reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
+	    }
+	    if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+	      console.warn('WARNING: Editing a document to which only read access (\'r\') was claimed');
+	    }
+	
+	    return this.storage.put(this.makePath(path), body, mimeType).then(function (r) {
+	      if (r.statusCode === 200 || r.statusCode === 201) {
+	        return r.revision;
+	      } else {
+	        return Promise.reject("Request (PUT " + this.makePath(path) + ") failed with status: " + r.statusCode);
+	      }
+	    }.bind(this));
+	  },
+	
+	  // object operations
+	
+	  /**
+	   * Method: getObject
+	   *
+	   * Get a JSON object from given path.
+	   *
+	   * Parameters:
+	   *   path   - Relative path from the module root (without leading slash).
+	   *   maxAge - Either false or the maximum age of cached object in
+	   *            milliseconds. Defaults to false in anonymous mode and to
+	   *            2*syncInterval in connected mode.
+	   *
+	   * Returns:
+	   *   A promise for the object. If the maxAge requirement cannot be met
+	   *   because of network problems, this promise will be rejected. If the
+	   *   maxAge requirement is set to false, the promise will always be
+	   *   fulfilled with data from the local store.
+	   *
+	   * Example:
+	   *   (start code)
+	   *   client.getObject('/path/to/object', false).
+	   *     then(function (object) {
+	   *       // object is either an object or null
+	   *     });
+	   *   (end code)
+	   */
+	  getObject: function getObject(path, maxAge) {
+	    if (typeof path !== 'string') {
+	      return Promise.reject('Argument \'path\' of baseClient.getObject must be a string');
+	    }
+	    return this.storage.get(this.makePath(path), maxAge).then(function (r) {
+	      if (_typeof(r.body) === 'object') {
+	        // will be the case for documents stored with rs.js <= 0.10.0-beta2
+	        return r.body;
+	      } else if (typeof r.body === 'string') {
+	        try {
+	          return JSON.parse(r.body);
+	        } catch (e) {
+	          throw "Not valid JSON: " + this.makePath(path);
+	        }
+	      } else if (typeof r.body !== 'undefined' && r.statusCode === 200) {
+	        return Promise.reject("Not an object: " + this.makePath(path));
+	      }
+	    }.bind(this));
+	  },
+	
+	  /**
+	   * Method: storeObject
+	   *
+	   * Store object at given path. Triggers synchronization.
+	   *
+	   * Parameters:
+	   *
+	   *   type     - unique type of this object within this module. See description below.
+	   *   path     - path relative to the module root.
+	   *   object   - an object to be saved to the given node. It must be serializable as JSON.
+	   *
+	   * Returns:
+	   *   A promise to store the object. The promise fails with a ValidationError, when validations fail.
+	   *
+	   *
+	   * What about the type?:
+	   *
+	   *   A great thing about having data on the web, is to be able to link to
+	   *   it and rearrange it to fit the current circumstances. To facilitate
+	   *   that, eventually you need to know how the data at hand is structured.
+	   *   For documents on the web, this is usually done via a MIME type. The
+	   *   MIME type of JSON objects however, is always application/json.
+	   *   To add that extra layer of "knowing what this object is", remoteStorage
+	   *   aims to use <JSON-LD at http://json-ld.org/>.
+	   *   A first step in that direction, is to add a *@context attribute* to all
+	   *   JSON data put into remoteStorage.
+	   *   Now that is what the *type* is for.
+	   *
+	   *   Within remoteStorage.js, @context values are built using three components:
+	   *     http://remotestorage.io/spec/modules/ - A prefix to guarantee uniqueness
+	   *     the module name     - module names should be unique as well
+	   *     the type given here - naming this particular kind of object within this module
+	   *
+	   *   In retrospect that means, that whenever you introduce a new "type" in calls to
+	   *   storeObject, you should make sure that once your code is in the wild, future
+	   *   versions of the code are compatible with the same JSON structure.
+	   *
+	   * How to define types?:
+	   *
+	   *   See <declareType> for examples.
+	   */
+	  storeObject: function storeObject(typeAlias, path, object) {
+	    if (typeof typeAlias !== 'string') {
+	      return Promise.reject('Argument \'typeAlias\' of baseClient.storeObject must be a string');
+	    }
+	    if (typeof path !== 'string') {
+	      return Promise.reject('Argument \'path\' of baseClient.storeObject must be a string');
+	    }
+	    if ((typeof object === 'undefined' ? 'undefined' : _typeof(object)) !== 'object') {
+	      return Promise.reject('Argument \'object\' of baseClient.storeObject must be an object');
+	    }
+	
+	    this._attachType(object, typeAlias);
+	
+	    try {
+	      var validationResult = this.validate(object);
+	      if (!validationResult.valid) {
+	        return Promise.reject(validationResult);
+	      }
+	    } catch (exc) {
+	      return Promise.reject(exc);
+	    }
+	
+	    return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then(function (r) {
+	      if (r.statusCode === 200 || r.statusCode === 201) {
+	        return r.revision;
+	      } else {
+	        return Promise.reject("Request (PUT " + this.makePath(path) + ") failed with status: " + r.statusCode);
+	      }
+	    }.bind(this));
+	  },
+	
+	  // generic operations
+	
+	  /**
+	   * Method: remove
+	   *
+	   * Remove node at given path from storage. Triggers synchronization.
+	   *
+	   * Parameters:
+	   *   path     - Path relative to the module root.
+	   */
+	  remove: function remove(path) {
+	    if (typeof path !== 'string') {
+	      return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
+	    }
+	    if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+	      console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
+	    }
+	
+	    return this.storage.delete(this.makePath(path));
+	  },
+	
+	  cache: function cache(path, strategy) {
+	    if (typeof path !== 'string') {
+	      throw 'Argument \'path\' of baseClient.cache must be a string';
+	    }
+	    if (strategy === false) {
+	      deprecate('caching strategy <false>', '<"FLUSH">');
+	      strategy = 'FLUSH';
+	    } else if (strategy === undefined) {
+	      strategy = 'ALL';
+	    } else if (typeof strategy !== 'string') {
+	      deprecate('that caching strategy', '<"ALL">');
+	      strategy = 'ALL';
+	    }
+	    if (strategy !== 'FLUSH' && strategy !== 'SEEN' && strategy !== 'ALL') {
+	      throw 'Argument \'strategy\' of baseclient.cache must be one of ' + '["FLUSH", "SEEN", "ALL"]';
+	    }
+	    this.storage.caching.set(this.makePath(path), strategy);
+	    return this;
+	  },
+	
+	  flush: function flush(path) {
+	    return this.storage.local.flush(path);
+	  },
+	
+	  makePath: function makePath(path) {
+	    return this.base + (path || '');
+	  },
+	
+	  _fireChange: function _fireChange(event) {
+	    if (config.changeEvents[event.origin]) {
+	      ['new', 'old', 'lastCommon'].forEach(function (fieldNamePrefix) {
+	        if (!event[fieldNamePrefix + 'ContentType'] || /^application\/(.*)json(.*)/.exec(event[fieldNamePrefix + 'ContentType'])) {
+	          if (typeof event[fieldNamePrefix + 'Value'] === 'string') {
+	            try {
+	              event[fieldNamePrefix + 'Value'] = JSON.parse(event[fieldNamePrefix + 'Value']);
+	            } catch (e) {}
+	          }
+	        }
+	      });
+	      this._emit('change', event);
+	    }
+	  },
+	
+	  _cleanPath: util.cleanPath,
+	
+	  /**
+	   * Method: getItemURL
+	   *
+	   * Retrieve full URL of item
+	   *
+	   * Parameters:
+	   *   path     - Path relative to the module root.
+	   */
+	  getItemURL: function getItemURL(path) {
+	    if (typeof path !== 'string') {
+	      throw 'Argument \'path\' of baseClient.getItemURL must be a string';
+	    }
+	    if (this.storage.connected) {
+	      path = this._cleanPath(this.makePath(path));
+	      return this.storage.remote.href + path;
+	    } else {
+	      return undefined;
+	    }
+	  },
+	
+	  uuid: function uuid() {
+	    return Math.uuid();
+	  }
+	
+	};
+	
+	/**
+	 * Method: RS#scope
+	 *
+	 * Returns a new <RS.BaseClient> scoped to the given path.
+	 *
+	 * Parameters:
+	 *   path - Root path of new BaseClient.
+	 *
+	 *
+	 * Example:
+	 *   (start code)
+	 *
+	 *   var foo = remoteStorage.scope('/foo/');
+	 *
+	 *   // PUTs data "baz" to path /foo/bar
+	 *   foo.storeFile('text/plain', 'bar', 'baz');
+	 *
+	 *   var something = foo.scope('something/');
+	 *
+	 *   // GETs listing from path /foo/something/bla/
+	 *   something.getListing('bla/');
+	 *
+	 *   (end code)
+	 *
+	 */
+	BaseClient._rs_init = function () {};
+	
+	/* e.g.:
+	remoteStorage.defineModule('locations', function (priv, pub) {
+	  return {
+	    exports: {
+	      features: priv.scope('features/').defaultType('feature'),
+	      collections: priv.scope('collections/').defaultType('feature-collection');
+	    }
+	  };
+	});
+	*/
+	
+	// Defined in baseclient/types.js
+	/**
+	 * Method: declareType
+	 *
+	 * Declare a remoteStorage object type using a JSON schema. See
+	 * <RemoteStorage.BaseClient.Types>
+	 **/
+	
+	module.exports = BaseClient;
+	__webpack_require__(10);
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	/*!
 	  Math.uuid.js (v1.4)
 	  http://www.broofa.com
 	  mailto:robert@broofa.com
@@ -14,15 +3626,6246 @@
 	  - added AMD wrapper <niklas@unhosted.org>
 	  - moved extensions for Math object into exported object.
 	*/
-var r="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");Math.uuid=function(e,t){var n,o=r,i=[];if(t=t||o.length,e)for(n=0;n<e;n++)i[n]=o[0|Math.random()*t];else{var s;for(i[8]=i[13]=i[18]=i[23]="-",i[14]="4",n=0;n<36;n++)i[n]||(s=0|16*Math.random(),i[n]=o[19==n?3&s|8:s])}return i.join("")}},function(e,t,r){var n=r(12),o=r(9);o.Types={uris:{},schemas:{},aliases:{},declare:function(e,t,r,n){var o=e+"/"+t;if(n.extends){var i,s=n.extends.split("/");i=1===s.length?e+"/"+s.shift():s.join("/");var a=this.uris[i];if(!a)throw"Type '"+o+"' tries to extend unknown schema '"+i+"'";n.extends=this.schemas[a]}this.uris[o]=r,this.aliases[r]=o,this.schemas[r]=n},resolveAlias:function(e){return this.uris[e]},getSchema:function(e){return this.schemas[e]},inScope:function(e){var t=e.length,r={};for(var n in this.uris)if(n.substr(0,t+1)===e+"/"){var o=this.uris[n];r[o]=this.schemas[o]}return r}};var i=function(e){var t=new Error("Schema not found: "+e);return t.name="SchemaNotFound",t};i.prototype=Error.prototype,o.Types.SchemaNotFound=i,o.prototype.extend({declareType:function(e,t,r){r||(r=t,t=this._defaultTypeURI(e)),o.Types.declare(this.moduleName,e,t,r)},validate:function(e){var t=o.Types.getSchema(e["@context"]);if(t)return n.validateResult(e,t);throw new i(e["@context"])},_defaultTypeURI:function(e){return"http://remotestorage.io/spec/modules/"+encodeURIComponent(this.moduleName)+"/"+encodeURIComponent(e)},_attachType:function(e,t){e["@context"]=o.Types.resolveAlias(this.moduleName+"/"+t)||this._defaultTypeURI(t)}}),Object.defineProperty(o.prototype,"schemas",{configurable:!0,get:function(){return o.Types.inScope(this.moduleName)}})},function(e,t,r){var n,o,i;!function(r,s){o=[],n=s,i="function"==typeof n?n.apply(t,o):n,!(void 0!==i&&(e.exports=i))}(this,function(){function e(e){return encodeURI(e).replace(/%25[0-9][0-9]/g,function(e){return"%"+e.substring(3)})}function t(t){var r="";f[t.charAt(0)]&&(r=t.charAt(0),t=t.substring(1));var n="",o="",i=!0,s=!1,a=!1;"+"===r?i=!1:"."===r?(o=".",n="."):"/"===r?(o="/",n="/"):"#"===r?(o="#",i=!1):";"===r?(o=";",n=";",s=!0,a=!0):"?"===r?(o="?",n="&",s=!0):"&"===r&&(o="&",n="&",s=!0);for(var u=[],c=t.split(","),h=[],l={},p=0;p<c.length;p++){var m=c[p],g=null;if(m.indexOf(":")!==-1){var y=m.split(":");m=y[0],g=parseInt(y[1],10)}for(var v={};d[m.charAt(m.length-1)];)v[m.charAt(m.length-1)]=!0,m=m.substring(0,m.length-1);var b={truncate:g,name:m,suffices:v};h.push(b),l[m]=b,u.push(m)}var _=function(t){for(var r="",u=0,c=0;c<h.length;c++){var l=h[c],f=t(l.name);if(null===f||void 0===f||Array.isArray(f)&&0===f.length||"object"==typeof f&&0===Object.keys(f).length)u++;else if(r+=c===u?o:n||",",Array.isArray(f)){s&&(r+=l.name+"=");for(var d=0;d<f.length;d++)d>0&&(r+=l.suffices["*"]?n||",":",",l.suffices["*"]&&s&&(r+=l.name+"=")),r+=i?encodeURIComponent(f[d]).replace(/!/g,"%21"):e(f[d])}else if("object"==typeof f){s&&!l.suffices["*"]&&(r+=l.name+"=");var p=!0;for(var m in f)p||(r+=l.suffices["*"]?n||",":","),p=!1,r+=i?encodeURIComponent(m).replace(/!/g,"%21"):e(m),r+=l.suffices["*"]?"=":",",r+=i?encodeURIComponent(f[m]).replace(/!/g,"%21"):e(f[m])}else s&&(r+=l.name,a&&""===f||(r+="=")),null!=l.truncate&&(f=f.substring(0,l.truncate)),r+=i?encodeURIComponent(f).replace(/!/g,"%21"):e(f)}return r};return _.varNames=u,{prefix:o,substitution:_}}function r(e){if(!(this instanceof r))return new r(e);for(var n=e.split("{"),o=[n.shift()],i=[],s=[],a=[];n.length>0;){var u=n.shift(),c=u.split("}")[0],h=u.substring(c.length+1),l=t(c);s.push(l.substitution),i.push(l.prefix),o.push(h),a=a.concat(l.substitution.varNames)}this.fill=function(e){for(var t=o[0],r=0;r<s.length;r++){var n=s[r];t+=n(e),t+=o[r+1]}return t},this.varNames=a,this.template=e}function n(e,t){if(e===t)return!0;if(e&&t&&"object"==typeof e&&"object"==typeof t){if(Array.isArray(e)!==Array.isArray(t))return!1;if(Array.isArray(e)){if(e.length!==t.length)return!1;for(var r=0;r<e.length;r++)if(!n(e[r],t[r]))return!1}else{var o;for(o in e)if(void 0===t[o]&&void 0!==e[o])return!1;for(o in t)if(void 0===e[o]&&void 0!==t[o])return!1;for(o in e)if(!n(e[o],t[o]))return!1}return!0}return!1}function o(e){var t=String(e).replace(/^\s+|\s+$/g,"").match(/^([^:\/?#]+:)?(\/\/(?:[^:@]*(?::[^:@]*)?@)?(([^:\/?#]*)(?::(\d*))?))?([^?#]*)(\?[^#]*)?(#[\s\S]*)?/);return t?{href:t[0]||"",protocol:t[1]||"",authority:t[2]||"",host:t[3]||"",hostname:t[4]||"",port:t[5]||"",pathname:t[6]||"",search:t[7]||"",hash:t[8]||""}:null}function i(e,t){function r(e){var t=[];return e.replace(/^(\.\.?(\/|$))+/,"").replace(/\/(\.(\/|$))+/g,"/").replace(/\/\.\.$/,"/../").replace(/\/?[^\/]*/g,function(e){"/.."===e?t.pop():t.push(e)}),t.join("").replace(/^\//,"/"===e.charAt(0)?"/":"")}return t=o(t||""),e=o(e||""),t&&e?(t.protocol||e.protocol)+(t.protocol||t.authority?t.authority:e.authority)+r(t.protocol||t.authority||"/"===t.pathname.charAt(0)?t.pathname:t.pathname?(e.authority&&!e.pathname?"/":"")+e.pathname.slice(0,e.pathname.lastIndexOf("/")+1)+t.pathname:e.pathname)+(t.protocol||t.authority||t.pathname?t.search:t.search||e.search)+t.hash:null}function s(e){return e.split("#")[0]}function a(e,t){if(e&&"object"==typeof e)if(void 0===t?t=e.id:"string"==typeof e.id&&(t=i(t,e.id),e.id=t),Array.isArray(e))for(var r=0;r<e.length;r++)a(e[r],t);else{"string"==typeof e.$ref&&(e.$ref=i(t,e.$ref));for(var n in e)"enum"!==n&&a(e[n],t)}}function u(e){e=e||"en";var t=w[e];return function(e){var r=t[e.code]||_[e.code];if("string"!=typeof r)return"Unknown error code "+e.code+": "+JSON.stringify(e.messageParams);var n=e.params;return r.replace(/\{([^{}]*)\}/g,function(e,t){var r=n[t];return"string"==typeof r||"number"==typeof r?r:e})}}function c(e,t,r,n,o){if(Error.call(this),void 0===e)throw new Error("No error code supplied: "+n);this.message="",this.params=t,this.code=e,this.dataPath=r||"",this.schemaPath=n||"",this.subErrors=o||null;var i=new Error(this.message);if(this.stack=i.stack||i.stacktrace,!this.stack)try{throw i}catch(e){this.stack=e.stack||e.stacktrace}}function h(e,t){if(t.substring(0,e.length)===e){var r=t.substring(e.length);if(t.length>0&&"/"===t.charAt(e.length-1)||"#"===r.charAt(0)||"?"===r.charAt(0))return!0}return!1}function l(e){var t,r,n=new p,o={setErrorReporter:function(e){return"string"==typeof e?this.language(e):(r=e,!0)},addFormat:function(){n.addFormat.apply(n,arguments)},language:function(e){return e?(w[e]||(e=e.split("-")[0]),!!w[e]&&(t=e,e)):t},addLanguage:function(e,t){var r;for(r in y)t[r]&&!t[y[r]]&&(t[y[r]]=t[r]);var n=e.split("-")[0];if(w[n]){w[e]=Object.create(w[n]);for(r in t)"undefined"==typeof w[n][r]&&(w[n][r]=t[r]),w[e][r]=t[r]}else w[e]=t,w[n]=t;return this},freshApi:function(e){var t=l();return e&&t.language(e),t},validate:function(e,o,i,s){var a=u(t),c=r?function(e,t,n){return r(e,t,n)||a(e,t,n)}:a,h=new p(n,!1,c,i,s);"string"==typeof o&&(o={$ref:o}),h.addSchema("",o);var l=h.validateAll(e,o,null,null,"");return!l&&s&&(l=h.banUnknownProperties(e,o)),this.error=l,this.missing=h.missing,this.valid=null===l,this.valid},validateResult:function(){var e={};return this.validate.apply(e,arguments),e},validateMultiple:function(e,o,i,s){var a=u(t),c=r?function(e,t,n){return r(e,t,n)||a(e,t,n)}:a,h=new p(n,!0,c,i,s);"string"==typeof o&&(o={$ref:o}),h.addSchema("",o),h.validateAll(e,o,null,null,""),s&&h.banUnknownProperties(e,o);var l={};return l.errors=h.errors,l.missing=h.missing,l.valid=0===l.errors.length,l},addSchema:function(){return n.addSchema.apply(n,arguments)},getSchema:function(){return n.getSchema.apply(n,arguments)},getSchemaMap:function(){return n.getSchemaMap.apply(n,arguments)},getSchemaUris:function(){return n.getSchemaUris.apply(n,arguments)},getMissingUris:function(){return n.getMissingUris.apply(n,arguments)},dropSchemas:function(){n.dropSchemas.apply(n,arguments)},defineKeyword:function(){n.defineKeyword.apply(n,arguments)},defineError:function(e,t,r){if("string"!=typeof e||!/^[A-Z]+(_[A-Z]+)*$/.test(e))throw new Error("Code name must be a string in UPPER_CASE_WITH_UNDERSCORES");if("number"!=typeof t||t%1!==0||t<1e4)throw new Error("Code number must be an integer > 10000");if("undefined"!=typeof y[e])throw new Error("Error already defined: "+e+" as "+y[e]);if("undefined"!=typeof v[t])throw new Error("Error code already used: "+v[t]+" as "+t);y[e]=t,v[t]=e,_[e]=_[t]=r;for(var n in w){var o=w[n];o[e]&&(o[t]=o[t]||o[e])}},reset:function(){n.reset(),this.error=null,this.missing=[],this.valid=!0},missing:[],error:null,valid:!0,normSchema:a,resolveUrl:i,getDocumentUri:s,errorCodes:y};return o.language(e||"en"),o}Object.keys||(Object.keys=function(){var e=Object.prototype.hasOwnProperty,t=!{toString:null}.propertyIsEnumerable("toString"),r=["toString","toLocaleString","valueOf","hasOwnProperty","isPrototypeOf","propertyIsEnumerable","constructor"],n=r.length;return function(o){if("object"!=typeof o&&"function"!=typeof o||null===o)throw new TypeError("Object.keys called on non-object");var i=[];for(var s in o)e.call(o,s)&&i.push(s);if(t)for(var a=0;a<n;a++)e.call(o,r[a])&&i.push(r[a]);return i}}()),Object.create||(Object.create=function(){function e(){}return function(t){if(1!==arguments.length)throw new Error("Object.create implementation only accepts one parameter.");return e.prototype=t,new e}}()),Array.isArray||(Array.isArray=function(e){return"[object Array]"===Object.prototype.toString.call(e)}),Array.prototype.indexOf||(Array.prototype.indexOf=function(e){if(null===this)throw new TypeError;var t=Object(this),r=t.length>>>0;if(0===r)return-1;var n=0;if(arguments.length>1&&(n=Number(arguments[1]),n!==n?n=0:0!==n&&n!==1/0&&n!==-(1/0)&&(n=(n>0||-1)*Math.floor(Math.abs(n)))),n>=r)return-1;for(var o=n>=0?n:Math.max(r-Math.abs(n),0);o<r;o++)if(o in t&&t[o]===e)return o;return-1}),Object.isFrozen||(Object.isFrozen=function(e){for(var t="tv4_test_frozen_key";e.hasOwnProperty(t);)t+=Math.random();try{return e[t]=!0,delete e[t],!1}catch(e){return!0}});var f={"+":!0,"#":!0,".":!0,"/":!0,";":!0,"?":!0,"&":!0},d={"*":!0};r.prototype={toString:function(){return this.template},fillFromObject:function(e){return this.fill(function(t){return e[t]})}};var p=function(e,t,r,n,o){if(this.missing=[],this.missingMap={},this.formatValidators=e?Object.create(e.formatValidators):{},this.schemas=e?Object.create(e.schemas):{},this.collectMultiple=t,this.errors=[],this.handleError=t?this.collectError:this.returnError,n&&(this.checkRecursive=!0,this.scanned=[],this.scannedFrozen=[],this.scannedFrozenSchemas=[],this.scannedFrozenValidationErrors=[],this.validatedSchemasKey="tv4_validation_id",this.validationErrorsKey="tv4_validation_errors_id"),o&&(this.trackUnknownProperties=!0,this.knownPropertyPaths={},this.unknownPropertyPaths={}),this.errorReporter=r||u("en"),"string"==typeof this.errorReporter)throw new Error("debug");if(this.definedKeywords={},e)for(var i in e.definedKeywords)this.definedKeywords[i]=e.definedKeywords[i].slice(0)};p.prototype.defineKeyword=function(e,t){this.definedKeywords[e]=this.definedKeywords[e]||[],this.definedKeywords[e].push(t)},p.prototype.createError=function(e,t,r,n,o,i,s){var a=new c(e,t,r,n,o);return a.message=this.errorReporter(a,i,s),a},p.prototype.returnError=function(e){return e},p.prototype.collectError=function(e){return e&&this.errors.push(e),null},p.prototype.prefixErrors=function(e,t,r){for(var n=e;n<this.errors.length;n++)this.errors[n]=this.errors[n].prefixWith(t,r);return this},p.prototype.banUnknownProperties=function(e,t){for(var r in this.unknownPropertyPaths){var n=this.createError(y.UNKNOWN_PROPERTY,{path:r},r,"",null,e,t),o=this.handleError(n);if(o)return o}return null},p.prototype.addFormat=function(e,t){if("object"==typeof e){for(var r in e)this.addFormat(r,e[r]);return this}this.formatValidators[e]=t},p.prototype.resolveRefs=function(e,t){if(void 0!==e.$ref){if(t=t||{},t[e.$ref])return this.createError(y.CIRCULAR_REFERENCE,{urls:Object.keys(t).join(", ")},"","",null,void 0,e);t[e.$ref]=!0,e=this.getSchema(e.$ref,t)}return e},p.prototype.getSchema=function(e,t){var r;if(void 0!==this.schemas[e])return r=this.schemas[e],this.resolveRefs(r,t);var n=e,o="";if(e.indexOf("#")!==-1&&(o=e.substring(e.indexOf("#")+1),n=e.substring(0,e.indexOf("#"))),"object"==typeof this.schemas[n]){r=this.schemas[n];var i=decodeURIComponent(o);if(""===i)return this.resolveRefs(r,t);if("/"!==i.charAt(0))return;for(var s=i.split("/").slice(1),a=0;a<s.length;a++){var u=s[a].replace(/~1/g,"/").replace(/~0/g,"~");if(void 0===r[u]){r=void 0;break}r=r[u]}if(void 0!==r)return this.resolveRefs(r,t)}void 0===this.missing[n]&&(this.missing.push(n),this.missing[n]=n,this.missingMap[n]=n)},p.prototype.searchSchemas=function(e,t){if(Array.isArray(e))for(var r=0;r<e.length;r++)this.searchSchemas(e[r],t);else if(e&&"object"==typeof e){"string"==typeof e.id&&h(t,e.id)&&void 0===this.schemas[e.id]&&(this.schemas[e.id]=e);for(var n in e)if("enum"!==n)if("object"==typeof e[n])this.searchSchemas(e[n],t);else if("$ref"===n){var o=s(e[n]);o&&void 0===this.schemas[o]&&void 0===this.missingMap[o]&&(this.missingMap[o]=o)}}},p.prototype.addSchema=function(e,t){if("string"!=typeof e||"undefined"==typeof t){if("object"!=typeof e||"string"!=typeof e.id)return;t=e,e=t.id}e===s(e)+"#"&&(e=s(e)),this.schemas[e]=t,delete this.missingMap[e],a(t,e),this.searchSchemas(t,e)},p.prototype.getSchemaMap=function(){var e={};for(var t in this.schemas)e[t]=this.schemas[t];return e},p.prototype.getSchemaUris=function(e){var t=[];for(var r in this.schemas)e&&!e.test(r)||t.push(r);return t},p.prototype.getMissingUris=function(e){var t=[];for(var r in this.missingMap)e&&!e.test(r)||t.push(r);return t},p.prototype.dropSchemas=function(){this.schemas={},this.reset()},p.prototype.reset=function(){this.missing=[],this.missingMap={},this.errors=[]},p.prototype.validateAll=function(e,t,r,n,o){var i;if(t=this.resolveRefs(t),!t)return null;if(t instanceof c)return this.errors.push(t),t;var s,a=this.errors.length,u=null,h=null;if(this.checkRecursive&&e&&"object"==typeof e){if(i=!this.scanned.length,e[this.validatedSchemasKey]){var l=e[this.validatedSchemasKey].indexOf(t);if(l!==-1)return this.errors=this.errors.concat(e[this.validationErrorsKey][l]),null}if(Object.isFrozen(e)&&(s=this.scannedFrozen.indexOf(e),s!==-1)){var f=this.scannedFrozenSchemas[s].indexOf(t);if(f!==-1)return this.errors=this.errors.concat(this.scannedFrozenValidationErrors[s][f]),null}if(this.scanned.push(e),Object.isFrozen(e))s===-1&&(s=this.scannedFrozen.length,this.scannedFrozen.push(e),this.scannedFrozenSchemas.push([])),u=this.scannedFrozenSchemas[s].length,this.scannedFrozenSchemas[s][u]=t,this.scannedFrozenValidationErrors[s][u]=[];else{if(!e[this.validatedSchemasKey])try{Object.defineProperty(e,this.validatedSchemasKey,{value:[],configurable:!0}),Object.defineProperty(e,this.validationErrorsKey,{value:[],configurable:!0})}catch(t){e[this.validatedSchemasKey]=[],e[this.validationErrorsKey]=[]}h=e[this.validatedSchemasKey].length,e[this.validatedSchemasKey][h]=t,e[this.validationErrorsKey][h]=[]}}var d=this.errors.length,p=this.validateBasic(e,t,o)||this.validateNumeric(e,t,o)||this.validateString(e,t,o)||this.validateArray(e,t,o)||this.validateObject(e,t,o)||this.validateCombinations(e,t,o)||this.validateHypermedia(e,t,o)||this.validateFormat(e,t,o)||this.validateDefinedKeywords(e,t,o)||null;if(i){for(;this.scanned.length;){var m=this.scanned.pop();delete m[this.validatedSchemasKey]}this.scannedFrozen=[],this.scannedFrozenSchemas=[]}if(p||d!==this.errors.length)for(;r&&r.length||n&&n.length;){var g=r&&r.length?""+r.pop():null,y=n&&n.length?""+n.pop():null;p&&(p=p.prefixWith(g,y)),this.prefixErrors(d,g,y)}return null!==u?this.scannedFrozenValidationErrors[s][u]=this.errors.slice(a):null!==h&&(e[this.validationErrorsKey][h]=this.errors.slice(a)),this.handleError(p)},p.prototype.validateFormat=function(e,t){if("string"!=typeof t.format||!this.formatValidators[t.format])return null;var r=this.formatValidators[t.format].call(null,e,t);return"string"==typeof r||"number"==typeof r?this.createError(y.FORMAT_CUSTOM,{message:r},"","/format",null,e,t):r&&"object"==typeof r?this.createError(y.FORMAT_CUSTOM,{message:r.message||"?"},r.dataPath||"",r.schemaPath||"/format",null,e,t):null},p.prototype.validateDefinedKeywords=function(e,t,r){for(var n in this.definedKeywords)if("undefined"!=typeof t[n])for(var o=this.definedKeywords[n],i=0;i<o.length;i++){var s=o[i],a=s(e,t[n],t,r);if("string"==typeof a||"number"==typeof a)return this.createError(y.KEYWORD_CUSTOM,{key:n,message:a},"","",null,e,t).prefixWith(null,n);if(a&&"object"==typeof a){var u=a.code;if("string"==typeof u){if(!y[u])throw new Error("Undefined error code (use defineError): "+u);u=y[u]}else"number"!=typeof u&&(u=y.KEYWORD_CUSTOM);var c="object"==typeof a.message?a.message:{key:n,message:a.message||"?"},h=a.schemaPath||"/"+n.replace(/~/g,"~0").replace(/\//g,"~1");return this.createError(u,c,a.dataPath||null,h,null,e,t)}}return null},p.prototype.validateBasic=function(e,t,r){var n;return(n=this.validateType(e,t,r))?n.prefixWith(null,"type"):(n=this.validateEnum(e,t,r))?n.prefixWith(null,"type"):null},p.prototype.validateType=function(e,t){if(void 0===t.type)return null;var r=typeof e;null===e?r="null":Array.isArray(e)&&(r="array");var n=t.type;Array.isArray(n)||(n=[n]);for(var o=0;o<n.length;o++){var i=n[o];if(i===r||"integer"===i&&"number"===r&&e%1===0)return null}return this.createError(y.INVALID_TYPE,{type:r,expected:n.join("/")},"","",null,e,t)},p.prototype.validateEnum=function(e,t){if(void 0===t.enum)return null;for(var r=0;r<t.enum.length;r++){var o=t.enum[r];if(n(e,o))return null}return this.createError(y.ENUM_MISMATCH,{value:"undefined"!=typeof JSON?JSON.stringify(e):e},"","",null,e,t)},p.prototype.validateNumeric=function(e,t,r){return this.validateMultipleOf(e,t,r)||this.validateMinMax(e,t,r)||this.validateNaN(e,t,r)||null};var m=Math.pow(2,-51),g=1-m;p.prototype.validateMultipleOf=function(e,t){var r=t.multipleOf||t.divisibleBy;if(void 0===r)return null;if("number"==typeof e){var n=e/r%1;if(n>=m&&n<g)return this.createError(y.NUMBER_MULTIPLE_OF,{value:e,multipleOf:r},"","",null,e,t)}return null},p.prototype.validateMinMax=function(e,t){if("number"!=typeof e)return null;if(void 0!==t.minimum){if(e<t.minimum)return this.createError(y.NUMBER_MINIMUM,{value:e,minimum:t.minimum},"","/minimum",null,e,t);if(t.exclusiveMinimum&&e===t.minimum)return this.createError(y.NUMBER_MINIMUM_EXCLUSIVE,{value:e,minimum:t.minimum},"","/exclusiveMinimum",null,e,t)}if(void 0!==t.maximum){if(e>t.maximum)return this.createError(y.NUMBER_MAXIMUM,{value:e,maximum:t.maximum},"","/maximum",null,e,t);if(t.exclusiveMaximum&&e===t.maximum)return this.createError(y.NUMBER_MAXIMUM_EXCLUSIVE,{value:e,maximum:t.maximum},"","/exclusiveMaximum",null,e,t)}return null},p.prototype.validateNaN=function(e,t){return"number"!=typeof e?null:isNaN(e)===!0||e===1/0||e===-(1/0)?this.createError(y.NUMBER_NOT_A_NUMBER,{value:e},"","/type",null,e,t):null},p.prototype.validateString=function(e,t,r){return this.validateStringLength(e,t,r)||this.validateStringPattern(e,t,r)||null},p.prototype.validateStringLength=function(e,t){return"string"!=typeof e?null:void 0!==t.minLength&&e.length<t.minLength?this.createError(y.STRING_LENGTH_SHORT,{length:e.length,minimum:t.minLength},"","/minLength",null,e,t):void 0!==t.maxLength&&e.length>t.maxLength?this.createError(y.STRING_LENGTH_LONG,{length:e.length,maximum:t.maxLength},"","/maxLength",null,e,t):null},p.prototype.validateStringPattern=function(e,t){if("string"!=typeof e||"string"!=typeof t.pattern&&!(t.pattern instanceof RegExp))return null;var r;if(t.pattern instanceof RegExp)r=t.pattern;else{var n,o="",i=t.pattern.match(/^\/(.+)\/([img]*)$/);i?(n=i[1],o=i[2]):n=t.pattern,r=new RegExp(n,o)}return r.test(e)?null:this.createError(y.STRING_PATTERN,{pattern:t.pattern},"","/pattern",null,e,t)},p.prototype.validateArray=function(e,t,r){return Array.isArray(e)?this.validateArrayLength(e,t,r)||this.validateArrayUniqueItems(e,t,r)||this.validateArrayItems(e,t,r)||null:null},p.prototype.validateArrayLength=function(e,t){var r;return void 0!==t.minItems&&e.length<t.minItems&&(r=this.createError(y.ARRAY_LENGTH_SHORT,{length:e.length,minimum:t.minItems},"","/minItems",null,e,t),this.handleError(r))?r:void 0!==t.maxItems&&e.length>t.maxItems&&(r=this.createError(y.ARRAY_LENGTH_LONG,{length:e.length,maximum:t.maxItems},"","/maxItems",null,e,t),this.handleError(r))?r:null},p.prototype.validateArrayUniqueItems=function(e,t){if(t.uniqueItems)for(var r=0;r<e.length;r++)for(var o=r+1;o<e.length;o++)if(n(e[r],e[o])){var i=this.createError(y.ARRAY_UNIQUE,{match1:r,match2:o},"","/uniqueItems",null,e,t);if(this.handleError(i))return i}return null},p.prototype.validateArrayItems=function(e,t,r){if(void 0===t.items)return null;var n,o;if(Array.isArray(t.items)){for(o=0;o<e.length;o++)if(o<t.items.length){if(n=this.validateAll(e[o],t.items[o],[o],["items",o],r+"/"+o))return n}else if(void 0!==t.additionalItems)if("boolean"==typeof t.additionalItems){if(!t.additionalItems&&(n=this.createError(y.ARRAY_ADDITIONAL_ITEMS,{},"/"+o,"/additionalItems",null,e,t),this.handleError(n)))return n}else if(n=this.validateAll(e[o],t.additionalItems,[o],["additionalItems"],r+"/"+o))return n}else for(o=0;o<e.length;o++)if(n=this.validateAll(e[o],t.items,[o],["items"],r+"/"+o))return n;return null},p.prototype.validateObject=function(e,t,r){return"object"!=typeof e||null===e||Array.isArray(e)?null:this.validateObjectMinMaxProperties(e,t,r)||this.validateObjectRequiredProperties(e,t,r)||this.validateObjectProperties(e,t,r)||this.validateObjectDependencies(e,t,r)||null},p.prototype.validateObjectMinMaxProperties=function(e,t){var r,n=Object.keys(e);return void 0!==t.minProperties&&n.length<t.minProperties&&(r=this.createError(y.OBJECT_PROPERTIES_MINIMUM,{propertyCount:n.length,minimum:t.minProperties},"","/minProperties",null,e,t),this.handleError(r))?r:void 0!==t.maxProperties&&n.length>t.maxProperties&&(r=this.createError(y.OBJECT_PROPERTIES_MAXIMUM,{propertyCount:n.length,maximum:t.maxProperties},"","/maxProperties",null,e,t),this.handleError(r))?r:null},p.prototype.validateObjectRequiredProperties=function(e,t){if(void 0!==t.required)for(var r=0;r<t.required.length;r++){var n=t.required[r];if(void 0===e[n]){var o=this.createError(y.OBJECT_REQUIRED,{key:n},"","/required/"+r,null,e,t);if(this.handleError(o))return o}}return null},p.prototype.validateObjectProperties=function(e,t,r){var n;for(var o in e){var i=r+"/"+o.replace(/~/g,"~0").replace(/\//g,"~1"),s=!1;if(void 0!==t.properties&&void 0!==t.properties[o]&&(s=!0,n=this.validateAll(e[o],t.properties[o],[o],["properties",o],i)))return n;if(void 0!==t.patternProperties)for(var a in t.patternProperties){var u=new RegExp(a);if(u.test(o)&&(s=!0,n=this.validateAll(e[o],t.patternProperties[a],[o],["patternProperties",a],i)))return n}if(s)this.trackUnknownProperties&&(this.knownPropertyPaths[i]=!0,delete this.unknownPropertyPaths[i]);else if(void 0!==t.additionalProperties){if(this.trackUnknownProperties&&(this.knownPropertyPaths[i]=!0,delete this.unknownPropertyPaths[i]),"boolean"==typeof t.additionalProperties){if(!t.additionalProperties&&(n=this.createError(y.OBJECT_ADDITIONAL_PROPERTIES,{key:o},"","/additionalProperties",null,e,t).prefixWith(o,null),this.handleError(n)))return n}else if(n=this.validateAll(e[o],t.additionalProperties,[o],["additionalProperties"],i))return n}else this.trackUnknownProperties&&!this.knownPropertyPaths[i]&&(this.unknownPropertyPaths[i]=!0)}return null},p.prototype.validateObjectDependencies=function(e,t,r){var n;if(void 0!==t.dependencies)for(var o in t.dependencies)if(void 0!==e[o]){var i=t.dependencies[o];if("string"==typeof i){if(void 0===e[i]&&(n=this.createError(y.OBJECT_DEPENDENCY_KEY,{key:o,missing:i},"","",null,e,t).prefixWith(null,o).prefixWith(null,"dependencies"),this.handleError(n)))return n}else if(Array.isArray(i))for(var s=0;s<i.length;s++){var a=i[s];if(void 0===e[a]&&(n=this.createError(y.OBJECT_DEPENDENCY_KEY,{key:o,missing:a},"","/"+s,null,e,t).prefixWith(null,o).prefixWith(null,"dependencies"),this.handleError(n)))return n}else if(n=this.validateAll(e,i,[],["dependencies",o],r))return n}return null},p.prototype.validateCombinations=function(e,t,r){return this.validateAllOf(e,t,r)||this.validateAnyOf(e,t,r)||this.validateOneOf(e,t,r)||this.validateNot(e,t,r)||null},p.prototype.validateAllOf=function(e,t,r){if(void 0===t.allOf)return null;for(var n,o=0;o<t.allOf.length;o++){var i=t.allOf[o];if(n=this.validateAll(e,i,[],["allOf",o],r))return n}return null},p.prototype.validateAnyOf=function(e,t,r){if(void 0===t.anyOf)return null;var n,o,i=[],s=this.errors.length;this.trackUnknownProperties&&(n=this.unknownPropertyPaths,o=this.knownPropertyPaths);for(var a=!0,u=0;u<t.anyOf.length;u++){this.trackUnknownProperties&&(this.unknownPropertyPaths={},this.knownPropertyPaths={});var c=t.anyOf[u],h=this.errors.length,l=this.validateAll(e,c,[],["anyOf",u],r);if(null===l&&h===this.errors.length){if(this.errors=this.errors.slice(0,s),this.trackUnknownProperties){for(var f in this.knownPropertyPaths)o[f]=!0,delete n[f];for(var d in this.unknownPropertyPaths)o[d]||(n[d]=!0);a=!1;continue}return null}l&&i.push(l.prefixWith(null,""+u).prefixWith(null,"anyOf"))}return this.trackUnknownProperties&&(this.unknownPropertyPaths=n,this.knownPropertyPaths=o),a?(i=i.concat(this.errors.slice(s)),this.errors=this.errors.slice(0,s),this.createError(y.ANY_OF_MISSING,{},"","/anyOf",i,e,t)):void 0},p.prototype.validateOneOf=function(e,t,r){if(void 0===t.oneOf)return null;var n,o,i=null,s=[],a=this.errors.length;this.trackUnknownProperties&&(n=this.unknownPropertyPaths,o=this.knownPropertyPaths);for(var u=0;u<t.oneOf.length;u++){this.trackUnknownProperties&&(this.unknownPropertyPaths={},this.knownPropertyPaths={});var c=t.oneOf[u],h=this.errors.length,l=this.validateAll(e,c,[],["oneOf",u],r);if(null===l&&h===this.errors.length){if(null!==i)return this.errors=this.errors.slice(0,a),this.createError(y.ONE_OF_MULTIPLE,{index1:i,index2:u},"","/oneOf",null,e,t);if(i=u,this.trackUnknownProperties){for(var f in this.knownPropertyPaths)o[f]=!0,delete n[f];for(var d in this.unknownPropertyPaths)o[d]||(n[d]=!0)}}else l&&s.push(l)}return this.trackUnknownProperties&&(this.unknownPropertyPaths=n,this.knownPropertyPaths=o),null===i?(s=s.concat(this.errors.slice(a)),this.errors=this.errors.slice(0,a),this.createError(y.ONE_OF_MISSING,{},"","/oneOf",s,e,t)):(this.errors=this.errors.slice(0,a),null)},p.prototype.validateNot=function(e,t,r){if(void 0===t.not)return null;var n,o,i=this.errors.length;this.trackUnknownProperties&&(n=this.unknownPropertyPaths,o=this.knownPropertyPaths,this.unknownPropertyPaths={},this.knownPropertyPaths={});var s=this.validateAll(e,t.not,null,null,r),a=this.errors.slice(i);return this.errors=this.errors.slice(0,i),this.trackUnknownProperties&&(this.unknownPropertyPaths=n,this.knownPropertyPaths=o),null===s&&0===a.length?this.createError(y.NOT_PASSED,{},"","/not",null,e,t):null},p.prototype.validateHypermedia=function(e,t,n){if(!t.links)return null;for(var o,i=0;i<t.links.length;i++){var s=t.links[i];if("describedby"===s.rel){for(var a=new r(s.href),u=!0,c=0;c<a.varNames.length;c++)if(!(a.varNames[c]in e)){u=!1;break}if(u){var h=a.fillFromObject(e),l={$ref:h};if(o=this.validateAll(e,l,[],["links",i],n))return o}}}};var y={INVALID_TYPE:0,ENUM_MISMATCH:1,ANY_OF_MISSING:10,ONE_OF_MISSING:11,ONE_OF_MULTIPLE:12,NOT_PASSED:13,NUMBER_MULTIPLE_OF:100,NUMBER_MINIMUM:101,NUMBER_MINIMUM_EXCLUSIVE:102,NUMBER_MAXIMUM:103,NUMBER_MAXIMUM_EXCLUSIVE:104,NUMBER_NOT_A_NUMBER:105,STRING_LENGTH_SHORT:200,STRING_LENGTH_LONG:201,STRING_PATTERN:202,OBJECT_PROPERTIES_MINIMUM:300,OBJECT_PROPERTIES_MAXIMUM:301,OBJECT_REQUIRED:302,OBJECT_ADDITIONAL_PROPERTIES:303,OBJECT_DEPENDENCY_KEY:304,ARRAY_LENGTH_SHORT:400,ARRAY_LENGTH_LONG:401,ARRAY_UNIQUE:402,ARRAY_ADDITIONAL_ITEMS:403,FORMAT_CUSTOM:500,KEYWORD_CUSTOM:501,CIRCULAR_REFERENCE:600,UNKNOWN_PROPERTY:1e3},v={};for(var b in y)v[y[b]]=b;var _={INVALID_TYPE:"Invalid type: {type} (expected {expected})",ENUM_MISMATCH:"No enum match for: {value}",ANY_OF_MISSING:'Data does not match any schemas from "anyOf"',ONE_OF_MISSING:'Data does not match any schemas from "oneOf"',ONE_OF_MULTIPLE:'Data is valid against more than one schema from "oneOf": indices {index1} and {index2}',NOT_PASSED:'Data matches schema from "not"',NUMBER_MULTIPLE_OF:"Value {value} is not a multiple of {multipleOf}",NUMBER_MINIMUM:"Value {value} is less than minimum {minimum}",NUMBER_MINIMUM_EXCLUSIVE:"Value {value} is equal to exclusive minimum {minimum}",NUMBER_MAXIMUM:"Value {value} is greater than maximum {maximum}",NUMBER_MAXIMUM_EXCLUSIVE:"Value {value} is equal to exclusive maximum {maximum}",NUMBER_NOT_A_NUMBER:"Value {value} is not a valid number",STRING_LENGTH_SHORT:"String is too short ({length} chars), minimum {minimum}",STRING_LENGTH_LONG:"String is too long ({length} chars), maximum {maximum}",STRING_PATTERN:"String does not match pattern: {pattern}",OBJECT_PROPERTIES_MINIMUM:"Too few properties defined ({propertyCount}), minimum {minimum}",OBJECT_PROPERTIES_MAXIMUM:"Too many properties defined ({propertyCount}), maximum {maximum}",OBJECT_REQUIRED:"Missing required property: {key}",OBJECT_ADDITIONAL_PROPERTIES:"Additional properties not allowed",OBJECT_DEPENDENCY_KEY:"Dependency failed - key must exist: {missing} (due to key: {key})",ARRAY_LENGTH_SHORT:"Array is too short ({length}), minimum {minimum}",ARRAY_LENGTH_LONG:"Array is too long ({length}), maximum {maximum}",ARRAY_UNIQUE:"Array items are not unique (indices {match1} and {match2})",ARRAY_ADDITIONAL_ITEMS:"Additional items not allowed",FORMAT_CUSTOM:"Format validation failed ({message})",KEYWORD_CUSTOM:"Keyword failed: {key} ({message})",CIRCULAR_REFERENCE:"Circular $refs: {urls}",UNKNOWN_PROPERTY:"Unknown property (not in schema)"};c.prototype=Object.create(Error.prototype),c.prototype.constructor=c,c.prototype.name="ValidationError",c.prototype.prefixWith=function(e,t){if(null!==e&&(e=e.replace(/~/g,"~0").replace(/\//g,"~1"),this.dataPath="/"+e+this.dataPath),null!==t&&(t=t.replace(/~/g,"~0").replace(/\//g,"~1"),this.schemaPath="/"+t+this.schemaPath),null!==this.subErrors)for(var r=0;r<this.subErrors.length;r++)this.subErrors[r].prefixWith(e,t);return this};var w={},E=l();return E.addLanguage("en-gb",_),E.tv4=E,E})},function(e,t,r){(function(t,n){function o(e){return"string"!=typeof e?e:"*"===e?"*":'"'+e+'"'}function i(e){return"string"!=typeof e?e:e.replace(/^["']|["']$/g,"")}function s(e,r,n){var o;if(t.BlobBuilder=t.BlobBuilder||t.WebKitBlobBuilder,"undefined"!=typeof t.BlobBuilder){var i=new t.BlobBuilder;i.append(e),o=i.getBlob(r)}else o=new Blob([e],{type:r});var s=new FileReader;"function"==typeof s.addEventListener?s.addEventListener("loadend",function(){n(s.result)}):s.onloadend=function(){n(s.result)},s.readAsArrayBuffer(o)}function a(e,r){var o=Promise.defer();if("undefined"==typeof Blob){var i=new n(new Uint8Array(e));o.resolve(i.toString(r))}else{var s;if(t.BlobBuilder=t.BlobBuilder||t.WebKitBlobBuilder,"undefined"!=typeof t.BlobBuilder){var a=new t.BlobBuilder;a.append(e),s=a.getBlob()}else s=new Blob([e]);var u=new FileReader;"function"==typeof u.addEventListener?u.addEventListener("loadend",function(e){o.resolve(e.target.result)}):u.onloadend=function(e){o.resolve(e.target.result)},u.readAsText(s,r)}return o.promise}function u(e){var t,r="UTF-8";return e&&(t=e.match(/charset=(.+)$/),t&&(r=t[1])),r}function c(e){return"http://remotestorage.io/spec/folder-description"===e["@context"]&&"object"==typeof e.items}function h(e){return[201,204,304].indexOf(e)>=0}function l(e){return[401,403,404,412].indexOf(e)>=0}var f,d,p=r(4),m=r(2),g=r(3),y=r(8),v="remotestorage:wireclient",b=1,_=2,w=3,E=4,P=5,T={"draft-dejong-remotestorage-00":_,"draft-dejong-remotestorage-01":w,"draft-dejong-remotestorage-02":E,"https://www.w3.org/community/rww/wiki/read-write-web-00#simple":b};if("function"==typeof ArrayBufferView)d=function(e){return e&&e instanceof ArrayBufferView;
-};else{var A=[Int8Array,Uint8Array,Int16Array,Uint16Array,Int32Array,Uint32Array,Float32Array,Float64Array];d=function(e){for(var t=0;t<8;t++)if(e instanceof A[t])return!0;return!1}}var S,R=m.isFolder,k=m.cleanPath,C=function(e){if(this.rs=e,this.connected=!1,g(this,"change","connected","not-connected","wire-busy","wire-done"),S=function(e){e instanceof y.Unauthorized&&this.configure({token:null})}.bind(this),e.on("error",S),f){var t;try{t=JSON.parse(localStorage[v])}catch(e){}t&&setTimeout(function(){this.configure(t)}.bind(this),0)}this._revisionCache={},this.connected&&setTimeout(this._emit.bind(this),0,"connected")};C.REQUEST_TIMEOUT=3e4,C.prototype={_request:function(e,t,r,n,o,s,c){if(("PUT"===e||"DELETE"===e)&&"/"===t[t.length-1])return Promise.reject("Don't "+e+" on directories!");var f,d=this;return r!==y.IMPLIED_FAKE_TOKEN&&(n.Authorization="Bearer "+r),this._emit("wire-busy",{method:e,isFolder:R(t)}),C.request(e,t,{body:o,headers:n,responseType:"arraybuffer"}).then(function(r){if(d.online||(d.online=!0,d.rs._emit("network-online")),d._emit("wire-done",{method:e,isFolder:R(t),success:!0}),l(r.status))return p("[WireClient] Error response status",r.status),f=s?i(r.getResponseHeader("ETag")):void 0,Promise.resolve({statusCode:r.status,revision:f});if(h(r.status)||200===r.status&&"GET"!==e)return f=i(r.getResponseHeader("ETag")),p("[WireClient] Successful request",f),Promise.resolve({statusCode:r.status,revision:f});var n=r.getResponseHeader("Content-Type");f=s?i(r.getResponseHeader("ETag")):200===r.status?c:void 0;var o=u(n);return n&&"binary"!==o?a(r.response,o).then(function(e){return p("[WireClient] Successful request",f),Promise.resolve({statusCode:r.status,body:e,contentType:n,revision:f})}):(p("[WireClient] Successful request with unknown or binary mime-type",f),Promise.resolve({statusCode:r.status,body:r.response,contentType:n,revision:f}))},function(r){return d.online&&(d.online=!1,d.rs._emit("network-offline")),d._emit("wire-done",{method:e,isFolder:R(t),success:!1}),Promise.reject(r)})},configure:function(e){if("object"!=typeof e)throw new Error("WireClient configure settings parameter should be an object");"undefined"!=typeof e.userAddress&&(this.userAddress=e.userAddress),"undefined"!=typeof e.href&&(this.href=e.href),"undefined"!=typeof e.storageApi&&(this.storageApi=e.storageApi),"undefined"!=typeof e.token&&(this.token=e.token),"undefined"!=typeof e.properties&&(this.properties=e.properties),"undefined"!=typeof this.storageApi&&(this._storageApi=T[this.storageApi]||P,this.supportsRevs=this._storageApi>=_),this.href&&this.token?(this.connected=!0,this.online=!0,this._emit("connected")):this.connected=!1,f&&(localStorage[v]=JSON.stringify({userAddress:this.userAddress,href:this.href,storageApi:this.storageApi,token:this.token,properties:this.properties}))},stopWaitingForToken:function(){this.connected||this._emit("not-connected")},get:function(e,t){var r=this;if(!this.connected)return Promise.reject("not connected (path: "+e+")");t||(t={});var n={};if(this.supportsRevs)t.ifNoneMatch&&(n["If-None-Match"]=o(t.ifNoneMatch));else if(t.ifNoneMatch){this._revisionCache[e]}return this._request("GET",this.href+k(e),this.token,n,void 0,this.supportsRevs,this._revisionCache[e]).then(function(t){if(!R(e))return Promise.resolve(t);var n={};if("undefined"!=typeof t.body)try{t.body=JSON.parse(t.body)}catch(t){return Promise.reject("Folder description at "+r.href+k(e)+" is not JSON")}if(200===t.statusCode&&"object"==typeof t.body){if(0===Object.keys(t.body).length)t.statusCode=404;else if(c(t.body)){for(var o in t.body.items)r._revisionCache[e+o]=t.body.items[o].ETag;n=t.body.items}else Object.keys(t.body).forEach(function(o){r._revisionCache[e+o]=t.body[o],n[o]={ETag:t.body[o]}});return t.body=n,Promise.resolve(t)}return Promise.resolve(t)})},put:function(e,t,r,n){if(!this.connected)return Promise.reject("not connected (path: "+e+")");n||(n={}),!r.match(/charset=/)&&(t instanceof ArrayBuffer||d(t))&&(r+="; charset=binary");var i={"Content-Type":r};return this.supportsRevs&&(n.ifMatch&&(i["If-Match"]=o(n.ifMatch)),n.ifNoneMatch&&(i["If-None-Match"]=o(n.ifNoneMatch))),this._request("PUT",this.href+k(e),this.token,i,t,this.supportsRevs)},delete:function(e,t){if(!this.connected)throw new Error("not connected (path: "+e+")");t||(t={});var r={};return this.supportsRevs&&t.ifMatch&&(r["If-Match"]=o(t.ifMatch)),this._request("DELETE",this.href+k(e),this.token,r,void 0,this.supportsRevs)}},C.cleanPath=k,C.isArrayBufferView=d,C.readBinaryData=s,C.request=function(e,t,r){var n=Promise.defer();p("[WireClient]",e,t);var o=!1,i=setTimeout(function(){o=!0,n.reject("timeout")},C.REQUEST_TIMEOUT),s=new XMLHttpRequest;if(s.open(e,t,!0),r.responseType&&(s.responseType=r.responseType),r.headers)for(var a in r.headers)s.setRequestHeader(a,r.headers[a]);s.onload=function(){o||(clearTimeout(i),n.resolve(s))},s.onerror=function(e){o||(clearTimeout(i),n.reject(e))};var u=r.body;return"object"==typeof u&&!d(u)&&u instanceof ArrayBuffer&&(u=new Uint8Array(u)),s.send(u),n.promise},Object.defineProperty(C.prototype,"storageType",{get:function(){if(this.storageApi){var e=this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);return e?e[1]:"2012.04"}}}),C._rs_init=function(e){f=m.localStorageAvailable(),e.remote=new C(e),this.online=!0},C._rs_supported=function(){return!!t.XMLHttpRequest},C._rs_cleanup=function(e){f&&delete localStorage[v],e.removeEventListener("error",S)},e.exports=C}).call(t,function(){return this}(),r(14).Buffer)},function(e,t,r){(function(e,n){/*!
+	
+	/*
+	 * Generate a random uuid.
+	 *
+	 * USAGE: Math.uuid(length, radix)
+	 *   length - the desired number of characters
+	 *   radix  - the number of allowable values for each character.
+	 *
+	 * EXAMPLES:
+	 *   // No arguments  - returns RFC4122, version 4 ID
+	 *   >>> Math.uuid()
+	 *   "92329D39-6F5C-4520-ABFC-AAB64544E172"
+	 *
+	 *   // One argument - returns ID of the specified length
+	 *   >>> Math.uuid(15)     // 15 character ID (default base=62)
+	 *   "VcydxgltxrVZSTV"
+	 *
+	 *   // Two arguments - returns ID of the specified length, and radix. (Radix must be <= 62)
+	 *   >>> Math.uuid(8, 2)  // 8 character ID (base=2)
+	 *   "01001010"
+	 *   >>> Math.uuid(8, 10) // 8 character ID (base=10)
+	 *   "47473046"
+	 *   >>> Math.uuid(8, 16) // 8 character ID (base=16)
+	 *   "098F4D35"
+	 */
+	// Private array of chars to use
+	var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+	
+	Math.uuid = function (len, radix) {
+	  var chars = CHARS,
+	      uuid = [],
+	      i;
+	  radix = radix || chars.length;
+	
+	  if (len) {
+	    // Compact form
+	    for (i = 0; i < len; i++) {
+	      uuid[i] = chars[0 | Math.random() * radix];
+	    }
+	  } else {
+	    // rfc4122, version 4 form
+	    var r;
+	
+	    // rfc4122 requires these characters
+	    uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+	    uuid[14] = '4';
+	
+	    // Fill in random data.  At i==19 set the high bits of clock sequence as
+	    // per rfc4122, sec. 4.1.5
+	    for (i = 0; i < 36; i++) {
+	      if (!uuid[i]) {
+	        r = 0 | Math.random() * 16;
+	        uuid[i] = chars[i == 19 ? r & 0x3 | 0x8 : r];
+	      }
+	    }
+	  }
+	
+	  return uuid.join('');
+	};
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var tv4 = __webpack_require__(11);
+	var BaseClient = __webpack_require__(8);
+	
+	/**
+	 * Class: RemoteStorage.BaseClient.Types
+	 *
+	 * - Manages and validates types of remoteStorage objects, using JSON-LD and
+	 *   JSON Schema
+	 * - Adds schema declaration/validation methods to BaseClient instances.
+	 **/
+	BaseClient.Types = {
+	  // <alias> -> <uri>
+	  uris: {},
+	  // <uri> -> <schema>
+	  schemas: {},
+	  // <uri> -> <alias>
+	  aliases: {},
+	
+	  declare: function declare(moduleName, alias, uri, schema) {
+	    var fullAlias = moduleName + '/' + alias;
+	
+	    if (schema.extends) {
+	      var extendedAlias;
+	      var parts = schema.extends.split('/');
+	      if (parts.length === 1) {
+	        extendedAlias = moduleName + '/' + parts.shift();
+	      } else {
+	        extendedAlias = parts.join('/');
+	      }
+	      var extendedUri = this.uris[extendedAlias];
+	      if (!extendedUri) {
+	        throw "Type '" + fullAlias + "' tries to extend unknown schema '" + extendedAlias + "'";
+	      }
+	      schema.extends = this.schemas[extendedUri];
+	    }
+	
+	    this.uris[fullAlias] = uri;
+	    this.aliases[uri] = fullAlias;
+	    this.schemas[uri] = schema;
+	  },
+	
+	  resolveAlias: function resolveAlias(alias) {
+	    return this.uris[alias];
+	  },
+	
+	  getSchema: function getSchema(uri) {
+	    return this.schemas[uri];
+	  },
+	
+	  inScope: function inScope(moduleName) {
+	    var ml = moduleName.length;
+	    var schemas = {};
+	    for (var alias in this.uris) {
+	      if (alias.substr(0, ml + 1) === moduleName + '/') {
+	        var uri = this.uris[alias];
+	        schemas[uri] = this.schemas[uri];
+	      }
+	    }
+	    return schemas;
+	  }
+	};
+	
+	var SchemaNotFound = function SchemaNotFound(uri) {
+	  var error = new Error("Schema not found: " + uri);
+	  error.name = "SchemaNotFound";
+	  return error;
+	};
+	
+	SchemaNotFound.prototype = Error.prototype;
+	
+	BaseClient.Types.SchemaNotFound = SchemaNotFound;
+	
+	/**
+	 * Class: RemoteStorage.BaseClient
+	 **/
+	BaseClient.prototype.extend({
+	  /**
+	   * Method: declareType
+	   *
+	   * Declare a remoteStorage object type using a JSON schema.
+	   *
+	   * Parameters:
+	   *   alias  - A type alias/shortname
+	   *   uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
+	   *   schema - A JSON Schema object describing the object type
+	   *
+	   * Example:
+	   *
+	   * (start code)
+	   * client.declareType('todo-item', {
+	   *   "type": "object",
+	   *   "properties": {
+	   *     "id": {
+	   *       "type": "string"
+	   *     },
+	   *     "title": {
+	   *       "type": "string"
+	   *     },
+	   *     "finished": {
+	   *       "type": "boolean"
+	   *       "default": false
+	   *     },
+	   *     "createdAt": {
+	   *       "type": "date"
+	   *     }
+	   *   },
+	   *   "required": ["id", "title"]
+	   * })
+	   * (end code)
+	   *
+	   * Visit <http://json-schema.org> for details on how to use JSON Schema.
+	   **/
+	  declareType: function declareType(alias, uri, schema) {
+	    if (!schema) {
+	      schema = uri;
+	      uri = this._defaultTypeURI(alias);
+	    }
+	    BaseClient.Types.declare(this.moduleName, alias, uri, schema);
+	  },
+	
+	  /**
+	   * Method: validate
+	   *
+	   * Validate an object against the associated schema.
+	   *
+	   * Parameters:
+	   *  object - Object to validate. Must have a @context property.
+	   *
+	   * Returns:
+	   *   An object containing information about validation errors
+	   **/
+	  validate: function validate(object) {
+	    var schema = BaseClient.Types.getSchema(object['@context']);
+	    if (schema) {
+	      return tv4.validateResult(object, schema);
+	    } else {
+	      throw new SchemaNotFound(object['@context']);
+	    }
+	  },
+	
+	  _defaultTypeURI: function _defaultTypeURI(alias) {
+	    return 'http://remotestorage.io/spec/modules/' + encodeURIComponent(this.moduleName) + '/' + encodeURIComponent(alias);
+	  },
+	
+	  _attachType: function _attachType(object, alias) {
+	    object['@context'] = BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
+	  }
+	});
+	
+	// Documented in baseclient.js
+	Object.defineProperty(BaseClient.prototype, 'schemas', {
+	  configurable: true,
+	  get: function get() {
+	    return BaseClient.Types.inScope(this.moduleName);
+	  }
+	});
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*
+	Author: Geraint Luff and others
+	Year: 2013
+	
+	This code is released into the "public domain" by its author(s).  Anybody may use, alter and distribute the code without restriction.  The author makes no guarantees, and takes no liability of any kind for use of this code.
+	
+	If you find a bug or make an improvement, it would be courteous to let the author know, but it is not compulsory.
+	*/
+	(function (global, factory) {
+	  if (true) {
+	    // AMD. Register as an anonymous module.
+	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	  } else if (typeof module !== 'undefined' && module.exports){
+	    // CommonJS. Define export.
+	    module.exports = factory();
+	  } else {
+	    // Browser globals
+	    global.tv4 = factory();
+	  }
+	}(this, function () {
+	
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys?redirectlocale=en-US&redirectslug=JavaScript%2FReference%2FGlobal_Objects%2FObject%2Fkeys
+	if (!Object.keys) {
+		Object.keys = (function () {
+			var hasOwnProperty = Object.prototype.hasOwnProperty,
+				hasDontEnumBug = !({toString: null}).propertyIsEnumerable('toString'),
+				dontEnums = [
+					'toString',
+					'toLocaleString',
+					'valueOf',
+					'hasOwnProperty',
+					'isPrototypeOf',
+					'propertyIsEnumerable',
+					'constructor'
+				],
+				dontEnumsLength = dontEnums.length;
+	
+			return function (obj) {
+				if (typeof obj !== 'object' && typeof obj !== 'function' || obj === null) {
+					throw new TypeError('Object.keys called on non-object');
+				}
+	
+				var result = [];
+	
+				for (var prop in obj) {
+					if (hasOwnProperty.call(obj, prop)) {
+						result.push(prop);
+					}
+				}
+	
+				if (hasDontEnumBug) {
+					for (var i=0; i < dontEnumsLength; i++) {
+						if (hasOwnProperty.call(obj, dontEnums[i])) {
+							result.push(dontEnums[i]);
+						}
+					}
+				}
+				return result;
+			};
+		})();
+	}
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/create
+	if (!Object.create) {
+		Object.create = (function(){
+			function F(){}
+	
+			return function(o){
+				if (arguments.length !== 1) {
+					throw new Error('Object.create implementation only accepts one parameter.');
+				}
+				F.prototype = o;
+				return new F();
+			};
+		})();
+	}
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray?redirectlocale=en-US&redirectslug=JavaScript%2FReference%2FGlobal_Objects%2FArray%2FisArray
+	if(!Array.isArray) {
+		Array.isArray = function (vArg) {
+			return Object.prototype.toString.call(vArg) === "[object Array]";
+		};
+	}
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/indexOf?redirectlocale=en-US&redirectslug=JavaScript%2FReference%2FGlobal_Objects%2FArray%2FindexOf
+	if (!Array.prototype.indexOf) {
+		Array.prototype.indexOf = function (searchElement /*, fromIndex */ ) {
+			if (this === null) {
+				throw new TypeError();
+			}
+			var t = Object(this);
+			var len = t.length >>> 0;
+	
+			if (len === 0) {
+				return -1;
+			}
+			var n = 0;
+			if (arguments.length > 1) {
+				n = Number(arguments[1]);
+				if (n !== n) { // shortcut for verifying if it's NaN
+					n = 0;
+				} else if (n !== 0 && n !== Infinity && n !== -Infinity) {
+					n = (n > 0 || -1) * Math.floor(Math.abs(n));
+				}
+			}
+			if (n >= len) {
+				return -1;
+			}
+			var k = n >= 0 ? n : Math.max(len - Math.abs(n), 0);
+			for (; k < len; k++) {
+				if (k in t && t[k] === searchElement) {
+					return k;
+				}
+			}
+			return -1;
+		};
+	}
+	
+	// Grungey Object.isFrozen hack
+	if (!Object.isFrozen) {
+		Object.isFrozen = function (obj) {
+			var key = "tv4_test_frozen_key";
+			while (obj.hasOwnProperty(key)) {
+				key += Math.random();
+			}
+			try {
+				obj[key] = true;
+				delete obj[key];
+				return false;
+			} catch (e) {
+				return true;
+			}
+		};
+	}
+	// Based on: https://github.com/geraintluff/uri-templates, but with all the de-substitution stuff removed
+	
+	var uriTemplateGlobalModifiers = {
+		"+": true,
+		"#": true,
+		".": true,
+		"/": true,
+		";": true,
+		"?": true,
+		"&": true
+	};
+	var uriTemplateSuffices = {
+		"*": true
+	};
+	
+	function notReallyPercentEncode(string) {
+		return encodeURI(string).replace(/%25[0-9][0-9]/g, function (doubleEncoded) {
+			return "%" + doubleEncoded.substring(3);
+		});
+	}
+	
+	function uriTemplateSubstitution(spec) {
+		var modifier = "";
+		if (uriTemplateGlobalModifiers[spec.charAt(0)]) {
+			modifier = spec.charAt(0);
+			spec = spec.substring(1);
+		}
+		var separator = "";
+		var prefix = "";
+		var shouldEscape = true;
+		var showVariables = false;
+		var trimEmptyString = false;
+		if (modifier === '+') {
+			shouldEscape = false;
+		} else if (modifier === ".") {
+			prefix = ".";
+			separator = ".";
+		} else if (modifier === "/") {
+			prefix = "/";
+			separator = "/";
+		} else if (modifier === '#') {
+			prefix = "#";
+			shouldEscape = false;
+		} else if (modifier === ';') {
+			prefix = ";";
+			separator = ";";
+			showVariables = true;
+			trimEmptyString = true;
+		} else if (modifier === '?') {
+			prefix = "?";
+			separator = "&";
+			showVariables = true;
+		} else if (modifier === '&') {
+			prefix = "&";
+			separator = "&";
+			showVariables = true;
+		}
+	
+		var varNames = [];
+		var varList = spec.split(",");
+		var varSpecs = [];
+		var varSpecMap = {};
+		for (var i = 0; i < varList.length; i++) {
+			var varName = varList[i];
+			var truncate = null;
+			if (varName.indexOf(":") !== -1) {
+				var parts = varName.split(":");
+				varName = parts[0];
+				truncate = parseInt(parts[1], 10);
+			}
+			var suffices = {};
+			while (uriTemplateSuffices[varName.charAt(varName.length - 1)]) {
+				suffices[varName.charAt(varName.length - 1)] = true;
+				varName = varName.substring(0, varName.length - 1);
+			}
+			var varSpec = {
+				truncate: truncate,
+				name: varName,
+				suffices: suffices
+			};
+			varSpecs.push(varSpec);
+			varSpecMap[varName] = varSpec;
+			varNames.push(varName);
+		}
+		var subFunction = function (valueFunction) {
+			var result = "";
+			var startIndex = 0;
+			for (var i = 0; i < varSpecs.length; i++) {
+				var varSpec = varSpecs[i];
+				var value = valueFunction(varSpec.name);
+				if (value === null || value === undefined || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0)) {
+					startIndex++;
+					continue;
+				}
+				if (i === startIndex) {
+					result += prefix;
+				} else {
+					result += (separator || ",");
+				}
+				if (Array.isArray(value)) {
+					if (showVariables) {
+						result += varSpec.name + "=";
+					}
+					for (var j = 0; j < value.length; j++) {
+						if (j > 0) {
+							result += varSpec.suffices['*'] ? (separator || ",") : ",";
+							if (varSpec.suffices['*'] && showVariables) {
+								result += varSpec.name + "=";
+							}
+						}
+						result += shouldEscape ? encodeURIComponent(value[j]).replace(/!/g, "%21") : notReallyPercentEncode(value[j]);
+					}
+				} else if (typeof value === "object") {
+					if (showVariables && !varSpec.suffices['*']) {
+						result += varSpec.name + "=";
+					}
+					var first = true;
+					for (var key in value) {
+						if (!first) {
+							result += varSpec.suffices['*'] ? (separator || ",") : ",";
+						}
+						first = false;
+						result += shouldEscape ? encodeURIComponent(key).replace(/!/g, "%21") : notReallyPercentEncode(key);
+						result += varSpec.suffices['*'] ? '=' : ",";
+						result += shouldEscape ? encodeURIComponent(value[key]).replace(/!/g, "%21") : notReallyPercentEncode(value[key]);
+					}
+				} else {
+					if (showVariables) {
+						result += varSpec.name;
+						if (!trimEmptyString || value !== "") {
+							result += "=";
+						}
+					}
+					if (varSpec.truncate != null) {
+						value = value.substring(0, varSpec.truncate);
+					}
+					result += shouldEscape ? encodeURIComponent(value).replace(/!/g, "%21"): notReallyPercentEncode(value);
+				}
+			}
+			return result;
+		};
+		subFunction.varNames = varNames;
+		return {
+			prefix: prefix,
+			substitution: subFunction
+		};
+	}
+	
+	function UriTemplate(template) {
+		if (!(this instanceof UriTemplate)) {
+			return new UriTemplate(template);
+		}
+		var parts = template.split("{");
+		var textParts = [parts.shift()];
+		var prefixes = [];
+		var substitutions = [];
+		var varNames = [];
+		while (parts.length > 0) {
+			var part = parts.shift();
+			var spec = part.split("}")[0];
+			var remainder = part.substring(spec.length + 1);
+			var funcs = uriTemplateSubstitution(spec);
+			substitutions.push(funcs.substitution);
+			prefixes.push(funcs.prefix);
+			textParts.push(remainder);
+			varNames = varNames.concat(funcs.substitution.varNames);
+		}
+		this.fill = function (valueFunction) {
+			var result = textParts[0];
+			for (var i = 0; i < substitutions.length; i++) {
+				var substitution = substitutions[i];
+				result += substitution(valueFunction);
+				result += textParts[i + 1];
+			}
+			return result;
+		};
+		this.varNames = varNames;
+		this.template = template;
+	}
+	UriTemplate.prototype = {
+		toString: function () {
+			return this.template;
+		},
+		fillFromObject: function (obj) {
+			return this.fill(function (varName) {
+				return obj[varName];
+			});
+		}
+	};
+	var ValidatorContext = function ValidatorContext(parent, collectMultiple, errorReporter, checkRecursive, trackUnknownProperties) {
+		this.missing = [];
+		this.missingMap = {};
+		this.formatValidators = parent ? Object.create(parent.formatValidators) : {};
+		this.schemas = parent ? Object.create(parent.schemas) : {};
+		this.collectMultiple = collectMultiple;
+		this.errors = [];
+		this.handleError = collectMultiple ? this.collectError : this.returnError;
+		if (checkRecursive) {
+			this.checkRecursive = true;
+			this.scanned = [];
+			this.scannedFrozen = [];
+			this.scannedFrozenSchemas = [];
+			this.scannedFrozenValidationErrors = [];
+			this.validatedSchemasKey = 'tv4_validation_id';
+			this.validationErrorsKey = 'tv4_validation_errors_id';
+		}
+		if (trackUnknownProperties) {
+			this.trackUnknownProperties = true;
+			this.knownPropertyPaths = {};
+			this.unknownPropertyPaths = {};
+		}
+		this.errorReporter = errorReporter || defaultErrorReporter('en');
+		if (typeof this.errorReporter === 'string') {
+			throw new Error('debug');
+		}
+		this.definedKeywords = {};
+		if (parent) {
+			for (var key in parent.definedKeywords) {
+				this.definedKeywords[key] = parent.definedKeywords[key].slice(0);
+			}
+		}
+	};
+	ValidatorContext.prototype.defineKeyword = function (keyword, keywordFunction) {
+		this.definedKeywords[keyword] = this.definedKeywords[keyword] || [];
+		this.definedKeywords[keyword].push(keywordFunction);
+	};
+	ValidatorContext.prototype.createError = function (code, messageParams, dataPath, schemaPath, subErrors, data, schema) {
+		var error = new ValidationError(code, messageParams, dataPath, schemaPath, subErrors);
+		error.message = this.errorReporter(error, data, schema);
+		return error;
+	};
+	ValidatorContext.prototype.returnError = function (error) {
+		return error;
+	};
+	ValidatorContext.prototype.collectError = function (error) {
+		if (error) {
+			this.errors.push(error);
+		}
+		return null;
+	};
+	ValidatorContext.prototype.prefixErrors = function (startIndex, dataPath, schemaPath) {
+		for (var i = startIndex; i < this.errors.length; i++) {
+			this.errors[i] = this.errors[i].prefixWith(dataPath, schemaPath);
+		}
+		return this;
+	};
+	ValidatorContext.prototype.banUnknownProperties = function (data, schema) {
+		for (var unknownPath in this.unknownPropertyPaths) {
+			var error = this.createError(ErrorCodes.UNKNOWN_PROPERTY, {path: unknownPath}, unknownPath, "", null, data, schema);
+			var result = this.handleError(error);
+			if (result) {
+				return result;
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.addFormat = function (format, validator) {
+		if (typeof format === 'object') {
+			for (var key in format) {
+				this.addFormat(key, format[key]);
+			}
+			return this;
+		}
+		this.formatValidators[format] = validator;
+	};
+	ValidatorContext.prototype.resolveRefs = function (schema, urlHistory) {
+		if (schema['$ref'] !== undefined) {
+			urlHistory = urlHistory || {};
+			if (urlHistory[schema['$ref']]) {
+				return this.createError(ErrorCodes.CIRCULAR_REFERENCE, {urls: Object.keys(urlHistory).join(', ')}, '', '', null, undefined, schema);
+			}
+			urlHistory[schema['$ref']] = true;
+			schema = this.getSchema(schema['$ref'], urlHistory);
+		}
+		return schema;
+	};
+	ValidatorContext.prototype.getSchema = function (url, urlHistory) {
+		var schema;
+		if (this.schemas[url] !== undefined) {
+			schema = this.schemas[url];
+			return this.resolveRefs(schema, urlHistory);
+		}
+		var baseUrl = url;
+		var fragment = "";
+		if (url.indexOf('#') !== -1) {
+			fragment = url.substring(url.indexOf("#") + 1);
+			baseUrl = url.substring(0, url.indexOf("#"));
+		}
+		if (typeof this.schemas[baseUrl] === 'object') {
+			schema = this.schemas[baseUrl];
+			var pointerPath = decodeURIComponent(fragment);
+			if (pointerPath === "") {
+				return this.resolveRefs(schema, urlHistory);
+			} else if (pointerPath.charAt(0) !== "/") {
+				return undefined;
+			}
+			var parts = pointerPath.split("/").slice(1);
+			for (var i = 0; i < parts.length; i++) {
+				var component = parts[i].replace(/~1/g, "/").replace(/~0/g, "~");
+				if (schema[component] === undefined) {
+					schema = undefined;
+					break;
+				}
+				schema = schema[component];
+			}
+			if (schema !== undefined) {
+				return this.resolveRefs(schema, urlHistory);
+			}
+		}
+		if (this.missing[baseUrl] === undefined) {
+			this.missing.push(baseUrl);
+			this.missing[baseUrl] = baseUrl;
+			this.missingMap[baseUrl] = baseUrl;
+		}
+	};
+	ValidatorContext.prototype.searchSchemas = function (schema, url) {
+		if (Array.isArray(schema)) {
+			for (var i = 0; i < schema.length; i++) {
+				this.searchSchemas(schema[i], url);
+			}
+		} else if (schema && typeof schema === "object") {
+			if (typeof schema.id === "string") {
+				if (isTrustedUrl(url, schema.id)) {
+					if (this.schemas[schema.id] === undefined) {
+						this.schemas[schema.id] = schema;
+					}
+				}
+			}
+			for (var key in schema) {
+				if (key !== "enum") {
+					if (typeof schema[key] === "object") {
+						this.searchSchemas(schema[key], url);
+					} else if (key === "$ref") {
+						var uri = getDocumentUri(schema[key]);
+						if (uri && this.schemas[uri] === undefined && this.missingMap[uri] === undefined) {
+							this.missingMap[uri] = uri;
+						}
+					}
+				}
+			}
+		}
+	};
+	ValidatorContext.prototype.addSchema = function (url, schema) {
+		//overload
+		if (typeof url !== 'string' || typeof schema === 'undefined') {
+			if (typeof url === 'object' && typeof url.id === 'string') {
+				schema = url;
+				url = schema.id;
+			}
+			else {
+				return;
+			}
+		}
+		if (url === getDocumentUri(url) + "#") {
+			// Remove empty fragment
+			url = getDocumentUri(url);
+		}
+		this.schemas[url] = schema;
+		delete this.missingMap[url];
+		normSchema(schema, url);
+		this.searchSchemas(schema, url);
+	};
+	
+	ValidatorContext.prototype.getSchemaMap = function () {
+		var map = {};
+		for (var key in this.schemas) {
+			map[key] = this.schemas[key];
+		}
+		return map;
+	};
+	
+	ValidatorContext.prototype.getSchemaUris = function (filterRegExp) {
+		var list = [];
+		for (var key in this.schemas) {
+			if (!filterRegExp || filterRegExp.test(key)) {
+				list.push(key);
+			}
+		}
+		return list;
+	};
+	
+	ValidatorContext.prototype.getMissingUris = function (filterRegExp) {
+		var list = [];
+		for (var key in this.missingMap) {
+			if (!filterRegExp || filterRegExp.test(key)) {
+				list.push(key);
+			}
+		}
+		return list;
+	};
+	
+	ValidatorContext.prototype.dropSchemas = function () {
+		this.schemas = {};
+		this.reset();
+	};
+	ValidatorContext.prototype.reset = function () {
+		this.missing = [];
+		this.missingMap = {};
+		this.errors = [];
+	};
+	
+	ValidatorContext.prototype.validateAll = function (data, schema, dataPathParts, schemaPathParts, dataPointerPath) {
+		var topLevel;
+		schema = this.resolveRefs(schema);
+		if (!schema) {
+			return null;
+		} else if (schema instanceof ValidationError) {
+			this.errors.push(schema);
+			return schema;
+		}
+	
+		var startErrorCount = this.errors.length;
+		var frozenIndex, scannedFrozenSchemaIndex = null, scannedSchemasIndex = null;
+		if (this.checkRecursive && data && typeof data === 'object') {
+			topLevel = !this.scanned.length;
+			if (data[this.validatedSchemasKey]) {
+				var schemaIndex = data[this.validatedSchemasKey].indexOf(schema);
+				if (schemaIndex !== -1) {
+					this.errors = this.errors.concat(data[this.validationErrorsKey][schemaIndex]);
+					return null;
+				}
+			}
+			if (Object.isFrozen(data)) {
+				frozenIndex = this.scannedFrozen.indexOf(data);
+				if (frozenIndex !== -1) {
+					var frozenSchemaIndex = this.scannedFrozenSchemas[frozenIndex].indexOf(schema);
+					if (frozenSchemaIndex !== -1) {
+						this.errors = this.errors.concat(this.scannedFrozenValidationErrors[frozenIndex][frozenSchemaIndex]);
+						return null;
+					}
+				}
+			}
+			this.scanned.push(data);
+			if (Object.isFrozen(data)) {
+				if (frozenIndex === -1) {
+					frozenIndex = this.scannedFrozen.length;
+					this.scannedFrozen.push(data);
+					this.scannedFrozenSchemas.push([]);
+				}
+				scannedFrozenSchemaIndex = this.scannedFrozenSchemas[frozenIndex].length;
+				this.scannedFrozenSchemas[frozenIndex][scannedFrozenSchemaIndex] = schema;
+				this.scannedFrozenValidationErrors[frozenIndex][scannedFrozenSchemaIndex] = [];
+			} else {
+				if (!data[this.validatedSchemasKey]) {
+					try {
+						Object.defineProperty(data, this.validatedSchemasKey, {
+							value: [],
+							configurable: true
+						});
+						Object.defineProperty(data, this.validationErrorsKey, {
+							value: [],
+							configurable: true
+						});
+					} catch (e) {
+						//IE 7/8 workaround
+						data[this.validatedSchemasKey] = [];
+						data[this.validationErrorsKey] = [];
+					}
+				}
+				scannedSchemasIndex = data[this.validatedSchemasKey].length;
+				data[this.validatedSchemasKey][scannedSchemasIndex] = schema;
+				data[this.validationErrorsKey][scannedSchemasIndex] = [];
+			}
+		}
+	
+		var errorCount = this.errors.length;
+		var error = this.validateBasic(data, schema, dataPointerPath)
+			|| this.validateNumeric(data, schema, dataPointerPath)
+			|| this.validateString(data, schema, dataPointerPath)
+			|| this.validateArray(data, schema, dataPointerPath)
+			|| this.validateObject(data, schema, dataPointerPath)
+			|| this.validateCombinations(data, schema, dataPointerPath)
+			|| this.validateHypermedia(data, schema, dataPointerPath)
+			|| this.validateFormat(data, schema, dataPointerPath)
+			|| this.validateDefinedKeywords(data, schema, dataPointerPath)
+			|| null;
+	
+		if (topLevel) {
+			while (this.scanned.length) {
+				var item = this.scanned.pop();
+				delete item[this.validatedSchemasKey];
+			}
+			this.scannedFrozen = [];
+			this.scannedFrozenSchemas = [];
+		}
+	
+		if (error || errorCount !== this.errors.length) {
+			while ((dataPathParts && dataPathParts.length) || (schemaPathParts && schemaPathParts.length)) {
+				var dataPart = (dataPathParts && dataPathParts.length) ? "" + dataPathParts.pop() : null;
+				var schemaPart = (schemaPathParts && schemaPathParts.length) ? "" + schemaPathParts.pop() : null;
+				if (error) {
+					error = error.prefixWith(dataPart, schemaPart);
+				}
+				this.prefixErrors(errorCount, dataPart, schemaPart);
+			}
+		}
+	
+		if (scannedFrozenSchemaIndex !== null) {
+			this.scannedFrozenValidationErrors[frozenIndex][scannedFrozenSchemaIndex] = this.errors.slice(startErrorCount);
+		} else if (scannedSchemasIndex !== null) {
+			data[this.validationErrorsKey][scannedSchemasIndex] = this.errors.slice(startErrorCount);
+		}
+	
+		return this.handleError(error);
+	};
+	ValidatorContext.prototype.validateFormat = function (data, schema) {
+		if (typeof schema.format !== 'string' || !this.formatValidators[schema.format]) {
+			return null;
+		}
+		var errorMessage = this.formatValidators[schema.format].call(null, data, schema);
+		if (typeof errorMessage === 'string' || typeof errorMessage === 'number') {
+			return this.createError(ErrorCodes.FORMAT_CUSTOM, {message: errorMessage}, '', '/format', null, data, schema);
+		} else if (errorMessage && typeof errorMessage === 'object') {
+			return this.createError(ErrorCodes.FORMAT_CUSTOM, {message: errorMessage.message || "?"}, errorMessage.dataPath || '', errorMessage.schemaPath || "/format", null, data, schema);
+		}
+		return null;
+	};
+	ValidatorContext.prototype.validateDefinedKeywords = function (data, schema, dataPointerPath) {
+		for (var key in this.definedKeywords) {
+			if (typeof schema[key] === 'undefined') {
+				continue;
+			}
+			var validationFunctions = this.definedKeywords[key];
+			for (var i = 0; i < validationFunctions.length; i++) {
+				var func = validationFunctions[i];
+				var result = func(data, schema[key], schema, dataPointerPath);
+				if (typeof result === 'string' || typeof result === 'number') {
+					return this.createError(ErrorCodes.KEYWORD_CUSTOM, {key: key, message: result}, '', '', null, data, schema).prefixWith(null, key);
+				} else if (result && typeof result === 'object') {
+					var code = result.code;
+					if (typeof code === 'string') {
+						if (!ErrorCodes[code]) {
+							throw new Error('Undefined error code (use defineError): ' + code);
+						}
+						code = ErrorCodes[code];
+					} else if (typeof code !== 'number') {
+						code = ErrorCodes.KEYWORD_CUSTOM;
+					}
+					var messageParams = (typeof result.message === 'object') ? result.message : {key: key, message: result.message || "?"};
+					var schemaPath = result.schemaPath || ("/" + key.replace(/~/g, '~0').replace(/\//g, '~1'));
+					return this.createError(code, messageParams, result.dataPath || null, schemaPath, null, data, schema);
+				}
+			}
+		}
+		return null;
+	};
+	
+	function recursiveCompare(A, B) {
+		if (A === B) {
+			return true;
+		}
+		if (A && B && typeof A === "object" && typeof B === "object") {
+			if (Array.isArray(A) !== Array.isArray(B)) {
+				return false;
+			} else if (Array.isArray(A)) {
+				if (A.length !== B.length) {
+					return false;
+				}
+				for (var i = 0; i < A.length; i++) {
+					if (!recursiveCompare(A[i], B[i])) {
+						return false;
+					}
+				}
+			} else {
+				var key;
+				for (key in A) {
+					if (B[key] === undefined && A[key] !== undefined) {
+						return false;
+					}
+				}
+				for (key in B) {
+					if (A[key] === undefined && B[key] !== undefined) {
+						return false;
+					}
+				}
+				for (key in A) {
+					if (!recursiveCompare(A[key], B[key])) {
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+	
+	ValidatorContext.prototype.validateBasic = function validateBasic(data, schema, dataPointerPath) {
+		var error;
+		if (error = this.validateType(data, schema, dataPointerPath)) {
+			return error.prefixWith(null, "type");
+		}
+		if (error = this.validateEnum(data, schema, dataPointerPath)) {
+			return error.prefixWith(null, "type");
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateType = function validateType(data, schema) {
+		if (schema.type === undefined) {
+			return null;
+		}
+		var dataType = typeof data;
+		if (data === null) {
+			dataType = "null";
+		} else if (Array.isArray(data)) {
+			dataType = "array";
+		}
+		var allowedTypes = schema.type;
+		if (!Array.isArray(allowedTypes)) {
+			allowedTypes = [allowedTypes];
+		}
+	
+		for (var i = 0; i < allowedTypes.length; i++) {
+			var type = allowedTypes[i];
+			if (type === dataType || (type === "integer" && dataType === "number" && (data % 1 === 0))) {
+				return null;
+			}
+		}
+		return this.createError(ErrorCodes.INVALID_TYPE, {type: dataType, expected: allowedTypes.join("/")}, '', '', null, data, schema);
+	};
+	
+	ValidatorContext.prototype.validateEnum = function validateEnum(data, schema) {
+		if (schema["enum"] === undefined) {
+			return null;
+		}
+		for (var i = 0; i < schema["enum"].length; i++) {
+			var enumVal = schema["enum"][i];
+			if (recursiveCompare(data, enumVal)) {
+				return null;
+			}
+		}
+		return this.createError(ErrorCodes.ENUM_MISMATCH, {value: (typeof JSON !== 'undefined') ? JSON.stringify(data) : data}, '', '', null, data, schema);
+	};
+	
+	ValidatorContext.prototype.validateNumeric = function validateNumeric(data, schema, dataPointerPath) {
+		return this.validateMultipleOf(data, schema, dataPointerPath)
+			|| this.validateMinMax(data, schema, dataPointerPath)
+			|| this.validateNaN(data, schema, dataPointerPath)
+			|| null;
+	};
+	
+	var CLOSE_ENOUGH_LOW = Math.pow(2, -51);
+	var CLOSE_ENOUGH_HIGH = 1 - CLOSE_ENOUGH_LOW;
+	ValidatorContext.prototype.validateMultipleOf = function validateMultipleOf(data, schema) {
+		var multipleOf = schema.multipleOf || schema.divisibleBy;
+		if (multipleOf === undefined) {
+			return null;
+		}
+		if (typeof data === "number") {
+			var remainder = (data/multipleOf)%1;
+			if (remainder >= CLOSE_ENOUGH_LOW && remainder < CLOSE_ENOUGH_HIGH) {
+				return this.createError(ErrorCodes.NUMBER_MULTIPLE_OF, {value: data, multipleOf: multipleOf}, '', '', null, data, schema);
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateMinMax = function validateMinMax(data, schema) {
+		if (typeof data !== "number") {
+			return null;
+		}
+		if (schema.minimum !== undefined) {
+			if (data < schema.minimum) {
+				return this.createError(ErrorCodes.NUMBER_MINIMUM, {value: data, minimum: schema.minimum}, '', '/minimum', null, data, schema);
+			}
+			if (schema.exclusiveMinimum && data === schema.minimum) {
+				return this.createError(ErrorCodes.NUMBER_MINIMUM_EXCLUSIVE, {value: data, minimum: schema.minimum}, '', '/exclusiveMinimum', null, data, schema);
+			}
+		}
+		if (schema.maximum !== undefined) {
+			if (data > schema.maximum) {
+				return this.createError(ErrorCodes.NUMBER_MAXIMUM, {value: data, maximum: schema.maximum}, '', '/maximum', null, data, schema);
+			}
+			if (schema.exclusiveMaximum && data === schema.maximum) {
+				return this.createError(ErrorCodes.NUMBER_MAXIMUM_EXCLUSIVE, {value: data, maximum: schema.maximum}, '', '/exclusiveMaximum', null, data, schema);
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateNaN = function validateNaN(data, schema) {
+		if (typeof data !== "number") {
+			return null;
+		}
+		if (isNaN(data) === true || data === Infinity || data === -Infinity) {
+			return this.createError(ErrorCodes.NUMBER_NOT_A_NUMBER, {value: data}, '', '/type', null, data, schema);
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateString = function validateString(data, schema, dataPointerPath) {
+		return this.validateStringLength(data, schema, dataPointerPath)
+			|| this.validateStringPattern(data, schema, dataPointerPath)
+			|| null;
+	};
+	
+	ValidatorContext.prototype.validateStringLength = function validateStringLength(data, schema) {
+		if (typeof data !== "string") {
+			return null;
+		}
+		if (schema.minLength !== undefined) {
+			if (data.length < schema.minLength) {
+				return this.createError(ErrorCodes.STRING_LENGTH_SHORT, {length: data.length, minimum: schema.minLength}, '', '/minLength', null, data, schema);
+			}
+		}
+		if (schema.maxLength !== undefined) {
+			if (data.length > schema.maxLength) {
+				return this.createError(ErrorCodes.STRING_LENGTH_LONG, {length: data.length, maximum: schema.maxLength}, '', '/maxLength', null, data, schema);
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateStringPattern = function validateStringPattern(data, schema) {
+		if (typeof data !== "string" || (typeof schema.pattern !== "string" && !(schema.pattern instanceof RegExp))) {
+			return null;
+		}
+		var regexp;
+		if (schema.pattern instanceof RegExp) {
+		  regexp = schema.pattern;
+		}
+		else {
+		  var body, flags = '';
+		  // Check for regular expression literals
+		  // @see http://www.ecma-international.org/ecma-262/5.1/#sec-7.8.5
+		  var literal = schema.pattern.match(/^\/(.+)\/([img]*)$/);
+		  if (literal) {
+		    body = literal[1];
+		    flags = literal[2];
+		  }
+		  else {
+		    body = schema.pattern;
+		  }
+		  regexp = new RegExp(body, flags);
+		}
+		if (!regexp.test(data)) {
+			return this.createError(ErrorCodes.STRING_PATTERN, {pattern: schema.pattern}, '', '/pattern', null, data, schema);
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateArray = function validateArray(data, schema, dataPointerPath) {
+		if (!Array.isArray(data)) {
+			return null;
+		}
+		return this.validateArrayLength(data, schema, dataPointerPath)
+			|| this.validateArrayUniqueItems(data, schema, dataPointerPath)
+			|| this.validateArrayItems(data, schema, dataPointerPath)
+			|| null;
+	};
+	
+	ValidatorContext.prototype.validateArrayLength = function validateArrayLength(data, schema) {
+		var error;
+		if (schema.minItems !== undefined) {
+			if (data.length < schema.minItems) {
+				error = this.createError(ErrorCodes.ARRAY_LENGTH_SHORT, {length: data.length, minimum: schema.minItems}, '', '/minItems', null, data, schema);
+				if (this.handleError(error)) {
+					return error;
+				}
+			}
+		}
+		if (schema.maxItems !== undefined) {
+			if (data.length > schema.maxItems) {
+				error = this.createError(ErrorCodes.ARRAY_LENGTH_LONG, {length: data.length, maximum: schema.maxItems}, '', '/maxItems', null, data, schema);
+				if (this.handleError(error)) {
+					return error;
+				}
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateArrayUniqueItems = function validateArrayUniqueItems(data, schema) {
+		if (schema.uniqueItems) {
+			for (var i = 0; i < data.length; i++) {
+				for (var j = i + 1; j < data.length; j++) {
+					if (recursiveCompare(data[i], data[j])) {
+						var error = this.createError(ErrorCodes.ARRAY_UNIQUE, {match1: i, match2: j}, '', '/uniqueItems', null, data, schema);
+						if (this.handleError(error)) {
+							return error;
+						}
+					}
+				}
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateArrayItems = function validateArrayItems(data, schema, dataPointerPath) {
+		if (schema.items === undefined) {
+			return null;
+		}
+		var error, i;
+		if (Array.isArray(schema.items)) {
+			for (i = 0; i < data.length; i++) {
+				if (i < schema.items.length) {
+					if (error = this.validateAll(data[i], schema.items[i], [i], ["items", i], dataPointerPath + "/" + i)) {
+						return error;
+					}
+				} else if (schema.additionalItems !== undefined) {
+					if (typeof schema.additionalItems === "boolean") {
+						if (!schema.additionalItems) {
+							error = (this.createError(ErrorCodes.ARRAY_ADDITIONAL_ITEMS, {}, '/' + i, '/additionalItems', null, data, schema));
+							if (this.handleError(error)) {
+								return error;
+							}
+						}
+					} else if (error = this.validateAll(data[i], schema.additionalItems, [i], ["additionalItems"], dataPointerPath + "/" + i)) {
+						return error;
+					}
+				}
+			}
+		} else {
+			for (i = 0; i < data.length; i++) {
+				if (error = this.validateAll(data[i], schema.items, [i], ["items"], dataPointerPath + "/" + i)) {
+					return error;
+				}
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateObject = function validateObject(data, schema, dataPointerPath) {
+		if (typeof data !== "object" || data === null || Array.isArray(data)) {
+			return null;
+		}
+		return this.validateObjectMinMaxProperties(data, schema, dataPointerPath)
+			|| this.validateObjectRequiredProperties(data, schema, dataPointerPath)
+			|| this.validateObjectProperties(data, schema, dataPointerPath)
+			|| this.validateObjectDependencies(data, schema, dataPointerPath)
+			|| null;
+	};
+	
+	ValidatorContext.prototype.validateObjectMinMaxProperties = function validateObjectMinMaxProperties(data, schema) {
+		var keys = Object.keys(data);
+		var error;
+		if (schema.minProperties !== undefined) {
+			if (keys.length < schema.minProperties) {
+				error = this.createError(ErrorCodes.OBJECT_PROPERTIES_MINIMUM, {propertyCount: keys.length, minimum: schema.minProperties}, '', '/minProperties', null, data, schema);
+				if (this.handleError(error)) {
+					return error;
+				}
+			}
+		}
+		if (schema.maxProperties !== undefined) {
+			if (keys.length > schema.maxProperties) {
+				error = this.createError(ErrorCodes.OBJECT_PROPERTIES_MAXIMUM, {propertyCount: keys.length, maximum: schema.maxProperties}, '', '/maxProperties', null, data, schema);
+				if (this.handleError(error)) {
+					return error;
+				}
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateObjectRequiredProperties = function validateObjectRequiredProperties(data, schema) {
+		if (schema.required !== undefined) {
+			for (var i = 0; i < schema.required.length; i++) {
+				var key = schema.required[i];
+				if (data[key] === undefined) {
+					var error = this.createError(ErrorCodes.OBJECT_REQUIRED, {key: key}, '', '/required/' + i, null, data, schema);
+					if (this.handleError(error)) {
+						return error;
+					}
+				}
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateObjectProperties = function validateObjectProperties(data, schema, dataPointerPath) {
+		var error;
+		for (var key in data) {
+			var keyPointerPath = dataPointerPath + "/" + key.replace(/~/g, '~0').replace(/\//g, '~1');
+			var foundMatch = false;
+			if (schema.properties !== undefined && schema.properties[key] !== undefined) {
+				foundMatch = true;
+				if (error = this.validateAll(data[key], schema.properties[key], [key], ["properties", key], keyPointerPath)) {
+					return error;
+				}
+			}
+			if (schema.patternProperties !== undefined) {
+				for (var patternKey in schema.patternProperties) {
+					var regexp = new RegExp(patternKey);
+					if (regexp.test(key)) {
+						foundMatch = true;
+						if (error = this.validateAll(data[key], schema.patternProperties[patternKey], [key], ["patternProperties", patternKey], keyPointerPath)) {
+							return error;
+						}
+					}
+				}
+			}
+			if (!foundMatch) {
+				if (schema.additionalProperties !== undefined) {
+					if (this.trackUnknownProperties) {
+						this.knownPropertyPaths[keyPointerPath] = true;
+						delete this.unknownPropertyPaths[keyPointerPath];
+					}
+					if (typeof schema.additionalProperties === "boolean") {
+						if (!schema.additionalProperties) {
+							error = this.createError(ErrorCodes.OBJECT_ADDITIONAL_PROPERTIES, {key: key}, '', '/additionalProperties', null, data, schema).prefixWith(key, null);
+							if (this.handleError(error)) {
+								return error;
+							}
+						}
+					} else {
+						if (error = this.validateAll(data[key], schema.additionalProperties, [key], ["additionalProperties"], keyPointerPath)) {
+							return error;
+						}
+					}
+				} else if (this.trackUnknownProperties && !this.knownPropertyPaths[keyPointerPath]) {
+					this.unknownPropertyPaths[keyPointerPath] = true;
+				}
+			} else if (this.trackUnknownProperties) {
+				this.knownPropertyPaths[keyPointerPath] = true;
+				delete this.unknownPropertyPaths[keyPointerPath];
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateObjectDependencies = function validateObjectDependencies(data, schema, dataPointerPath) {
+		var error;
+		if (schema.dependencies !== undefined) {
+			for (var depKey in schema.dependencies) {
+				if (data[depKey] !== undefined) {
+					var dep = schema.dependencies[depKey];
+					if (typeof dep === "string") {
+						if (data[dep] === undefined) {
+							error = this.createError(ErrorCodes.OBJECT_DEPENDENCY_KEY, {key: depKey, missing: dep}, '', '', null, data, schema).prefixWith(null, depKey).prefixWith(null, "dependencies");
+							if (this.handleError(error)) {
+								return error;
+							}
+						}
+					} else if (Array.isArray(dep)) {
+						for (var i = 0; i < dep.length; i++) {
+							var requiredKey = dep[i];
+							if (data[requiredKey] === undefined) {
+								error = this.createError(ErrorCodes.OBJECT_DEPENDENCY_KEY, {key: depKey, missing: requiredKey}, '', '/' + i, null, data, schema).prefixWith(null, depKey).prefixWith(null, "dependencies");
+								if (this.handleError(error)) {
+									return error;
+								}
+							}
+						}
+					} else {
+						if (error = this.validateAll(data, dep, [], ["dependencies", depKey], dataPointerPath)) {
+							return error;
+						}
+					}
+				}
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateCombinations = function validateCombinations(data, schema, dataPointerPath) {
+		return this.validateAllOf(data, schema, dataPointerPath)
+			|| this.validateAnyOf(data, schema, dataPointerPath)
+			|| this.validateOneOf(data, schema, dataPointerPath)
+			|| this.validateNot(data, schema, dataPointerPath)
+			|| null;
+	};
+	
+	ValidatorContext.prototype.validateAllOf = function validateAllOf(data, schema, dataPointerPath) {
+		if (schema.allOf === undefined) {
+			return null;
+		}
+		var error;
+		for (var i = 0; i < schema.allOf.length; i++) {
+			var subSchema = schema.allOf[i];
+			if (error = this.validateAll(data, subSchema, [], ["allOf", i], dataPointerPath)) {
+				return error;
+			}
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateAnyOf = function validateAnyOf(data, schema, dataPointerPath) {
+		if (schema.anyOf === undefined) {
+			return null;
+		}
+		var errors = [];
+		var startErrorCount = this.errors.length;
+		var oldUnknownPropertyPaths, oldKnownPropertyPaths;
+		if (this.trackUnknownProperties) {
+			oldUnknownPropertyPaths = this.unknownPropertyPaths;
+			oldKnownPropertyPaths = this.knownPropertyPaths;
+		}
+		var errorAtEnd = true;
+		for (var i = 0; i < schema.anyOf.length; i++) {
+			if (this.trackUnknownProperties) {
+				this.unknownPropertyPaths = {};
+				this.knownPropertyPaths = {};
+			}
+			var subSchema = schema.anyOf[i];
+	
+			var errorCount = this.errors.length;
+			var error = this.validateAll(data, subSchema, [], ["anyOf", i], dataPointerPath);
+	
+			if (error === null && errorCount === this.errors.length) {
+				this.errors = this.errors.slice(0, startErrorCount);
+	
+				if (this.trackUnknownProperties) {
+					for (var knownKey in this.knownPropertyPaths) {
+						oldKnownPropertyPaths[knownKey] = true;
+						delete oldUnknownPropertyPaths[knownKey];
+					}
+					for (var unknownKey in this.unknownPropertyPaths) {
+						if (!oldKnownPropertyPaths[unknownKey]) {
+							oldUnknownPropertyPaths[unknownKey] = true;
+						}
+					}
+					// We need to continue looping so we catch all the property definitions, but we don't want to return an error
+					errorAtEnd = false;
+					continue;
+				}
+	
+				return null;
+			}
+			if (error) {
+				errors.push(error.prefixWith(null, "" + i).prefixWith(null, "anyOf"));
+			}
+		}
+		if (this.trackUnknownProperties) {
+			this.unknownPropertyPaths = oldUnknownPropertyPaths;
+			this.knownPropertyPaths = oldKnownPropertyPaths;
+		}
+		if (errorAtEnd) {
+			errors = errors.concat(this.errors.slice(startErrorCount));
+			this.errors = this.errors.slice(0, startErrorCount);
+			return this.createError(ErrorCodes.ANY_OF_MISSING, {}, "", "/anyOf", errors, data, schema);
+		}
+	};
+	
+	ValidatorContext.prototype.validateOneOf = function validateOneOf(data, schema, dataPointerPath) {
+		if (schema.oneOf === undefined) {
+			return null;
+		}
+		var validIndex = null;
+		var errors = [];
+		var startErrorCount = this.errors.length;
+		var oldUnknownPropertyPaths, oldKnownPropertyPaths;
+		if (this.trackUnknownProperties) {
+			oldUnknownPropertyPaths = this.unknownPropertyPaths;
+			oldKnownPropertyPaths = this.knownPropertyPaths;
+		}
+		for (var i = 0; i < schema.oneOf.length; i++) {
+			if (this.trackUnknownProperties) {
+				this.unknownPropertyPaths = {};
+				this.knownPropertyPaths = {};
+			}
+			var subSchema = schema.oneOf[i];
+	
+			var errorCount = this.errors.length;
+			var error = this.validateAll(data, subSchema, [], ["oneOf", i], dataPointerPath);
+	
+			if (error === null && errorCount === this.errors.length) {
+				if (validIndex === null) {
+					validIndex = i;
+				} else {
+					this.errors = this.errors.slice(0, startErrorCount);
+					return this.createError(ErrorCodes.ONE_OF_MULTIPLE, {index1: validIndex, index2: i}, "", "/oneOf", null, data, schema);
+				}
+				if (this.trackUnknownProperties) {
+					for (var knownKey in this.knownPropertyPaths) {
+						oldKnownPropertyPaths[knownKey] = true;
+						delete oldUnknownPropertyPaths[knownKey];
+					}
+					for (var unknownKey in this.unknownPropertyPaths) {
+						if (!oldKnownPropertyPaths[unknownKey]) {
+							oldUnknownPropertyPaths[unknownKey] = true;
+						}
+					}
+				}
+			} else if (error) {
+				errors.push(error);
+			}
+		}
+		if (this.trackUnknownProperties) {
+			this.unknownPropertyPaths = oldUnknownPropertyPaths;
+			this.knownPropertyPaths = oldKnownPropertyPaths;
+		}
+		if (validIndex === null) {
+			errors = errors.concat(this.errors.slice(startErrorCount));
+			this.errors = this.errors.slice(0, startErrorCount);
+			return this.createError(ErrorCodes.ONE_OF_MISSING, {}, "", "/oneOf", errors, data, schema);
+		} else {
+			this.errors = this.errors.slice(0, startErrorCount);
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateNot = function validateNot(data, schema, dataPointerPath) {
+		if (schema.not === undefined) {
+			return null;
+		}
+		var oldErrorCount = this.errors.length;
+		var oldUnknownPropertyPaths, oldKnownPropertyPaths;
+		if (this.trackUnknownProperties) {
+			oldUnknownPropertyPaths = this.unknownPropertyPaths;
+			oldKnownPropertyPaths = this.knownPropertyPaths;
+			this.unknownPropertyPaths = {};
+			this.knownPropertyPaths = {};
+		}
+		var error = this.validateAll(data, schema.not, null, null, dataPointerPath);
+		var notErrors = this.errors.slice(oldErrorCount);
+		this.errors = this.errors.slice(0, oldErrorCount);
+		if (this.trackUnknownProperties) {
+			this.unknownPropertyPaths = oldUnknownPropertyPaths;
+			this.knownPropertyPaths = oldKnownPropertyPaths;
+		}
+		if (error === null && notErrors.length === 0) {
+			return this.createError(ErrorCodes.NOT_PASSED, {}, "", "/not", null, data, schema);
+		}
+		return null;
+	};
+	
+	ValidatorContext.prototype.validateHypermedia = function validateCombinations(data, schema, dataPointerPath) {
+		if (!schema.links) {
+			return null;
+		}
+		var error;
+		for (var i = 0; i < schema.links.length; i++) {
+			var ldo = schema.links[i];
+			if (ldo.rel === "describedby") {
+				var template = new UriTemplate(ldo.href);
+				var allPresent = true;
+				for (var j = 0; j < template.varNames.length; j++) {
+					if (!(template.varNames[j] in data)) {
+						allPresent = false;
+						break;
+					}
+				}
+				if (allPresent) {
+					var schemaUrl = template.fillFromObject(data);
+					var subSchema = {"$ref": schemaUrl};
+					if (error = this.validateAll(data, subSchema, [], ["links", i], dataPointerPath)) {
+						return error;
+					}
+				}
+			}
+		}
+	};
+	
+	// parseURI() and resolveUrl() are from https://gist.github.com/1088850
+	//   -  released as public domain by author ("Yaffle") - see comments on gist
+	
+	function parseURI(url) {
+		var m = String(url).replace(/^\s+|\s+$/g, '').match(/^([^:\/?#]+:)?(\/\/(?:[^:@]*(?::[^:@]*)?@)?(([^:\/?#]*)(?::(\d*))?))?([^?#]*)(\?[^#]*)?(#[\s\S]*)?/);
+		// authority = '//' + user + ':' + pass '@' + hostname + ':' port
+		return (m ? {
+			href     : m[0] || '',
+			protocol : m[1] || '',
+			authority: m[2] || '',
+			host     : m[3] || '',
+			hostname : m[4] || '',
+			port     : m[5] || '',
+			pathname : m[6] || '',
+			search   : m[7] || '',
+			hash     : m[8] || ''
+		} : null);
+	}
+	
+	function resolveUrl(base, href) {// RFC 3986
+	
+		function removeDotSegments(input) {
+			var output = [];
+			input.replace(/^(\.\.?(\/|$))+/, '')
+				.replace(/\/(\.(\/|$))+/g, '/')
+				.replace(/\/\.\.$/, '/../')
+				.replace(/\/?[^\/]*/g, function (p) {
+					if (p === '/..') {
+						output.pop();
+					} else {
+						output.push(p);
+					}
+			});
+			return output.join('').replace(/^\//, input.charAt(0) === '/' ? '/' : '');
+		}
+	
+		href = parseURI(href || '');
+		base = parseURI(base || '');
+	
+		return !href || !base ? null : (href.protocol || base.protocol) +
+			(href.protocol || href.authority ? href.authority : base.authority) +
+			removeDotSegments(href.protocol || href.authority || href.pathname.charAt(0) === '/' ? href.pathname : (href.pathname ? ((base.authority && !base.pathname ? '/' : '') + base.pathname.slice(0, base.pathname.lastIndexOf('/') + 1) + href.pathname) : base.pathname)) +
+			(href.protocol || href.authority || href.pathname ? href.search : (href.search || base.search)) +
+			href.hash;
+	}
+	
+	function getDocumentUri(uri) {
+		return uri.split('#')[0];
+	}
+	function normSchema(schema, baseUri) {
+		if (schema && typeof schema === "object") {
+			if (baseUri === undefined) {
+				baseUri = schema.id;
+			} else if (typeof schema.id === "string") {
+				baseUri = resolveUrl(baseUri, schema.id);
+				schema.id = baseUri;
+			}
+			if (Array.isArray(schema)) {
+				for (var i = 0; i < schema.length; i++) {
+					normSchema(schema[i], baseUri);
+				}
+			} else {
+				if (typeof schema['$ref'] === "string") {
+					schema['$ref'] = resolveUrl(baseUri, schema['$ref']);
+				}
+				for (var key in schema) {
+					if (key !== "enum") {
+						normSchema(schema[key], baseUri);
+					}
+				}
+			}
+		}
+	}
+	
+	function defaultErrorReporter(language) {
+		language = language || 'en';
+	
+		var errorMessages = languages[language];
+	
+		return function (error) {
+			var messageTemplate = errorMessages[error.code] || ErrorMessagesDefault[error.code];
+			if (typeof messageTemplate !== 'string') {
+				return "Unknown error code " + error.code + ": " + JSON.stringify(error.messageParams);
+			}
+			var messageParams = error.params;
+			// Adapted from Crockford's supplant()
+			return messageTemplate.replace(/\{([^{}]*)\}/g, function (whole, varName) {
+				var subValue = messageParams[varName];
+				return typeof subValue === 'string' || typeof subValue === 'number' ? subValue : whole;
+			});
+		};
+	}
+	
+	var ErrorCodes = {
+		INVALID_TYPE: 0,
+		ENUM_MISMATCH: 1,
+		ANY_OF_MISSING: 10,
+		ONE_OF_MISSING: 11,
+		ONE_OF_MULTIPLE: 12,
+		NOT_PASSED: 13,
+		// Numeric errors
+		NUMBER_MULTIPLE_OF: 100,
+		NUMBER_MINIMUM: 101,
+		NUMBER_MINIMUM_EXCLUSIVE: 102,
+		NUMBER_MAXIMUM: 103,
+		NUMBER_MAXIMUM_EXCLUSIVE: 104,
+		NUMBER_NOT_A_NUMBER: 105,
+		// String errors
+		STRING_LENGTH_SHORT: 200,
+		STRING_LENGTH_LONG: 201,
+		STRING_PATTERN: 202,
+		// Object errors
+		OBJECT_PROPERTIES_MINIMUM: 300,
+		OBJECT_PROPERTIES_MAXIMUM: 301,
+		OBJECT_REQUIRED: 302,
+		OBJECT_ADDITIONAL_PROPERTIES: 303,
+		OBJECT_DEPENDENCY_KEY: 304,
+		// Array errors
+		ARRAY_LENGTH_SHORT: 400,
+		ARRAY_LENGTH_LONG: 401,
+		ARRAY_UNIQUE: 402,
+		ARRAY_ADDITIONAL_ITEMS: 403,
+		// Custom/user-defined errors
+		FORMAT_CUSTOM: 500,
+		KEYWORD_CUSTOM: 501,
+		// Schema structure
+		CIRCULAR_REFERENCE: 600,
+		// Non-standard validation options
+		UNKNOWN_PROPERTY: 1000
+	};
+	var ErrorCodeLookup = {};
+	for (var key in ErrorCodes) {
+		ErrorCodeLookup[ErrorCodes[key]] = key;
+	}
+	var ErrorMessagesDefault = {
+		INVALID_TYPE: "Invalid type: {type} (expected {expected})",
+		ENUM_MISMATCH: "No enum match for: {value}",
+		ANY_OF_MISSING: "Data does not match any schemas from \"anyOf\"",
+		ONE_OF_MISSING: "Data does not match any schemas from \"oneOf\"",
+		ONE_OF_MULTIPLE: "Data is valid against more than one schema from \"oneOf\": indices {index1} and {index2}",
+		NOT_PASSED: "Data matches schema from \"not\"",
+		// Numeric errors
+		NUMBER_MULTIPLE_OF: "Value {value} is not a multiple of {multipleOf}",
+		NUMBER_MINIMUM: "Value {value} is less than minimum {minimum}",
+		NUMBER_MINIMUM_EXCLUSIVE: "Value {value} is equal to exclusive minimum {minimum}",
+		NUMBER_MAXIMUM: "Value {value} is greater than maximum {maximum}",
+		NUMBER_MAXIMUM_EXCLUSIVE: "Value {value} is equal to exclusive maximum {maximum}",
+		NUMBER_NOT_A_NUMBER: "Value {value} is not a valid number",
+		// String errors
+		STRING_LENGTH_SHORT: "String is too short ({length} chars), minimum {minimum}",
+		STRING_LENGTH_LONG: "String is too long ({length} chars), maximum {maximum}",
+		STRING_PATTERN: "String does not match pattern: {pattern}",
+		// Object errors
+		OBJECT_PROPERTIES_MINIMUM: "Too few properties defined ({propertyCount}), minimum {minimum}",
+		OBJECT_PROPERTIES_MAXIMUM: "Too many properties defined ({propertyCount}), maximum {maximum}",
+		OBJECT_REQUIRED: "Missing required property: {key}",
+		OBJECT_ADDITIONAL_PROPERTIES: "Additional properties not allowed",
+		OBJECT_DEPENDENCY_KEY: "Dependency failed - key must exist: {missing} (due to key: {key})",
+		// Array errors
+		ARRAY_LENGTH_SHORT: "Array is too short ({length}), minimum {minimum}",
+		ARRAY_LENGTH_LONG: "Array is too long ({length}), maximum {maximum}",
+		ARRAY_UNIQUE: "Array items are not unique (indices {match1} and {match2})",
+		ARRAY_ADDITIONAL_ITEMS: "Additional items not allowed",
+		// Format errors
+		FORMAT_CUSTOM: "Format validation failed ({message})",
+		KEYWORD_CUSTOM: "Keyword failed: {key} ({message})",
+		// Schema structure
+		CIRCULAR_REFERENCE: "Circular $refs: {urls}",
+		// Non-standard validation options
+		UNKNOWN_PROPERTY: "Unknown property (not in schema)"
+	};
+	
+	function ValidationError(code, params, dataPath, schemaPath, subErrors) {
+		Error.call(this);
+		if (code === undefined) {
+			throw new Error ("No error code supplied: " + schemaPath);
+		}
+		this.message = '';
+		this.params = params;
+		this.code = code;
+		this.dataPath = dataPath || "";
+		this.schemaPath = schemaPath || "";
+		this.subErrors = subErrors || null;
+	
+		var err = new Error(this.message);
+		this.stack = err.stack || err.stacktrace;
+		if (!this.stack) {
+			try {
+				throw err;
+			}
+			catch(err) {
+				this.stack = err.stack || err.stacktrace;
+			}
+		}
+	}
+	ValidationError.prototype = Object.create(Error.prototype);
+	ValidationError.prototype.constructor = ValidationError;
+	ValidationError.prototype.name = 'ValidationError';
+	
+	ValidationError.prototype.prefixWith = function (dataPrefix, schemaPrefix) {
+		if (dataPrefix !== null) {
+			dataPrefix = dataPrefix.replace(/~/g, "~0").replace(/\//g, "~1");
+			this.dataPath = "/" + dataPrefix + this.dataPath;
+		}
+		if (schemaPrefix !== null) {
+			schemaPrefix = schemaPrefix.replace(/~/g, "~0").replace(/\//g, "~1");
+			this.schemaPath = "/" + schemaPrefix + this.schemaPath;
+		}
+		if (this.subErrors !== null) {
+			for (var i = 0; i < this.subErrors.length; i++) {
+				this.subErrors[i].prefixWith(dataPrefix, schemaPrefix);
+			}
+		}
+		return this;
+	};
+	
+	function isTrustedUrl(baseUrl, testUrl) {
+		if(testUrl.substring(0, baseUrl.length) === baseUrl){
+			var remainder = testUrl.substring(baseUrl.length);
+			if ((testUrl.length > 0 && testUrl.charAt(baseUrl.length - 1) === "/")
+				|| remainder.charAt(0) === "#"
+				|| remainder.charAt(0) === "?") {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	var languages = {};
+	function createApi(language) {
+		var globalContext = new ValidatorContext();
+		var currentLanguage;
+		var customErrorReporter;
+		var api = {
+			setErrorReporter: function (reporter) {
+				if (typeof reporter === 'string') {
+					return this.language(reporter);
+				}
+				customErrorReporter = reporter;
+				return true;
+			},
+			addFormat: function () {
+				globalContext.addFormat.apply(globalContext, arguments);
+			},
+			language: function (code) {
+				if (!code) {
+					return currentLanguage;
+				}
+				if (!languages[code]) {
+					code = code.split('-')[0]; // fall back to base language
+				}
+				if (languages[code]) {
+					currentLanguage = code;
+					return code; // so you can tell if fall-back has happened
+				}
+				return false;
+			},
+			addLanguage: function (code, messageMap) {
+				var key;
+				for (key in ErrorCodes) {
+					if (messageMap[key] && !messageMap[ErrorCodes[key]]) {
+						messageMap[ErrorCodes[key]] = messageMap[key];
+					}
+				}
+				var rootCode = code.split('-')[0];
+				if (!languages[rootCode]) { // use for base language if not yet defined
+					languages[code] = messageMap;
+					languages[rootCode] = messageMap;
+				} else {
+					languages[code] = Object.create(languages[rootCode]);
+					for (key in messageMap) {
+						if (typeof languages[rootCode][key] === 'undefined') {
+							languages[rootCode][key] = messageMap[key];
+						}
+						languages[code][key] = messageMap[key];
+					}
+				}
+				return this;
+			},
+			freshApi: function (language) {
+				var result = createApi();
+				if (language) {
+					result.language(language);
+				}
+				return result;
+			},
+			validate: function (data, schema, checkRecursive, banUnknownProperties) {
+				var def = defaultErrorReporter(currentLanguage);
+				var errorReporter = customErrorReporter ? function (error, data, schema) {
+					return customErrorReporter(error, data, schema) || def(error, data, schema);
+				} : def;
+				var context = new ValidatorContext(globalContext, false, errorReporter, checkRecursive, banUnknownProperties);
+				if (typeof schema === "string") {
+					schema = {"$ref": schema};
+				}
+				context.addSchema("", schema);
+				var error = context.validateAll(data, schema, null, null, "");
+				if (!error && banUnknownProperties) {
+					error = context.banUnknownProperties(data, schema);
+				}
+				this.error = error;
+				this.missing = context.missing;
+				this.valid = (error === null);
+				return this.valid;
+			},
+			validateResult: function () {
+				var result = {};
+				this.validate.apply(result, arguments);
+				return result;
+			},
+			validateMultiple: function (data, schema, checkRecursive, banUnknownProperties) {
+				var def = defaultErrorReporter(currentLanguage);
+				var errorReporter = customErrorReporter ? function (error, data, schema) {
+					return customErrorReporter(error, data, schema) || def(error, data, schema);
+				} : def;
+				var context = new ValidatorContext(globalContext, true, errorReporter, checkRecursive, banUnknownProperties);
+				if (typeof schema === "string") {
+					schema = {"$ref": schema};
+				}
+				context.addSchema("", schema);
+				context.validateAll(data, schema, null, null, "");
+				if (banUnknownProperties) {
+					context.banUnknownProperties(data, schema);
+				}
+				var result = {};
+				result.errors = context.errors;
+				result.missing = context.missing;
+				result.valid = (result.errors.length === 0);
+				return result;
+			},
+			addSchema: function () {
+				return globalContext.addSchema.apply(globalContext, arguments);
+			},
+			getSchema: function () {
+				return globalContext.getSchema.apply(globalContext, arguments);
+			},
+			getSchemaMap: function () {
+				return globalContext.getSchemaMap.apply(globalContext, arguments);
+			},
+			getSchemaUris: function () {
+				return globalContext.getSchemaUris.apply(globalContext, arguments);
+			},
+			getMissingUris: function () {
+				return globalContext.getMissingUris.apply(globalContext, arguments);
+			},
+			dropSchemas: function () {
+				globalContext.dropSchemas.apply(globalContext, arguments);
+			},
+			defineKeyword: function () {
+				globalContext.defineKeyword.apply(globalContext, arguments);
+			},
+			defineError: function (codeName, codeNumber, defaultMessage) {
+				if (typeof codeName !== 'string' || !/^[A-Z]+(_[A-Z]+)*$/.test(codeName)) {
+					throw new Error('Code name must be a string in UPPER_CASE_WITH_UNDERSCORES');
+				}
+				if (typeof codeNumber !== 'number' || codeNumber%1 !== 0 || codeNumber < 10000) {
+					throw new Error('Code number must be an integer > 10000');
+				}
+				if (typeof ErrorCodes[codeName] !== 'undefined') {
+					throw new Error('Error already defined: ' + codeName + ' as ' + ErrorCodes[codeName]);
+				}
+				if (typeof ErrorCodeLookup[codeNumber] !== 'undefined') {
+					throw new Error('Error code already used: ' + ErrorCodeLookup[codeNumber] + ' as ' + codeNumber);
+				}
+				ErrorCodes[codeName] = codeNumber;
+				ErrorCodeLookup[codeNumber] = codeName;
+				ErrorMessagesDefault[codeName] = ErrorMessagesDefault[codeNumber] = defaultMessage;
+				for (var langCode in languages) {
+					var language = languages[langCode];
+					if (language[codeName]) {
+						language[codeNumber] = language[codeNumber] || language[codeName];
+					}
+				}
+			},
+			reset: function () {
+				globalContext.reset();
+				this.error = null;
+				this.missing = [];
+				this.valid = true;
+			},
+			missing: [],
+			error: null,
+			valid: true,
+			normSchema: normSchema,
+			resolveUrl: resolveUrl,
+			getDocumentUri: getDocumentUri,
+			errorCodes: ErrorCodes
+		};
+		api.language(language || 'en');
+		return api;
+	}
+	
+	var tv4 = createApi();
+	tv4.addLanguage('en-gb', ErrorMessagesDefault);
+	
+	//legacy property
+	tv4.tv4 = tv4;
+	
+	return tv4; // used by _header.js to globalise.
+	
+	}));
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global, Buffer) {'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	// var RemoteStorage = require('./remotestorage');
+	var log = __webpack_require__(4);
+	var util = __webpack_require__(2);
+	var eventHandling = __webpack_require__(3);
+	var Authorize = __webpack_require__(7);
+	
+	/**
+	 * Class: RemoteStorage.WireClient
+	 *
+	 * WireClient Interface
+	 * --------------------
+	 *
+	 * This file exposes a get/put/delete interface on top of XMLHttpRequest.
+	 * It requires to be configured with parameters about the remotestorage server to
+	 * connect to.
+	 * Each instance of WireClient is always associated with a single remotestorage
+	 * server and access token.
+	 *
+	 * Usually the WireClient instance can be accessed via `remoteStorage.remote`.
+	 *
+	 * This is the get/put/delete interface:
+	 *
+	 *   - #get() takes a path and optionally a ifNoneMatch option carrying a version
+	 *     string to check. It returns a promise that will be fulfilled with the HTTP
+	 *     response status, the response body, the MIME type as returned in the
+	 *     'Content-Type' header and the current revision, as returned in the 'ETag'
+	 *     header.
+	 *   - #put() takes a path, the request body and a content type string. It also
+	 *     accepts the ifMatch and ifNoneMatch options, that map to the If-Match and
+	 *     If-None-Match headers respectively. See the remotestorage-01 specification
+	 *     for details on handling these headers. It returns a promise, fulfilled with
+	 *     the same values as the one for #get().
+	 *   - #delete() takes a path and the ifMatch option as well. It returns a promise
+	 *     fulfilled with the same values as the one for #get().
+	 *
+	 * In addition to this, the WireClient has some compatibility features to work with
+	 * remotestorage 2012.04 compatible storages. For example it will cache revisions
+	 * from folder listings in-memory and return them accordingly as the "revision"
+	 * parameter in response to #get() requests. Similarly it will return 404 when it
+	 * receives an empty folder listing, to mimic remotestorage-01 behavior. Note
+	 * that it is not always possible to know the revision beforehand, hence it may
+	 * be undefined at times (especially for caching-roots).
+	 */
+	
+	var hasLocalStorage;
+	var SETTINGS_KEY = 'remotestorage:wireclient';
+	
+	var API_2012 = 1,
+	    API_00 = 2,
+	    API_01 = 3,
+	    API_02 = 4,
+	    API_HEAD = 5;
+	
+	var STORAGE_APIS = {
+	  'draft-dejong-remotestorage-00': API_00,
+	  'draft-dejong-remotestorage-01': API_01,
+	  'draft-dejong-remotestorage-02': API_02,
+	  'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
+	};
+	
+	var isArrayBufferView;
+	
+	if (typeof ArrayBufferView === 'function') {
+	  isArrayBufferView = function isArrayBufferView(object) {
+	    return object && object instanceof ArrayBufferView;
+	  };
+	} else {
+	  var arrayBufferViews = [Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array];
+	  isArrayBufferView = function isArrayBufferView(object) {
+	    for (var i = 0; i < 8; i++) {
+	      if (object instanceof arrayBufferViews[i]) {
+	        return true;
+	      }
+	    }
+	    return false;
+	  };
+	}
+	
+	var isFolder = util.isFolder;
+	var cleanPath = util.cleanPath;
+	
+	function addQuotes(str) {
+	  if (typeof str !== 'string') {
+	    return str;
+	  }
+	  if (str === '*') {
+	    return '*';
+	  }
+	
+	  return '"' + str + '"';
+	}
+	
+	function stripQuotes(str) {
+	  if (typeof str !== 'string') {
+	    return str;
+	  }
+	
+	  return str.replace(/^["']|["']$/g, '');
+	}
+	
+	function readBinaryData(content, mimeType, callback) {
+	  var blob;
+	  global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
+	  if (typeof global.BlobBuilder !== 'undefined') {
+	    var bb = new global.BlobBuilder();
+	    bb.append(content);
+	    blob = bb.getBlob(mimeType);
+	  } else {
+	    blob = new Blob([content], { type: mimeType });
+	  }
+	
+	  var reader = new FileReader();
+	  if (typeof reader.addEventListener === 'function') {
+	    reader.addEventListener('loadend', function () {
+	      callback(reader.result); // reader.result contains the contents of blob as a typed array
+	    });
+	  } else {
+	    reader.onloadend = function () {
+	      callback(reader.result); // reader.result contains the contents of blob as a typed array
+	    };
+	  }
+	  reader.readAsArrayBuffer(blob);
+	}
+	
+	function getTextFromArrayBuffer(arrayBuffer, encoding) {
+	  var pending = Promise.defer();
+	  if (typeof Blob === 'undefined') {
+	    var buffer = new Buffer(new Uint8Array(arrayBuffer));
+	    pending.resolve(buffer.toString(encoding));
+	  } else {
+	    var blob;
+	    global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
+	    if (typeof global.BlobBuilder !== 'undefined') {
+	      var bb = new global.BlobBuilder();
+	      bb.append(arrayBuffer);
+	      blob = bb.getBlob();
+	    } else {
+	      blob = new Blob([arrayBuffer]);
+	    }
+	
+	    var fileReader = new FileReader();
+	    if (typeof fileReader.addEventListener === 'function') {
+	      fileReader.addEventListener('loadend', function (evt) {
+	        pending.resolve(evt.target.result);
+	      });
+	    } else {
+	      fileReader.onloadend = function (evt) {
+	        pending.resolve(evt.target.result);
+	      };
+	    }
+	    fileReader.readAsText(blob, encoding);
+	  }
+	  return pending.promise;
+	}
+	
+	function determineCharset(mimeType) {
+	  var charset = 'UTF-8';
+	  var charsetMatch;
+	
+	  if (mimeType) {
+	    charsetMatch = mimeType.match(/charset=(.+)$/);
+	    if (charsetMatch) {
+	      charset = charsetMatch[1];
+	    }
+	  }
+	  return charset;
+	}
+	
+	function isFolderDescription(body) {
+	  return body['@context'] === 'http://remotestorage.io/spec/folder-description' && _typeof(body['items']) === 'object';
+	}
+	
+	function isSuccessStatus(status) {
+	  return [201, 204, 304].indexOf(status) >= 0;
+	}
+	
+	function isErrorStatus(status) {
+	  return [401, 403, 404, 412].indexOf(status) >= 0;
+	}
+	
+	var onErrorCb;
+	
+	/**
+	 * Class : RemoteStorage.WireClient
+	 **/
+	var WireClient = function WireClient(rs) {
+	  this.rs = rs;
+	  this.connected = false;
+	
+	  /**
+	   * Event: change
+	   *   Never fired for some reason
+	   *   # TODO create issue and fix or remove
+	   *
+	   * Event: connected
+	   *   Fired when the wireclient connect method realizes that it is in
+	   *   possession of a token and href
+	   **/
+	  eventHandling(this, 'change', 'connected', 'not-connected', 'wire-busy', 'wire-done');
+	
+	  onErrorCb = function (error) {
+	    if (error instanceof Authorize.Unauthorized) {
+	      this.configure({ token: null });
+	    }
+	  }.bind(this);
+	  rs.on('error', onErrorCb);
+	  if (hasLocalStorage) {
+	    var settings;
+	    try {
+	      settings = JSON.parse(localStorage[SETTINGS_KEY]);
+	    } catch (e) {}
+	    if (settings) {
+	      setTimeout(function () {
+	        this.configure(settings);
+	      }.bind(this), 0);
+	    }
+	  }
+	
+	  this._revisionCache = {};
+	
+	  if (this.connected) {
+	    setTimeout(this._emit.bind(this), 0, 'connected');
+	  }
+	};
+	
+	WireClient.REQUEST_TIMEOUT = 30000;
+	
+	WireClient.prototype = {
+	  /**
+	   * Property: token
+	   *
+	   * Holds the bearer token of this WireClient, as obtained in the OAuth dance
+	   *
+	   * Example:
+	   *   (start code)
+	   *
+	   *   remoteStorage.remote.token
+	   *   // -> 'DEADBEEF01=='
+	   */
+	
+	  /**
+	   * Property: href
+	   *
+	   * Holds the server's base URL, as obtained in the Webfinger discovery
+	   *
+	   * Example:
+	   *   (start code)
+	   *
+	   *   remoteStorage.remote.href
+	   *   // -> 'https://storage.example.com/users/jblogg/'
+	   */
+	
+	  /**
+	   * Property: storageApi
+	   *
+	   * Holds the spec version the server claims to be compatible with
+	   *
+	   * Example:
+	   *   (start code)
+	   *
+	   *   remoteStorage.remote.storageApi
+	   *   // -> 'draft-dejong-remotestorage-01'
+	   */
+	
+	  _request: function _request(method, uri, token, headers, body, getEtag, fakeRevision) {
+	    if ((method === 'PUT' || method === 'DELETE') && uri[uri.length - 1] === '/') {
+	      return Promise.reject('Don\'t ' + method + ' on directories!');
+	    }
+	
+	    var revision;
+	    var self = this;
+	
+	    if (token !== Authorize.IMPLIED_FAKE_TOKEN) {
+	      headers['Authorization'] = 'Bearer ' + token;
+	    }
+	
+	    this._emit('wire-busy', {
+	      method: method,
+	      isFolder: isFolder(uri)
+	    });
+	
+	    return WireClient.request(method, uri, {
+	      body: body,
+	      headers: headers,
+	      responseType: 'arraybuffer'
+	    }).then(function (response) {
+	      if (!self.online) {
+	        self.online = true;
+	        self.rs._emit('network-online');
+	      }
+	      self._emit('wire-done', {
+	        method: method,
+	        isFolder: isFolder(uri),
+	        success: true
+	      });
+	
+	      if (isErrorStatus(response.status)) {
+	        log('[WireClient] Error response status', response.status);
+	        if (getEtag) {
+	          revision = stripQuotes(response.getResponseHeader('ETag'));
+	        } else {
+	          revision = undefined;
+	        }
+	        return Promise.resolve({ statusCode: response.status, revision: revision });
+	      } else if (isSuccessStatus(response.status) || response.status === 200 && method !== 'GET') {
+	        revision = stripQuotes(response.getResponseHeader('ETag'));
+	        log('[WireClient] Successful request', revision);
+	        return Promise.resolve({ statusCode: response.status, revision: revision });
+	      } else {
+	        var mimeType = response.getResponseHeader('Content-Type');
+	        if (getEtag) {
+	          revision = stripQuotes(response.getResponseHeader('ETag'));
+	        } else {
+	          revision = response.status === 200 ? fakeRevision : undefined;
+	        }
+	
+	        var charset = determineCharset(mimeType);
+	
+	        if (!mimeType || charset === 'binary') {
+	          log('[WireClient] Successful request with unknown or binary mime-type', revision);
+	          return Promise.resolve({ statusCode: response.status, body: response.response, contentType: mimeType, revision: revision });
+	        } else {
+	          return getTextFromArrayBuffer(response.response, charset).then(function (body) {
+	            log('[WireClient] Successful request', revision);
+	            return Promise.resolve({ statusCode: response.status, body: body, contentType: mimeType, revision: revision });
+	          });
+	        }
+	      }
+	    }, function (error) {
+	      if (self.online) {
+	        self.online = false;
+	        self.rs._emit('network-offline');
+	      }
+	      self._emit('wire-done', {
+	        method: method,
+	        isFolder: isFolder(uri),
+	        success: false
+	      });
+	
+	      return Promise.reject(error);
+	    });
+	  },
+	
+	  /**
+	   *
+	   * Method: configure
+	   *
+	   * Sets the userAddress, href, storageApi, token, and properties of a
+	   * remote store. Also sets connected and online to true and emits the
+	   * 'connected' event, if both token and href are present.
+	   *
+	   * Parameters:
+	   *   settings - An object that may contain userAddress (string or null),
+	   *              href (string or null), storageApi (string or null), token (string
+	   *              or null), and/or properties (the JSON-parsed properties object
+	   *              from the user's WebFinger record, see section 10 of
+	   *              http://tools.ietf.org/html/draft-dejong-remotestorage-03
+	   *              or null).
+	   *              Fields that are not included (i.e. `undefined`), stay at
+	   *              their current value. To set a field, include that field
+	   *              with a `string` value. To reset a field, for instance when
+	   *              the user disconnected their storage, or you found that the
+	   *              token you have has expired, simply set that field to `null`.
+	   */
+	  configure: function configure(settings) {
+	    if ((typeof settings === 'undefined' ? 'undefined' : _typeof(settings)) !== 'object') {
+	      throw new Error('WireClient configure settings parameter should be an object');
+	    }
+	    if (typeof settings.userAddress !== 'undefined') {
+	      this.userAddress = settings.userAddress;
+	    }
+	    if (typeof settings.href !== 'undefined') {
+	      this.href = settings.href;
+	    }
+	    if (typeof settings.storageApi !== 'undefined') {
+	      this.storageApi = settings.storageApi;
+	    }
+	    if (typeof settings.token !== 'undefined') {
+	      this.token = settings.token;
+	    }
+	    if (typeof settings.properties !== 'undefined') {
+	      this.properties = settings.properties;
+	    }
+	
+	    if (typeof this.storageApi !== 'undefined') {
+	      this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
+	      this.supportsRevs = this._storageApi >= API_00;
+	    }
+	    if (this.href && this.token) {
+	      this.connected = true;
+	      this.online = true;
+	      this._emit('connected');
+	    } else {
+	      this.connected = false;
+	    }
+	    if (hasLocalStorage) {
+	      localStorage[SETTINGS_KEY] = JSON.stringify({
+	        userAddress: this.userAddress,
+	        href: this.href,
+	        storageApi: this.storageApi,
+	        token: this.token,
+	        properties: this.properties
+	      });
+	    }
+	  },
+	
+	  stopWaitingForToken: function stopWaitingForToken() {
+	    if (!this.connected) {
+	      this._emit('not-connected');
+	    }
+	  },
+	
+	  get: function get(path, options) {
+	    var self = this;
+	    if (!this.connected) {
+	      return Promise.reject('not connected (path: ' + path + ')');
+	    }
+	    if (!options) {
+	      options = {};
+	    }
+	    var headers = {};
+	    if (this.supportsRevs) {
+	      if (options.ifNoneMatch) {
+	        headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
+	      }
+	    } else if (options.ifNoneMatch) {
+	      var oldRev = this._revisionCache[path];
+	    }
+	
+	    return this._request('GET', this.href + cleanPath(path), this.token, headers, undefined, this.supportsRevs, this._revisionCache[path]).then(function (r) {
+	      if (!isFolder(path)) {
+	        return Promise.resolve(r);
+	      }
+	      var itemsMap = {};
+	      if (typeof r.body !== 'undefined') {
+	        try {
+	          r.body = JSON.parse(r.body);
+	        } catch (e) {
+	          return Promise.reject('Folder description at ' + self.href + cleanPath(path) + ' is not JSON');
+	        }
+	      }
+	
+	      if (r.statusCode === 200 && _typeof(r.body) === 'object') {
+	        // New folder listing received
+	        if (Object.keys(r.body).length === 0) {
+	          // Empty folder listing of any spec
+	          r.statusCode = 404;
+	        } else if (isFolderDescription(r.body)) {
+	          // >= 02 spec
+	          for (var item in r.body.items) {
+	            self._revisionCache[path + item] = r.body.items[item].ETag;
+	          }
+	          itemsMap = r.body.items;
+	        } else {
+	          // < 02 spec
+	          Object.keys(r.body).forEach(function (key) {
+	            self._revisionCache[path + key] = r.body[key];
+	            itemsMap[key] = { 'ETag': r.body[key] };
+	          });
+	        }
+	        r.body = itemsMap;
+	        return Promise.resolve(r);
+	      } else {
+	        return Promise.resolve(r);
+	      }
+	    });
+	  },
+	
+	  put: function put(path, body, contentType, options) {
+	    if (!this.connected) {
+	      return Promise.reject('not connected (path: ' + path + ')');
+	    }
+	    if (!options) {
+	      options = {};
+	    }
+	    if (!contentType.match(/charset=/) && (body instanceof ArrayBuffer || isArrayBufferView(body))) {
+	      contentType += '; charset=binary';
+	    }
+	    var headers = { 'Content-Type': contentType };
+	    if (this.supportsRevs) {
+	      if (options.ifMatch) {
+	        headers['If-Match'] = addQuotes(options.ifMatch);
+	      }
+	      if (options.ifNoneMatch) {
+	        headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
+	      }
+	    }
+	    return this._request('PUT', this.href + cleanPath(path), this.token, headers, body, this.supportsRevs);
+	  },
+	
+	  'delete': function _delete(path, options) {
+	    if (!this.connected) {
+	      throw new Error('not connected (path: ' + path + ')');
+	    }
+	    if (!options) {
+	      options = {};
+	    }
+	    var headers = {};
+	    if (this.supportsRevs) {
+	      if (options.ifMatch) {
+	        headers['If-Match'] = addQuotes(options.ifMatch);
+	      }
+	    }
+	    return this._request('DELETE', this.href + cleanPath(path), this.token, headers, undefined, this.supportsRevs);
+	  }
+	};
+	
+	// Shared cleanPath used by Dropbox
+	WireClient.cleanPath = cleanPath;
+	
+	// Shared isArrayBufferView used by WireClient and Dropbox
+	WireClient.isArrayBufferView = isArrayBufferView;
+	
+	WireClient.readBinaryData = readBinaryData;
+	
+	// Shared request function used by WireClient, GoogleDrive and Dropbox.
+	WireClient.request = function (method, url, options) {
+	  var pending = Promise.defer();
+	  log('[WireClient]', method, url);
+	
+	  var timedOut = false;
+	
+	  var timer = setTimeout(function () {
+	    timedOut = true;
+	    pending.reject('timeout');
+	  }, WireClient.REQUEST_TIMEOUT);
+	
+	  var xhr = new XMLHttpRequest();
+	  xhr.open(method, url, true);
+	
+	  if (options.responseType) {
+	    xhr.responseType = options.responseType;
+	  }
+	
+	  if (options.headers) {
+	    for (var key in options.headers) {
+	      xhr.setRequestHeader(key, options.headers[key]);
+	    }
+	  }
+	
+	  xhr.onload = function () {
+	    if (timedOut) {
+	      return;
+	    }
+	    clearTimeout(timer);
+	    pending.resolve(xhr);
+	  };
+	
+	  xhr.onerror = function (error) {
+	    if (timedOut) {
+	      return;
+	    }
+	    clearTimeout(timer);
+	    pending.reject(error);
+	  };
+	
+	  var body = options.body;
+	
+	  if ((typeof body === 'undefined' ? 'undefined' : _typeof(body)) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
+	    body = new Uint8Array(body);
+	  }
+	  xhr.send(body);
+	  return pending.promise;
+	};
+	
+	Object.defineProperty(WireClient.prototype, 'storageType', {
+	  get: function get() {
+	    if (this.storageApi) {
+	      var spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
+	      return spec ? spec[1] : '2012.04';
+	    }
+	  }
+	});
+	
+	WireClient._rs_init = function (remoteStorage) {
+	  hasLocalStorage = util.localStorageAvailable();
+	  remoteStorage.remote = new WireClient(remoteStorage);
+	  this.online = true;
+	};
+	
+	WireClient._rs_supported = function () {
+	  return !!global.XMLHttpRequest;
+	};
+	
+	WireClient._rs_cleanup = function (remoteStorage) {
+	  if (hasLocalStorage) {
+	    delete localStorage[SETTINGS_KEY];
+	  }
+	  remoteStorage.removeEventListener('error', onErrorCb);
+	};
+	
+	module.exports = WireClient;
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(13).Buffer))
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer, global) {/*!
 	 * The buffer module from node.js, for the browser.
 	 *
 	 * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
 	 * @license  MIT
 	 */
-"use strict";function o(){try{var e=new Uint8Array(1);return e.__proto__={__proto__:Uint8Array.prototype,foo:function(){return 42}},42===e.foo()&&"function"==typeof e.subarray&&0===e.subarray(1,1).byteLength}catch(e){return!1}}function i(){return e.TYPED_ARRAY_SUPPORT?2147483647:1073741823}function s(t,r){if(i()<r)throw new RangeError("Invalid typed array length");return e.TYPED_ARRAY_SUPPORT?(t=new Uint8Array(r),t.__proto__=e.prototype):(null===t&&(t=new e(r)),t.length=r),t}function e(t,r,n){if(!(e.TYPED_ARRAY_SUPPORT||this instanceof e))return new e(t,r,n);if("number"==typeof t){if("string"==typeof r)throw new Error("If encoding is specified then the first argument must be a string");return h(this,t)}return a(this,t,r,n)}function a(e,t,r,n){if("number"==typeof t)throw new TypeError('"value" argument must not be a number');return"undefined"!=typeof ArrayBuffer&&t instanceof ArrayBuffer?d(e,t,r,n):"string"==typeof t?l(e,t,r):p(e,t)}function u(e){if("number"!=typeof e)throw new TypeError('"size" argument must be a number');if(e<0)throw new RangeError('"size" argument must not be negative')}function c(e,t,r,n){return u(t),t<=0?s(e,t):void 0!==r?"string"==typeof n?s(e,t).fill(r,n):s(e,t).fill(r):s(e,t)}function h(t,r){if(u(r),t=s(t,r<0?0:0|m(r)),!e.TYPED_ARRAY_SUPPORT)for(var n=0;n<r;++n)t[n]=0;return t}function l(t,r,n){if("string"==typeof n&&""!==n||(n="utf8"),!e.isEncoding(n))throw new TypeError('"encoding" must be a valid string encoding');var o=0|y(r,n);t=s(t,o);var i=t.write(r,n);return i!==o&&(t=t.slice(0,i)),t}function f(e,t){var r=t.length<0?0:0|m(t.length);e=s(e,r);for(var n=0;n<r;n+=1)e[n]=255&t[n];return e}function d(t,r,n,o){if(r.byteLength,n<0||r.byteLength<n)throw new RangeError("'offset' is out of bounds");if(r.byteLength<n+(o||0))throw new RangeError("'length' is out of bounds");return r=void 0===n&&void 0===o?new Uint8Array(r):void 0===o?new Uint8Array(r,n):new Uint8Array(r,n,o),e.TYPED_ARRAY_SUPPORT?(t=r,t.__proto__=e.prototype):t=f(t,r),t}function p(t,r){if(e.isBuffer(r)){var n=0|m(r.length);return t=s(t,n),0===t.length?t:(r.copy(t,0,0,n),t)}if(r){if("undefined"!=typeof ArrayBuffer&&r.buffer instanceof ArrayBuffer||"length"in r)return"number"!=typeof r.length||$(r.length)?s(t,0):f(t,r);if("Buffer"===r.type&&Z(r.data))return f(t,r.data)}throw new TypeError("First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.")}function m(e){if(e>=i())throw new RangeError("Attempt to allocate Buffer larger than maximum size: 0x"+i().toString(16)+" bytes");return 0|e}function g(t){return+t!=t&&(t=0),e.alloc(+t)}function y(t,r){if(e.isBuffer(t))return t.length;if("undefined"!=typeof ArrayBuffer&&"function"==typeof ArrayBuffer.isView&&(ArrayBuffer.isView(t)||t instanceof ArrayBuffer))return t.byteLength;"string"!=typeof t&&(t=""+t);var n=t.length;if(0===n)return 0;for(var o=!1;;)switch(r){case"ascii":case"latin1":case"binary":return n;case"utf8":case"utf-8":case void 0:return H(t).length;case"ucs2":case"ucs-2":case"utf16le":case"utf-16le":return 2*n;case"hex":return n>>>1;case"base64":return K(t).length;default:if(o)return H(t).length;r=(""+r).toLowerCase(),o=!0}}function v(e,t,r){var n=!1;if((void 0===t||t<0)&&(t=0),t>this.length)return"";if((void 0===r||r>this.length)&&(r=this.length),r<=0)return"";if(r>>>=0,t>>>=0,r<=t)return"";for(e||(e="utf8");;)switch(e){case"hex":return I(this,t,r);case"utf8":case"utf-8":return C(this,t,r);case"ascii":return M(this,t,r);case"latin1":case"binary":return N(this,t,r);case"base64":return k(this,t,r);case"ucs2":case"ucs-2":case"utf16le":case"utf-16le":return x(this,t,r);default:if(n)throw new TypeError("Unknown encoding: "+e);e=(e+"").toLowerCase(),n=!0}}function b(e,t,r){var n=e[t];e[t]=e[r],e[r]=n}function _(t,r,n,o,i){if(0===t.length)return-1;if("string"==typeof n?(o=n,n=0):n>2147483647?n=2147483647:n<-2147483648&&(n=-2147483648),n=+n,isNaN(n)&&(n=i?0:t.length-1),n<0&&(n=t.length+n),n>=t.length){if(i)return-1;n=t.length-1}else if(n<0){if(!i)return-1;n=0}if("string"==typeof r&&(r=e.from(r,o)),e.isBuffer(r))return 0===r.length?-1:w(t,r,n,o,i);if("number"==typeof r)return r=255&r,e.TYPED_ARRAY_SUPPORT&&"function"==typeof Uint8Array.prototype.indexOf?i?Uint8Array.prototype.indexOf.call(t,r,n):Uint8Array.prototype.lastIndexOf.call(t,r,n):w(t,[r],n,o,i);throw new TypeError("val must be string, number or Buffer")}function w(e,t,r,n,o){function i(e,t){return 1===s?e[t]:e.readUInt16BE(t*s)}var s=1,a=e.length,u=t.length;if(void 0!==n&&(n=String(n).toLowerCase(),"ucs2"===n||"ucs-2"===n||"utf16le"===n||"utf-16le"===n)){if(e.length<2||t.length<2)return-1;s=2,a/=2,u/=2,r/=2}var c;if(o){var h=-1;for(c=r;c<a;c++)if(i(e,c)===i(t,h===-1?0:c-h)){if(h===-1&&(h=c),c-h+1===u)return h*s}else h!==-1&&(c-=c-h),h=-1}else for(r+u>a&&(r=a-u),c=r;c>=0;c--){for(var l=!0,f=0;f<u;f++)if(i(e,c+f)!==i(t,f)){l=!1;break}if(l)return c}return-1}function E(e,t,r,n){r=Number(r)||0;var o=e.length-r;n?(n=Number(n),n>o&&(n=o)):n=o;var i=t.length;if(i%2!==0)throw new TypeError("Invalid hex string");n>i/2&&(n=i/2);for(var s=0;s<n;++s){var a=parseInt(t.substr(2*s,2),16);if(isNaN(a))return s;e[r+s]=a}return s}function P(e,t,r,n){return W(H(t,e.length-r),e,r,n)}function T(e,t,r,n){return W(z(t),e,r,n)}function A(e,t,r,n){return T(e,t,r,n)}function S(e,t,r,n){return W(K(t),e,r,n)}function R(e,t,r,n){return W(V(t,e.length-r),e,r,n)}function k(e,t,r){return 0===t&&r===e.length?X.fromByteArray(e):X.fromByteArray(e.slice(t,r))}function C(e,t,r){r=Math.min(e.length,r);for(var n=[],o=t;o<r;){var i=e[o],s=null,a=i>239?4:i>223?3:i>191?2:1;if(o+a<=r){var u,c,h,l;switch(a){case 1:i<128&&(s=i);break;case 2:u=e[o+1],128===(192&u)&&(l=(31&i)<<6|63&u,l>127&&(s=l));break;case 3:u=e[o+1],c=e[o+2],128===(192&u)&&128===(192&c)&&(l=(15&i)<<12|(63&u)<<6|63&c,l>2047&&(l<55296||l>57343)&&(s=l));break;case 4:u=e[o+1],c=e[o+2],h=e[o+3],128===(192&u)&&128===(192&c)&&128===(192&h)&&(l=(15&i)<<18|(63&u)<<12|(63&c)<<6|63&h,l>65535&&l<1114112&&(s=l))}}null===s?(s=65533,a=1):s>65535&&(s-=65536,n.push(s>>>10&1023|55296),s=56320|1023&s),n.push(s),o+=a}return O(n)}function O(e){var t=e.length;if(t<=ee)return String.fromCharCode.apply(String,e);for(var r="",n=0;n<t;)r+=String.fromCharCode.apply(String,e.slice(n,n+=ee));return r}function M(e,t,r){var n="";r=Math.min(e.length,r);for(var o=t;o<r;++o)n+=String.fromCharCode(127&e[o]);return n}function N(e,t,r){var n="";r=Math.min(e.length,r);for(var o=t;o<r;++o)n+=String.fromCharCode(e[o]);return n}function I(e,t,r){var n=e.length;(!t||t<0)&&(t=0),(!r||r<0||r>n)&&(r=n);for(var o="",i=t;i<r;++i)o+=G(e[i]);return o}function x(e,t,r){for(var n=e.slice(t,r),o="",i=0;i<n.length;i+=2)o+=String.fromCharCode(n[i]+256*n[i+1]);return o}function j(e,t,r){if(e%1!==0||e<0)throw new RangeError("offset is not uint");if(e+t>r)throw new RangeError("Trying to access beyond buffer length")}function U(t,r,n,o,i,s){if(!e.isBuffer(t))throw new TypeError('"buffer" argument must be a Buffer instance');if(r>i||r<s)throw new RangeError('"value" argument is out of bounds');if(n+o>t.length)throw new RangeError("Index out of range")}function L(e,t,r,n){t<0&&(t=65535+t+1);for(var o=0,i=Math.min(e.length-r,2);o<i;++o)e[r+o]=(t&255<<8*(n?o:1-o))>>>8*(n?o:1-o)}function B(e,t,r,n){t<0&&(t=4294967295+t+1);for(var o=0,i=Math.min(e.length-r,4);o<i;++o)e[r+o]=t>>>8*(n?o:3-o)&255}function D(e,t,r,n,o,i){if(r+n>e.length)throw new RangeError("Index out of range");if(r<0)throw new RangeError("Index out of range")}function F(e,t,r,n,o){return o||D(e,t,r,4,3.4028234663852886e38,-3.4028234663852886e38),Q.write(e,t,r,n,23,4),r+4}function q(e,t,r,n,o){return o||D(e,t,r,8,1.7976931348623157e308,-1.7976931348623157e308),Q.write(e,t,r,n,52,8),r+8}function J(e){if(e=Y(e).replace(te,""),e.length<2)return"";for(;e.length%4!==0;)e+="=";return e}function Y(e){return e.trim?e.trim():e.replace(/^\s+|\s+$/g,"")}function G(e){return e<16?"0"+e.toString(16):e.toString(16)}function H(e,t){t=t||1/0;for(var r,n=e.length,o=null,i=[],s=0;s<n;++s){if(r=e.charCodeAt(s),r>55295&&r<57344){if(!o){if(r>56319){(t-=3)>-1&&i.push(239,191,189);continue}if(s+1===n){(t-=3)>-1&&i.push(239,191,189);continue}o=r;continue}if(r<56320){(t-=3)>-1&&i.push(239,191,189),o=r;continue}r=(o-55296<<10|r-56320)+65536}else o&&(t-=3)>-1&&i.push(239,191,189);if(o=null,r<128){if((t-=1)<0)break;i.push(r)}else if(r<2048){if((t-=2)<0)break;i.push(r>>6|192,63&r|128)}else if(r<65536){if((t-=3)<0)break;i.push(r>>12|224,r>>6&63|128,63&r|128)}else{if(!(r<1114112))throw new Error("Invalid code point");if((t-=4)<0)break;i.push(r>>18|240,r>>12&63|128,r>>6&63|128,63&r|128)}}return i}function z(e){for(var t=[],r=0;r<e.length;++r)t.push(255&e.charCodeAt(r));return t}function V(e,t){for(var r,n,o,i=[],s=0;s<e.length&&!((t-=2)<0);++s)r=e.charCodeAt(s),n=r>>8,o=r%256,i.push(o),i.push(n);return i}function K(e){return X.toByteArray(J(e))}function W(e,t,r,n){for(var o=0;o<n&&!(o+r>=t.length||o>=e.length);++o)t[o+r]=e[o];return o}function $(e){return e!==e}var X=r(15),Q=r(16),Z=r(17);t.Buffer=e,t.SlowBuffer=g,t.INSPECT_MAX_BYTES=50,e.TYPED_ARRAY_SUPPORT=void 0!==n.TYPED_ARRAY_SUPPORT?n.TYPED_ARRAY_SUPPORT:o(),t.kMaxLength=i(),e.poolSize=8192,e._augment=function(t){return t.__proto__=e.prototype,t},e.from=function(e,t,r){return a(null,e,t,r)},e.TYPED_ARRAY_SUPPORT&&(e.prototype.__proto__=Uint8Array.prototype,e.__proto__=Uint8Array,"undefined"!=typeof Symbol&&Symbol.species&&e[Symbol.species]===e&&Object.defineProperty(e,Symbol.species,{value:null,configurable:!0})),e.alloc=function(e,t,r){return c(null,e,t,r)},e.allocUnsafe=function(e){return h(null,e)},e.allocUnsafeSlow=function(e){return h(null,e)},e.isBuffer=function(e){return!(null==e||!e._isBuffer)},e.compare=function(t,r){if(!e.isBuffer(t)||!e.isBuffer(r))throw new TypeError("Arguments must be Buffers");if(t===r)return 0;for(var n=t.length,o=r.length,i=0,s=Math.min(n,o);i<s;++i)if(t[i]!==r[i]){n=t[i],o=r[i];break}return n<o?-1:o<n?1:0},e.isEncoding=function(e){switch(String(e).toLowerCase()){case"hex":case"utf8":case"utf-8":case"ascii":case"latin1":case"binary":case"base64":case"ucs2":case"ucs-2":case"utf16le":case"utf-16le":return!0;default:return!1}},e.concat=function(t,r){if(!Z(t))throw new TypeError('"list" argument must be an Array of Buffers');if(0===t.length)return e.alloc(0);var n;if(void 0===r)for(r=0,n=0;n<t.length;++n)r+=t[n].length;var o=e.allocUnsafe(r),i=0;for(n=0;n<t.length;++n){var s=t[n];if(!e.isBuffer(s))throw new TypeError('"list" argument must be an Array of Buffers');s.copy(o,i),i+=s.length}return o},e.byteLength=y,e.prototype._isBuffer=!0,e.prototype.swap16=function(){var e=this.length;if(e%2!==0)throw new RangeError("Buffer size must be a multiple of 16-bits");for(var t=0;t<e;t+=2)b(this,t,t+1);return this},e.prototype.swap32=function(){var e=this.length;if(e%4!==0)throw new RangeError("Buffer size must be a multiple of 32-bits");for(var t=0;t<e;t+=4)b(this,t,t+3),b(this,t+1,t+2);return this},e.prototype.swap64=function(){var e=this.length;if(e%8!==0)throw new RangeError("Buffer size must be a multiple of 64-bits");for(var t=0;t<e;t+=8)b(this,t,t+7),b(this,t+1,t+6),b(this,t+2,t+5),b(this,t+3,t+4);return this},e.prototype.toString=function(){var e=0|this.length;return 0===e?"":0===arguments.length?C(this,0,e):v.apply(this,arguments)},e.prototype.equals=function(t){if(!e.isBuffer(t))throw new TypeError("Argument must be a Buffer");return this===t||0===e.compare(this,t)},e.prototype.inspect=function(){var e="",r=t.INSPECT_MAX_BYTES;return this.length>0&&(e=this.toString("hex",0,r).match(/.{2}/g).join(" "),this.length>r&&(e+=" ... ")),"<Buffer "+e+">"},e.prototype.compare=function(t,r,n,o,i){if(!e.isBuffer(t))throw new TypeError("Argument must be a Buffer");if(void 0===r&&(r=0),void 0===n&&(n=t?t.length:0),void 0===o&&(o=0),void 0===i&&(i=this.length),r<0||n>t.length||o<0||i>this.length)throw new RangeError("out of range index");if(o>=i&&r>=n)return 0;if(o>=i)return-1;if(r>=n)return 1;if(r>>>=0,n>>>=0,o>>>=0,i>>>=0,this===t)return 0;for(var s=i-o,a=n-r,u=Math.min(s,a),c=this.slice(o,i),h=t.slice(r,n),l=0;l<u;++l)if(c[l]!==h[l]){s=c[l],a=h[l];break}return s<a?-1:a<s?1:0},e.prototype.includes=function(e,t,r){return this.indexOf(e,t,r)!==-1},e.prototype.indexOf=function(e,t,r){return _(this,e,t,r,!0)},e.prototype.lastIndexOf=function(e,t,r){return _(this,e,t,r,!1)},e.prototype.write=function(e,t,r,n){if(void 0===t)n="utf8",r=this.length,t=0;else if(void 0===r&&"string"==typeof t)n=t,r=this.length,t=0;else{if(!isFinite(t))throw new Error("Buffer.write(string, encoding, offset[, length]) is no longer supported");t=0|t,isFinite(r)?(r=0|r,void 0===n&&(n="utf8")):(n=r,r=void 0)}var o=this.length-t;if((void 0===r||r>o)&&(r=o),e.length>0&&(r<0||t<0)||t>this.length)throw new RangeError("Attempt to write outside buffer bounds");n||(n="utf8");for(var i=!1;;)switch(n){case"hex":return E(this,e,t,r);case"utf8":case"utf-8":return P(this,e,t,r);case"ascii":return T(this,e,t,r);case"latin1":case"binary":return A(this,e,t,r);case"base64":return S(this,e,t,r);case"ucs2":case"ucs-2":case"utf16le":case"utf-16le":return R(this,e,t,r);default:if(i)throw new TypeError("Unknown encoding: "+n);n=(""+n).toLowerCase(),i=!0}},e.prototype.toJSON=function(){return{type:"Buffer",data:Array.prototype.slice.call(this._arr||this,0)}};var ee=4096;e.prototype.slice=function(t,r){var n=this.length;t=~~t,r=void 0===r?n:~~r,t<0?(t+=n,t<0&&(t=0)):t>n&&(t=n),r<0?(r+=n,r<0&&(r=0)):r>n&&(r=n),r<t&&(r=t);var o;if(e.TYPED_ARRAY_SUPPORT)o=this.subarray(t,r),o.__proto__=e.prototype;else{var i=r-t;o=new e(i,void 0);for(var s=0;s<i;++s)o[s]=this[s+t]}return o},e.prototype.readUIntLE=function(e,t,r){e=0|e,t=0|t,r||j(e,t,this.length);for(var n=this[e],o=1,i=0;++i<t&&(o*=256);)n+=this[e+i]*o;return n},e.prototype.readUIntBE=function(e,t,r){e=0|e,t=0|t,r||j(e,t,this.length);for(var n=this[e+--t],o=1;t>0&&(o*=256);)n+=this[e+--t]*o;return n},e.prototype.readUInt8=function(e,t){return t||j(e,1,this.length),this[e]},e.prototype.readUInt16LE=function(e,t){return t||j(e,2,this.length),this[e]|this[e+1]<<8},e.prototype.readUInt16BE=function(e,t){return t||j(e,2,this.length),this[e]<<8|this[e+1]},e.prototype.readUInt32LE=function(e,t){return t||j(e,4,this.length),(this[e]|this[e+1]<<8|this[e+2]<<16)+16777216*this[e+3]},e.prototype.readUInt32BE=function(e,t){return t||j(e,4,this.length),16777216*this[e]+(this[e+1]<<16|this[e+2]<<8|this[e+3])},e.prototype.readIntLE=function(e,t,r){e=0|e,t=0|t,r||j(e,t,this.length);for(var n=this[e],o=1,i=0;++i<t&&(o*=256);)n+=this[e+i]*o;return o*=128,n>=o&&(n-=Math.pow(2,8*t)),n},e.prototype.readIntBE=function(e,t,r){e=0|e,t=0|t,r||j(e,t,this.length);for(var n=t,o=1,i=this[e+--n];n>0&&(o*=256);)i+=this[e+--n]*o;return o*=128,i>=o&&(i-=Math.pow(2,8*t)),i},e.prototype.readInt8=function(e,t){return t||j(e,1,this.length),128&this[e]?(255-this[e]+1)*-1:this[e]},e.prototype.readInt16LE=function(e,t){t||j(e,2,this.length);var r=this[e]|this[e+1]<<8;return 32768&r?4294901760|r:r},e.prototype.readInt16BE=function(e,t){t||j(e,2,this.length);var r=this[e+1]|this[e]<<8;return 32768&r?4294901760|r:r},e.prototype.readInt32LE=function(e,t){return t||j(e,4,this.length),this[e]|this[e+1]<<8|this[e+2]<<16|this[e+3]<<24},e.prototype.readInt32BE=function(e,t){return t||j(e,4,this.length),this[e]<<24|this[e+1]<<16|this[e+2]<<8|this[e+3]},e.prototype.readFloatLE=function(e,t){return t||j(e,4,this.length),Q.read(this,e,!0,23,4)},e.prototype.readFloatBE=function(e,t){return t||j(e,4,this.length),Q.read(this,e,!1,23,4)},e.prototype.readDoubleLE=function(e,t){return t||j(e,8,this.length),Q.read(this,e,!0,52,8)},e.prototype.readDoubleBE=function(e,t){return t||j(e,8,this.length),Q.read(this,e,!1,52,8)},e.prototype.writeUIntLE=function(e,t,r,n){if(e=+e,t=0|t,r=0|r,!n){var o=Math.pow(2,8*r)-1;U(this,e,t,r,o,0)}var i=1,s=0;for(this[t]=255&e;++s<r&&(i*=256);)this[t+s]=e/i&255;return t+r},e.prototype.writeUIntBE=function(e,t,r,n){if(e=+e,t=0|t,r=0|r,!n){var o=Math.pow(2,8*r)-1;U(this,e,t,r,o,0)}var i=r-1,s=1;for(this[t+i]=255&e;--i>=0&&(s*=256);)this[t+i]=e/s&255;return t+r},e.prototype.writeUInt8=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,1,255,0),e.TYPED_ARRAY_SUPPORT||(t=Math.floor(t)),this[r]=255&t,r+1},e.prototype.writeUInt16LE=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,2,65535,0),e.TYPED_ARRAY_SUPPORT?(this[r]=255&t,this[r+1]=t>>>8):L(this,t,r,!0),r+2},e.prototype.writeUInt16BE=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,2,65535,0),e.TYPED_ARRAY_SUPPORT?(this[r]=t>>>8,this[r+1]=255&t):L(this,t,r,!1),r+2},e.prototype.writeUInt32LE=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,4,4294967295,0),e.TYPED_ARRAY_SUPPORT?(this[r+3]=t>>>24,this[r+2]=t>>>16,this[r+1]=t>>>8,this[r]=255&t):B(this,t,r,!0),r+4},e.prototype.writeUInt32BE=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,4,4294967295,0),e.TYPED_ARRAY_SUPPORT?(this[r]=t>>>24,this[r+1]=t>>>16,this[r+2]=t>>>8,this[r+3]=255&t):B(this,t,r,!1),r+4},e.prototype.writeIntLE=function(e,t,r,n){if(e=+e,t=0|t,!n){var o=Math.pow(2,8*r-1);U(this,e,t,r,o-1,-o)}var i=0,s=1,a=0;for(this[t]=255&e;++i<r&&(s*=256);)e<0&&0===a&&0!==this[t+i-1]&&(a=1),this[t+i]=(e/s>>0)-a&255;return t+r},e.prototype.writeIntBE=function(e,t,r,n){if(e=+e,t=0|t,!n){var o=Math.pow(2,8*r-1);U(this,e,t,r,o-1,-o)}var i=r-1,s=1,a=0;for(this[t+i]=255&e;--i>=0&&(s*=256);)e<0&&0===a&&0!==this[t+i+1]&&(a=1),this[t+i]=(e/s>>0)-a&255;return t+r},e.prototype.writeInt8=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,1,127,-128),e.TYPED_ARRAY_SUPPORT||(t=Math.floor(t)),t<0&&(t=255+t+1),this[r]=255&t,r+1},e.prototype.writeInt16LE=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,2,32767,-32768),e.TYPED_ARRAY_SUPPORT?(this[r]=255&t,this[r+1]=t>>>8):L(this,t,r,!0),r+2},e.prototype.writeInt16BE=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,2,32767,-32768),e.TYPED_ARRAY_SUPPORT?(this[r]=t>>>8,this[r+1]=255&t):L(this,t,r,!1),r+2},e.prototype.writeInt32LE=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,4,2147483647,-2147483648),e.TYPED_ARRAY_SUPPORT?(this[r]=255&t,this[r+1]=t>>>8,this[r+2]=t>>>16,this[r+3]=t>>>24):B(this,t,r,!0),r+4},e.prototype.writeInt32BE=function(t,r,n){return t=+t,r=0|r,n||U(this,t,r,4,2147483647,-2147483648),t<0&&(t=4294967295+t+1),e.TYPED_ARRAY_SUPPORT?(this[r]=t>>>24,this[r+1]=t>>>16,this[r+2]=t>>>8,this[r+3]=255&t):B(this,t,r,!1),r+4},e.prototype.writeFloatLE=function(e,t,r){return F(this,e,t,!0,r)},e.prototype.writeFloatBE=function(e,t,r){return F(this,e,t,!1,r)},e.prototype.writeDoubleLE=function(e,t,r){return q(this,e,t,!0,r)},e.prototype.writeDoubleBE=function(e,t,r){return q(this,e,t,!1,r)},e.prototype.copy=function(t,r,n,o){if(n||(n=0),o||0===o||(o=this.length),r>=t.length&&(r=t.length),r||(r=0),o>0&&o<n&&(o=n),o===n)return 0;if(0===t.length||0===this.length)return 0;if(r<0)throw new RangeError("targetStart out of bounds");if(n<0||n>=this.length)throw new RangeError("sourceStart out of bounds");if(o<0)throw new RangeError("sourceEnd out of bounds");o>this.length&&(o=this.length),t.length-r<o-n&&(o=t.length-r+n);var i,s=o-n;if(this===t&&n<r&&r<o)for(i=s-1;i>=0;--i)t[i+r]=this[i+n];else if(s<1e3||!e.TYPED_ARRAY_SUPPORT)for(i=0;i<s;++i)t[i+r]=this[i+n];else Uint8Array.prototype.set.call(t,this.subarray(n,n+s),r);return s},e.prototype.fill=function(t,r,n,o){if("string"==typeof t){if("string"==typeof r?(o=r,r=0,n=this.length):"string"==typeof n&&(o=n,n=this.length),1===t.length){var i=t.charCodeAt(0);i<256&&(t=i)}if(void 0!==o&&"string"!=typeof o)throw new TypeError("encoding must be a string");if("string"==typeof o&&!e.isEncoding(o))throw new TypeError("Unknown encoding: "+o)}else"number"==typeof t&&(t=255&t);if(r<0||this.length<r||this.length<n)throw new RangeError("Out of range index");if(n<=r)return this;r>>>=0,n=void 0===n?this.length:n>>>0,t||(t=0);var s;if("number"==typeof t)for(s=r;s<n;++s)this[s]=t;else{var a=e.isBuffer(t)?t:H(new e(t,o).toString()),u=a.length;for(s=0;s<n-r;++s)this[s+r]=a[s%u]}return this};var te=/[^+\/0-9A-Za-z-_]/g}).call(t,r(14).Buffer,function(){return this}())},function(e,t){"use strict";function r(e){var t=e.length;if(t%4>0)throw new Error("Invalid string. Length must be a multiple of 4");return"="===e[t-2]?2:"="===e[t-1]?1:0}function n(e){return 3*e.length/4-r(e)}function o(e){var t,n,o,i,s,a,u=e.length;s=r(e),a=new h(3*u/4-s),o=s>0?u-4:u;var l=0;for(t=0,n=0;t<o;t+=4,n+=3)i=c[e.charCodeAt(t)]<<18|c[e.charCodeAt(t+1)]<<12|c[e.charCodeAt(t+2)]<<6|c[e.charCodeAt(t+3)],a[l++]=i>>16&255,a[l++]=i>>8&255,a[l++]=255&i;return 2===s?(i=c[e.charCodeAt(t)]<<2|c[e.charCodeAt(t+1)]>>4,a[l++]=255&i):1===s&&(i=c[e.charCodeAt(t)]<<10|c[e.charCodeAt(t+1)]<<4|c[e.charCodeAt(t+2)]>>2,a[l++]=i>>8&255,a[l++]=255&i),a}function i(e){return u[e>>18&63]+u[e>>12&63]+u[e>>6&63]+u[63&e]}function s(e,t,r){for(var n,o=[],s=t;s<r;s+=3)n=(e[s]<<16)+(e[s+1]<<8)+e[s+2],o.push(i(n));return o.join("")}function a(e){for(var t,r=e.length,n=r%3,o="",i=[],a=16383,c=0,h=r-n;c<h;c+=a)i.push(s(e,c,c+a>h?h:c+a));return 1===n?(t=e[r-1],o+=u[t>>2],o+=u[t<<4&63],o+="=="):2===n&&(t=(e[r-2]<<8)+e[r-1],o+=u[t>>10],o+=u[t>>4&63],o+=u[t<<2&63],o+="="),i.push(o),i.join("")}t.byteLength=n,t.toByteArray=o,t.fromByteArray=a;for(var u=[],c=[],h="undefined"!=typeof Uint8Array?Uint8Array:Array,l="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",f=0,d=l.length;f<d;++f)u[f]=l[f],c[l.charCodeAt(f)]=f;c["-".charCodeAt(0)]=62,c["_".charCodeAt(0)]=63},function(e,t){t.read=function(e,t,r,n,o){var i,s,a=8*o-n-1,u=(1<<a)-1,c=u>>1,h=-7,l=r?o-1:0,f=r?-1:1,d=e[t+l];for(l+=f,i=d&(1<<-h)-1,d>>=-h,h+=a;h>0;i=256*i+e[t+l],l+=f,h-=8);for(s=i&(1<<-h)-1,i>>=-h,h+=n;h>0;s=256*s+e[t+l],l+=f,h-=8);if(0===i)i=1-c;else{if(i===u)return s?NaN:(d?-1:1)*(1/0);s+=Math.pow(2,n),i-=c}return(d?-1:1)*s*Math.pow(2,i-n)},t.write=function(e,t,r,n,o,i){var s,a,u,c=8*i-o-1,h=(1<<c)-1,l=h>>1,f=23===o?Math.pow(2,-24)-Math.pow(2,-77):0,d=n?0:i-1,p=n?1:-1,m=t<0||0===t&&1/t<0?1:0;for(t=Math.abs(t),isNaN(t)||t===1/0?(a=isNaN(t)?1:0,s=h):(s=Math.floor(Math.log(t)/Math.LN2),t*(u=Math.pow(2,-s))<1&&(s--,u*=2),t+=s+l>=1?f/u:f*Math.pow(2,1-l),t*u>=2&&(s++,u/=2),s+l>=h?(a=0,s=h):s+l>=1?(a=(t*u-1)*Math.pow(2,o),s+=l):(a=t*Math.pow(2,l-1)*Math.pow(2,o),s=0));o>=8;e[r+d]=255&a,d+=p,a/=256,o-=8);for(s=s<<o|a,c+=o;c>0;e[r+d]=255&s,d+=p,s/=256,c-=8);e[r+d-p]|=128*m}},function(e,t){var r={}.toString;e.exports=Array.isArray||function(e){return"[object Array]"==r.call(e)}},function(e,t,r){function n(e,t,r){return{action:e,path:t,promise:r}}function o(e){return e.remote&&e.remote.revision&&!e.remote.itemsMap&&!e.remote.body}function i(e){return e.common&&e.common.revision}function s(){function e(e){var r,n;r=t.getCurrentSyncInterval(),p=!e,n=t.getCurrentSyncInterval(),t._emit("sync-interval-change",{oldValue:r,newValue:n})}var t=this;u.on("background",function(){e(!1)}),u.on("foreground",function(){e(!0)})}var a=r(2),u=r(19),c=r(3),h=r(4),l=r(8),f=r(5),d=1e4,p=!1,m=a.isFolder,g=a.isDocument,y=a.equal,v=a.deepClone,b=a.pathsFromRoot,_=function(e,t,r,n){this.local=e,this.local.onDiff(function(e){this.addTask(e),this.doTasks()}.bind(this)),this.remote=t,this.access=r,this.caching=n,this._tasks={},this._running={},this._timeStarted={},c(this,"done","req-done"),this.caching.onActivate(function(e){this.addTask(e),this.doTasks()}.bind(this))};_.prototype={now:function(){return(new Date).getTime()},queueGetRequest:function(e){var t=Promise.defer();return this.remote.connected?this.remote.online?(this.addTask(e,function(){this.local.get(e).then(function(e){return t.resolve(e)})}.bind(this)),this.doTasks()):t.reject("cannot fulfill maxAge requirement - remote is not online"):t.reject("cannot fulfill maxAge requirement - remote is not connected"),t.promise},corruptServerItemsMap:function(e,t){if("object"!=typeof e||Array.isArray(e))return!0;for(var r in e){var n=e[r];if("object"!=typeof n)return!0;if("string"!=typeof n.ETag)return!0;if(m(r)){if(r.substring(0,r.length-1).indexOf("/")!==-1)return!0}else{if(r.indexOf("/")!==-1)return!0;if(t){if("string"!=typeof n["Content-Type"])return!0;if("number"!=typeof n["Content-Length"])return!0}}}return!1},corruptItemsMap:function(e){if("object"!=typeof e||Array.isArray(e))return!0;for(var t in e)if("boolean"!=typeof e[t])return!0;return!1},corruptRevision:function(e){return"object"!=typeof e||Array.isArray(e)||e.revision&&"string"!=typeof e.revision||e.body&&"string"!=typeof e.body&&"object"!=typeof e.body||e.contentType&&"string"!=typeof e.contentType||e.contentLength&&"number"!=typeof e.contentLength||e.timestamp&&"number"!=typeof e.timestamp||e.itemsMap&&this.corruptItemsMap(e.itemsMap)},isCorrupt:function(e){return"object"!=typeof e||Array.isArray(e)||"string"!=typeof e.path||this.corruptRevision(e.common)||e.local&&this.corruptRevision(e.local)||e.remote&&this.corruptRevision(e.remote)||e.push&&this.corruptRevision(e.push)},hasTasks:function(){return Object.getOwnPropertyNames(this._tasks).length>0},collectDiffTasks:function(){var e=0;return this.local.forAllNodes(function(t){e>100||(this.isCorrupt(t)?(h("[Sync] WARNING: corrupt node in local cache",t),"object"==typeof t&&t.path&&(this.addTask(t.path),e++)):this.needsFetch(t)&&this.access.checkPathPermission(t.path,"r")?(this.addTask(t.path),e++):g(t.path)&&this.needsPush(t)&&this.access.checkPathPermission(t.path,"rw")&&(this.addTask(t.path),e++))}.bind(this)).then(function(){return e},function(e){throw e})},inConflict:function(e){return e.local&&e.remote&&(void 0!==e.remote.body||e.remote.itemsMap)},needsRefresh:function(e){return!!e.common&&(!e.common.timestamp||this.now()-e.common.timestamp>d)},needsFetch:function(e){return!!this.inConflict(e)||(!(!e.common||void 0!==e.common.itemsMap||void 0!==e.common.body)||!(!e.remote||void 0!==e.remote.itemsMap||void 0!==e.remote.body))},needsPush:function(e){return!this.inConflict(e)&&(!(!e.local||e.push)||void 0)},needsRemotePut:function(e){return e.local&&e.local.body},needsRemoteDelete:function(e){return e.local&&e.local.body===!1},getParentPath:function(e){var t=e.match(/^(.*\/)([^\/]+\/?)$/);if(t)return t[1];throw new Error('Not a valid path: "'+e+'"')},deleteChildPathsFromTasks:function(){for(var e in this._tasks)for(var t=b(e),r=1;r<t.length;r++)this._tasks[t[r]]&&(Array.isArray(this._tasks[e])&&this._tasks[e].length&&Array.prototype.push.apply(this._tasks[t[r]],this._tasks[e]),delete this._tasks[e])},collectRefreshTasks:function(){return this.local.forAllNodes(function(e){var t;if(this.needsRefresh(e)){try{t=this.getParentPath(e.path)}catch(e){}t&&this.access.checkPathPermission(t,"r")?this.addTask(t):this.access.checkPathPermission(e.path,"r")&&this.addTask(e.path)}}.bind(this)).then(function(){this.deleteChildPathsFromTasks()}.bind(this),function(e){throw e})},flush:function(e){for(var t in e)"FLUSH"===this.caching.checkPath(t)&&e[t]&&!e[t].local&&(h("[Sync] Flushing",t),e[t]=void 0);return e},doTask:function(e){return this.local.getNodes([e]).then(function(t){var r=t[e];return"undefined"==typeof r?n("get",e,this.remote.get(e)):o(r)?n("get",e,this.remote.get(e)):this.needsRemotePut(r)?(r.push=v(r.local),r.push.timestamp=this.now(),this.local.setNodes(this.flush(t)).then(function(){var t;return t=i(r)?{ifMatch:r.common.revision}:{ifNoneMatch:"*"},n("put",e,this.remote.put(e,r.push.body,r.push.contentType,t))}.bind(this))):this.needsRemoteDelete(r)?(r.push={body:!1,timestamp:this.now()},this.local.setNodes(this.flush(t)).then(function(){return i(r)?n("delete",e,this.remote.delete(e,{ifMatch:r.common.revision})):n("get",e,this.remote.get(e))}.bind(this))):i(r)?n("get",e,this.remote.get(e,{ifNoneMatch:r.common.revision})):n("get",e,this.remote.get(e))}.bind(this))},autoMergeFolder:function(e){if(e.remote.itemsMap&&(e.common=e.remote,delete e.remote,e.common.itemsMap)){for(var t in e.common.itemsMap)e.local.itemsMap[t]||(e.local.itemsMap[t]=!1);y(e.local.itemsMap,e.common.itemsMap)&&delete e.local}return e},autoMergeDocument:function(e){return hasNoRemoteChanges=function(e){return(!e.remote||!e.remote.revision||e.remote.revision===e.common.revision)&&(void 0===e.common.body&&e.remote.body===!1||e.remote.body===e.common.body&&e.remote.contentType===e.common.contentType)},mergeMutualDeletion=function(e){return e.remote&&e.remote.body===!1&&e.local&&e.local.body===!1&&delete e.local,e},hasNoRemoteChanges(e)?(e=mergeMutualDeletion(e),delete e.remote):void 0!==e.remote.body&&(h("[Sync] Emitting keep/revert"),this.local._emitChange({origin:"conflict",path:e.path,oldValue:e.local.body,newValue:e.remote.body,lastCommonValue:e.common.body,oldContentType:e.local.contentType,newContentType:e.remote.contentType,lastCommonContentType:e.common.contentType}),e.remote.body?e.common=e.remote:e.common={},delete e.remote,delete e.local),e},autoMerge:function(e){if(!e.remote)return void(e.common.body&&this.local._emitChange({origin:"remote",path:e.path,oldValue:e.common.body,newValue:void 0,oldContentType:e.common.contentType,newContentType:void 0}));if(e.local)return m(e.path)?this.autoMergeFolder(e):this.autoMergeDocument(e);if(m(e.path))void 0!==e.remote.itemsMap&&(e.common=e.remote,delete e.remote);else if(void 0!==e.remote.body){var t={origin:"remote",path:e.path,oldValue:e.common.body===!1?void 0:e.common.body,newValue:e.remote.body===!1?void 0:e.remote.body,oldContentType:e.common.contentType,newContentType:e.remote.contentType};if((t.oldValue||t.newValue)&&this.local._emitChange(t),!e.remote.body)return;e.common=e.remote,delete e.remote}return e},updateCommonTimestamp:function(e,t){return this.local.getNodes([e]).then(function(r){return r[e]&&r[e].common&&r[e].common.revision===t&&(r[e].common.timestamp=this.now()),this.local.setNodes(this.flush(r))}.bind(this))},markChildren:function(e,t,r,n){var o=[],i={},s={};for(var a in t)o.push(e+a),i[e+a]=t[a];for(var u in n)o.push(e+u);return this.local.getNodes(o).then(function(t){var o,a,u=function(e,t){return e.common.revision!==t&&(!e.remote||e.remote.revision!==t)};for(var c in t)if(a=t[c],i[c])a&&a.common?u(a,i[c].ETag)&&(r[c]=v(a),r[c].remote={revision:i[c].ETag,timestamp:this.now()},r[c]=this.autoMerge(r[c])):(o=this.caching.checkPath(c),"ALL"===o&&(r[c]={path:c,common:{timestamp:this.now()},remote:{revision:i[c].ETag,timestamp:this.now()}})),r[c]&&i[c]["Content-Type"]&&(r[c].remote.contentType=i[c]["Content-Type"]),r[c]&&i[c]["Content-Length"]&&(r[c].remote.contentLength=i[c]["Content-Length"]);else if(n[c.substring(e.length)]&&a&&a.common){if(a.common.itemsMap)for(var h in a.common.itemsMap)s[c+h]=!0;if(a.local&&a.local.itemsMap)for(var l in a.local.itemsMap)s[c+l]=!0;if(a.remote||m(c))r[c]=void 0;else if(r[c]=this.autoMerge(a),"undefined"==typeof r[c]){var f=this.getParentPath(c),d=r[f],p=c.substring(e.length);d&&d.local&&(delete d.local.itemsMap[p],y(d.local.itemsMap,d.common.itemsMap)&&delete d.local)}}return this.deleteRemoteTrees(Object.keys(s),r).then(function(e){return this.local.setNodes(this.flush(e))}.bind(this))}.bind(this))},deleteRemoteTrees:function(e,t){return 0===e.length?Promise.resolve(t):this.local.getNodes(e).then(function(e){var r={};collectSubPaths=function(e,t){if(e&&e.itemsMap)for(var n in e.itemsMap)r[t+n]=!0};for(var n in e){var o=e[n];o&&(m(n)?(collectSubPaths(o.common,n),collectSubPaths(o.local,n)):o.common&&void 0!==typeof o.common.body&&(t[n]=v(o),t[n].remote={body:!1,timestamp:this.now()},t[n]=this.autoMerge(t[n])))}return this.deleteRemoteTrees(Object.keys(r),t).then(function(e){return this.local.setNodes(this.flush(e))}.bind(this))}.bind(this))},completeFetch:function(e,t,r,n){var o,i,s=b(e);return m(e)?o=[e]:(i=s[1],o=[e,i]),this.local.getNodes(o).then(function(o){var s,a,u={},c=o[e],h=function(e){if(e&&e.itemsMap)for(var r in e.itemsMap)t[r]||(u[r]=!0)};if("object"==typeof c&&c.path===e&&"object"==typeof c.common||(c={path:e,common:{}},o[e]=c),c.remote={revision:n,timestamp:this.now()},m(e)){h(c.common),h(c.remote),c.remote.itemsMap={};for(s in t)c.remote.itemsMap[s]=!0}else c.remote.body=t,c.remote.contentType=r,a=o[i],a&&a.local&&a.local.itemsMap&&(s=e.substring(i.length),a.local.itemsMap[s]=!0,y(a.local.itemsMap,a.common.itemsMap)&&delete a.local);return o[e]=this.autoMerge(c),{
-toBeSaved:o,missingChildren:u}}.bind(this))},completePush:function(e,t,r,n){return this.local.getNodes([e]).then(function(o){var i=o[e];if(!i.push)throw this.stopped=!0,new Error("completePush called but no push version!");return r?(h("[Sync] We have a conflict"),i.remote&&i.remote.revision===n||(i.remote={revision:n||"conflict",timestamp:this.now()},delete i.push),o[e]=this.autoMerge(i)):(i.common={revision:n,timestamp:this.now()},"put"===t?(i.common.body=i.push.body,i.common.contentType=i.push.contentType,y(i.local.body,i.push.body)&&i.local.contentType===i.push.contentType&&delete i.local,delete i.push):"delete"===t&&(i.local.body===!1?o[e]=void 0:delete i.push)),this.local.setNodes(this.flush(o))}.bind(this))},dealWithFailure:function(e,t,r){return this.local.getNodes([e]).then(function(t){if(t[e])return delete t[e].push,this.local.setNodes(this.flush(t))}.bind(this))},interpretStatus:function(e){if("offline"===e||"timeout"===e)return{successful:!1,networkProblems:!0,statusCode:e};var t=Math.floor(e/100);return{successful:2===t||304===e||412===e||404===e,conflict:412===e,unAuth:401===e&&this.remote.token!==l.IMPLIED_FAKE_TOKEN||402===e||403===e,notFound:404===e,changed:304!==e,statusCode:e}},handleGetResponse:function(e,t,r,n,o){return t.notFound&&(r=!!m(e)&&{}),t.changed?this.completeFetch(e,r,n,o).then(function(t){return m(e)?this.corruptServerItemsMap(r)?(h("[Sync] WARNING: Discarding corrupt folder description from server for "+e),!1):this.markChildren(e,r,t.toBeSaved,t.missingChildren).then(function(){return!0}):this.local.setNodes(this.flush(t.toBeSaved)).then(function(){return!0})}.bind(this)):this.updateCommonTimestamp(e,o).then(function(){return!0})},handleResponse:function(e,t,r){var n=this.interpretStatus(r.statusCode);if(n.successful){if("get"===t)return this.handleGetResponse(e,n,r.body,r.contentType,r.revision);if("put"===t||"delete"===t)return this.completePush(e,t,n.conflict,r.revision).then(function(){return!0});throw new Error("cannot handle response for unknown action",t)}var o;return o=n.unAuth?new l.Unauthorized:n.networkProblems?new _.SyncError("Network request failed."):new Error("HTTP response code "+n.statusCode+" received."),this.dealWithFailure(e,t,n).then(function(){throw E._emit("error",o),o})},numThreads:10,finishTask:function(e){if(void 0===e.action)return void delete this._running[e.path];var t=this;return e.promise.then(function(r){return t.handleResponse(e.path,e.action,r)},function(r){return h("[Sync] wireclient rejects its promise!",e.path,e.action,r),t.handleResponse(e.path,e.action,{statusCode:"offline"})}).then(function(r){if(delete t._timeStarted[e.path],delete t._running[e.path],r&&t._tasks[e.path]){for(var n=0;n<t._tasks[e.path].length;n++)t._tasks[e.path][n]();delete t._tasks[e.path]}t._emit("req-done"),t.collectTasks(!1).then(function(){!t.hasTasks()||t.stopped?(h("[Sync] Sync is done! Reschedule?",Object.getOwnPropertyNames(t._tasks).length,t.stopped),t.done||(t.done=!0,t._emit("done"))):setTimeout(function(){t.doTasks()},10)})},function(r){h("[Sync] Error",r),delete t._timeStarted[e.path],delete t._running[e.path],t._emit("req-done"),t.done||(t.done=!0,t._emit("done"))})},doTasks:function(){var e,t,r,n=0;if(e=this.remote.connected?this.remote.online?this.numThreads:1:0,t=e-Object.getOwnPropertyNames(this._running).length,t<=0)return!0;for(r in this._tasks)if(!this._running[r]&&(this._timeStarted[r]=this.now(),this._running[r]=this.doTask(r),this._running[r].then(this.finishTask.bind(this)),n++,n>=t))return!0;return n>=t},collectTasks:function(e){return this.hasTasks()||this.stopped?Promise.resolve():this.collectDiffTasks().then(function(t){return t||e===!1?Promise.resolve():this.collectRefreshTasks()}.bind(this),function(e){throw e})},addTask:function(e,t){this._tasks[e]||(this._tasks[e]=[]),"function"==typeof t&&this._tasks[e].push(t)},sync:function(){return this.done=!1,this.doTasks()?Promise.resolve():this.collectTasks().then(function(){try{this.doTasks()}catch(e){console.error("[Sync] doTasks error",e)}}.bind(this),function(e){throw console.error("[Sync] Sync error",e),new Error("Local cache unavailable")})}};var w,E;_._rs_init=function(e){E=e,w=function(){return!!f.cache&&(h("[Sync] syncCycleCb calling syncCycle"),u.isBrowser()&&s.bind(e)(),e.sync||(e.sync=new _(e.local,e.remote,e.access,e.caching),e.syncStopped&&(h("[Sync] Instantiating sync stopped"),e.sync.stopped=!0,delete e.syncStopped)),h("[Sync] syncCycleCb calling syncCycle"),void e.syncCycle())},syncOnConnect=function(){e.removeEventListener("connected",syncOnConnect),e.startSync()},e.on("ready",w),e.on("connected",syncOnConnect)},_._rs_cleanup=function(e){e.stopSync(),e.removeEventListener("ready",w),e.removeEventListener("connected",syncOnConnect),delete e.sync},e.exports=_},function(e,t,r){var n=r(3),o="undefined"!=typeof window?"browser":"node",i={},s=!1;Env=function(){return i},Env.isBrowser=function(){return"browser"===o},Env.isNode=function(){return"node"===o},Env.goBackground=function(){s=!0,Env._emit("background")},Env.goForeground=function(){s=!1,Env._emit("foreground")},Env._rs_init=function(e){function t(){document[i.hiddenProperty]?Env.goBackground():Env.goForeground()}n(Env,"background","foreground"),"browser"===o&&("undefined"!=typeof document.hidden?(i.hiddenProperty="hidden",i.visibilityChangeEvent="visibilitychange"):"undefined"!=typeof document.mozHidden?(i.hiddenProperty="mozHidden",i.visibilityChangeEvent="mozvisibilitychange"):"undefined"!=typeof document.msHidden?(i.hiddenProperty="msHidden",i.visibilityChangeEvent="msvisibilitychange"):"undefined"!=typeof document.webkitHidden&&(i.hiddenProperty="webkitHidden",i.visibilityChangeEvent="webkitvisibilitychange"),document.addEventListener(i.visibilityChangeEvent,t,!1),t())},Env._rs_cleanup=function(e){},e.exports=Env},function(e,t,r){function n(e){return"/"===e.substr(-1)&&(e=e.substr(0,e.length-1)),decodeURIComponent(e)}function o(e){return e.replace(/[^\/]+\/?$/,"")}function i(e){var t=e.split("/");return"/"===e.substr(-1)?t[t.length-2]+"/":t[t.length-1]}var s=r(8),a=r(13),u=r(3),c="https://www.googleapis.com",h="https://accounts.google.com/o/oauth2/auth",l="https://www.googleapis.com/auth/drive",f="application/vnd.google-apps.folder",d="application/json; charset=UTF-8",p=function(e){this.maxAge=e,this._items={}};p.prototype={get:function(e){var t=this._items[e],r=(new Date).getTime();return t&&t.t>=r-this.maxAge?t.v:void 0},set:function(e,t){this._items[e]={v:t,t:(new Date).getTime()}}};var m=function(e,t){u(this,"change","connected","wire-busy","wire-done","not-connected"),this.rs=e,this.clientId=t,this._fileIdCache=new p(300)};m.prototype={connected:!1,online:!0,configure:function(e){e.token?(localStorage["remotestorage:googledrive:token"]=e.token,this.token=e.token,this.connected=!0,this._emit("connected")):(this.connected=!1,delete this.token,delete localStorage["remotestorage:googledrive:token"])},connect:function(){this.rs.setBackend("googledrive"),s(this.rs,h,l,String(s.getLocation()),this.clientId)},stopWaitingForToken:function(){this.connected||this._emit("not-connected")},get:function(e,t){return"/"===e.substr(-1)?this._getFolder(e,t):this._getFile(e,t)},put:function(e,t,r,n){function o(e){if(e.status>=200&&e.status<300){var t=JSON.parse(e.responseText),r=t.etag.substring(1,t.etag.length-1);return Promise.resolve({statusCode:200,contentType:t.mimeType,revision:r})}return 412===e.status?Promise.resolve({statusCode:412,revision:"conflict"}):Promise.reject("PUT failed with status "+e.status+" ("+e.responseText+")")}var i=this;return i._getFileId(e).then(function(s){return s?n&&"*"===n.ifNoneMatch?o({status:412}):i._updateFile(s,e,t,r,n).then(o):i._createFile(e,t,r,n).then(o)})},delete:function(e,t){var r=this;return r._getFileId(e).then(function(e){return e?r._getMeta(e).then(function(n){var o;return"object"==typeof n&&"string"==typeof n.etag&&(o=n.etag.substring(1,n.etag.length-1)),t&&t.ifMatch&&t.ifMatch!==o?{statusCode:412,revision:o}:r._request("DELETE",c+"/drive/v2/files/"+e,{}).then(function(e){return 200===e.status||204===e.status?{statusCode:200}:Promise.reject("Delete failed: "+e.status+" ("+e.responseText+")")})}):Promise.resolve({statusCode:200})})},_updateFile:function(e,t,r,n,o){var i=this,s={mimeType:n},a={"Content-Type":"application/json; charset=UTF-8"};return o&&o.ifMatch&&(a["If-Match"]='"'+o.ifMatch+'"'),i._request("PUT",c+"/upload/drive/v2/files/"+e+"?uploadType=resumable",{body:JSON.stringify(s),headers:a}).then(function(e){return 412===e.status?e:i._request("PUT",e.getResponseHeader("Location"),{body:n.match(/^application\/json/)?JSON.stringify(r):r})})},_createFile:function(e,t,r,o){var s=this;return s._getParentId(e).then(function(o){var a=i(e),u={title:n(a),mimeType:r,parents:[{kind:"drive#fileLink",id:o}]};return s._request("POST",c+"/upload/drive/v2/files?uploadType=resumable",{body:JSON.stringify(u),headers:{"Content-Type":"application/json; charset=UTF-8"}}).then(function(e){return s._request("POST",e.getResponseHeader("Location"),{body:r.match(/^application\/json/)?JSON.stringify(t):t})})})},_getFile:function(e,t){var r=this;return r._getFileId(e).then(function(e){return r._getMeta(e).then(function(e){var n;if("object"==typeof e&&"string"==typeof e.etag&&(n=e.etag.substring(1,e.etag.length-1)),t&&t.ifNoneMatch&&n===t.ifNoneMatch)return Promise.resolve({statusCode:304});var o={};if(!e.downloadUrl){if(!e.exportLinks||!e.exportLinks["text/html"])return Promise.resolve({statusCode:200,body:"",contentType:e.mimeType,revision:n});e.mimeType+=";export=text/html",e.downloadUrl=e.exportLinks["text/html"]}return e.mimeType.match(/charset=binary/)&&(o.responseType="blob"),r._request("GET",e.downloadUrl,o).then(function(t){var r=t.response;if(e.mimeType.match(/^application\/json/))try{r=JSON.parse(r)}catch(e){}return Promise.resolve({statusCode:200,body:r,contentType:e.mimeType,revision:n})})})})},_getFolder:function(e,t){var r=this;return r._getFileId(e).then(function(t){var n,o,i,s,a;return t?(n="'"+t+"' in parents",o="items(downloadUrl,etag,fileSize,id,mimeType,title)",r._request("GET",c+"/drive/v2/files?q="+encodeURIComponent(n)+"&fields="+encodeURIComponent(o)+"&maxResults=1000",{}).then(function(t){if(200!==t.status)return Promise.reject("request failed or something: "+t.status);try{i=JSON.parse(t.responseText)}catch(e){return Promise.reject("non-JSON response from GoogleDrive")}a={};for(var n=0,o=i.items.length;n<o;n++)s=i.items[n].etag.substring(1,i.items[n].etag.length-1),i.items[n].mimeType===f?(r._fileIdCache.set(e+i.items[n].title+"/",i.items[n].id),a[i.items[n].title+"/"]={ETag:s}):(r._fileIdCache.set(e+i.items[n].title,i.items[n].id),a[i.items[n].title]={ETag:s,"Content-Type":i.items[n].mimeType,"Content-Length":i.items[n].fileSize});return Promise.resolve({statusCode:200,body:a,contentType:d,revision:void 0})})):Promise.resolve({statusCode:404})})},_getParentId:function(e){var t=o(e),r=this;return r._getFileId(t).then(function(e){return e?Promise.resolve(e):r._createFolder(t)})},_createFolder:function(e){var t=this;return t._getParentId(e).then(function(r){return t._request("POST",c+"/drive/v2/files",{body:JSON.stringify({title:n(i(e)),mimeType:f,parents:[{id:r}]}),headers:{"Content-Type":"application/json; charset=UTF-8"}}).then(function(e){var t=JSON.parse(e.responseText);return Promise.resolve(t.id)})})},_getFileId:function(e){var t,r=this;return"/"===e?Promise.resolve("root"):(t=this._fileIdCache.get(e))?Promise.resolve(t):r._getFolder(o(e)).then(function(){return t=r._fileIdCache.get(e),t?Promise.resolve(t):"/"===e.substr(-1)?r._createFolder(e).then(function(){return r._getFileId(e)}):Promise.resolve()})},_getMeta:function(e){return this._request("GET",c+"/drive/v2/files/"+e,{}).then(function(t){return 200===t.status?Promise.resolve(JSON.parse(t.responseText)):Promise.reject("request (getting metadata for "+e+") failed with status: "+t.status)})},info:function(){var e=c+"/drive/v2/about";return this._request("GET",e,{}).then(function(e){try{var t=JSON.parse(e.responseText);return Promise.resolve(t)}catch(e){return Promise.reject(e)}})},_request:function(e,t,r){var n=this;return r.headers||(r.headers={}),r.headers.Authorization="Bearer "+n.token,a.request.call(this,e,t,r).then(function(e){return e&&401===e.status?void n.connect():(n.online||(n.online=!0,n.rs._emit("network-online")),Promise.resolve(e))},function(e){return n.online&&(n.online=!1,n.rs._emit("network-offline")),Promise.reject(e)})}},m._rs_init=function(e){var t=e.apiKeys.googledrive;t&&(e.googledrive=new m(e,t.clientId),"googledrive"===e.backend&&(e._origRemote=e.remote,e.remote=e.googledrive))},m._rs_supported=function(e){return!0},m._rs_cleanup=function(e){e.setBackend(void 0),e._origRemote&&(e.remote=e._origRemote,delete e._origRemote)},e.exports=m},function(e,t,r){(function(t){var n,o,i=r(22),s=r(4),a=r(2),u="remotestorage:discover",c={},h=function(e){if(e in c)return Promise.resolve(c[e]);var t=new i({tls_only:!1,uri_fallback:!0,request_timeout:5e3}),r=Promise.defer();return t.lookup(e,function(t,n){if(t)return r.reject(t);if("object"!=typeof n.idx.links.remotestorage||"number"!=typeof n.idx.links.remotestorage.length||n.idx.links.remotestorage.length<=0)return s("[Discover] WebFinger record for "+e+" does not have remotestorage defined in the links section ",JSON.stringify(n.json)),r.reject("WebFinger record for "+e+" does not have remotestorage defined in the links section.");var i=n.idx.links.remotestorage[0],a=i.properties["http://tools.ietf.org/html/rfc6749#section-4.2"]||i.properties["auth-endpoint"],h=i.properties["http://remotestorage.io/spec/version"]||i.type;return c[e]={href:i.href,storageType:h,authURL:a,properties:i.properties},o&&(localStorage[u]=JSON.stringify({cache:c})),r.resolve(c[e])}),r.promise};h._rs_init=function(e){if(o=a.localStorageAvailable()){var t;try{t=JSON.parse(localStorage[u])}catch(e){}t&&(c=t.cache)}},h._rs_supported=function(){return n=!!t.XMLHttpRequest},h._rs_cleanup=function(){o&&delete localStorage[u]},e.exports=h}).call(t,function(){return this}())},function(e,t,r){var n,o;/*!
+	/* eslint-disable no-proto */
+	
+	'use strict'
+	
+	var base64 = __webpack_require__(14)
+	var ieee754 = __webpack_require__(15)
+	var isArray = __webpack_require__(16)
+	
+	exports.Buffer = Buffer
+	exports.SlowBuffer = SlowBuffer
+	exports.INSPECT_MAX_BYTES = 50
+	
+	/**
+	 * If `Buffer.TYPED_ARRAY_SUPPORT`:
+	 *   === true    Use Uint8Array implementation (fastest)
+	 *   === false   Use Object implementation (most compatible, even IE6)
+	 *
+	 * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
+	 * Opera 11.6+, iOS 4.2+.
+	 *
+	 * Due to various browser bugs, sometimes the Object implementation will be used even
+	 * when the browser supports typed arrays.
+	 *
+	 * Note:
+	 *
+	 *   - Firefox 4-29 lacks support for adding new properties to `Uint8Array` instances,
+	 *     See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438.
+	 *
+	 *   - Chrome 9-10 is missing the `TypedArray.prototype.subarray` function.
+	 *
+	 *   - IE10 has a broken `TypedArray.prototype.subarray` function which returns arrays of
+	 *     incorrect length in some situations.
+	
+	 * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they
+	 * get the Object implementation, which is slower but behaves correctly.
+	 */
+	Buffer.TYPED_ARRAY_SUPPORT = global.TYPED_ARRAY_SUPPORT !== undefined
+	  ? global.TYPED_ARRAY_SUPPORT
+	  : typedArraySupport()
+	
+	/*
+	 * Export kMaxLength after typed array support is determined.
+	 */
+	exports.kMaxLength = kMaxLength()
+	
+	function typedArraySupport () {
+	  try {
+	    var arr = new Uint8Array(1)
+	    arr.__proto__ = {__proto__: Uint8Array.prototype, foo: function () { return 42 }}
+	    return arr.foo() === 42 && // typed array instances can be augmented
+	        typeof arr.subarray === 'function' && // chrome 9-10 lack `subarray`
+	        arr.subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
+	  } catch (e) {
+	    return false
+	  }
+	}
+	
+	function kMaxLength () {
+	  return Buffer.TYPED_ARRAY_SUPPORT
+	    ? 0x7fffffff
+	    : 0x3fffffff
+	}
+	
+	function createBuffer (that, length) {
+	  if (kMaxLength() < length) {
+	    throw new RangeError('Invalid typed array length')
+	  }
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    // Return an augmented `Uint8Array` instance, for best performance
+	    that = new Uint8Array(length)
+	    that.__proto__ = Buffer.prototype
+	  } else {
+	    // Fallback: Return an object instance of the Buffer class
+	    if (that === null) {
+	      that = new Buffer(length)
+	    }
+	    that.length = length
+	  }
+	
+	  return that
+	}
+	
+	/**
+	 * The Buffer constructor returns instances of `Uint8Array` that have their
+	 * prototype changed to `Buffer.prototype`. Furthermore, `Buffer` is a subclass of
+	 * `Uint8Array`, so the returned instances will have all the node `Buffer` methods
+	 * and the `Uint8Array` methods. Square bracket notation works as expected -- it
+	 * returns a single octet.
+	 *
+	 * The `Uint8Array` prototype remains unmodified.
+	 */
+	
+	function Buffer (arg, encodingOrOffset, length) {
+	  if (!Buffer.TYPED_ARRAY_SUPPORT && !(this instanceof Buffer)) {
+	    return new Buffer(arg, encodingOrOffset, length)
+	  }
+	
+	  // Common case.
+	  if (typeof arg === 'number') {
+	    if (typeof encodingOrOffset === 'string') {
+	      throw new Error(
+	        'If encoding is specified then the first argument must be a string'
+	      )
+	    }
+	    return allocUnsafe(this, arg)
+	  }
+	  return from(this, arg, encodingOrOffset, length)
+	}
+	
+	Buffer.poolSize = 8192 // not used by this implementation
+	
+	// TODO: Legacy, not needed anymore. Remove in next major version.
+	Buffer._augment = function (arr) {
+	  arr.__proto__ = Buffer.prototype
+	  return arr
+	}
+	
+	function from (that, value, encodingOrOffset, length) {
+	  if (typeof value === 'number') {
+	    throw new TypeError('"value" argument must not be a number')
+	  }
+	
+	  if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) {
+	    return fromArrayBuffer(that, value, encodingOrOffset, length)
+	  }
+	
+	  if (typeof value === 'string') {
+	    return fromString(that, value, encodingOrOffset)
+	  }
+	
+	  return fromObject(that, value)
+	}
+	
+	/**
+	 * Functionally equivalent to Buffer(arg, encoding) but throws a TypeError
+	 * if value is a number.
+	 * Buffer.from(str[, encoding])
+	 * Buffer.from(array)
+	 * Buffer.from(buffer)
+	 * Buffer.from(arrayBuffer[, byteOffset[, length]])
+	 **/
+	Buffer.from = function (value, encodingOrOffset, length) {
+	  return from(null, value, encodingOrOffset, length)
+	}
+	
+	if (Buffer.TYPED_ARRAY_SUPPORT) {
+	  Buffer.prototype.__proto__ = Uint8Array.prototype
+	  Buffer.__proto__ = Uint8Array
+	  if (typeof Symbol !== 'undefined' && Symbol.species &&
+	      Buffer[Symbol.species] === Buffer) {
+	    // Fix subarray() in ES2016. See: https://github.com/feross/buffer/pull/97
+	    Object.defineProperty(Buffer, Symbol.species, {
+	      value: null,
+	      configurable: true
+	    })
+	  }
+	}
+	
+	function assertSize (size) {
+	  if (typeof size !== 'number') {
+	    throw new TypeError('"size" argument must be a number')
+	  } else if (size < 0) {
+	    throw new RangeError('"size" argument must not be negative')
+	  }
+	}
+	
+	function alloc (that, size, fill, encoding) {
+	  assertSize(size)
+	  if (size <= 0) {
+	    return createBuffer(that, size)
+	  }
+	  if (fill !== undefined) {
+	    // Only pay attention to encoding if it's a string. This
+	    // prevents accidentally sending in a number that would
+	    // be interpretted as a start offset.
+	    return typeof encoding === 'string'
+	      ? createBuffer(that, size).fill(fill, encoding)
+	      : createBuffer(that, size).fill(fill)
+	  }
+	  return createBuffer(that, size)
+	}
+	
+	/**
+	 * Creates a new filled Buffer instance.
+	 * alloc(size[, fill[, encoding]])
+	 **/
+	Buffer.alloc = function (size, fill, encoding) {
+	  return alloc(null, size, fill, encoding)
+	}
+	
+	function allocUnsafe (that, size) {
+	  assertSize(size)
+	  that = createBuffer(that, size < 0 ? 0 : checked(size) | 0)
+	  if (!Buffer.TYPED_ARRAY_SUPPORT) {
+	    for (var i = 0; i < size; ++i) {
+	      that[i] = 0
+	    }
+	  }
+	  return that
+	}
+	
+	/**
+	 * Equivalent to Buffer(num), by default creates a non-zero-filled Buffer instance.
+	 * */
+	Buffer.allocUnsafe = function (size) {
+	  return allocUnsafe(null, size)
+	}
+	/**
+	 * Equivalent to SlowBuffer(num), by default creates a non-zero-filled Buffer instance.
+	 */
+	Buffer.allocUnsafeSlow = function (size) {
+	  return allocUnsafe(null, size)
+	}
+	
+	function fromString (that, string, encoding) {
+	  if (typeof encoding !== 'string' || encoding === '') {
+	    encoding = 'utf8'
+	  }
+	
+	  if (!Buffer.isEncoding(encoding)) {
+	    throw new TypeError('"encoding" must be a valid string encoding')
+	  }
+	
+	  var length = byteLength(string, encoding) | 0
+	  that = createBuffer(that, length)
+	
+	  var actual = that.write(string, encoding)
+	
+	  if (actual !== length) {
+	    // Writing a hex string, for example, that contains invalid characters will
+	    // cause everything after the first invalid character to be ignored. (e.g.
+	    // 'abxxcd' will be treated as 'ab')
+	    that = that.slice(0, actual)
+	  }
+	
+	  return that
+	}
+	
+	function fromArrayLike (that, array) {
+	  var length = array.length < 0 ? 0 : checked(array.length) | 0
+	  that = createBuffer(that, length)
+	  for (var i = 0; i < length; i += 1) {
+	    that[i] = array[i] & 255
+	  }
+	  return that
+	}
+	
+	function fromArrayBuffer (that, array, byteOffset, length) {
+	  array.byteLength // this throws if `array` is not a valid ArrayBuffer
+	
+	  if (byteOffset < 0 || array.byteLength < byteOffset) {
+	    throw new RangeError('\'offset\' is out of bounds')
+	  }
+	
+	  if (array.byteLength < byteOffset + (length || 0)) {
+	    throw new RangeError('\'length\' is out of bounds')
+	  }
+	
+	  if (byteOffset === undefined && length === undefined) {
+	    array = new Uint8Array(array)
+	  } else if (length === undefined) {
+	    array = new Uint8Array(array, byteOffset)
+	  } else {
+	    array = new Uint8Array(array, byteOffset, length)
+	  }
+	
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    // Return an augmented `Uint8Array` instance, for best performance
+	    that = array
+	    that.__proto__ = Buffer.prototype
+	  } else {
+	    // Fallback: Return an object instance of the Buffer class
+	    that = fromArrayLike(that, array)
+	  }
+	  return that
+	}
+	
+	function fromObject (that, obj) {
+	  if (Buffer.isBuffer(obj)) {
+	    var len = checked(obj.length) | 0
+	    that = createBuffer(that, len)
+	
+	    if (that.length === 0) {
+	      return that
+	    }
+	
+	    obj.copy(that, 0, 0, len)
+	    return that
+	  }
+	
+	  if (obj) {
+	    if ((typeof ArrayBuffer !== 'undefined' &&
+	        obj.buffer instanceof ArrayBuffer) || 'length' in obj) {
+	      if (typeof obj.length !== 'number' || isnan(obj.length)) {
+	        return createBuffer(that, 0)
+	      }
+	      return fromArrayLike(that, obj)
+	    }
+	
+	    if (obj.type === 'Buffer' && isArray(obj.data)) {
+	      return fromArrayLike(that, obj.data)
+	    }
+	  }
+	
+	  throw new TypeError('First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.')
+	}
+	
+	function checked (length) {
+	  // Note: cannot use `length < kMaxLength()` here because that fails when
+	  // length is NaN (which is otherwise coerced to zero.)
+	  if (length >= kMaxLength()) {
+	    throw new RangeError('Attempt to allocate Buffer larger than maximum ' +
+	                         'size: 0x' + kMaxLength().toString(16) + ' bytes')
+	  }
+	  return length | 0
+	}
+	
+	function SlowBuffer (length) {
+	  if (+length != length) { // eslint-disable-line eqeqeq
+	    length = 0
+	  }
+	  return Buffer.alloc(+length)
+	}
+	
+	Buffer.isBuffer = function isBuffer (b) {
+	  return !!(b != null && b._isBuffer)
+	}
+	
+	Buffer.compare = function compare (a, b) {
+	  if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
+	    throw new TypeError('Arguments must be Buffers')
+	  }
+	
+	  if (a === b) return 0
+	
+	  var x = a.length
+	  var y = b.length
+	
+	  for (var i = 0, len = Math.min(x, y); i < len; ++i) {
+	    if (a[i] !== b[i]) {
+	      x = a[i]
+	      y = b[i]
+	      break
+	    }
+	  }
+	
+	  if (x < y) return -1
+	  if (y < x) return 1
+	  return 0
+	}
+	
+	Buffer.isEncoding = function isEncoding (encoding) {
+	  switch (String(encoding).toLowerCase()) {
+	    case 'hex':
+	    case 'utf8':
+	    case 'utf-8':
+	    case 'ascii':
+	    case 'latin1':
+	    case 'binary':
+	    case 'base64':
+	    case 'ucs2':
+	    case 'ucs-2':
+	    case 'utf16le':
+	    case 'utf-16le':
+	      return true
+	    default:
+	      return false
+	  }
+	}
+	
+	Buffer.concat = function concat (list, length) {
+	  if (!isArray(list)) {
+	    throw new TypeError('"list" argument must be an Array of Buffers')
+	  }
+	
+	  if (list.length === 0) {
+	    return Buffer.alloc(0)
+	  }
+	
+	  var i
+	  if (length === undefined) {
+	    length = 0
+	    for (i = 0; i < list.length; ++i) {
+	      length += list[i].length
+	    }
+	  }
+	
+	  var buffer = Buffer.allocUnsafe(length)
+	  var pos = 0
+	  for (i = 0; i < list.length; ++i) {
+	    var buf = list[i]
+	    if (!Buffer.isBuffer(buf)) {
+	      throw new TypeError('"list" argument must be an Array of Buffers')
+	    }
+	    buf.copy(buffer, pos)
+	    pos += buf.length
+	  }
+	  return buffer
+	}
+	
+	function byteLength (string, encoding) {
+	  if (Buffer.isBuffer(string)) {
+	    return string.length
+	  }
+	  if (typeof ArrayBuffer !== 'undefined' && typeof ArrayBuffer.isView === 'function' &&
+	      (ArrayBuffer.isView(string) || string instanceof ArrayBuffer)) {
+	    return string.byteLength
+	  }
+	  if (typeof string !== 'string') {
+	    string = '' + string
+	  }
+	
+	  var len = string.length
+	  if (len === 0) return 0
+	
+	  // Use a for loop to avoid recursion
+	  var loweredCase = false
+	  for (;;) {
+	    switch (encoding) {
+	      case 'ascii':
+	      case 'latin1':
+	      case 'binary':
+	        return len
+	      case 'utf8':
+	      case 'utf-8':
+	      case undefined:
+	        return utf8ToBytes(string).length
+	      case 'ucs2':
+	      case 'ucs-2':
+	      case 'utf16le':
+	      case 'utf-16le':
+	        return len * 2
+	      case 'hex':
+	        return len >>> 1
+	      case 'base64':
+	        return base64ToBytes(string).length
+	      default:
+	        if (loweredCase) return utf8ToBytes(string).length // assume utf8
+	        encoding = ('' + encoding).toLowerCase()
+	        loweredCase = true
+	    }
+	  }
+	}
+	Buffer.byteLength = byteLength
+	
+	function slowToString (encoding, start, end) {
+	  var loweredCase = false
+	
+	  // No need to verify that "this.length <= MAX_UINT32" since it's a read-only
+	  // property of a typed array.
+	
+	  // This behaves neither like String nor Uint8Array in that we set start/end
+	  // to their upper/lower bounds if the value passed is out of range.
+	  // undefined is handled specially as per ECMA-262 6th Edition,
+	  // Section 13.3.3.7 Runtime Semantics: KeyedBindingInitialization.
+	  if (start === undefined || start < 0) {
+	    start = 0
+	  }
+	  // Return early if start > this.length. Done here to prevent potential uint32
+	  // coercion fail below.
+	  if (start > this.length) {
+	    return ''
+	  }
+	
+	  if (end === undefined || end > this.length) {
+	    end = this.length
+	  }
+	
+	  if (end <= 0) {
+	    return ''
+	  }
+	
+	  // Force coersion to uint32. This will also coerce falsey/NaN values to 0.
+	  end >>>= 0
+	  start >>>= 0
+	
+	  if (end <= start) {
+	    return ''
+	  }
+	
+	  if (!encoding) encoding = 'utf8'
+	
+	  while (true) {
+	    switch (encoding) {
+	      case 'hex':
+	        return hexSlice(this, start, end)
+	
+	      case 'utf8':
+	      case 'utf-8':
+	        return utf8Slice(this, start, end)
+	
+	      case 'ascii':
+	        return asciiSlice(this, start, end)
+	
+	      case 'latin1':
+	      case 'binary':
+	        return latin1Slice(this, start, end)
+	
+	      case 'base64':
+	        return base64Slice(this, start, end)
+	
+	      case 'ucs2':
+	      case 'ucs-2':
+	      case 'utf16le':
+	      case 'utf-16le':
+	        return utf16leSlice(this, start, end)
+	
+	      default:
+	        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+	        encoding = (encoding + '').toLowerCase()
+	        loweredCase = true
+	    }
+	  }
+	}
+	
+	// The property is used by `Buffer.isBuffer` and `is-buffer` (in Safari 5-7) to detect
+	// Buffer instances.
+	Buffer.prototype._isBuffer = true
+	
+	function swap (b, n, m) {
+	  var i = b[n]
+	  b[n] = b[m]
+	  b[m] = i
+	}
+	
+	Buffer.prototype.swap16 = function swap16 () {
+	  var len = this.length
+	  if (len % 2 !== 0) {
+	    throw new RangeError('Buffer size must be a multiple of 16-bits')
+	  }
+	  for (var i = 0; i < len; i += 2) {
+	    swap(this, i, i + 1)
+	  }
+	  return this
+	}
+	
+	Buffer.prototype.swap32 = function swap32 () {
+	  var len = this.length
+	  if (len % 4 !== 0) {
+	    throw new RangeError('Buffer size must be a multiple of 32-bits')
+	  }
+	  for (var i = 0; i < len; i += 4) {
+	    swap(this, i, i + 3)
+	    swap(this, i + 1, i + 2)
+	  }
+	  return this
+	}
+	
+	Buffer.prototype.swap64 = function swap64 () {
+	  var len = this.length
+	  if (len % 8 !== 0) {
+	    throw new RangeError('Buffer size must be a multiple of 64-bits')
+	  }
+	  for (var i = 0; i < len; i += 8) {
+	    swap(this, i, i + 7)
+	    swap(this, i + 1, i + 6)
+	    swap(this, i + 2, i + 5)
+	    swap(this, i + 3, i + 4)
+	  }
+	  return this
+	}
+	
+	Buffer.prototype.toString = function toString () {
+	  var length = this.length | 0
+	  if (length === 0) return ''
+	  if (arguments.length === 0) return utf8Slice(this, 0, length)
+	  return slowToString.apply(this, arguments)
+	}
+	
+	Buffer.prototype.equals = function equals (b) {
+	  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+	  if (this === b) return true
+	  return Buffer.compare(this, b) === 0
+	}
+	
+	Buffer.prototype.inspect = function inspect () {
+	  var str = ''
+	  var max = exports.INSPECT_MAX_BYTES
+	  if (this.length > 0) {
+	    str = this.toString('hex', 0, max).match(/.{2}/g).join(' ')
+	    if (this.length > max) str += ' ... '
+	  }
+	  return '<Buffer ' + str + '>'
+	}
+	
+	Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
+	  if (!Buffer.isBuffer(target)) {
+	    throw new TypeError('Argument must be a Buffer')
+	  }
+	
+	  if (start === undefined) {
+	    start = 0
+	  }
+	  if (end === undefined) {
+	    end = target ? target.length : 0
+	  }
+	  if (thisStart === undefined) {
+	    thisStart = 0
+	  }
+	  if (thisEnd === undefined) {
+	    thisEnd = this.length
+	  }
+	
+	  if (start < 0 || end > target.length || thisStart < 0 || thisEnd > this.length) {
+	    throw new RangeError('out of range index')
+	  }
+	
+	  if (thisStart >= thisEnd && start >= end) {
+	    return 0
+	  }
+	  if (thisStart >= thisEnd) {
+	    return -1
+	  }
+	  if (start >= end) {
+	    return 1
+	  }
+	
+	  start >>>= 0
+	  end >>>= 0
+	  thisStart >>>= 0
+	  thisEnd >>>= 0
+	
+	  if (this === target) return 0
+	
+	  var x = thisEnd - thisStart
+	  var y = end - start
+	  var len = Math.min(x, y)
+	
+	  var thisCopy = this.slice(thisStart, thisEnd)
+	  var targetCopy = target.slice(start, end)
+	
+	  for (var i = 0; i < len; ++i) {
+	    if (thisCopy[i] !== targetCopy[i]) {
+	      x = thisCopy[i]
+	      y = targetCopy[i]
+	      break
+	    }
+	  }
+	
+	  if (x < y) return -1
+	  if (y < x) return 1
+	  return 0
+	}
+	
+	// Finds either the first index of `val` in `buffer` at offset >= `byteOffset`,
+	// OR the last index of `val` in `buffer` at offset <= `byteOffset`.
+	//
+	// Arguments:
+	// - buffer - a Buffer to search
+	// - val - a string, Buffer, or number
+	// - byteOffset - an index into `buffer`; will be clamped to an int32
+	// - encoding - an optional encoding, relevant is val is a string
+	// - dir - true for indexOf, false for lastIndexOf
+	function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
+	  // Empty buffer means no match
+	  if (buffer.length === 0) return -1
+	
+	  // Normalize byteOffset
+	  if (typeof byteOffset === 'string') {
+	    encoding = byteOffset
+	    byteOffset = 0
+	  } else if (byteOffset > 0x7fffffff) {
+	    byteOffset = 0x7fffffff
+	  } else if (byteOffset < -0x80000000) {
+	    byteOffset = -0x80000000
+	  }
+	  byteOffset = +byteOffset  // Coerce to Number.
+	  if (isNaN(byteOffset)) {
+	    // byteOffset: it it's undefined, null, NaN, "foo", etc, search whole buffer
+	    byteOffset = dir ? 0 : (buffer.length - 1)
+	  }
+	
+	  // Normalize byteOffset: negative offsets start from the end of the buffer
+	  if (byteOffset < 0) byteOffset = buffer.length + byteOffset
+	  if (byteOffset >= buffer.length) {
+	    if (dir) return -1
+	    else byteOffset = buffer.length - 1
+	  } else if (byteOffset < 0) {
+	    if (dir) byteOffset = 0
+	    else return -1
+	  }
+	
+	  // Normalize val
+	  if (typeof val === 'string') {
+	    val = Buffer.from(val, encoding)
+	  }
+	
+	  // Finally, search either indexOf (if dir is true) or lastIndexOf
+	  if (Buffer.isBuffer(val)) {
+	    // Special case: looking for empty string/buffer always fails
+	    if (val.length === 0) {
+	      return -1
+	    }
+	    return arrayIndexOf(buffer, val, byteOffset, encoding, dir)
+	  } else if (typeof val === 'number') {
+	    val = val & 0xFF // Search for a byte value [0-255]
+	    if (Buffer.TYPED_ARRAY_SUPPORT &&
+	        typeof Uint8Array.prototype.indexOf === 'function') {
+	      if (dir) {
+	        return Uint8Array.prototype.indexOf.call(buffer, val, byteOffset)
+	      } else {
+	        return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
+	      }
+	    }
+	    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
+	  }
+	
+	  throw new TypeError('val must be string, number or Buffer')
+	}
+	
+	function arrayIndexOf (arr, val, byteOffset, encoding, dir) {
+	  var indexSize = 1
+	  var arrLength = arr.length
+	  var valLength = val.length
+	
+	  if (encoding !== undefined) {
+	    encoding = String(encoding).toLowerCase()
+	    if (encoding === 'ucs2' || encoding === 'ucs-2' ||
+	        encoding === 'utf16le' || encoding === 'utf-16le') {
+	      if (arr.length < 2 || val.length < 2) {
+	        return -1
+	      }
+	      indexSize = 2
+	      arrLength /= 2
+	      valLength /= 2
+	      byteOffset /= 2
+	    }
+	  }
+	
+	  function read (buf, i) {
+	    if (indexSize === 1) {
+	      return buf[i]
+	    } else {
+	      return buf.readUInt16BE(i * indexSize)
+	    }
+	  }
+	
+	  var i
+	  if (dir) {
+	    var foundIndex = -1
+	    for (i = byteOffset; i < arrLength; i++) {
+	      if (read(arr, i) === read(val, foundIndex === -1 ? 0 : i - foundIndex)) {
+	        if (foundIndex === -1) foundIndex = i
+	        if (i - foundIndex + 1 === valLength) return foundIndex * indexSize
+	      } else {
+	        if (foundIndex !== -1) i -= i - foundIndex
+	        foundIndex = -1
+	      }
+	    }
+	  } else {
+	    if (byteOffset + valLength > arrLength) byteOffset = arrLength - valLength
+	    for (i = byteOffset; i >= 0; i--) {
+	      var found = true
+	      for (var j = 0; j < valLength; j++) {
+	        if (read(arr, i + j) !== read(val, j)) {
+	          found = false
+	          break
+	        }
+	      }
+	      if (found) return i
+	    }
+	  }
+	
+	  return -1
+	}
+	
+	Buffer.prototype.includes = function includes (val, byteOffset, encoding) {
+	  return this.indexOf(val, byteOffset, encoding) !== -1
+	}
+	
+	Buffer.prototype.indexOf = function indexOf (val, byteOffset, encoding) {
+	  return bidirectionalIndexOf(this, val, byteOffset, encoding, true)
+	}
+	
+	Buffer.prototype.lastIndexOf = function lastIndexOf (val, byteOffset, encoding) {
+	  return bidirectionalIndexOf(this, val, byteOffset, encoding, false)
+	}
+	
+	function hexWrite (buf, string, offset, length) {
+	  offset = Number(offset) || 0
+	  var remaining = buf.length - offset
+	  if (!length) {
+	    length = remaining
+	  } else {
+	    length = Number(length)
+	    if (length > remaining) {
+	      length = remaining
+	    }
+	  }
+	
+	  // must be an even number of digits
+	  var strLen = string.length
+	  if (strLen % 2 !== 0) throw new TypeError('Invalid hex string')
+	
+	  if (length > strLen / 2) {
+	    length = strLen / 2
+	  }
+	  for (var i = 0; i < length; ++i) {
+	    var parsed = parseInt(string.substr(i * 2, 2), 16)
+	    if (isNaN(parsed)) return i
+	    buf[offset + i] = parsed
+	  }
+	  return i
+	}
+	
+	function utf8Write (buf, string, offset, length) {
+	  return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length)
+	}
+	
+	function asciiWrite (buf, string, offset, length) {
+	  return blitBuffer(asciiToBytes(string), buf, offset, length)
+	}
+	
+	function latin1Write (buf, string, offset, length) {
+	  return asciiWrite(buf, string, offset, length)
+	}
+	
+	function base64Write (buf, string, offset, length) {
+	  return blitBuffer(base64ToBytes(string), buf, offset, length)
+	}
+	
+	function ucs2Write (buf, string, offset, length) {
+	  return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length)
+	}
+	
+	Buffer.prototype.write = function write (string, offset, length, encoding) {
+	  // Buffer#write(string)
+	  if (offset === undefined) {
+	    encoding = 'utf8'
+	    length = this.length
+	    offset = 0
+	  // Buffer#write(string, encoding)
+	  } else if (length === undefined && typeof offset === 'string') {
+	    encoding = offset
+	    length = this.length
+	    offset = 0
+	  // Buffer#write(string, offset[, length][, encoding])
+	  } else if (isFinite(offset)) {
+	    offset = offset | 0
+	    if (isFinite(length)) {
+	      length = length | 0
+	      if (encoding === undefined) encoding = 'utf8'
+	    } else {
+	      encoding = length
+	      length = undefined
+	    }
+	  // legacy write(string, encoding, offset, length) - remove in v0.13
+	  } else {
+	    throw new Error(
+	      'Buffer.write(string, encoding, offset[, length]) is no longer supported'
+	    )
+	  }
+	
+	  var remaining = this.length - offset
+	  if (length === undefined || length > remaining) length = remaining
+	
+	  if ((string.length > 0 && (length < 0 || offset < 0)) || offset > this.length) {
+	    throw new RangeError('Attempt to write outside buffer bounds')
+	  }
+	
+	  if (!encoding) encoding = 'utf8'
+	
+	  var loweredCase = false
+	  for (;;) {
+	    switch (encoding) {
+	      case 'hex':
+	        return hexWrite(this, string, offset, length)
+	
+	      case 'utf8':
+	      case 'utf-8':
+	        return utf8Write(this, string, offset, length)
+	
+	      case 'ascii':
+	        return asciiWrite(this, string, offset, length)
+	
+	      case 'latin1':
+	      case 'binary':
+	        return latin1Write(this, string, offset, length)
+	
+	      case 'base64':
+	        // Warning: maxLength not taken into account in base64Write
+	        return base64Write(this, string, offset, length)
+	
+	      case 'ucs2':
+	      case 'ucs-2':
+	      case 'utf16le':
+	      case 'utf-16le':
+	        return ucs2Write(this, string, offset, length)
+	
+	      default:
+	        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+	        encoding = ('' + encoding).toLowerCase()
+	        loweredCase = true
+	    }
+	  }
+	}
+	
+	Buffer.prototype.toJSON = function toJSON () {
+	  return {
+	    type: 'Buffer',
+	    data: Array.prototype.slice.call(this._arr || this, 0)
+	  }
+	}
+	
+	function base64Slice (buf, start, end) {
+	  if (start === 0 && end === buf.length) {
+	    return base64.fromByteArray(buf)
+	  } else {
+	    return base64.fromByteArray(buf.slice(start, end))
+	  }
+	}
+	
+	function utf8Slice (buf, start, end) {
+	  end = Math.min(buf.length, end)
+	  var res = []
+	
+	  var i = start
+	  while (i < end) {
+	    var firstByte = buf[i]
+	    var codePoint = null
+	    var bytesPerSequence = (firstByte > 0xEF) ? 4
+	      : (firstByte > 0xDF) ? 3
+	      : (firstByte > 0xBF) ? 2
+	      : 1
+	
+	    if (i + bytesPerSequence <= end) {
+	      var secondByte, thirdByte, fourthByte, tempCodePoint
+	
+	      switch (bytesPerSequence) {
+	        case 1:
+	          if (firstByte < 0x80) {
+	            codePoint = firstByte
+	          }
+	          break
+	        case 2:
+	          secondByte = buf[i + 1]
+	          if ((secondByte & 0xC0) === 0x80) {
+	            tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F)
+	            if (tempCodePoint > 0x7F) {
+	              codePoint = tempCodePoint
+	            }
+	          }
+	          break
+	        case 3:
+	          secondByte = buf[i + 1]
+	          thirdByte = buf[i + 2]
+	          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
+	            tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F)
+	            if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
+	              codePoint = tempCodePoint
+	            }
+	          }
+	          break
+	        case 4:
+	          secondByte = buf[i + 1]
+	          thirdByte = buf[i + 2]
+	          fourthByte = buf[i + 3]
+	          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
+	            tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F)
+	            if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
+	              codePoint = tempCodePoint
+	            }
+	          }
+	      }
+	    }
+	
+	    if (codePoint === null) {
+	      // we did not generate a valid codePoint so insert a
+	      // replacement char (U+FFFD) and advance only 1 byte
+	      codePoint = 0xFFFD
+	      bytesPerSequence = 1
+	    } else if (codePoint > 0xFFFF) {
+	      // encode to utf16 (surrogate pair dance)
+	      codePoint -= 0x10000
+	      res.push(codePoint >>> 10 & 0x3FF | 0xD800)
+	      codePoint = 0xDC00 | codePoint & 0x3FF
+	    }
+	
+	    res.push(codePoint)
+	    i += bytesPerSequence
+	  }
+	
+	  return decodeCodePointsArray(res)
+	}
+	
+	// Based on http://stackoverflow.com/a/22747272/680742, the browser with
+	// the lowest limit is Chrome, with 0x10000 args.
+	// We go 1 magnitude less, for safety
+	var MAX_ARGUMENTS_LENGTH = 0x1000
+	
+	function decodeCodePointsArray (codePoints) {
+	  var len = codePoints.length
+	  if (len <= MAX_ARGUMENTS_LENGTH) {
+	    return String.fromCharCode.apply(String, codePoints) // avoid extra slice()
+	  }
+	
+	  // Decode in chunks to avoid "call stack size exceeded".
+	  var res = ''
+	  var i = 0
+	  while (i < len) {
+	    res += String.fromCharCode.apply(
+	      String,
+	      codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
+	    )
+	  }
+	  return res
+	}
+	
+	function asciiSlice (buf, start, end) {
+	  var ret = ''
+	  end = Math.min(buf.length, end)
+	
+	  for (var i = start; i < end; ++i) {
+	    ret += String.fromCharCode(buf[i] & 0x7F)
+	  }
+	  return ret
+	}
+	
+	function latin1Slice (buf, start, end) {
+	  var ret = ''
+	  end = Math.min(buf.length, end)
+	
+	  for (var i = start; i < end; ++i) {
+	    ret += String.fromCharCode(buf[i])
+	  }
+	  return ret
+	}
+	
+	function hexSlice (buf, start, end) {
+	  var len = buf.length
+	
+	  if (!start || start < 0) start = 0
+	  if (!end || end < 0 || end > len) end = len
+	
+	  var out = ''
+	  for (var i = start; i < end; ++i) {
+	    out += toHex(buf[i])
+	  }
+	  return out
+	}
+	
+	function utf16leSlice (buf, start, end) {
+	  var bytes = buf.slice(start, end)
+	  var res = ''
+	  for (var i = 0; i < bytes.length; i += 2) {
+	    res += String.fromCharCode(bytes[i] + bytes[i + 1] * 256)
+	  }
+	  return res
+	}
+	
+	Buffer.prototype.slice = function slice (start, end) {
+	  var len = this.length
+	  start = ~~start
+	  end = end === undefined ? len : ~~end
+	
+	  if (start < 0) {
+	    start += len
+	    if (start < 0) start = 0
+	  } else if (start > len) {
+	    start = len
+	  }
+	
+	  if (end < 0) {
+	    end += len
+	    if (end < 0) end = 0
+	  } else if (end > len) {
+	    end = len
+	  }
+	
+	  if (end < start) end = start
+	
+	  var newBuf
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    newBuf = this.subarray(start, end)
+	    newBuf.__proto__ = Buffer.prototype
+	  } else {
+	    var sliceLen = end - start
+	    newBuf = new Buffer(sliceLen, undefined)
+	    for (var i = 0; i < sliceLen; ++i) {
+	      newBuf[i] = this[i + start]
+	    }
+	  }
+	
+	  return newBuf
+	}
+	
+	/*
+	 * Need to make sure that buffer isn't trying to write out of bounds.
+	 */
+	function checkOffset (offset, ext, length) {
+	  if ((offset % 1) !== 0 || offset < 0) throw new RangeError('offset is not uint')
+	  if (offset + ext > length) throw new RangeError('Trying to access beyond buffer length')
+	}
+	
+	Buffer.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAssert) {
+	  offset = offset | 0
+	  byteLength = byteLength | 0
+	  if (!noAssert) checkOffset(offset, byteLength, this.length)
+	
+	  var val = this[offset]
+	  var mul = 1
+	  var i = 0
+	  while (++i < byteLength && (mul *= 0x100)) {
+	    val += this[offset + i] * mul
+	  }
+	
+	  return val
+	}
+	
+	Buffer.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAssert) {
+	  offset = offset | 0
+	  byteLength = byteLength | 0
+	  if (!noAssert) {
+	    checkOffset(offset, byteLength, this.length)
+	  }
+	
+	  var val = this[offset + --byteLength]
+	  var mul = 1
+	  while (byteLength > 0 && (mul *= 0x100)) {
+	    val += this[offset + --byteLength] * mul
+	  }
+	
+	  return val
+	}
+	
+	Buffer.prototype.readUInt8 = function readUInt8 (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 1, this.length)
+	  return this[offset]
+	}
+	
+	Buffer.prototype.readUInt16LE = function readUInt16LE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 2, this.length)
+	  return this[offset] | (this[offset + 1] << 8)
+	}
+	
+	Buffer.prototype.readUInt16BE = function readUInt16BE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 2, this.length)
+	  return (this[offset] << 8) | this[offset + 1]
+	}
+	
+	Buffer.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 4, this.length)
+	
+	  return ((this[offset]) |
+	      (this[offset + 1] << 8) |
+	      (this[offset + 2] << 16)) +
+	      (this[offset + 3] * 0x1000000)
+	}
+	
+	Buffer.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 4, this.length)
+	
+	  return (this[offset] * 0x1000000) +
+	    ((this[offset + 1] << 16) |
+	    (this[offset + 2] << 8) |
+	    this[offset + 3])
+	}
+	
+	Buffer.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert) {
+	  offset = offset | 0
+	  byteLength = byteLength | 0
+	  if (!noAssert) checkOffset(offset, byteLength, this.length)
+	
+	  var val = this[offset]
+	  var mul = 1
+	  var i = 0
+	  while (++i < byteLength && (mul *= 0x100)) {
+	    val += this[offset + i] * mul
+	  }
+	  mul *= 0x80
+	
+	  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+	
+	  return val
+	}
+	
+	Buffer.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert) {
+	  offset = offset | 0
+	  byteLength = byteLength | 0
+	  if (!noAssert) checkOffset(offset, byteLength, this.length)
+	
+	  var i = byteLength
+	  var mul = 1
+	  var val = this[offset + --i]
+	  while (i > 0 && (mul *= 0x100)) {
+	    val += this[offset + --i] * mul
+	  }
+	  mul *= 0x80
+	
+	  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+	
+	  return val
+	}
+	
+	Buffer.prototype.readInt8 = function readInt8 (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 1, this.length)
+	  if (!(this[offset] & 0x80)) return (this[offset])
+	  return ((0xff - this[offset] + 1) * -1)
+	}
+	
+	Buffer.prototype.readInt16LE = function readInt16LE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 2, this.length)
+	  var val = this[offset] | (this[offset + 1] << 8)
+	  return (val & 0x8000) ? val | 0xFFFF0000 : val
+	}
+	
+	Buffer.prototype.readInt16BE = function readInt16BE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 2, this.length)
+	  var val = this[offset + 1] | (this[offset] << 8)
+	  return (val & 0x8000) ? val | 0xFFFF0000 : val
+	}
+	
+	Buffer.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 4, this.length)
+	
+	  return (this[offset]) |
+	    (this[offset + 1] << 8) |
+	    (this[offset + 2] << 16) |
+	    (this[offset + 3] << 24)
+	}
+	
+	Buffer.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 4, this.length)
+	
+	  return (this[offset] << 24) |
+	    (this[offset + 1] << 16) |
+	    (this[offset + 2] << 8) |
+	    (this[offset + 3])
+	}
+	
+	Buffer.prototype.readFloatLE = function readFloatLE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 4, this.length)
+	  return ieee754.read(this, offset, true, 23, 4)
+	}
+	
+	Buffer.prototype.readFloatBE = function readFloatBE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 4, this.length)
+	  return ieee754.read(this, offset, false, 23, 4)
+	}
+	
+	Buffer.prototype.readDoubleLE = function readDoubleLE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 8, this.length)
+	  return ieee754.read(this, offset, true, 52, 8)
+	}
+	
+	Buffer.prototype.readDoubleBE = function readDoubleBE (offset, noAssert) {
+	  if (!noAssert) checkOffset(offset, 8, this.length)
+	  return ieee754.read(this, offset, false, 52, 8)
+	}
+	
+	function checkInt (buf, value, offset, ext, max, min) {
+	  if (!Buffer.isBuffer(buf)) throw new TypeError('"buffer" argument must be a Buffer instance')
+	  if (value > max || value < min) throw new RangeError('"value" argument is out of bounds')
+	  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+	}
+	
+	Buffer.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  byteLength = byteLength | 0
+	  if (!noAssert) {
+	    var maxBytes = Math.pow(2, 8 * byteLength) - 1
+	    checkInt(this, value, offset, byteLength, maxBytes, 0)
+	  }
+	
+	  var mul = 1
+	  var i = 0
+	  this[offset] = value & 0xFF
+	  while (++i < byteLength && (mul *= 0x100)) {
+	    this[offset + i] = (value / mul) & 0xFF
+	  }
+	
+	  return offset + byteLength
+	}
+	
+	Buffer.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  byteLength = byteLength | 0
+	  if (!noAssert) {
+	    var maxBytes = Math.pow(2, 8 * byteLength) - 1
+	    checkInt(this, value, offset, byteLength, maxBytes, 0)
+	  }
+	
+	  var i = byteLength - 1
+	  var mul = 1
+	  this[offset + i] = value & 0xFF
+	  while (--i >= 0 && (mul *= 0x100)) {
+	    this[offset + i] = (value / mul) & 0xFF
+	  }
+	
+	  return offset + byteLength
+	}
+	
+	Buffer.prototype.writeUInt8 = function writeUInt8 (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 1, 0xff, 0)
+	  if (!Buffer.TYPED_ARRAY_SUPPORT) value = Math.floor(value)
+	  this[offset] = (value & 0xff)
+	  return offset + 1
+	}
+	
+	function objectWriteUInt16 (buf, value, offset, littleEndian) {
+	  if (value < 0) value = 0xffff + value + 1
+	  for (var i = 0, j = Math.min(buf.length - offset, 2); i < j; ++i) {
+	    buf[offset + i] = (value & (0xff << (8 * (littleEndian ? i : 1 - i)))) >>>
+	      (littleEndian ? i : 1 - i) * 8
+	  }
+	}
+	
+	Buffer.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    this[offset] = (value & 0xff)
+	    this[offset + 1] = (value >>> 8)
+	  } else {
+	    objectWriteUInt16(this, value, offset, true)
+	  }
+	  return offset + 2
+	}
+	
+	Buffer.prototype.writeUInt16BE = function writeUInt16BE (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    this[offset] = (value >>> 8)
+	    this[offset + 1] = (value & 0xff)
+	  } else {
+	    objectWriteUInt16(this, value, offset, false)
+	  }
+	  return offset + 2
+	}
+	
+	function objectWriteUInt32 (buf, value, offset, littleEndian) {
+	  if (value < 0) value = 0xffffffff + value + 1
+	  for (var i = 0, j = Math.min(buf.length - offset, 4); i < j; ++i) {
+	    buf[offset + i] = (value >>> (littleEndian ? i : 3 - i) * 8) & 0xff
+	  }
+	}
+	
+	Buffer.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    this[offset + 3] = (value >>> 24)
+	    this[offset + 2] = (value >>> 16)
+	    this[offset + 1] = (value >>> 8)
+	    this[offset] = (value & 0xff)
+	  } else {
+	    objectWriteUInt32(this, value, offset, true)
+	  }
+	  return offset + 4
+	}
+	
+	Buffer.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    this[offset] = (value >>> 24)
+	    this[offset + 1] = (value >>> 16)
+	    this[offset + 2] = (value >>> 8)
+	    this[offset + 3] = (value & 0xff)
+	  } else {
+	    objectWriteUInt32(this, value, offset, false)
+	  }
+	  return offset + 4
+	}
+	
+	Buffer.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) {
+	    var limit = Math.pow(2, 8 * byteLength - 1)
+	
+	    checkInt(this, value, offset, byteLength, limit - 1, -limit)
+	  }
+	
+	  var i = 0
+	  var mul = 1
+	  var sub = 0
+	  this[offset] = value & 0xFF
+	  while (++i < byteLength && (mul *= 0x100)) {
+	    if (value < 0 && sub === 0 && this[offset + i - 1] !== 0) {
+	      sub = 1
+	    }
+	    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
+	  }
+	
+	  return offset + byteLength
+	}
+	
+	Buffer.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) {
+	    var limit = Math.pow(2, 8 * byteLength - 1)
+	
+	    checkInt(this, value, offset, byteLength, limit - 1, -limit)
+	  }
+	
+	  var i = byteLength - 1
+	  var mul = 1
+	  var sub = 0
+	  this[offset + i] = value & 0xFF
+	  while (--i >= 0 && (mul *= 0x100)) {
+	    if (value < 0 && sub === 0 && this[offset + i + 1] !== 0) {
+	      sub = 1
+	    }
+	    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
+	  }
+	
+	  return offset + byteLength
+	}
+	
+	Buffer.prototype.writeInt8 = function writeInt8 (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 1, 0x7f, -0x80)
+	  if (!Buffer.TYPED_ARRAY_SUPPORT) value = Math.floor(value)
+	  if (value < 0) value = 0xff + value + 1
+	  this[offset] = (value & 0xff)
+	  return offset + 1
+	}
+	
+	Buffer.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    this[offset] = (value & 0xff)
+	    this[offset + 1] = (value >>> 8)
+	  } else {
+	    objectWriteUInt16(this, value, offset, true)
+	  }
+	  return offset + 2
+	}
+	
+	Buffer.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    this[offset] = (value >>> 8)
+	    this[offset + 1] = (value & 0xff)
+	  } else {
+	    objectWriteUInt16(this, value, offset, false)
+	  }
+	  return offset + 2
+	}
+	
+	Buffer.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    this[offset] = (value & 0xff)
+	    this[offset + 1] = (value >>> 8)
+	    this[offset + 2] = (value >>> 16)
+	    this[offset + 3] = (value >>> 24)
+	  } else {
+	    objectWriteUInt32(this, value, offset, true)
+	  }
+	  return offset + 4
+	}
+	
+	Buffer.prototype.writeInt32BE = function writeInt32BE (value, offset, noAssert) {
+	  value = +value
+	  offset = offset | 0
+	  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+	  if (value < 0) value = 0xffffffff + value + 1
+	  if (Buffer.TYPED_ARRAY_SUPPORT) {
+	    this[offset] = (value >>> 24)
+	    this[offset + 1] = (value >>> 16)
+	    this[offset + 2] = (value >>> 8)
+	    this[offset + 3] = (value & 0xff)
+	  } else {
+	    objectWriteUInt32(this, value, offset, false)
+	  }
+	  return offset + 4
+	}
+	
+	function checkIEEE754 (buf, value, offset, ext, max, min) {
+	  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+	  if (offset < 0) throw new RangeError('Index out of range')
+	}
+	
+	function writeFloat (buf, value, offset, littleEndian, noAssert) {
+	  if (!noAssert) {
+	    checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38)
+	  }
+	  ieee754.write(buf, value, offset, littleEndian, 23, 4)
+	  return offset + 4
+	}
+	
+	Buffer.prototype.writeFloatLE = function writeFloatLE (value, offset, noAssert) {
+	  return writeFloat(this, value, offset, true, noAssert)
+	}
+	
+	Buffer.prototype.writeFloatBE = function writeFloatBE (value, offset, noAssert) {
+	  return writeFloat(this, value, offset, false, noAssert)
+	}
+	
+	function writeDouble (buf, value, offset, littleEndian, noAssert) {
+	  if (!noAssert) {
+	    checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308)
+	  }
+	  ieee754.write(buf, value, offset, littleEndian, 52, 8)
+	  return offset + 8
+	}
+	
+	Buffer.prototype.writeDoubleLE = function writeDoubleLE (value, offset, noAssert) {
+	  return writeDouble(this, value, offset, true, noAssert)
+	}
+	
+	Buffer.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert) {
+	  return writeDouble(this, value, offset, false, noAssert)
+	}
+	
+	// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
+	Buffer.prototype.copy = function copy (target, targetStart, start, end) {
+	  if (!start) start = 0
+	  if (!end && end !== 0) end = this.length
+	  if (targetStart >= target.length) targetStart = target.length
+	  if (!targetStart) targetStart = 0
+	  if (end > 0 && end < start) end = start
+	
+	  // Copy 0 bytes; we're done
+	  if (end === start) return 0
+	  if (target.length === 0 || this.length === 0) return 0
+	
+	  // Fatal error conditions
+	  if (targetStart < 0) {
+	    throw new RangeError('targetStart out of bounds')
+	  }
+	  if (start < 0 || start >= this.length) throw new RangeError('sourceStart out of bounds')
+	  if (end < 0) throw new RangeError('sourceEnd out of bounds')
+	
+	  // Are we oob?
+	  if (end > this.length) end = this.length
+	  if (target.length - targetStart < end - start) {
+	    end = target.length - targetStart + start
+	  }
+	
+	  var len = end - start
+	  var i
+	
+	  if (this === target && start < targetStart && targetStart < end) {
+	    // descending copy from end
+	    for (i = len - 1; i >= 0; --i) {
+	      target[i + targetStart] = this[i + start]
+	    }
+	  } else if (len < 1000 || !Buffer.TYPED_ARRAY_SUPPORT) {
+	    // ascending copy from start
+	    for (i = 0; i < len; ++i) {
+	      target[i + targetStart] = this[i + start]
+	    }
+	  } else {
+	    Uint8Array.prototype.set.call(
+	      target,
+	      this.subarray(start, start + len),
+	      targetStart
+	    )
+	  }
+	
+	  return len
+	}
+	
+	// Usage:
+	//    buffer.fill(number[, offset[, end]])
+	//    buffer.fill(buffer[, offset[, end]])
+	//    buffer.fill(string[, offset[, end]][, encoding])
+	Buffer.prototype.fill = function fill (val, start, end, encoding) {
+	  // Handle string cases:
+	  if (typeof val === 'string') {
+	    if (typeof start === 'string') {
+	      encoding = start
+	      start = 0
+	      end = this.length
+	    } else if (typeof end === 'string') {
+	      encoding = end
+	      end = this.length
+	    }
+	    if (val.length === 1) {
+	      var code = val.charCodeAt(0)
+	      if (code < 256) {
+	        val = code
+	      }
+	    }
+	    if (encoding !== undefined && typeof encoding !== 'string') {
+	      throw new TypeError('encoding must be a string')
+	    }
+	    if (typeof encoding === 'string' && !Buffer.isEncoding(encoding)) {
+	      throw new TypeError('Unknown encoding: ' + encoding)
+	    }
+	  } else if (typeof val === 'number') {
+	    val = val & 255
+	  }
+	
+	  // Invalid ranges are not set to a default, so can range check early.
+	  if (start < 0 || this.length < start || this.length < end) {
+	    throw new RangeError('Out of range index')
+	  }
+	
+	  if (end <= start) {
+	    return this
+	  }
+	
+	  start = start >>> 0
+	  end = end === undefined ? this.length : end >>> 0
+	
+	  if (!val) val = 0
+	
+	  var i
+	  if (typeof val === 'number') {
+	    for (i = start; i < end; ++i) {
+	      this[i] = val
+	    }
+	  } else {
+	    var bytes = Buffer.isBuffer(val)
+	      ? val
+	      : utf8ToBytes(new Buffer(val, encoding).toString())
+	    var len = bytes.length
+	    for (i = 0; i < end - start; ++i) {
+	      this[i + start] = bytes[i % len]
+	    }
+	  }
+	
+	  return this
+	}
+	
+	// HELPER FUNCTIONS
+	// ================
+	
+	var INVALID_BASE64_RE = /[^+\/0-9A-Za-z-_]/g
+	
+	function base64clean (str) {
+	  // Node strips out invalid characters like \n and \t from the string, base64-js does not
+	  str = stringtrim(str).replace(INVALID_BASE64_RE, '')
+	  // Node converts strings with length < 2 to ''
+	  if (str.length < 2) return ''
+	  // Node allows for non-padded base64 strings (missing trailing ===), base64-js does not
+	  while (str.length % 4 !== 0) {
+	    str = str + '='
+	  }
+	  return str
+	}
+	
+	function stringtrim (str) {
+	  if (str.trim) return str.trim()
+	  return str.replace(/^\s+|\s+$/g, '')
+	}
+	
+	function toHex (n) {
+	  if (n < 16) return '0' + n.toString(16)
+	  return n.toString(16)
+	}
+	
+	function utf8ToBytes (string, units) {
+	  units = units || Infinity
+	  var codePoint
+	  var length = string.length
+	  var leadSurrogate = null
+	  var bytes = []
+	
+	  for (var i = 0; i < length; ++i) {
+	    codePoint = string.charCodeAt(i)
+	
+	    // is surrogate component
+	    if (codePoint > 0xD7FF && codePoint < 0xE000) {
+	      // last char was a lead
+	      if (!leadSurrogate) {
+	        // no lead yet
+	        if (codePoint > 0xDBFF) {
+	          // unexpected trail
+	          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+	          continue
+	        } else if (i + 1 === length) {
+	          // unpaired lead
+	          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+	          continue
+	        }
+	
+	        // valid lead
+	        leadSurrogate = codePoint
+	
+	        continue
+	      }
+	
+	      // 2 leads in a row
+	      if (codePoint < 0xDC00) {
+	        if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+	        leadSurrogate = codePoint
+	        continue
+	      }
+	
+	      // valid surrogate pair
+	      codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000
+	    } else if (leadSurrogate) {
+	      // valid bmp char, but last char was a lead
+	      if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+	    }
+	
+	    leadSurrogate = null
+	
+	    // encode utf8
+	    if (codePoint < 0x80) {
+	      if ((units -= 1) < 0) break
+	      bytes.push(codePoint)
+	    } else if (codePoint < 0x800) {
+	      if ((units -= 2) < 0) break
+	      bytes.push(
+	        codePoint >> 0x6 | 0xC0,
+	        codePoint & 0x3F | 0x80
+	      )
+	    } else if (codePoint < 0x10000) {
+	      if ((units -= 3) < 0) break
+	      bytes.push(
+	        codePoint >> 0xC | 0xE0,
+	        codePoint >> 0x6 & 0x3F | 0x80,
+	        codePoint & 0x3F | 0x80
+	      )
+	    } else if (codePoint < 0x110000) {
+	      if ((units -= 4) < 0) break
+	      bytes.push(
+	        codePoint >> 0x12 | 0xF0,
+	        codePoint >> 0xC & 0x3F | 0x80,
+	        codePoint >> 0x6 & 0x3F | 0x80,
+	        codePoint & 0x3F | 0x80
+	      )
+	    } else {
+	      throw new Error('Invalid code point')
+	    }
+	  }
+	
+	  return bytes
+	}
+	
+	function asciiToBytes (str) {
+	  var byteArray = []
+	  for (var i = 0; i < str.length; ++i) {
+	    // Node's code seems to be doing this and not & 0x7F..
+	    byteArray.push(str.charCodeAt(i) & 0xFF)
+	  }
+	  return byteArray
+	}
+	
+	function utf16leToBytes (str, units) {
+	  var c, hi, lo
+	  var byteArray = []
+	  for (var i = 0; i < str.length; ++i) {
+	    if ((units -= 2) < 0) break
+	
+	    c = str.charCodeAt(i)
+	    hi = c >> 8
+	    lo = c % 256
+	    byteArray.push(lo)
+	    byteArray.push(hi)
+	  }
+	
+	  return byteArray
+	}
+	
+	function base64ToBytes (str) {
+	  return base64.toByteArray(base64clean(str))
+	}
+	
+	function blitBuffer (src, dst, offset, length) {
+	  for (var i = 0; i < length; ++i) {
+	    if ((i + offset >= dst.length) || (i >= src.length)) break
+	    dst[i + offset] = src[i]
+	  }
+	  return i
+	}
+	
+	function isnan (val) {
+	  return val !== val // eslint-disable-line no-self-compare
+	}
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13).Buffer, (function() { return this; }())))
+
+/***/ },
+/* 14 */
+/***/ function(module, exports) {
+
+	'use strict'
+	
+	exports.byteLength = byteLength
+	exports.toByteArray = toByteArray
+	exports.fromByteArray = fromByteArray
+	
+	var lookup = []
+	var revLookup = []
+	var Arr = typeof Uint8Array !== 'undefined' ? Uint8Array : Array
+	
+	var code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+	for (var i = 0, len = code.length; i < len; ++i) {
+	  lookup[i] = code[i]
+	  revLookup[code.charCodeAt(i)] = i
+	}
+	
+	revLookup['-'.charCodeAt(0)] = 62
+	revLookup['_'.charCodeAt(0)] = 63
+	
+	function placeHoldersCount (b64) {
+	  var len = b64.length
+	  if (len % 4 > 0) {
+	    throw new Error('Invalid string. Length must be a multiple of 4')
+	  }
+	
+	  // the number of equal signs (place holders)
+	  // if there are two placeholders, than the two characters before it
+	  // represent one byte
+	  // if there is only one, then the three characters before it represent 2 bytes
+	  // this is just a cheap hack to not do indexOf twice
+	  return b64[len - 2] === '=' ? 2 : b64[len - 1] === '=' ? 1 : 0
+	}
+	
+	function byteLength (b64) {
+	  // base64 is 4/3 + up to two characters of the original data
+	  return b64.length * 3 / 4 - placeHoldersCount(b64)
+	}
+	
+	function toByteArray (b64) {
+	  var i, j, l, tmp, placeHolders, arr
+	  var len = b64.length
+	  placeHolders = placeHoldersCount(b64)
+	
+	  arr = new Arr(len * 3 / 4 - placeHolders)
+	
+	  // if there are placeholders, only get up to the last complete 4 chars
+	  l = placeHolders > 0 ? len - 4 : len
+	
+	  var L = 0
+	
+	  for (i = 0, j = 0; i < l; i += 4, j += 3) {
+	    tmp = (revLookup[b64.charCodeAt(i)] << 18) | (revLookup[b64.charCodeAt(i + 1)] << 12) | (revLookup[b64.charCodeAt(i + 2)] << 6) | revLookup[b64.charCodeAt(i + 3)]
+	    arr[L++] = (tmp >> 16) & 0xFF
+	    arr[L++] = (tmp >> 8) & 0xFF
+	    arr[L++] = tmp & 0xFF
+	  }
+	
+	  if (placeHolders === 2) {
+	    tmp = (revLookup[b64.charCodeAt(i)] << 2) | (revLookup[b64.charCodeAt(i + 1)] >> 4)
+	    arr[L++] = tmp & 0xFF
+	  } else if (placeHolders === 1) {
+	    tmp = (revLookup[b64.charCodeAt(i)] << 10) | (revLookup[b64.charCodeAt(i + 1)] << 4) | (revLookup[b64.charCodeAt(i + 2)] >> 2)
+	    arr[L++] = (tmp >> 8) & 0xFF
+	    arr[L++] = tmp & 0xFF
+	  }
+	
+	  return arr
+	}
+	
+	function tripletToBase64 (num) {
+	  return lookup[num >> 18 & 0x3F] + lookup[num >> 12 & 0x3F] + lookup[num >> 6 & 0x3F] + lookup[num & 0x3F]
+	}
+	
+	function encodeChunk (uint8, start, end) {
+	  var tmp
+	  var output = []
+	  for (var i = start; i < end; i += 3) {
+	    tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2])
+	    output.push(tripletToBase64(tmp))
+	  }
+	  return output.join('')
+	}
+	
+	function fromByteArray (uint8) {
+	  var tmp
+	  var len = uint8.length
+	  var extraBytes = len % 3 // if we have 1 byte left, pad 2 bytes
+	  var output = ''
+	  var parts = []
+	  var maxChunkLength = 16383 // must be multiple of 3
+	
+	  // go through the array every three bytes, we'll deal with trailing stuff later
+	  for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
+	    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)))
+	  }
+	
+	  // pad the end with zeros, but make sure to not forget the extra bytes
+	  if (extraBytes === 1) {
+	    tmp = uint8[len - 1]
+	    output += lookup[tmp >> 2]
+	    output += lookup[(tmp << 4) & 0x3F]
+	    output += '=='
+	  } else if (extraBytes === 2) {
+	    tmp = (uint8[len - 2] << 8) + (uint8[len - 1])
+	    output += lookup[tmp >> 10]
+	    output += lookup[(tmp >> 4) & 0x3F]
+	    output += lookup[(tmp << 2) & 0x3F]
+	    output += '='
+	  }
+	
+	  parts.push(output)
+	
+	  return parts.join('')
+	}
+
+
+/***/ },
+/* 15 */
+/***/ function(module, exports) {
+
+	exports.read = function (buffer, offset, isLE, mLen, nBytes) {
+	  var e, m
+	  var eLen = nBytes * 8 - mLen - 1
+	  var eMax = (1 << eLen) - 1
+	  var eBias = eMax >> 1
+	  var nBits = -7
+	  var i = isLE ? (nBytes - 1) : 0
+	  var d = isLE ? -1 : 1
+	  var s = buffer[offset + i]
+	
+	  i += d
+	
+	  e = s & ((1 << (-nBits)) - 1)
+	  s >>= (-nBits)
+	  nBits += eLen
+	  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+	
+	  m = e & ((1 << (-nBits)) - 1)
+	  e >>= (-nBits)
+	  nBits += mLen
+	  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+	
+	  if (e === 0) {
+	    e = 1 - eBias
+	  } else if (e === eMax) {
+	    return m ? NaN : ((s ? -1 : 1) * Infinity)
+	  } else {
+	    m = m + Math.pow(2, mLen)
+	    e = e - eBias
+	  }
+	  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+	}
+	
+	exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
+	  var e, m, c
+	  var eLen = nBytes * 8 - mLen - 1
+	  var eMax = (1 << eLen) - 1
+	  var eBias = eMax >> 1
+	  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
+	  var i = isLE ? 0 : (nBytes - 1)
+	  var d = isLE ? 1 : -1
+	  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
+	
+	  value = Math.abs(value)
+	
+	  if (isNaN(value) || value === Infinity) {
+	    m = isNaN(value) ? 1 : 0
+	    e = eMax
+	  } else {
+	    e = Math.floor(Math.log(value) / Math.LN2)
+	    if (value * (c = Math.pow(2, -e)) < 1) {
+	      e--
+	      c *= 2
+	    }
+	    if (e + eBias >= 1) {
+	      value += rt / c
+	    } else {
+	      value += rt * Math.pow(2, 1 - eBias)
+	    }
+	    if (value * c >= 2) {
+	      e++
+	      c /= 2
+	    }
+	
+	    if (e + eBias >= eMax) {
+	      m = 0
+	      e = eMax
+	    } else if (e + eBias >= 1) {
+	      m = (value * c - 1) * Math.pow(2, mLen)
+	      e = e + eBias
+	    } else {
+	      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
+	      e = 0
+	    }
+	  }
+	
+	  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+	
+	  e = (e << mLen) | m
+	  eLen += mLen
+	  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+	
+	  buffer[offset + i - d] |= s * 128
+	}
+
+
+/***/ },
+/* 16 */
+/***/ function(module, exports) {
+
+	var toString = {}.toString;
+	
+	module.exports = Array.isArray || function (arr) {
+	  return toString.call(arr) == '[object Array]';
+	};
+
+
+/***/ },
+/* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	// var RemoteStorage = require('./remotestorage');
+	var util = __webpack_require__(2);
+	var Env = __webpack_require__(18);
+	var eventHandling = __webpack_require__(3);
+	var log = __webpack_require__(4);
+	var Authorize = __webpack_require__(7);
+	var config = __webpack_require__(5);
+	
+	/* TOFIX */
+	// var syncInterval = 10000,
+	//     backgroundSyncInterval = 60000,
+	//     isBackground = false;
+	
+	var isFolder = util.isFolder;
+	var isDocument = util.isDocument;
+	var equal = util.equal;
+	var deepClone = util.deepClone;
+	var pathsFromRoot = util.pathsFromRoot;
+	
+	function taskFor(action, path, promise) {
+	  return {
+	    action: action,
+	    path: path,
+	    promise: promise
+	  };
+	}
+	
+	function isStaleChild(node) {
+	  return node.remote && node.remote.revision && !node.remote.itemsMap && !node.remote.body;
+	}
+	
+	function hasCommonRevision(node) {
+	  return node.common && node.common.revision;
+	}
+	
+	function handleVisibility() {
+	  var rs = this;
+	
+	  function handleVisibilityChange(fg) {
+	    var oldValue, newValue;
+	    oldValue = rs.getCurrentSyncInterval();
+	    config.isBackground = !fg;
+	    newValue = rs.getCurrentSyncInterval();
+	    rs._emit('sync-interval-change', { oldValue: oldValue, newValue: newValue });
+	  }
+	
+	  Env.on("background", function () {
+	    handleVisibilityChange(false);
+	  });
+	
+	  Env.on("foreground", function () {
+	    handleVisibilityChange(true);
+	  });
+	}
+	
+	/**
+	 * Class: RemoteStorage.Sync
+	 *
+	 * What this class does is basically six things:
+	 * - retrieving the remote version of relevant documents and folders
+	 * - add all local and remote documents together into one tree
+	 * - push local documents out if they don't exist remotely
+	 * - push local changes out to remote documents (conditionally, to
+	 *      avoid race conditions where both have changed)
+	 * - adopt the local version of a document to its remote version if
+	 *      both exist and they differ
+	 * - delete the local version of a document if it was deleted remotely
+	 * - if any get requests were waiting for remote data, resolve them once
+	 *      this data comes in.
+	 *
+	 * It does this using requests to documents, and to folders. Whenever a
+	 * folder GET comes in, it gives information about all the documents it
+	 * contains (this is the `markChildren` function).
+	 **/
+	var Sync = function Sync(remoteStorage, setLocal, setRemote, setAccess, setCaching) {
+	  this.remoteStorage = remoteStorage;
+	  this.local = setLocal;
+	  this.local.onDiff(function (path) {
+	    this.addTask(path);
+	    this.doTasks();
+	  }.bind(this));
+	  this.remote = setRemote;
+	  this.access = setAccess;
+	  this.caching = setCaching;
+	  this._tasks = {};
+	  this._running = {};
+	  this._timeStarted = {};
+	  eventHandling(this, 'done', 'req-done');
+	  this.caching.onActivate(function (path) {
+	    this.addTask(path);
+	    this.doTasks();
+	  }.bind(this));
+	};
+	
+	Sync.prototype = {
+	
+	  now: function now() {
+	    return new Date().getTime();
+	  },
+	
+	  queueGetRequest: function queueGetRequest(path) {
+	    var pending = Promise.defer();
+	
+	    if (!this.remote.connected) {
+	      pending.reject('cannot fulfill maxAge requirement - remote is not connected');
+	    } else if (!this.remote.online) {
+	      pending.reject('cannot fulfill maxAge requirement - remote is not online');
+	    } else {
+	      this.addTask(path, function () {
+	        this.local.get(path).then(function (r) {
+	          return pending.resolve(r);
+	        });
+	      }.bind(this));
+	
+	      this.doTasks();
+	    }
+	
+	    return pending.promise;
+	  },
+	
+	  corruptServerItemsMap: function corruptServerItemsMap(itemsMap, force02) {
+	    if ((typeof itemsMap === 'undefined' ? 'undefined' : _typeof(itemsMap)) !== 'object' || Array.isArray(itemsMap)) {
+	      return true;
+	    }
+	
+	    for (var itemName in itemsMap) {
+	      var item = itemsMap[itemName];
+	
+	      if ((typeof item === 'undefined' ? 'undefined' : _typeof(item)) !== 'object') {
+	        return true;
+	      }
+	      if (typeof item.ETag !== 'string') {
+	        return true;
+	      }
+	      if (isFolder(itemName)) {
+	        if (itemName.substring(0, itemName.length - 1).indexOf('/') !== -1) {
+	          return true;
+	        }
+	      } else {
+	        if (itemName.indexOf('/') !== -1) {
+	          return true;
+	        }
+	        if (force02) {
+	          if (typeof item['Content-Type'] !== 'string') {
+	            return true;
+	          }
+	          if (typeof item['Content-Length'] !== 'number') {
+	            return true;
+	          }
+	        }
+	      }
+	    }
+	
+	    return false;
+	  },
+	
+	  corruptItemsMap: function corruptItemsMap(itemsMap) {
+	    if ((typeof itemsMap === 'undefined' ? 'undefined' : _typeof(itemsMap)) !== 'object' || Array.isArray(itemsMap)) {
+	      return true;
+	    }
+	
+	    for (var itemName in itemsMap) {
+	      if (typeof itemsMap[itemName] !== 'boolean') {
+	        return true;
+	      }
+	    }
+	
+	    return false;
+	  },
+	
+	  corruptRevision: function corruptRevision(rev) {
+	    return (typeof rev === 'undefined' ? 'undefined' : _typeof(rev)) !== 'object' || Array.isArray(rev) || rev.revision && typeof rev.revision !== 'string' || rev.body && typeof rev.body !== 'string' && _typeof(rev.body) !== 'object' || rev.contentType && typeof rev.contentType !== 'string' || rev.contentLength && typeof rev.contentLength !== 'number' || rev.timestamp && typeof rev.timestamp !== 'number' || rev.itemsMap && this.corruptItemsMap(rev.itemsMap);
+	  },
+	
+	  isCorrupt: function isCorrupt(node) {
+	    return (typeof node === 'undefined' ? 'undefined' : _typeof(node)) !== 'object' || Array.isArray(node) || typeof node.path !== 'string' || this.corruptRevision(node.common) || node.local && this.corruptRevision(node.local) || node.remote && this.corruptRevision(node.remote) || node.push && this.corruptRevision(node.push);
+	  },
+	
+	  hasTasks: function hasTasks() {
+	    return Object.getOwnPropertyNames(this._tasks).length > 0;
+	  },
+	
+	  collectDiffTasks: function collectDiffTasks() {
+	    var num = 0;
+	
+	    return this.local.forAllNodes(function (node) {
+	
+	      if (num > 100) {
+	        return;
+	      }
+	
+	      if (this.isCorrupt(node)) {
+	        log('[Sync] WARNING: corrupt node in local cache', node);
+	        if ((typeof node === 'undefined' ? 'undefined' : _typeof(node)) === 'object' && node.path) {
+	          this.addTask(node.path);
+	          num++;
+	        }
+	      } else if (this.needsFetch(node) && this.access.checkPathPermission(node.path, 'r')) {
+	        this.addTask(node.path);
+	        num++;
+	      } else if (isDocument(node.path) && this.needsPush(node) && this.access.checkPathPermission(node.path, 'rw')) {
+	        this.addTask(node.path);
+	        num++;
+	      }
+	    }.bind(this)).then(function () {
+	      return num;
+	    }, function (err) {
+	      throw err;
+	    });
+	  },
+	
+	  inConflict: function inConflict(node) {
+	    return node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap);
+	  },
+	
+	  needsRefresh: function needsRefresh(node) {
+	    if (node.common) {
+	      if (!node.common.timestamp) {
+	        return true;
+	      }
+	      return this.now() - node.common.timestamp > config.syncInterval;
+	    }config;
+	    return false;
+	  },
+	
+	  needsFetch: function needsFetch(node) {
+	    if (this.inConflict(node)) {
+	      return true;
+	    }
+	    if (node.common && node.common.itemsMap === undefined && node.common.body === undefined) {
+	      return true;
+	    }
+	    if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
+	      return true;
+	    }
+	    return false;
+	  },
+	
+	  needsPush: function needsPush(node) {
+	    if (this.inConflict(node)) {
+	      return false;
+	    }
+	    if (node.local && !node.push) {
+	      return true;
+	    }
+	  },
+	
+	  needsRemotePut: function needsRemotePut(node) {
+	    return node.local && node.local.body;
+	  },
+	
+	  needsRemoteDelete: function needsRemoteDelete(node) {
+	    return node.local && node.local.body === false;
+	  },
+	
+	  getParentPath: function getParentPath(path) {
+	    var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+	
+	    if (parts) {
+	      return parts[1];
+	    } else {
+	      throw new Error('Not a valid path: "' + path + '"');
+	    }
+	  },
+	
+	  deleteChildPathsFromTasks: function deleteChildPathsFromTasks() {
+	    for (var path in this._tasks) {
+	      var paths = pathsFromRoot(path);
+	
+	      for (var i = 1; i < paths.length; i++) {
+	        if (this._tasks[paths[i]]) {
+	          // move pending promises to parent task
+	          if (Array.isArray(this._tasks[path]) && this._tasks[path].length) {
+	            Array.prototype.push.apply(this._tasks[paths[i]], this._tasks[path]);
+	          }
+	          delete this._tasks[path];
+	        }
+	      }
+	    }
+	  },
+	
+	  collectRefreshTasks: function collectRefreshTasks() {
+	    return this.local.forAllNodes(function (node) {
+	      var parentPath;
+	      if (this.needsRefresh(node)) {
+	        try {
+	          parentPath = this.getParentPath(node.path);
+	        } catch (e) {
+	          // node.path is already '/', can't take parentPath
+	        }
+	        if (parentPath && this.access.checkPathPermission(parentPath, 'r')) {
+	          this.addTask(parentPath);
+	        } else if (this.access.checkPathPermission(node.path, 'r')) {
+	          this.addTask(node.path);
+	        }
+	      }
+	    }.bind(this)).then(function () {
+	      this.deleteChildPathsFromTasks();
+	    }.bind(this), function (err) {
+	      throw err;
+	    });
+	  },
+	
+	  flush: function flush(nodes) {
+	    for (var path in nodes) {
+	      // Strategy is 'FLUSH' and no local changes exist
+	      if (this.caching.checkPath(path) === 'FLUSH' && nodes[path] && !nodes[path].local) {
+	        log('[Sync] Flushing', path);
+	        nodes[path] = undefined; // Cause node to be flushed from cache
+	      }
+	    }
+	    return nodes;
+	  },
+	
+	  doTask: function doTask(path) {
+	    return this.local.getNodes([path]).then(function (nodes) {
+	      var node = nodes[path];
+	      // First fetch:
+	      if (typeof node === 'undefined') {
+	        return taskFor('get', path, this.remote.get(path));
+	      }
+	      // Fetch known-stale child:
+	      else if (isStaleChild(node)) {
+	          return taskFor('get', path, this.remote.get(path));
+	        }
+	        // Push PUT:
+	        else if (this.needsRemotePut(node)) {
+	            node.push = deepClone(node.local);
+	            node.push.timestamp = this.now();
+	
+	            return this.local.setNodes(this.flush(nodes)).then(function () {
+	              var options;
+	              if (hasCommonRevision(node)) {
+	                options = { ifMatch: node.common.revision };
+	              } else {
+	                // Initial PUT (fail if something is already there)
+	                options = { ifNoneMatch: '*' };
+	              }
+	
+	              return taskFor('put', path, this.remote.put(path, node.push.body, node.push.contentType, options));
+	            }.bind(this));
+	          }
+	          // Push DELETE:
+	          else if (this.needsRemoteDelete(node)) {
+	              node.push = { body: false, timestamp: this.now() };
+	
+	              return this.local.setNodes(this.flush(nodes)).then(function () {
+	                if (hasCommonRevision(node)) {
+	                  return taskFor('delete', path, this.remote.delete(path, { ifMatch: node.common.revision }));
+	                } else {
+	                  // Ascertain current common or remote revision first
+	                  return taskFor('get', path, this.remote.get(path));
+	                }
+	              }.bind(this));
+	            }
+	            // Conditional refresh:
+	            else if (hasCommonRevision(node)) {
+	                return taskFor('get', path, this.remote.get(path, { ifNoneMatch: node.common.revision }));
+	              } else {
+	                return taskFor('get', path, this.remote.get(path));
+	              }
+	    }.bind(this));
+	  },
+	
+	  autoMergeFolder: function autoMergeFolder(node) {
+	    if (node.remote.itemsMap) {
+	      node.common = node.remote;
+	      delete node.remote;
+	
+	      if (node.common.itemsMap) {
+	        for (var itemName in node.common.itemsMap) {
+	          if (!node.local.itemsMap[itemName]) {
+	            // Indicates the node is either newly being fetched
+	            // has been deleted locally (whether or not leading to conflict);
+	            // before listing it in local listings, check if a local deletion
+	            // exists.
+	            node.local.itemsMap[itemName] = false;
+	          }
+	        }
+	
+	        if (equal(node.local.itemsMap, node.common.itemsMap)) {
+	          delete node.local;
+	        }
+	      }
+	    }
+	    return node;
+	  },
+	
+	  autoMergeDocument: function autoMergeDocument(node) {
+	    hasNoRemoteChanges = function hasNoRemoteChanges(node) {
+	      if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
+	        return false;
+	      }
+	      return node.common.body === undefined && node.remote.body === false || node.remote.body === node.common.body && node.remote.contentType === node.common.contentType;
+	    };
+	    mergeMutualDeletion = function mergeMutualDeletion(node) {
+	      if (node.remote && node.remote.body === false && node.local && node.local.body === false) {
+	        delete node.local;
+	      }
+	      return node;
+	    };
+	
+	    if (hasNoRemoteChanges(node)) {
+	      node = mergeMutualDeletion(node);
+	      delete node.remote;
+	    } else if (node.remote.body !== undefined) {
+	      // keep/revert:
+	      log('[Sync] Emitting keep/revert');
+	
+	      this.local._emitChange({
+	        origin: 'conflict',
+	        path: node.path,
+	        oldValue: node.local.body,
+	        newValue: node.remote.body,
+	        lastCommonValue: node.common.body,
+	        oldContentType: node.local.contentType,
+	        newContentType: node.remote.contentType,
+	        lastCommonContentType: node.common.contentType
+	      });
+	
+	      if (node.remote.body) {
+	        node.common = node.remote;
+	      } else {
+	        node.common = {};
+	      }
+	      delete node.remote;
+	      delete node.local;
+	    }
+	    return node;
+	  },
+	
+	  autoMerge: function autoMerge(node) {
+	    if (node.remote) {
+	      if (node.local) {
+	        if (isFolder(node.path)) {
+	          return this.autoMergeFolder(node);
+	        } else {
+	          return this.autoMergeDocument(node);
+	        }
+	      } else {
+	        // no local changes
+	        if (isFolder(node.path)) {
+	          if (node.remote.itemsMap !== undefined) {
+	            node.common = node.remote;
+	            delete node.remote;
+	          }
+	        } else {
+	          if (node.remote.body !== undefined) {
+	            var change = {
+	              origin: 'remote',
+	              path: node.path,
+	              oldValue: node.common.body === false ? undefined : node.common.body,
+	              newValue: node.remote.body === false ? undefined : node.remote.body,
+	              oldContentType: node.common.contentType,
+	              newContentType: node.remote.contentType
+	            };
+	            if (change.oldValue || change.newValue) {
+	              this.local._emitChange(change);
+	            }
+	
+	            if (!node.remote.body) {
+	              // no remote, so delete/don't create
+	              return;
+	            }
+	
+	            node.common = node.remote;
+	            delete node.remote;
+	          }
+	        }
+	      }
+	    } else {
+	      if (node.common.body) {
+	        this.local._emitChange({
+	          origin: 'remote',
+	          path: node.path,
+	          oldValue: node.common.body,
+	          newValue: undefined,
+	          oldContentType: node.common.contentType,
+	          newContentType: undefined
+	        });
+	      }
+	
+	      return undefined;
+	    }
+	    return node;
+	  },
+	
+	  updateCommonTimestamp: function updateCommonTimestamp(path, revision) {
+	    return this.local.getNodes([path]).then(function (nodes) {
+	      if (nodes[path] && nodes[path].common && nodes[path].common.revision === revision) {
+	        nodes[path].common.timestamp = this.now();
+	      }
+	      return this.local.setNodes(this.flush(nodes));
+	    }.bind(this));
+	  },
+	
+	  markChildren: function markChildren(path, itemsMap, changedNodes, missingChildren) {
+	    var paths = [];
+	    var meta = {};
+	    var recurse = {};
+	
+	    for (var item in itemsMap) {
+	      paths.push(path + item);
+	      meta[path + item] = itemsMap[item];
+	    }
+	    for (var childName in missingChildren) {
+	      paths.push(path + childName);
+	    }
+	
+	    return this.local.getNodes(paths).then(function (nodes) {
+	      var cachingStrategy;
+	      var node;
+	
+	      var nodeChanged = function nodeChanged(node, etag) {
+	        return node.common.revision !== etag && (!node.remote || node.remote.revision !== etag);
+	      };
+	
+	      for (var nodePath in nodes) {
+	        node = nodes[nodePath];
+	
+	        if (meta[nodePath]) {
+	          if (node && node.common) {
+	            if (nodeChanged(node, meta[nodePath].ETag)) {
+	              changedNodes[nodePath] = deepClone(node);
+	              changedNodes[nodePath].remote = {
+	                revision: meta[nodePath].ETag,
+	                timestamp: this.now()
+	              };
+	              changedNodes[nodePath] = this.autoMerge(changedNodes[nodePath]);
+	            }
+	          } else {
+	            cachingStrategy = this.caching.checkPath(nodePath);
+	            if (cachingStrategy === 'ALL') {
+	              changedNodes[nodePath] = {
+	                path: nodePath,
+	                common: {
+	                  timestamp: this.now()
+	                },
+	                remote: {
+	                  revision: meta[nodePath].ETag,
+	                  timestamp: this.now()
+	                }
+	              };
+	            }
+	          }
+	
+	          if (changedNodes[nodePath] && meta[nodePath]['Content-Type']) {
+	            changedNodes[nodePath].remote.contentType = meta[nodePath]['Content-Type'];
+	          }
+	
+	          if (changedNodes[nodePath] && meta[nodePath]['Content-Length']) {
+	            changedNodes[nodePath].remote.contentLength = meta[nodePath]['Content-Length'];
+	          }
+	        } else if (missingChildren[nodePath.substring(path.length)] && node && node.common) {
+	          if (node.common.itemsMap) {
+	            for (var commonItem in node.common.itemsMap) {
+	              recurse[nodePath + commonItem] = true;
+	            }
+	          }
+	
+	          if (node.local && node.local.itemsMap) {
+	            for (var localItem in node.local.itemsMap) {
+	              recurse[nodePath + localItem] = true;
+	            }
+	          }
+	
+	          if (node.remote || isFolder(nodePath)) {
+	            changedNodes[nodePath] = undefined;
+	          } else {
+	            changedNodes[nodePath] = this.autoMerge(node);
+	
+	            if (typeof changedNodes[nodePath] === 'undefined') {
+	              var parentPath = this.getParentPath(nodePath);
+	              var parentNode = changedNodes[parentPath];
+	              var itemName = nodePath.substring(path.length);
+	              if (parentNode && parentNode.local) {
+	                delete parentNode.local.itemsMap[itemName];
+	
+	                if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+	                  delete parentNode.local;
+	                }
+	              }
+	            }
+	          }
+	        }
+	      }
+	
+	      return this.deleteRemoteTrees(Object.keys(recurse), changedNodes).then(function (changedObjs2) {
+	        return this.local.setNodes(this.flush(changedObjs2));
+	      }.bind(this));
+	    }.bind(this));
+	  },
+	
+	  deleteRemoteTrees: function deleteRemoteTrees(paths, changedNodes) {
+	    if (paths.length === 0) {
+	      return Promise.resolve(changedNodes);
+	    }
+	
+	    return this.local.getNodes(paths).then(function (nodes) {
+	      var subPaths = {};
+	
+	      collectSubPaths = function collectSubPaths(folder, path) {
+	        if (folder && folder.itemsMap) {
+	          for (var itemName in folder.itemsMap) {
+	            subPaths[path + itemName] = true;
+	          }
+	        }
+	      };
+	
+	      for (var path in nodes) {
+	        var node = nodes[path];
+	
+	        // TODO Why check for the node here? I don't think this check ever applies
+	        if (!node) {
+	          continue;
+	        }
+	
+	        if (isFolder(path)) {
+	          collectSubPaths(node.common, path);
+	          collectSubPaths(node.local, path);
+	        } else {
+	          if (node.common && _typeof(node.common.body) !== undefined) {
+	            changedNodes[path] = deepClone(node);
+	            changedNodes[path].remote = {
+	              body: false,
+	              timestamp: this.now()
+	            };
+	            changedNodes[path] = this.autoMerge(changedNodes[path]);
+	          }
+	        }
+	      }
+	
+	      // Recurse whole tree depth levels at once:
+	      return this.deleteRemoteTrees(Object.keys(subPaths), changedNodes).then(function (changedNodes2) {
+	        return this.local.setNodes(this.flush(changedNodes2));
+	      }.bind(this));
+	    }.bind(this));
+	  },
+	
+	  completeFetch: function completeFetch(path, bodyOrItemsMap, contentType, revision) {
+	    var paths;
+	    var parentPath;
+	    var pathsFromRootArr = pathsFromRoot(path);
+	
+	    if (isFolder(path)) {
+	      paths = [path];
+	    } else {
+	      parentPath = pathsFromRootArr[1];
+	      paths = [path, parentPath];
+	    }
+	
+	    return this.local.getNodes(paths).then(function (nodes) {
+	      var itemName;
+	      var missingChildren = {};
+	      var node = nodes[path];
+	      var parentNode;
+	
+	      var collectMissingChildren = function collectMissingChildren(folder) {
+	        if (folder && folder.itemsMap) {
+	          for (var itemName in folder.itemsMap) {
+	            if (!bodyOrItemsMap[itemName]) {
+	              missingChildren[itemName] = true;
+	            }
+	          }
+	        }
+	      };
+	
+	      if ((typeof node === 'undefined' ? 'undefined' : _typeof(node)) !== 'object' || node.path !== path || _typeof(node.common) !== 'object') {
+	        node = {
+	          path: path,
+	          common: {}
+	        };
+	        nodes[path] = node;
+	      }
+	
+	      node.remote = {
+	        revision: revision,
+	        timestamp: this.now()
+	      };
+	
+	      if (isFolder(path)) {
+	        collectMissingChildren(node.common);
+	        collectMissingChildren(node.remote);
+	
+	        node.remote.itemsMap = {};
+	        for (itemName in bodyOrItemsMap) {
+	          node.remote.itemsMap[itemName] = true;
+	        }
+	      } else {
+	        node.remote.body = bodyOrItemsMap;
+	        node.remote.contentType = contentType;
+	
+	        parentNode = nodes[parentPath];
+	        if (parentNode && parentNode.local && parentNode.local.itemsMap) {
+	          itemName = path.substring(parentPath.length);
+	          parentNode.local.itemsMap[itemName] = true;
+	          if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+	            delete parentNode.local;
+	          }
+	        }
+	      }
+	
+	      nodes[path] = this.autoMerge(node);
+	      return {
+	        toBeSaved: nodes,
+	        missingChildren: missingChildren
+	      };
+	    }.bind(this));
+	  },
+	
+	  completePush: function completePush(path, action, conflict, revision) {
+	    return this.local.getNodes([path]).then(function (nodes) {
+	      var node = nodes[path];
+	
+	      if (!node.push) {
+	        this.stopped = true;
+	        throw new Error('completePush called but no push version!');
+	      }
+	
+	      if (conflict) {
+	        log('[Sync] We have a conflict');
+	
+	        if (!node.remote || node.remote.revision !== revision) {
+	          node.remote = {
+	            revision: revision || 'conflict',
+	            timestamp: this.now()
+	          };
+	          delete node.push;
+	        }
+	
+	        nodes[path] = this.autoMerge(node);
+	      } else {
+	        node.common = {
+	          revision: revision,
+	          timestamp: this.now()
+	        };
+	
+	        if (action === 'put') {
+	          node.common.body = node.push.body;
+	          node.common.contentType = node.push.contentType;
+	
+	          if (equal(node.local.body, node.push.body) && node.local.contentType === node.push.contentType) {
+	            delete node.local;
+	          }
+	
+	          delete node.push;
+	        } else if (action === 'delete') {
+	          if (node.local.body === false) {
+	            // No new local changes since push; flush it.
+	            nodes[path] = undefined;
+	          } else {
+	            delete node.push;
+	          }
+	        }
+	      }
+	
+	      return this.local.setNodes(this.flush(nodes));
+	    }.bind(this));
+	  },
+	
+	  dealWithFailure: function dealWithFailure(path, action, statusMeaning) {
+	
+	    return this.local.getNodes([path]).then(function (nodes) {
+	      if (nodes[path]) {
+	        delete nodes[path].push;
+	        return this.local.setNodes(this.flush(nodes));
+	      }
+	    }.bind(this));
+	  },
+	
+	  interpretStatus: function interpretStatus(statusCode) {
+	    if (statusCode === 'offline' || statusCode === 'timeout') {
+	      return {
+	        successful: false,
+	        networkProblems: true,
+	        statusCode: statusCode
+	      };
+	    }
+	
+	    var series = Math.floor(statusCode / 100);
+	
+	    return {
+	      successful: series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404,
+	      conflict: statusCode === 412,
+	      unAuth: statusCode === 401 && this.remote.token !== Authorize.IMPLIED_FAKE_TOKEN || statusCode === 402 || statusCode === 403,
+	      notFound: statusCode === 404,
+	      changed: statusCode !== 304,
+	      statusCode: statusCode
+	    };
+	  },
+	
+	  handleGetResponse: function handleGetResponse(path, status, bodyOrItemsMap, contentType, revision) {
+	    if (status.notFound) {
+	      if (isFolder(path)) {
+	        bodyOrItemsMap = {};
+	      } else {
+	        bodyOrItemsMap = false;
+	      }
+	    }
+	
+	    if (status.changed) {
+	      return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function (dataFromFetch) {
+	        if (isFolder(path)) {
+	          if (this.corruptServerItemsMap(bodyOrItemsMap)) {
+	            log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
+	            return false;
+	          } else {
+	            return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function () {
+	              return true;
+	            });
+	          }
+	        } else {
+	          return this.local.setNodes(this.flush(dataFromFetch.toBeSaved)).then(function () {
+	            return true;
+	          });
+	        }
+	      }.bind(this));
+	    } else {
+	      return this.updateCommonTimestamp(path, revision).then(function () {
+	        return true;
+	      });
+	    }
+	  },
+	
+	  handleResponse: function handleResponse(path, action, r) {
+	    var status = this.interpretStatus(r.statusCode);
+	    if (status.successful) {
+	      if (action === 'get') {
+	        return this.handleGetResponse(path, status, r.body, r.contentType, r.revision);
+	      } else if (action === 'put' || action === 'delete') {
+	        return this.completePush(path, action, status.conflict, r.revision).then(function () {
+	          return true;
+	        });
+	      } else {
+	        throw new Error('cannot handle response for unknown action', action);
+	      }
+	    } else {
+	      // Unsuccessful
+	      var error;
+	      if (status.unAuth) {
+	        error = new Authorize.Unauthorized();
+	      } else if (status.networkProblems) {
+	        error = new Sync.SyncError('Network request failed.');
+	      } else {
+	        error = new Error('HTTP response code ' + status.statusCode + ' received.');
+	      }
+	
+	      return this.dealWithFailure(path, action, status).then(function () {
+	        this.remoteStorage._emit('error', error);
+	        throw error;
+	      });
+	    }
+	  },
+	
+	  numThreads: 10,
+	
+	  finishTask: function finishTask(task) {
+	    if (task.action === undefined) {
+	      delete this._running[task.path];
+	      return;
+	    }
+	    var self = this;
+	
+	    return task.promise.then(function (r) {
+	      return self.handleResponse(task.path, task.action, r);
+	    }, function (err) {
+	      log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
+	      return self.handleResponse(task.path, task.action, { statusCode: 'offline' });
+	    }).then(function (completed) {
+	      delete self._timeStarted[task.path];
+	      delete self._running[task.path];
+	
+	      if (completed) {
+	        if (self._tasks[task.path]) {
+	          for (var i = 0; i < self._tasks[task.path].length; i++) {
+	            self._tasks[task.path][i]();
+	          }
+	          delete self._tasks[task.path];
+	        }
+	      }
+	
+	      self._emit('req-done');
+	
+	      self.collectTasks(false).then(function () {
+	        // See if there are any more tasks that are not refresh tasks
+	        if (!self.hasTasks() || self.stopped) {
+	          log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(self._tasks).length, self.stopped);
+	          if (!self.done) {
+	            self.done = true;
+	            self._emit('done');
+	          }
+	        } else {
+	          // Use a 10ms timeout to let the JavaScript runtime catch its breath
+	          // (and hopefully force an IndexedDB auto-commit?), and also to cause
+	          // the threads to get staggered and get a good spread over time:
+	          setTimeout(function () {
+	            self.doTasks();
+	          }, 10);
+	        }
+	      });
+	    }, function (err) {
+	      log('[Sync] Error', err);
+	      delete self._timeStarted[task.path];
+	      delete self._running[task.path];
+	      self._emit('req-done');
+	      if (!self.done) {
+	        self.done = true;
+	        self._emit('done');
+	      }
+	    });
+	  },
+	
+	  doTasks: function doTasks() {
+	    var numToHave,
+	        numAdded = 0,
+	        numToAdd,
+	        path;
+	    if (this.remote.connected) {
+	      if (this.remote.online) {
+	        numToHave = this.numThreads;
+	      } else {
+	        numToHave = 1;
+	      }
+	    } else {
+	      numToHave = 0;
+	    }
+	    numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
+	    if (numToAdd <= 0) {
+	      return true;
+	    }
+	    for (path in this._tasks) {
+	      if (!this._running[path]) {
+	        this._timeStarted[path] = this.now();
+	        this._running[path] = this.doTask(path);
+	        this._running[path].then(this.finishTask.bind(this));
+	        numAdded++;
+	        if (numAdded >= numToAdd) {
+	          return true;
+	        }
+	      }
+	    }
+	    return numAdded >= numToAdd;
+	  },
+	
+	  collectTasks: function collectTasks(alsoCheckRefresh) {
+	    if (this.hasTasks() || this.stopped) {
+	      return Promise.resolve();
+	    }
+	
+	    return this.collectDiffTasks().then(function (numDiffs) {
+	      if (numDiffs || alsoCheckRefresh === false) {
+	        return Promise.resolve();
+	      } else {
+	        return this.collectRefreshTasks();
+	      }
+	    }.bind(this), function (err) {
+	      throw err;
+	    });
+	  },
+	
+	  addTask: function addTask(path, cb) {
+	    if (!this._tasks[path]) {
+	      this._tasks[path] = [];
+	    }
+	    if (typeof cb === 'function') {
+	      this._tasks[path].push(cb);
+	    }
+	  },
+	
+	  /**
+	   * Method: sync
+	   **/
+	  sync: function sync() {
+	    this.done = false;
+	
+	    if (!this.doTasks()) {
+	      return this.collectTasks().then(function () {
+	        try {
+	          this.doTasks();
+	        } catch (e) {
+	          log('[Sync] doTasks error', e);
+	        }
+	      }.bind(this), function (e) {
+	        log('[Sync] Sync error', e);
+	        throw new Error('Local cache unavailable');
+	      });
+	    } else {
+	      return Promise.resolve();
+	    }
+	  }
+	};
+	
+	var syncCycleCb, _syncOnConnect;
+	Sync._rs_init = function (remoteStorage) {
+	
+	  syncCycleCb = function syncCycleCb() {
+	    if (!config.cache) return false;
+	    log('[Sync] syncCycleCb calling syncCycle');
+	    if (Env.isBrowser()) {
+	      handleVisibility.bind(remoteStorage)();
+	    }
+	    if (!remoteStorage.sync) {
+	      // Call this now that all other modules are also ready:
+	      remoteStorage.sync = new Sync(remoteStorage, remoteStorage.local, remoteStorage.remote, remoteStorage.access, remoteStorage.caching);
+	
+	      if (remoteStorage.syncStopped) {
+	        log('[Sync] Instantiating sync stopped');
+	        remoteStorage.sync.stopped = true;
+	        delete remoteStorage.syncStopped;
+	      }
+	    }
+	
+	    log('[Sync] syncCycleCb calling syncCycle');
+	    remoteStorage.syncCycle();
+	  };
+	
+	  _syncOnConnect = function syncOnConnect() {
+	    remoteStorage.removeEventListener('connected', _syncOnConnect);
+	    remoteStorage.startSync();
+	  };
+	
+	  remoteStorage.on('ready', syncCycleCb);
+	  remoteStorage.on('connected', _syncOnConnect);
+	};
+	
+	Sync._rs_cleanup = function (remoteStorage) {
+	  remoteStorage.stopSync();
+	  remoteStorage.removeEventListener('ready', syncCycleCb);
+	  remoteStorage.removeEventListener('connected', _syncOnConnect);
+	  remoteStorage.sync = undefined;
+	  delete remoteStorage.sync;
+	};
+	
+	var SyncError = function SyncError(originalError) {
+	  var msg = 'Sync failed: ';
+	  if ((typeof originalError === 'undefined' ? 'undefined' : _typeof(originalError)) === 'object' && 'message' in originalError) {
+	    msg += originalError.message;
+	  } else {
+	    msg += originalError;
+	  }
+	  this.originalError = originalError;
+	  this.message = msg;
+	};
+	
+	SyncError.prototype = new Error();
+	SyncError.prototype.constructor = SyncError;
+	
+	Sync.SyncError = SyncError;
+	
+	module.exports = Sync;
+
+/***/ },
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var eventHandling = __webpack_require__(3);
+	
+	var mode = typeof window !== 'undefined' ? 'browser' : 'node',
+	    env = {},
+	    isBackground = false;
+	
+	var Env = function Env() {
+	  return env;
+	};
+	
+	Env.isBrowser = function () {
+	  return mode === "browser";
+	};
+	
+	Env.isNode = function () {
+	  return mode === "node";
+	};
+	
+	Env.goBackground = function () {
+	  isBackground = true;
+	  Env._emit("background");
+	};
+	
+	Env.goForeground = function () {
+	  isBackground = false;
+	  Env._emit("foreground");
+	};
+	
+	Env._rs_init = function (remoteStorage) {
+	  eventHandling(Env, "background", "foreground");
+	
+	  function visibility() {
+	    if (document[env.hiddenProperty]) {
+	      Env.goBackground();
+	    } else {
+	      Env.goForeground();
+	    }
+	  }
+	
+	  if (mode === 'browser') {
+	    if (typeof document.hidden !== "undefined") {
+	      env.hiddenProperty = "hidden";
+	      env.visibilityChangeEvent = "visibilitychange";
+	    } else if (typeof document.mozHidden !== "undefined") {
+	      env.hiddenProperty = "mozHidden";
+	      env.visibilityChangeEvent = "mozvisibilitychange";
+	    } else if (typeof document.msHidden !== "undefined") {
+	      env.hiddenProperty = "msHidden";
+	      env.visibilityChangeEvent = "msvisibilitychange";
+	    } else if (typeof document.webkitHidden !== "undefined") {
+	      env.hiddenProperty = "webkitHidden";
+	      env.visibilityChangeEvent = "webkitvisibilitychange";
+	    }
+	    document.addEventListener(env.visibilityChangeEvent, visibility, false);
+	    visibility();
+	  }
+	};
+	
+	Env._rs_cleanup = function (remoteStorage) {};
+	
+	module.exports = Env;
+
+/***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	/**
+	 * Class: RemoteStorage.GoogleDrive
+	 *
+	 * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
+	 *
+	 * To use this backend, you need to specify the app's client ID like so:
+	 *
+	 * (start code)
+	 *
+	 * remoteStorage.setApiKeys('googledrive', {
+	 *   clientId: 'your-client-id'
+	 * });
+	 *
+	 * (end code)
+	 *
+	 * An client ID can be obtained by registering your app in the Google
+	 * Developers Console: https://developers.google.com/drive/web/auth/web-client
+	 *
+	 * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
+	 **/
+	
+	var Authorize = __webpack_require__(7);
+	var WireClient = __webpack_require__(12);
+	var eventHandling = __webpack_require__(3);
+	
+	var BASE_URL = 'https://www.googleapis.com';
+	var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
+	var AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
+	
+	var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
+	var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
+	
+	function buildQueryString(params) {
+	  return Object.keys(params).map(function (key) {
+	    return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+	  }).join('&');
+	}
+	
+	function fileNameFromMeta(meta) {
+	  return encodeURIComponent(meta.title) + (meta.mimeType === GD_DIR_MIME_TYPE ? '/' : '');
+	}
+	
+	function metaTitleFromFileName(filename) {
+	  if (filename.substr(-1) === '/') {
+	    filename = filename.substr(0, filename.length - 1);
+	  }
+	  return decodeURIComponent(filename);
+	}
+	
+	function parentPath(path) {
+	  return path.replace(/[^\/]+\/?$/, '');
+	}
+	
+	function baseName(path) {
+	  var parts = path.split('/');
+	  if (path.substr(-1) === '/') {
+	    return parts[parts.length - 2] + '/';
+	  } else {
+	    return parts[parts.length - 1];
+	  }
+	}
+	
+	var Cache = function Cache(maxAge) {
+	  this.maxAge = maxAge;
+	  this._items = {};
+	};
+	
+	Cache.prototype = {
+	  get: function get(key) {
+	    var item = this._items[key];
+	    var now = new Date().getTime();
+	    return item && item.t >= now - this.maxAge ? item.v : undefined;
+	  },
+	
+	  set: function set(key, value) {
+	    this._items[key] = {
+	      v: value,
+	      t: new Date().getTime()
+	    };
+	  }
+	};
+	
+	var GoogleDrive = function GoogleDrive(remoteStorage, clientId) {
+	
+	  eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+	
+	  this.rs = remoteStorage;
+	  this.clientId = clientId;
+	
+	  this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
+	};
+	
+	GoogleDrive.prototype = {
+	  connected: false,
+	  online: true,
+	
+	  configure: function configure(settings) {
+	    // Settings parameter compatible with WireClient
+	    if (settings.token) {
+	      localStorage['remotestorage:googledrive:token'] = settings.token;
+	      this.token = settings.token;
+	      this.connected = true;
+	      this._emit('connected');
+	    } else {
+	      this.connected = false;
+	      delete this.token;
+	      delete localStorage['remotestorage:googledrive:token'];
+	    }
+	  },
+	
+	  connect: function connect() {
+	    this.rs.setBackend('googledrive');
+	    Authorize(this.rs, AUTH_URL, AUTH_SCOPE, String(Authorize.getLocation()), this.clientId);
+	  },
+	
+	  stopWaitingForToken: function stopWaitingForToken() {
+	    if (!this.connected) {
+	      this._emit('not-connected');
+	    }
+	  },
+	
+	  get: function get(path, options) {
+	    if (path.substr(-1) === '/') {
+	      return this._getFolder(path, options);
+	    } else {
+	      return this._getFile(path, options);
+	    }
+	  },
+	
+	  put: function put(path, body, contentType, options) {
+	    var self = this;
+	    function putDone(response) {
+	      if (response.status >= 200 && response.status < 300) {
+	        var meta = JSON.parse(response.responseText);
+	        var etagWithoutQuotes = meta.etag.substring(1, meta.etag.length - 1);
+	        return Promise.resolve({ statusCode: 200, contentType: meta.mimeType, revision: etagWithoutQuotes });
+	      } else if (response.status === 412) {
+	        return Promise.resolve({ statusCode: 412, revision: 'conflict' });
+	      } else {
+	        return Promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
+	      }
+	    }
+	    return self._getFileId(path).then(function (id) {
+	      if (id) {
+	        if (options && options.ifNoneMatch === '*') {
+	          return putDone({ status: 412 });
+	        }
+	        return self._updateFile(id, path, body, contentType, options).then(putDone);
+	      } else {
+	        return self._createFile(path, body, contentType, options).then(putDone);
+	      }
+	    });
+	  },
+	
+	  'delete': function _delete(path, options) {
+	    var self = this;
+	    return self._getFileId(path).then(function (id) {
+	      if (!id) {
+	        // File doesn't exist. Ignore.
+	        return Promise.resolve({ statusCode: 200 });
+	      }
+	
+	      return self._getMeta(id).then(function (meta) {
+	        var etagWithoutQuotes;
+	        if ((typeof meta === 'undefined' ? 'undefined' : _typeof(meta)) === 'object' && typeof meta.etag === 'string') {
+	          etagWithoutQuotes = meta.etag.substring(1, meta.etag.length - 1);
+	        }
+	        if (options && options.ifMatch && options.ifMatch !== etagWithoutQuotes) {
+	          return { statusCode: 412, revision: etagWithoutQuotes };
+	        }
+	
+	        return self._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
+	          if (response.status === 200 || response.status === 204) {
+	            return { statusCode: 200 };
+	          } else {
+	            return Promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
+	          }
+	        });
+	      });
+	    });
+	  },
+	
+	  _updateFile: function _updateFile(id, path, body, contentType, options) {
+	    var self = this;
+	    var metadata = {
+	      mimeType: contentType
+	    };
+	    var headers = {
+	      'Content-Type': 'application/json; charset=UTF-8'
+	    };
+	
+	    if (options && options.ifMatch) {
+	      headers['If-Match'] = '"' + options.ifMatch + '"';
+	    }
+	
+	    return self._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
+	      body: JSON.stringify(metadata),
+	      headers: headers
+	    }).then(function (response) {
+	      if (response.status === 412) {
+	        return response;
+	      } else {
+	        return self._request('PUT', response.getResponseHeader('Location'), {
+	          body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
+	        });
+	      }
+	    });
+	  },
+	
+	  _createFile: function _createFile(path, body, contentType, options) {
+	    var self = this;
+	    return self._getParentId(path).then(function (parentId) {
+	      var fileName = baseName(path);
+	      var metadata = {
+	        title: metaTitleFromFileName(fileName),
+	        mimeType: contentType,
+	        parents: [{
+	          kind: "drive#fileLink",
+	          id: parentId
+	        }]
+	      };
+	      return self._request('POST', BASE_URL + '/upload/drive/v2/files?uploadType=resumable', {
+	        body: JSON.stringify(metadata),
+	        headers: {
+	          'Content-Type': 'application/json; charset=UTF-8'
+	        }
+	      }).then(function (response) {
+	        return self._request('POST', response.getResponseHeader('Location'), {
+	          body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
+	        });
+	      });
+	    });
+	  },
+	
+	  _getFile: function _getFile(path, options) {
+	    var self = this;
+	    return self._getFileId(path).then(function (id) {
+	      return self._getMeta(id).then(function (meta) {
+	        var etagWithoutQuotes;
+	        if ((typeof meta === 'undefined' ? 'undefined' : _typeof(meta)) === 'object' && typeof meta.etag === 'string') {
+	          etagWithoutQuotes = meta.etag.substring(1, meta.etag.length - 1);
+	        }
+	
+	        if (options && options.ifNoneMatch && etagWithoutQuotes === options.ifNoneMatch) {
+	          return Promise.resolve({ statusCode: 304 });
+	        }
+	
+	        var options2 = {};
+	        if (!meta.downloadUrl) {
+	          if (meta.exportLinks && meta.exportLinks['text/html']) {
+	            // Documents that were generated inside GoogleDocs have no
+	            // downloadUrl, but you can export them to text/html instead:
+	            meta.mimeType += ';export=text/html';
+	            meta.downloadUrl = meta.exportLinks['text/html'];
+	          } else {
+	            // empty file
+	            return Promise.resolve({ statusCode: 200, body: '', contentType: meta.mimeType, revision: etagWithoutQuotes });
+	          }
+	        }
+	
+	        if (meta.mimeType.match(/charset=binary/)) {
+	          options2.responseType = 'blob';
+	        }
+	        return self._request('GET', meta.downloadUrl, options2).then(function (response) {
+	          var body = response.response;
+	          if (meta.mimeType.match(/^application\/json/)) {
+	            try {
+	              body = JSON.parse(body);
+	            } catch (e) {}
+	          }
+	          return Promise.resolve({ statusCode: 200, body: body, contentType: meta.mimeType, revision: etagWithoutQuotes });
+	        });
+	      });
+	    });
+	  },
+	
+	  _getFolder: function _getFolder(path, options) {
+	    var self = this;
+	    return self._getFileId(path).then(function (id) {
+	      var query, fields, data, etagWithoutQuotes, itemsMap;
+	      if (!id) {
+	        return Promise.resolve({ statusCode: 404 });
+	      }
+	
+	      query = '\'' + id + '\' in parents';
+	      fields = 'items(downloadUrl,etag,fileSize,id,mimeType,title)';
+	      return self._request('GET', BASE_URL + '/drive/v2/files?' + 'q=' + encodeURIComponent(query) + '&fields=' + encodeURIComponent(fields) + '&maxResults=1000', {}).then(function (response) {
+	        if (response.status !== 200) {
+	          return Promise.reject('request failed or something: ' + response.status);
+	        }
+	
+	        try {
+	          data = JSON.parse(response.responseText);
+	        } catch (e) {
+	          return Promise.reject('non-JSON response from GoogleDrive');
+	        }
+	
+	        itemsMap = {};
+	        for (var i = 0, len = data.items.length; i < len; i++) {
+	          etagWithoutQuotes = data.items[i].etag.substring(1, data.items[i].etag.length - 1);
+	          if (data.items[i].mimeType === GD_DIR_MIME_TYPE) {
+	            self._fileIdCache.set(path + data.items[i].title + '/', data.items[i].id);
+	            itemsMap[data.items[i].title + '/'] = {
+	              ETag: etagWithoutQuotes
+	            };
+	          } else {
+	            self._fileIdCache.set(path + data.items[i].title, data.items[i].id);
+	            itemsMap[data.items[i].title] = {
+	              ETag: etagWithoutQuotes,
+	              'Content-Type': data.items[i].mimeType,
+	              'Content-Length': data.items[i].fileSize
+	            };
+	          }
+	        }
+	        // FIXME: add revision of folder!
+	        return Promise.resolve({ statusCode: 200, body: itemsMap, contentType: RS_DIR_MIME_TYPE, revision: undefined });
+	      });
+	    });
+	  },
+	
+	  _getParentId: function _getParentId(path) {
+	    var foldername = parentPath(path);
+	    var self = this;
+	    return self._getFileId(foldername).then(function (parentId) {
+	      if (parentId) {
+	        return Promise.resolve(parentId);
+	      } else {
+	        return self._createFolder(foldername);
+	      }
+	    });
+	  },
+	
+	  _createFolder: function _createFolder(path) {
+	    var self = this;
+	    return self._getParentId(path).then(function (parentId) {
+	      return self._request('POST', BASE_URL + '/drive/v2/files', {
+	        body: JSON.stringify({
+	          title: metaTitleFromFileName(baseName(path)),
+	          mimeType: GD_DIR_MIME_TYPE,
+	          parents: [{
+	            id: parentId
+	          }]
+	        }),
+	        headers: {
+	          'Content-Type': 'application/json; charset=UTF-8'
+	        }
+	      }).then(function (response) {
+	        var meta = JSON.parse(response.responseText);
+	        return Promise.resolve(meta.id);
+	      });
+	    });
+	  },
+	
+	  _getFileId: function _getFileId(path) {
+	    var self = this;
+	    var id;
+	    if (path === '/') {
+	      // "root" is a special alias for the fileId of the root folder
+	      return Promise.resolve('root');
+	    } else if (id = this._fileIdCache.get(path)) {
+	      // id is cached.
+	      return Promise.resolve(id);
+	    }
+	    // id is not cached (or file doesn't exist).
+	    // load parent folder listing to propagate / update id cache.
+	    return self._getFolder(parentPath(path)).then(function () {
+	      id = self._fileIdCache.get(path);
+	      if (!id) {
+	        if (path.substr(-1) === '/') {
+	          return self._createFolder(path).then(function () {
+	            return self._getFileId(path);
+	          });
+	        } else {
+	          return Promise.resolve();
+	        }
+	        return;
+	      }
+	      return Promise.resolve(id);
+	    });
+	  },
+	
+	  _getMeta: function _getMeta(id) {
+	    return this._request('GET', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
+	      if (response.status === 200) {
+	        return Promise.resolve(JSON.parse(response.responseText));
+	      } else {
+	        return Promise.reject("request (getting metadata for " + id + ") failed with status: " + response.status);
+	      }
+	    });
+	  },
+	
+	  /**
+	   * Method: info
+	   *
+	   * Fetches the user's info from dropbox and returns a promise for it.
+	   *
+	   * Returns:
+	   *
+	   *   A promise to the user's info
+	   */
+	  info: function info() {
+	    var url = BASE_URL + '/drive/v2/about';
+	    // requesting user info(mainly for userAdress)
+	    return this._request('GET', url, {}).then(function (resp) {
+	      try {
+	        var info = JSON.parse(resp.responseText);
+	        return Promise.resolve(info);
+	      } catch (e) {
+	        return Promise.reject(e);
+	      }
+	    });
+	  },
+	
+	  _request: function _request(method, url, options) {
+	    var self = this;
+	
+	    if (!options.headers) {
+	      options.headers = {};
+	    }
+	    options.headers['Authorization'] = 'Bearer ' + self.token;
+	
+	    return WireClient.request.call(this, method, url, options).then(function (xhr) {
+	      // Google tokens expire from time to time...
+	      if (xhr && xhr.status === 401) {
+	        self.connect();
+	        return;
+	      } else {
+	        if (!self.online) {
+	          self.online = true;
+	          self.rs._emit('network-online');
+	        }
+	        return Promise.resolve(xhr);
+	      }
+	    }, function (error) {
+	      if (self.online) {
+	        self.online = false;
+	        self.rs._emit('network-offline');
+	      }
+	      return Promise.reject(error);
+	    });
+	  }
+	};
+	
+	GoogleDrive._rs_init = function (remoteStorage) {
+	  var config = remoteStorage.apiKeys.googledrive;
+	  if (config) {
+	    remoteStorage.googledrive = new GoogleDrive(remoteStorage, config.clientId);
+	    if (remoteStorage.backend === 'googledrive') {
+	      remoteStorage._origRemote = remoteStorage.remote;
+	      remoteStorage.remote = remoteStorage.googledrive;
+	    }
+	  }
+	};
+	
+	GoogleDrive._rs_supported = function (rs) {
+	  return true;
+	};
+	
+	GoogleDrive._rs_cleanup = function (remoteStorage) {
+	  remoteStorage.setBackend(undefined);
+	  if (remoteStorage._origRemote) {
+	    remoteStorage.remote = remoteStorage._origRemote;
+	    delete remoteStorage._origRemote;
+	  }
+	};
+	
+	module.exports = GoogleDrive;
+
+/***/ },
+/* 20 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	var log = __webpack_require__(4);
+	var util = __webpack_require__(2);
+	__webpack_require__(21);
+	
+	// feature detection flags
+	var haveXMLHttpRequest, hasLocalStorage;
+	// used to store settings in localStorage
+	var SETTINGS_KEY = 'remotestorage:discover';
+	// cache loaded from localStorage
+	var cachedInfo = {};
+	
+	/**
+	 * Class: RemoteStorage.Discover
+	 *
+	 * This function deals with the Webfinger lookup, discovering a connecting
+	 * user's storage details.
+	 *
+	 * The discovery timeout can be configured via
+	 * `RemoteStorage.config.discoveryTimeout` (in ms).
+	 *
+	 * Arguments:
+	 *
+	 *   userAddress - user@host
+	 *
+	 * Returns:
+	 *
+	 * A promise for an object with the following properties.
+	 *
+	 *   href - Storage base URL,
+	 *   storageType - Storage type,
+	 *   authUrl - OAuth URL,
+	 *   properties - Webfinger link properties
+	 **/
+	
+	var Discover = function Discover(userAddress) {
+	  if (userAddress in cachedInfo) {
+	    return Promise.resolve(cachedInfo[userAddress]);
+	  }
+	
+	  var webFinger = new WebFinger({
+	    tls_only: false,
+	    uri_fallback: true,
+	    request_timeout: 5000
+	  });
+	
+	  var pending = Promise.defer();
+	
+	  webFinger.lookup(userAddress, function (err, response) {
+	    if (err) {
+	      return pending.reject(err);
+	    } else if (_typeof(response.idx.links.remotestorage) !== 'object' || typeof response.idx.links.remotestorage.length !== 'number' || response.idx.links.remotestorage.length <= 0) {
+	      log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.json));
+	      return pending.reject("WebFinger record for " + userAddress + " does not have remotestorage defined in the links section.");
+	    }
+	
+	    var rs = response.idx.links.remotestorage[0];
+	    var authURL = rs.properties['http://tools.ietf.org/html/rfc6749#section-4.2'] || rs.properties['auth-endpoint'];
+	    var storageType = rs.properties['http://remotestorage.io/spec/version'] || rs.type;
+	
+	    // cache fetched data
+	    cachedInfo[userAddress] = { href: rs.href, storageType: storageType, authURL: authURL, properties: rs.properties };
+	
+	    if (hasLocalStorage) {
+	      localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
+	    }
+	
+	    return pending.resolve(cachedInfo[userAddress]);
+	  });
+	
+	  return pending.promise;
+	};
+	
+	Discover._rs_init = function (remoteStorage) {
+	  hasLocalStorage = util.localStorageAvailable();
+	  if (hasLocalStorage) {
+	    var settings;
+	    try {
+	      settings = JSON.parse(localStorage[SETTINGS_KEY]);
+	    } catch (e) {}
+	    if (settings) {
+	      cachedInfo = settings.cache;
+	    }
+	  }
+	};
+	
+	Discover._rs_supported = function () {
+	  haveXMLHttpRequest = !!global.XMLHttpRequest;
+	  return haveXMLHttpRequest;
+	};
+	
+	Discover._rs_cleanup = function () {
+	  if (hasLocalStorage) {
+	    delete localStorage[SETTINGS_KEY];
+	  }
+	};
+	
+	module.exports = Discover;
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 21 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* global define */
+	/*!
 	 * webfinger.js
 	 *   version 2.5.0
 	 *   http://github.com/silverbucket/webfinger.js
@@ -39,5 +9882,1983 @@ toBeSaved:o,missingChildren:u}}.bind(this))},completePush:function(e,t,r,n){retu
 	 * information must remain.
 	 *
 	 */
-"undefined"==typeof XMLHttpRequest&&(XMLHttpRequest=r(23).XMLHttpRequest),function(r){function i(e){return e.toString=function(){return this.message},e}function s(e){if("string"!=typeof e)return!1;var t=e.split("://");return"https"===t[0]}function a(e){"object"!=typeof e&&(e={}),this.config={tls_only:"undefined"==typeof e.tls_only||e.tls_only,webfist_fallback:"undefined"!=typeof e.webfist_fallback&&e.webfist_fallback,uri_fallback:"undefined"!=typeof e.uri_fallback&&e.uri_fallback,request_timeout:"undefined"!=typeof e.request_timeout?e.request_timeout:1e4}}var u={"http://webfist.org/spec/rel":"webfist","http://webfinger.net/rel/avatar":"avatar",remotestorage:"remotestorage","http://tools.ietf.org/id/draft-dejong-remotestorage":"remotestorage",remoteStorage:"remotestorage","http://www.packetizer.com/rel/share":"share","http://webfinger.net/rel/profile-page":"profile",me:"profile",vcard:"vcard",blog:"blog","http://packetizer.com/rel/blog":"blog","http://schemas.google.com/g/2010#updates-from":"updates","https://camlistore.org/rel/server":"camilstore"},c={avatar:[],remotestorage:[],blog:[],vcard:[],updates:[],share:[],profile:[],webfist:[],camlistore:[]},h=["webfinger","host-meta","host-meta.json"];a.prototype.__fetchJRD=function(e,t,r){function n(){if(200===u.status)return a.__isValidJSON(u.responseText)?r(u.responseText):t(i({message:"invalid json",url:e,status:u.status}));if(404===u.status)return t(i({message:"resource not found",url:e,status:u.status}));if(u.status>=301&&u.status<=302){var n=u.getResponseHeader("Location");return s(n)?o(n):t(i({message:"no redirect URL found",url:e,status:u.status}))}return t(i({message:"error during request",url:e,status:u.status}))}function o(){u.onreadystatechange=function(){4===u.readyState&&n()},u.onload=function(){n()},u.ontimeout=function(){return t(i({message:"request timed out",url:e,status:u.status}))},u.open("GET",e,!0),u.setRequestHeader("Accept","application/jrd+json, application/json"),u.send()}var a=this,u=new XMLHttpRequest;return u.timeout=this.config.request_timeout,o()},a.prototype.__isValidJSON=function(e){try{JSON.parse(e)}catch(e){return!1}return!0},a.prototype.__isLocalhost=function(e){var t=/^localhost(\.localdomain)?(\:[0-9]+)?$/;return t.test(e)},a.prototype.__processJRD=function(e,t,n,o){var s=JSON.parse(t);if("object"!=typeof s||"object"!=typeof s.links)return n("undefined"!=typeof s.error?i({message:s.error,request:e}):i({message:"unknown response from server",request:e}));var a=s.links,h={object:s,json:t,idx:{}};h.idx.properties={name:r},h.idx.links=JSON.parse(JSON.stringify(c)),a.map(function(e,t){if(u.hasOwnProperty(e.rel)&&h.idx.links[u[e.rel]]){var r={};Object.keys(e).map(function(t,n){r[t]=e[t]}),h.idx.links[u[e.rel]].push(r)}});var l=JSON.parse(t).properties;for(var f in l)l.hasOwnProperty(f)&&"http://packetizer.com/ns/name"===f&&(h.idx.properties.name=l[f]);return o(h)},a.prototype.lookup=function(e,t){function r(){var t="";return e.split("://")[1]||(t="acct:"),u+"://"+s+"/.well-known/"+h[a]+"?resource="+t+e}function n(e){if(i.config.uri_fallback&&"webfist.org"!==s&&a!==h.length-1)return a+=1,o();if(!i.config.tls_only&&"https"===u)return a=0,u="http",o();if(!i.config.webfist_fallback||"webfist.org"===s)return t(e);a=0,u="http",s="webfist.org";var n=r();i.__fetchJRD(n,t,function(e){i.__processJRD(n,e,t,function(e){"object"==typeof e.idx.links.webfist&&"string"==typeof e.idx.links.webfist[0].href&&i.__fetchJRD(e.idx.links.webfist[0].href,t,function(e){i.__processJRD(n,e,t,function(e){return t(null,t)})})})})}function o(){var e=r();i.__fetchJRD(e,n,function(r){i.__processJRD(e,r,t,function(e){t(null,e)})})}if("string"!=typeof e)throw new Error("first parameter must be a user address");if("function"!=typeof t)throw new Error("second parameter must be a callback");var i=this,s="";s=e.indexOf("://")>-1?e.replace(/ /g,"").split("://")[1]:e.replace(/ /g,"").split("@")[1];var a=0,u="https";return i.__isLocalhost(s)&&(u="http"),setTimeout(o,0)},a.prototype.lookupLink=function(e,t,r){return c.hasOwnProperty(t)?void this.lookup(e,function(e,n){var o=n.idx.links[t];return e?r(e):0===o.length?r('no links found with rel="'+t+'"'):r(null,o[0])}):r("unsupported rel "+t)},"object"==typeof window?window.WebFinger=a:(n=[],o=function(){return a}.apply(t,n),!(o!==r&&(e.exports=o)))}()},function(t,r){t.exports=e},function(e,t,r){function n(e){return r(o(e))}function o(e){return i[e]||function(){throw new Error("Cannot find module '"+e+"'.")}()}var i={"./access":25,"./access.js":25,"./authorize":8,"./authorize.js":8,"./baseclient":9,"./baseclient.js":9,"./caching":26,"./caching.js":26,"./cachinglayer":27,"./cachinglayer.js":27,"./config":5,"./config.js":5,"./discover":21,"./discover.js":21,"./dropbox":7,"./dropbox.js":7,"./env":19,"./env.js":19,"./eventhandling":3,"./eventhandling.js":3,"./googledrive":20,"./googledrive.js":20,"./i18n":28,"./i18n.js":28,"./indexeddb":29,"./indexeddb.js":29,"./inmemorystorage":30,"./inmemorystorage.js":30,"./localstorage":31,"./localstorage.js":31,"./log":4,"./log.js":4,"./modules":32,"./modules.js":32,"./remotestorage":1,"./remotestorage.js":1,"./sync":18,"./sync.js":18,"./syncedgetputdelete":6,"./syncedgetputdelete.js":6,"./types":11,"./types.js":11,"./util":2,"./util.js":2,"./version":33,"./version.js":33,"./wireclient":13,"./wireclient.js":13};n.keys=function(){return Object.keys(i)},n.resolve=o,e.exports=n,n.id=24},function(e,t){var r=function(){this.reset()};r.prototype={claim:function(e,t){if("string"!=typeof e||e.indexOf("/")!==-1||0===e.length)throw new Error("Scope should be a non-empty string without forward slashes");if(!t.match(/^rw?$/))throw new Error("Mode should be either 'r' or 'rw'");this._adjustRootPaths(e),this.scopeModeMap[e]=t},get:function(e){return this.scopeModeMap[e]},remove:function(e){var t,r={};for(t in this.scopeModeMap)r[t]=this.scopeModeMap[t];this.reset(),delete r[e];for(t in r)this.set(t,r[t])},checkPermission:function(e,t){var r=this.get(e);return r&&("r"===t||"rw"===r)},checkPathPermission:function(e,t){return!!this.checkPermission("*",t)||!!this.checkPermission(this._getModuleName(e),t)},reset:function(){this.rootPaths=[],this.scopeModeMap={}},_getModuleName:function(e){if("/"!==e[0])throw new Error("Path should start with a slash");var t=e.replace(/^\/public/,"").match(/^\/([^\/]*)\//);return t?t[1]:"*"},_adjustRootPaths:function(e){"*"in this.scopeModeMap||"*"===e?this.rootPaths=["/"]:e in this.scopeModeMap||(this.rootPaths.push("/"+e+"/"),this.rootPaths.push("/public/"+e+"/"))},_scopeNameForParameter:function(e){if("*"===e.name&&this.storageType){if("2012.04"===this.storageType)return"";if(this.storageType.match(/remotestorage-0[01]/))return"root"}return e.name},setStorageType:function(e){this.storageType=e}},Object.defineProperty(r.prototype,"scopes",{get:function(){return Object.keys(this.scopeModeMap).map(function(e){return{name:e,mode:this.scopeModeMap[e]}}.bind(this))}}),Object.defineProperty(r.prototype,"scopeParameter",{get:function(){return this.scopes.map(function(e){return this._scopeNameForParameter(e)+":"+e.mode}.bind(this)).join(" ")}}),r._rs_init=function(){},e.exports=r},function(e,t,r){var n=r(2),o=r(4),i=n.containingFolder,s=function(){this.reset()};s.prototype={pendingActivations:[],set:function(e,t){if("string"!=typeof e)throw new Error("path should be a string");if(!n.isFolder(e))throw new Error("path should be a folder");if(this._remoteStorage&&this._remoteStorage.access&&!this._remoteStorage.access.checkPathPermission(e,"r"))throw new Error('No access to path "'+e+'". You have to claim access to it first.');if(!t.match(/^(FLUSH|SEEN|ALL)$/))throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");this._rootPaths[e]=t,"ALL"===t&&(this.activateHandler?this.activateHandler(e):this.pendingActivations.push(e))},enable:function(e){this.set(e,"ALL")},disable:function(e){this.set(e,"FLUSH")},onActivate:function(e){var t;for(o("[Caching] Setting activate handler",e,this.pendingActivations),this.activateHandler=e,t=0;t<this.pendingActivations.length;t++)e(this.pendingActivations[t]);delete this.pendingActivations},checkPath:function(e){return void 0!==this._rootPaths[e]?this._rootPaths[e]:"/"===e?"SEEN":this.checkPath(i(e))},reset:function(){this._rootPaths={},this._remoteStorage=null}},s._rs_init=function(e){this._remoteStorage=e},e.exports=s},function(e,t,r){function n(e){if("object"==typeof e&&"string"==typeof e.path)if(c(e.path)){if(e.local&&e.local.itemsMap)return e.local;if(e.common&&e.common.itemsMap)return e.common}else{if(e.local&&e.local.body&&e.local.contentType)return e.local;if(e.common&&e.common.body&&e.common.contentType)return e.common;if(e.body&&e.contentType)return{body:e.body,contentType:e.contentType}}}function o(e,t){var r;for(r in e){if(e[r]&&e[r].remote)return!0;var o=n(e[r]);if(o&&o.timestamp&&(new Date).getTime()-o.timestamp<=t)return!1;if(!o)return!0}return!0}function i(e){var t={path:e,common:{}};return c(e)&&(t.common.itemsMap={}),t}function s(e,t){return e.common||(e.common={itemsMap:{}}),e.common.itemsMap||(e.common.itemsMap={}),e.local||(e.local=l(e.common)),e.local.itemsMap||(e.local.itemsMap=e.common.itemsMap),e.local.itemsMap[t]=!0,e}var a=r(2),u=r(5),c=a.isFolder,h=a.isDocument,l=a.deepClone,f=(a.equal,a.pathsFromRoot),d={get:function(e,t,r){var i=this;return"number"==typeof t?i.getNodes(f(e)).then(function(i){var s=n(i[e]);return o(i,t)?r(e):s?{statusCode:200,body:s.body||s.itemsMap,contentType:s.contentType}:{statusCode:404}}):i.getNodes([e]).then(function(t){var r=n(t[e]);if(r){if(c(e))for(var o in r.itemsMap)r.itemsMap.hasOwnProperty(o)&&r.itemsMap[o]===!1&&delete r.itemsMap[o];return{statusCode:200,body:r.body||r.itemsMap,contentType:r.contentType}}return{statusCode:404}})},put:function(e,t,r){function o(e,o){try{for(var a=0,u=e.length;a<u;a++){var c,h=e[a],l=o[h];if(l||(o[h]=l=i(h)),0===a)c=n(l),l.local={body:t,contentType:r,previousBody:c?c.body:void 0,previousContentType:c?c.contentType:void 0};else{var f=e[a-1].substring(h.length);l=s(l,f)}}return o}catch(e){throw log("[Cachinglayer] Error during PUT",o,a,e),e}}var a=f(e);return this._updateNodes(a,o)},delete:function(e){var t=f(e);return this._updateNodes(t,function(e,t){for(var r=0,o=e.length;r<o;r++){var i=e[r],s=t[i];if(!s)throw new Error("Cannot delete non-existing node "+i);if(0===r)previous=n(s),s.local={body:!1,previousBody:previous?previous.body:void 0,previousContentType:previous?previous.contentType:void 0};else{s.local||(s.local=l(s.common));var a=e[r-1].substring(i.length);if(delete s.local.itemsMap[a],Object.getOwnPropertyNames(s.local.itemsMap).length>0)break}}return t})},flush:function(e){var t=this;return t._getAllDescendentPaths(e).then(function(e){return t.getNodes(e)}).then(function(e){for(var r in e){var n=e[r];n&&n.common&&n.local&&t._emitChange({path:n.path,origin:"local",oldValue:n.local.body===!1?void 0:n.local.body,newValue:n.common.body===!1?void 0:n.common.body}),e[r]=void 0}return t.setNodes(e)})},_emitChange:function(e){u.changeEvents[e.origin]&&this._emit("change",e)},fireInitial:function(){if(u.changeEvents.local){var e=this;e.forAllNodes(function(t){var r;h(t.path)&&(r=n(t),r&&e._emitChange({path:t.path,origin:"local",oldValue:void 0,oldContentType:void 0,newValue:r.body,newContentType:r.contentType}))}).then(function(){e._emit("local-events-done")})}},onDiff:function(e){this.diffHandler=e},migrate:function(e){return"object"!=typeof e||e.common||(e.common={},"string"==typeof e.path?"/"===e.path.substr(-1)&&"object"==typeof e.body&&(e.common.itemsMap=e.body):(e.local||(e.local={}),e.local.body=e.body,e.local.contentType=e.contentType)),e},_updateNodesRunning:!1,_updateNodesQueued:[],_updateNodes:function(e,t){var r=Promise.defer();return this._doUpdateNodes(e,t,r),r.promise},_doUpdateNodes:function(e,t,r){var n=this;return n._updateNodesRunning?void n._updateNodesQueued.push({paths:e,cb:t,promise:r}):(n._updateNodesRunning=!0,void n.getNodes(e).then(function(o){var i,s=l(o),u=[],c=a.equal;o=t(e,o);for(var f in o)i=o[f],c(i,s[f])?delete o[f]:h(f)&&(c(i.local.body,i.local.previousBody)&&i.local.contentType===i.local.previousContentType||u.push({path:f,origin:"window",oldValue:i.local.previousBody,newValue:i.local.body===!1?void 0:i.local.body,oldContentType:i.local.previousContentType,newContentType:i.local.contentType}),delete i.local.previousBody,delete i.local.previousContentType);n.setNodes(o).then(function(){n._emitChangeEvents(u),r.resolve({statusCode:200})})}).then(function(){return Promise.resolve()},function(e){r.reject(e)}).then(function(){n._updateNodesRunning=!1;var e=n._updateNodesQueued.shift();e&&n._doUpdateNodes(e.paths,e.cb,e.promise)}))},_emitChangeEvents:function(e){for(var t=0,r=e.length;t<r;t++)this._emitChange(e[t]),this.diffHandler&&this.diffHandler(e[t].path)},_getAllDescendentPaths:function(e){var t=this;return c(e)?t.getNodes([e]).then(function(r){var o=[e],i=n(r[e]),s=Object.keys(i.itemsMap),a=s.map(function(r){return t._getAllDescendentPaths(e+r).then(function(e){for(var t=0,r=e.length;t<r;t++)o.push(e[t])})});return Promise.all(a).then(function(){return o})}):Promise.resolve([e])},_getInternals:function(){return{getLatest:n,makeNode:i,isOutdated:o}}},p=function(e){for(var t in d)e[t]=d[t]};e.exports=p},function(e,t){var r={view_info:'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',view_connect:"<strong>Connect</strong> remote storage",view_connecting:"Connecting <strong>%s</strong>",view_offline:"Offline",view_error_occured:"Sorry! An error occured.",view_invalid_key:"Wrong key!",view_confirm_reset:"Are you sure you want to reset everything? This will clear your local data and reload the page.",view_get_me_out:"Get me out of here!",view_error_plz_report:'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',view_unauthorized:"Unauthorized! Click here to reconnect."},n={translate:function(){var e=arguments[0],t=Array.prototype.splice.call(arguments,1);if("string"!=typeof r[e])throw"Unknown translation string: "+e;return e=r[e],e.replace(/%s/g,function(){return t.shift()})},getDictionary:function(){return r},setDictionary:function(e){r=e},_rs_init:function(){}};e.exports=n},function(e,t,r){(function(t){var n,o=r(4),i=r(27),s=r(3),a=r(2),u=2,c="remotestorage",h=function(e){return this.db=e||n,this.db?(i(this),s(this,"change","local-events-done"),this.getsRunning=0,this.putsRunning=0,this.changesQueued={},void(this.changesRunning={})):void o("[IndexedDB] Failed to open DB")};h.prototype={getNodes:function(e){for(var t=[],r={},n=0,o=e.length;n<o;n++)void 0!==this.changesQueued[e[n]]?r[e[n]]=a.deepClone(this.changesQueued[e[n]]||void 0):void 0!==this.changesRunning[e[n]]?r[e[n]]=a.deepClone(this.changesRunning[e[n]]||void 0):t.push(e[n]);return t.length>0?this.getNodesFromDb(t).then(function(e){for(var t in r)e[t]=r[t];return e}):Promise.resolve(r)},setNodes:function(e){for(var t in e)this.changesQueued[t]=e[t]||!1;return this.maybeFlush(),Promise.resolve()},maybeFlush:function(){0===this.putsRunning?this.flushChangesQueued():this.commitSlownessWarning||(this.commitSlownessWarning=setInterval(function(){console.log("WARNING: waited more than 10 seconds for previous commit to finish")},1e4))},flushChangesQueued:function(){this.commitSlownessWarning&&(clearInterval(this.commitSlownessWarning),this.commitSlownessWarning=null),Object.keys(this.changesQueued).length>0&&(this.changesRunning=this.changesQueued,this.changesQueued={},this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this)))},getNodesFromDb:function(e){var t=Promise.defer(),r=this.db.transaction(["nodes"],"readonly"),n=r.objectStore("nodes"),o={};(new Date).getTime();return this.getsRunning++,e.map(function(e,t){n.get(e).onsuccess=function(t){o[e]=t.target.result}}),r.oncomplete=function(){t.resolve(o),this.getsRunning--}.bind(this),r.onerror=r.onabort=function(){t.reject("get transaction error/abort"),this.getsRunning--}.bind(this),t.promise},setNodesInDb:function(e){var t=Promise.defer(),r=this.db.transaction(["nodes"],"readwrite"),n=r.objectStore("nodes"),i=(new Date).getTime();this.putsRunning++,o("[IndexedDB] Starting put",e,this.putsRunning);for(var s in e){var a=e[s];if("object"==typeof a)try{n.put(a)}catch(e){throw o("[IndexedDB] Error while putting",a,e),e}else try{n.delete(s)}catch(e){throw o("[IndexedDB] Error while removing",n,a,e),e}}return r.oncomplete=function(){this.putsRunning--,o("[IndexedDB] Finished put",e,this.putsRunning,(new Date).getTime()-i+"ms"),t.resolve()}.bind(this),r.onerror=function(){this.putsRunning--,t.reject("transaction error")}.bind(this),r.onabort=function(){t.reject("transaction abort"),this.putsRunning--}.bind(this),t.promise},reset:function(e){var t=this.db.name,r=this;this.db.close(),h.clean(this.db.name,function(){h.open(t,function(t,n){t?o("[IndexedDB] Error while resetting local storage",t):r.db=n,"function"==typeof e&&e(r)})})},forAllNodes:function(e){var t=Promise.defer(),r=this.db.transaction(["nodes"],"readonly"),n=r.objectStore("nodes").openCursor();return n.onsuccess=function(r){var n=r.target.result;n?(e(this.migrate(n.value)),n.continue()):t.resolve()}.bind(this),t.promise},closeDB:function(){this.db.close()}},h.open=function(e,t){var r=setTimeout(function(){t("timeout trying to open db")},1e4);try{var n=indexedDB.open(e,u);n.onerror=function(){o("[IndexedDB] Opening DB failed",n),clearTimeout(r),t(n.error)},n.onupgradeneeded=function(e){var t=n.result;o("[IndexedDB] Upgrade: from ",e.oldVersion," to ",e.newVersion),1!==e.oldVersion&&(o("[IndexedDB] Creating object store: nodes"),t.createObjectStore("nodes",{keyPath:"path"})),o("[IndexedDB] Creating object store: changes"),t.createObjectStore("changes",{keyPath:"path"})},n.onsuccess=function(){clearTimeout(r);var i=n.result;return i.objectStoreNames.contains("nodes")&&i.objectStoreNames.contains("changes")?void t(null,n.result):(o("[IndexedDB] Missing object store. Resetting the database."),void h.clean(e,function(){h.open(e,t)}))}}catch(n){o("[IndexedDB] Failed to open database: "+n),o("[IndexedDB] Resetting database and trying again."),clearTimeout(r),h.clean(e,function(){h.open(e,t)})}},h.clean=function(e,t){var r=indexedDB.deleteDatabase(e);r.onsuccess=function(){o("[IndexedDB] Done removing DB"),t()},r.onerror=r.onabort=function(t){console.error('Failed to remove database "'+e+'"',t)}},h._rs_init=function(e){var t=Promise.defer();return h.open(c,function(r,o){r?t.reject(r):(n=o,o.onerror=function(){e._emit("error",r)},t.resolve())}),t.promise},h._rs_supported=function(){var e=Promise.defer();t.indexedDB=t.indexedDB||t.webkitIndexedDB||t.mozIndexedDB||t.oIndexedDB||t.msIndexedDB;var r=!1;if("undefined"!=typeof t.navigator&&t.navigator.userAgent.match(/Android (2|3|4\.[0-3])/)&&(navigator.userAgent.match(/Chrome|Firefox/)||(r=!0)),"indexedDB"in t&&!r)try{var n=indexedDB.open("rs-check");n.onerror=function(t){e.reject()},n.onsuccess=function(t){n.result.close(),indexedDB.deleteDatabase("rs-check"),e.resolve()}}catch(t){e.reject()}else e.reject();return e.promise},h._rs_cleanup=function(e){var t=Promise.defer();return e.local&&e.local.closeDB(),h.clean(c,function(){t.resolve()}),t.promise},e.exports=h}).call(t,function(){return this}())},function(e,t,r){var n=r(3),o=r(4),i=r(27),s=function(){i(this),o("[InMemoryStorage] Registering events"),n(this,"change","local-events-done"),this._storage={}};s.prototype={getNodes:function(e){for(var t={},r=0,n=e.length;r<n;r++)t[e[r]]=this._storage[e[r]];return Promise.resolve(t)},setNodes:function(e){for(var t in e)void 0===e[t]?delete this._storage[t]:this._storage[t]=e[t];return Promise.resolve()},forAllNodes:function(e){for(var t in this._storage)e(this.migrate(this._storage[t]));return Promise.resolve()}},s._rs_init=function(){},s._rs_supported=function(){return!0},s._rs_cleanup=function(){},e.exports=s},function(e,t,r){function n(e){return e.substr(0,c.length)===c||e.substr(0,h.length)===h}function o(e){return e.substr(0,c.length)===c}var i=r(27),s=r(4),a=r(3),u=r(2),c="remotestorage:cache:nodes:",h="remotestorage:cache:changes:",l=function(){i(this),s("[LocalStorage] Registering events"),a(this,"change","local-events-done")};l.prototype={getNodes:function(e){for(var t={},r=0,n=e.length;r<n;r++)try{t[e[r]]=JSON.parse(localStorage[c+e[r]])}catch(n){t[e[r]]=void 0}return Promise.resolve(t)},setNodes:function(e){for(var t in e)localStorage[c+t]=JSON.stringify(e[t]);return Promise.resolve()},forAllNodes:function(e){for(var t,r=0,n=localStorage.length;r<n;r++)if(o(localStorage.key(r))){try{t=this.migrate(JSON.parse(localStorage[localStorage.key(r)]))}catch(e){t=void 0}t&&e(t)}return Promise.resolve()}},l._rs_init=function(){},l._rs_supported=function(){return u.localStorageAvailable()},l._rs_cleanup=function(){for(var e=[],t=0,r=localStorage.length;t<r;t++){var o=localStorage.key(t);n(o)&&e.push(o)}e.forEach(function(e){s("[LocalStorage] Removing",e),delete localStorage[e]})},e.exports=l},function(e,t,r){var n=r(1),o=r(9);n.MODULES={},n.defineModule=function(e,t){if(n.MODULES[e]=t,Object.defineProperty(n.prototype,e,{configurable:!0,get:function(){var t=this._loadModule(e);return Object.defineProperty(this,e,{value:t}),t}}),e.indexOf("-")!==-1){var r=e.replace(/\-[a-z]/g,function(e){return e[1].toUpperCase()});Object.defineProperty(n.prototype,r,{get:function(){return this[e]}})}},n.prototype._loadModule=function(e){var t=n.MODULES[e];if(t){var r=t(new o(this,"/"+e+"/"),new o(this,"/public/"+e+"/"));return r.exports}throw"Unknown module: "+e},n.prototype.defineModule=function(e){console.log("remoteStorage.defineModule is deprecated, use RemoteStorage.defineModule instead!"),n.defineModule.apply(n,arguments)}},function(e,t,r){var n=r(1);n.version=n.prototype.version={productName:"remotestorage.js",product:0,major:13,minor:1,postfix:"pre"},n.version.toString=function(){return this.productName+" "+[this.product,this.major,this.minor].join(".")+(this.postfix?"-"+this.postfix:"")}}])});
+	
+	if (typeof XMLHttpRequest === 'undefined') {
+	  XMLHttpRequest = __webpack_require__(22).XMLHttpRequest;
+	}
+	
+	(function (undefined) {
+	
+	  // URI to property name map
+	  var LINK_URI_MAPS = {
+	    'http://webfist.org/spec/rel': 'webfist',
+	    'http://webfinger.net/rel/avatar': 'avatar',
+	    'remotestorage': 'remotestorage',
+	    'http://tools.ietf.org/id/draft-dejong-remotestorage': 'remotestorage',
+	    'remoteStorage': 'remotestorage',
+	    'http://www.packetizer.com/rel/share': 'share',
+	    'http://webfinger.net/rel/profile-page': 'profile',
+	    'me': 'profile',
+	    'vcard': 'vcard',
+	    'blog': 'blog',
+	    'http://packetizer.com/rel/blog': 'blog',
+	    'http://schemas.google.com/g/2010#updates-from': 'updates',
+	    'https://camlistore.org/rel/server': 'camilstore'
+	  };
+	
+	  var LINK_PROPERTIES = {
+	    'avatar': [],
+	    'remotestorage': [],
+	    'blog': [],
+	    'vcard': [],
+	    'updates': [],
+	    'share': [],
+	    'profile': [],
+	    'webfist': [],
+	    'camlistore': []
+	  };
+	
+	  // list of endpoints to try, fallback from beginning to end.
+	  var URIS = ['webfinger', 'host-meta', 'host-meta.json'];
+	
+	  function generateErrorObject(obj) {
+	    obj.toString = function () {
+	      return this.message;
+	    };
+	    return obj;
+	  }
+	
+	  // given a URL ensures it's HTTPS.
+	  // returns false for null string or non-HTTPS URL.
+	  function isSecure(url) {
+	    if (typeof url !== 'string') {
+	      return false;
+	    }
+	    var parts = url.split('://');
+	    if (parts[0] === 'https') {
+	      return true;
+	    }
+	    return false;
+	  }
+	
+	  /**
+	   * Function: WebFinger
+	   *
+	   * WebFinger constructor
+	   *
+	   * Returns:
+	   *
+	   *   return WebFinger object
+	   */
+	  function WebFinger(config) {
+	    if (typeof config !== 'object') {
+	      config = {};
+	    }
+	
+	    this.config = {
+	      tls_only:         (typeof config.tls_only !== 'undefined') ? config.tls_only : true,
+	      webfist_fallback: (typeof config.webfist_fallback !== 'undefined') ? config.webfist_fallback : false,
+	      uri_fallback:     (typeof config.uri_fallback !== 'undefined') ? config.uri_fallback : false,
+	      request_timeout:  (typeof config.request_timeout !== 'undefined') ? config.request_timeout : 10000
+	    };
+	  }
+	
+	  // make an http request and look for JRD response, fails if request fails
+	  // or response not json.
+	  WebFinger.prototype.__fetchJRD = function (url, errorHandler, sucessHandler) {
+	    var self = this;
+	
+	    var xhr = new XMLHttpRequest();
+	    xhr.timeout = this.config.request_timeout;
+	
+	    function __processState() {
+	      if (xhr.status === 200) {
+	        if (self.__isValidJSON(xhr.responseText)) {
+	          return sucessHandler(xhr.responseText);
+	        } else {
+	          return errorHandler(generateErrorObject({
+	            message: 'invalid json',
+	            url: url,
+	            status: xhr.status
+	          }));
+	        }
+	      } else if (xhr.status === 404) {
+	        return errorHandler(generateErrorObject({
+	          message: 'resource not found',
+	          url: url,
+	          status: xhr.status
+	        }));
+	      } else if ((xhr.status >= 301) && (xhr.status <= 302)) {
+	        var location = xhr.getResponseHeader('Location');
+	        if (isSecure(location)) {
+	          return __makeRequest(location); // follow redirect
+	        } else {
+	          return errorHandler(generateErrorObject({
+	            message: 'no redirect URL found',
+	            url: url,
+	            status: xhr.status
+	          }));
+	        }
+	      } else {
+	        return errorHandler(generateErrorObject({
+	          message: 'error during request',
+	          url: url,
+	          status: xhr.status
+	        }));
+	      }
+	    }
+	
+	    function __makeRequest() {
+	      xhr.onreadystatechange = function () {
+	        if (xhr.readyState === 4) {
+	          __processState();
+	        }
+	      };
+	
+	      xhr.onload = function () {
+	        __processState();
+	      };
+	
+	      xhr.ontimeout = function () {
+	        return errorHandler(generateErrorObject({
+	          message: 'request timed out',
+	          url: url,
+	          status: xhr.status
+	        }));
+	      };
+	
+	      xhr.open('GET', url, true);
+	      xhr.setRequestHeader('Accept', 'application/jrd+json, application/json');
+	      xhr.send();
+	    }
+	
+	    return __makeRequest();
+	  };
+	
+	  WebFinger.prototype.__isValidJSON = function (str) {
+	    try {
+	      JSON.parse(str);
+	    } catch (e) {
+	      return false;
+	    }
+	    return true;
+	  };
+	
+	  WebFinger.prototype.__isLocalhost = function (host) {
+	    var local = /^localhost(\.localdomain)?(\:[0-9]+)?$/;
+	    return local.test(host);
+	  };
+	
+	  // processes JRD object as if it's a webfinger response object
+	  // looks for known properties and adds them to profile datat struct.
+	  WebFinger.prototype.__processJRD = function (URL, JRD, errorHandler, successHandler) {
+	    var parsedJRD = JSON.parse(JRD);
+	    if ((typeof parsedJRD !== 'object') ||
+	        (typeof parsedJRD.links !== 'object')) {
+	      if (typeof parsedJRD.error !== 'undefined') {
+	        return errorHandler(generateErrorObject({ message: parsedJRD.error, request: URL }));
+	      } else {
+	        return errorHandler(generateErrorObject({ message: 'unknown response from server', request: URL }));
+	      }
+	    }
+	
+	    var links = parsedJRD.links;
+	    var result = {  // webfinger JRD - object, json, and our own indexing
+	      object: parsedJRD,
+	      json: JRD,
+	      idx: {}
+	    };
+	
+	    result.idx.properties = {
+	      'name': undefined
+	    };
+	    result.idx.links = JSON.parse(JSON.stringify(LINK_PROPERTIES));
+	
+	    // process links
+	    links.map(function (link, i) {
+	      if (LINK_URI_MAPS.hasOwnProperty(link.rel)) {
+	        if (result.idx.links[LINK_URI_MAPS[link.rel]]) {
+	          var entry = {};
+	          Object.keys(link).map(function (item, n) {
+	            entry[item] = link[item];
+	          });
+	          result.idx.links[LINK_URI_MAPS[link.rel]].push(entry);
+	        }
+	      }
+	    });
+	
+	    // process properties
+	    var props = JSON.parse(JRD).properties;
+	    for (var key in props) {
+	      if (props.hasOwnProperty(key)) {
+	        if (key === 'http://packetizer.com/ns/name') {
+	          result.idx.properties.name = props[key];
+	        }
+	      }
+	    }
+	    return successHandler(result);
+	  };
+	
+	  WebFinger.prototype.lookup = function (address, cb) {
+	    if (typeof address !== 'string') {
+	      throw new Error('first parameter must be a user address');
+	    } else if (typeof cb !== 'function') {
+	      throw new Error('second parameter must be a callback');
+	    }
+	
+	    var self = this;
+	    var host = '';
+	    if (address.indexOf('://') > -1) {
+	      // other uri format
+	      host = address.replace(/ /g,'').split('://')[1];
+	    } else {
+	      // useraddress
+	      host = address.replace(/ /g,'').split('@')[1];
+	    }
+	    var uri_index = 0;      // track which URIS we've tried already
+	    var protocol = 'https'; // we use https by default
+	
+	    if (self.__isLocalhost(host)) {
+	      protocol = 'http';
+	    }
+	
+	    function __buildURL() {
+	      var uri = '';
+	      if (! address.split('://')[1]) {
+	        // the URI has not been defined, default to acct
+	        uri = 'acct:';
+	      }
+	      return protocol + '://' + host + '/.well-known/' +
+	             URIS[uri_index] + '?resource=' + uri + address;
+	    }
+	
+	    // control flow for failures, what to do in various cases, etc.
+	    function __fallbackChecks(err) {
+	      if ((self.config.uri_fallback) && (host !== 'webfist.org') && (uri_index !== URIS.length - 1)) { // we have uris left to try
+	        uri_index = uri_index + 1;
+	        return __call();
+	      } else if ((!self.config.tls_only) && (protocol === 'https')) { // try normal http
+	        uri_index = 0;
+	        protocol = 'http';
+	        return __call();
+	      } else if ((self.config.webfist_fallback) && (host !== 'webfist.org')) { // webfist attempt
+	        uri_index = 0;
+	        protocol = 'http';
+	        host = 'webfist.org';
+	        // webfist will
+	        // 1. make a query to the webfist server for the users account
+	        // 2. from the response, get a link to the actual webfinger json data
+	        //    (stored somewhere in control of the user)
+	        // 3. make a request to that url and get the json
+	        // 4. process it like a normal webfinger response
+	        var URL = __buildURL();
+	        self.__fetchJRD(URL, cb, function (data) { // get link to users JRD
+	          self.__processJRD(URL, data, cb, function (result) {
+	            if ((typeof result.idx.links.webfist === 'object') &&
+	                (typeof result.idx.links.webfist[0].href === 'string')) {
+	              self.__fetchJRD(result.idx.links.webfist[0].href, cb, function (JRD) {
+	                self.__processJRD(URL, JRD, cb, function (result) {
+	                  return cb(null, cb);
+	                });
+	              });
+	            }
+	          });
+	        });
+	      } else {
+	        return cb(err);
+	      }
+	    }
+	
+	    function __call() {
+	      // make request
+	      var URL = __buildURL();
+	      self.__fetchJRD(URL, __fallbackChecks, function (JRD) {
+	        self.__processJRD(URL, JRD, cb, function (result) { cb(null, result); });
+	      });
+	    }
+	
+	    return setTimeout(__call, 0);
+	  };
+	
+	  WebFinger.prototype.lookupLink = function (address, rel, cb) {
+	    if (LINK_PROPERTIES.hasOwnProperty(rel)) {
+	      this.lookup(address, function (err, p) {
+	        var links  = p.idx.links[rel];
+	        if (err) {
+	          return cb(err);
+	        } else if (links.length === 0) {
+	          return cb('no links found with rel="' + rel + '"');
+	        } else {
+	          return cb(null, links[0]);
+	        }
+	      });
+	    } else {
+	      return cb('unsupported rel ' + rel);
+	    }
+	  };
+	
+	  if (typeof window === 'object') {
+	    window.WebFinger = WebFinger;
+	  } else if (true) {
+	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function () { return WebFinger; }.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	  } else {
+	    try {
+	      module.exports = WebFinger;
+	    } catch (e) {}
+	  }
+	})();
+	
+
+
+/***/ },
+/* 22 */
+/***/ function(module, exports) {
+
+	module.exports = __WEBPACK_EXTERNAL_MODULE_22__;
+
+/***/ },
+/* 23 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	/**
+	 * Class: RemoteStorage.IndexedDB
+	 *
+	 *
+	 * IndexedDB Interface
+	 * -------------------
+	 *
+	 * TODO rewrite, doesn't expose GPD anymore, it's in cachinglayer now
+	 *
+	 * This file exposes a get/put/delete interface, accessing data in an IndexedDB.
+	 *
+	 * There are multiple parts to this interface:
+	 *
+	 *   The RemoteStorage integration:
+	 *     - RemoteStorage.IndexedDB._rs_supported() determines if IndexedDB support
+	 *       is available. If it isn't, RemoteStorage won't initialize the feature.
+	 *     - RemoteStorage.IndexedDB._rs_init() initializes the feature. It returns
+	 *       a promise that is fulfilled as soon as the database has been opened and
+	 *       migrated.
+	 *
+	 *   The storage interface (RemoteStorage.IndexedDB object):
+	 *     - Usually this is accessible via "remoteStorage.local"
+	 *     - #get() takes a path and returns a promise.
+	 *     - #put() takes a path, body and contentType and also returns a promise.
+	 *     - #delete() takes a path and also returns a promise.
+	 *     - #on('change', ...) events, being fired whenever something changes in
+	 *       the storage. Change events roughly follow the StorageEvent pattern.
+	 *       They have "oldValue" and "newValue" properties, which can be used to
+	 *       distinguish create/update/delete operations and analyze changes in
+	 *       change handlers. In addition they carry a "origin" property, which
+	 *       is either "window", "local", or "remote". "remote" events are fired
+	 *       whenever a change comes in from RemoteStorage.Sync.
+	 *
+	 *   The sync interface (also on RemoteStorage.IndexedDB object):
+	 *     - #getNodes([paths]) returns the requested nodes in a promise.
+	 *     - #setNodes(map) stores all the nodes given in the (path -> node) map.
+	 *
+	 */
+	
+	var log = __webpack_require__(4);
+	var cachingLayer = __webpack_require__(24);
+	var eventHandling = __webpack_require__(3);
+	var util = __webpack_require__(2);
+	
+	var DB_VERSION = 2;
+	
+	var DEFAULT_DB_NAME = 'remotestorage';
+	var DEFAULT_DB;
+	
+	var IndexedDB = function IndexedDB(database) {
+	  this.db = database || DEFAULT_DB;
+	
+	  if (!this.db) {
+	    log("[IndexedDB] Failed to open DB");
+	    return undefined;
+	  }
+	
+	  cachingLayer(this);
+	  eventHandling(this, 'change', 'local-events-done');
+	
+	  this.getsRunning = 0;
+	  this.putsRunning = 0;
+	
+	  /**
+	   * Property: changesQueued
+	   *
+	   * Given a node for which uncommitted changes exist, this cache
+	   * stores either the entire uncommitted node, or false for a deletion.
+	   * The node's path is used as the key.
+	   *
+	   * changesQueued stores changes for which no IndexedDB transaction has
+	   * been started yet.
+	   */
+	  this.changesQueued = {};
+	
+	  /**
+	   * Property: changesRunning
+	   *
+	   * Given a node for which uncommitted changes exist, this cache
+	   * stores either the entire uncommitted node, or false for a deletion.
+	   * The node's path is used as the key.
+	   *
+	   * At any time there is at most one IndexedDB transaction running.
+	   * changesRunning stores the changes that are included in that currently
+	   * running IndexedDB transaction, or if none is running, of the last one
+	   * that ran.
+	   */
+	  this.changesRunning = {};
+	};
+	
+	IndexedDB.prototype = {
+	  getNodes: function getNodes(paths) {
+	    var misses = [],
+	        fromCache = {};
+	    for (var i = 0, len = paths.length; i < len; i++) {
+	      if (this.changesQueued[paths[i]] !== undefined) {
+	        fromCache[paths[i]] = util.deepClone(this.changesQueued[paths[i]] || undefined);
+	      } else if (this.changesRunning[paths[i]] !== undefined) {
+	        fromCache[paths[i]] = util.deepClone(this.changesRunning[paths[i]] || undefined);
+	      } else {
+	        misses.push(paths[i]);
+	      }
+	    }
+	    if (misses.length > 0) {
+	      return this.getNodesFromDb(misses).then(function (nodes) {
+	        for (var i in fromCache) {
+	          nodes[i] = fromCache[i];
+	        }
+	        return nodes;
+	      });
+	    } else {
+	      return Promise.resolve(fromCache);
+	    }
+	  },
+	
+	  setNodes: function setNodes(nodes) {
+	    for (var i in nodes) {
+	      this.changesQueued[i] = nodes[i] || false;
+	    }
+	    this.maybeFlush();
+	    return Promise.resolve();
+	  },
+	
+	  maybeFlush: function maybeFlush() {
+	    if (this.putsRunning === 0) {
+	      this.flushChangesQueued();
+	    } else {
+	      if (!this.commitSlownessWarning) {
+	        this.commitSlownessWarning = setInterval(function () {
+	          console.log('WARNING: waited more than 10 seconds for previous commit to finish');
+	        }, 10000);
+	      }
+	    }
+	  },
+	
+	  flushChangesQueued: function flushChangesQueued() {
+	    if (this.commitSlownessWarning) {
+	      clearInterval(this.commitSlownessWarning);
+	      this.commitSlownessWarning = null;
+	    }
+	    if (Object.keys(this.changesQueued).length > 0) {
+	      this.changesRunning = this.changesQueued;
+	      this.changesQueued = {};
+	      this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
+	    }
+	  },
+	
+	  getNodesFromDb: function getNodesFromDb(paths) {
+	    var pending = Promise.defer();
+	    var transaction = this.db.transaction(['nodes'], 'readonly');
+	    var nodes = transaction.objectStore('nodes');
+	    var retrievedNodes = {};
+	    var startTime = new Date().getTime();
+	
+	    this.getsRunning++;
+	
+	    paths.map(function (path, i) {
+	      nodes.get(path).onsuccess = function (evt) {
+	        retrievedNodes[path] = evt.target.result;
+	      };
+	    });
+	
+	    transaction.oncomplete = function () {
+	      pending.resolve(retrievedNodes);
+	      this.getsRunning--;
+	    }.bind(this);
+	
+	    transaction.onerror = transaction.onabort = function () {
+	      pending.reject('get transaction error/abort');
+	      this.getsRunning--;
+	    }.bind(this);
+	
+	    return pending.promise;
+	  },
+	
+	  setNodesInDb: function setNodesInDb(nodes) {
+	    var pending = Promise.defer();
+	    var transaction = this.db.transaction(['nodes'], 'readwrite');
+	    var nodesStore = transaction.objectStore('nodes');
+	    var startTime = new Date().getTime();
+	
+	    this.putsRunning++;
+	
+	    log('[IndexedDB] Starting put', nodes, this.putsRunning);
+	
+	    for (var path in nodes) {
+	      var node = nodes[path];
+	      if ((typeof node === 'undefined' ? 'undefined' : _typeof(node)) === 'object') {
+	        try {
+	          nodesStore.put(node);
+	        } catch (e) {
+	          log('[IndexedDB] Error while putting', node, e);
+	          throw e;
+	        }
+	      } else {
+	        try {
+	          nodesStore.delete(path);
+	        } catch (e) {
+	          log('[IndexedDB] Error while removing', nodesStore, node, e);
+	          throw e;
+	        }
+	      }
+	    }
+	
+	    transaction.oncomplete = function () {
+	      this.putsRunning--;
+	      log('[IndexedDB] Finished put', nodes, this.putsRunning, new Date().getTime() - startTime + 'ms');
+	      pending.resolve();
+	    }.bind(this);
+	
+	    transaction.onerror = function () {
+	      this.putsRunning--;
+	      pending.reject('transaction error');
+	    }.bind(this);
+	
+	    transaction.onabort = function () {
+	      pending.reject('transaction abort');
+	      this.putsRunning--;
+	    }.bind(this);
+	
+	    return pending.promise;
+	  },
+	
+	  reset: function reset(callback) {
+	    var dbName = this.db.name;
+	    var self = this;
+	
+	    this.db.close();
+	
+	    IndexedDB.clean(this.db.name, function () {
+	      IndexedDB.open(dbName, function (err, other) {
+	        if (err) {
+	          log('[IndexedDB] Error while resetting local storage', err);
+	        } else {
+	          // hacky!
+	          self.db = other;
+	        }
+	        if (typeof callback === 'function') {
+	          callback(self);
+	        }
+	      });
+	    });
+	  },
+	
+	  forAllNodes: function forAllNodes(cb) {
+	    var pending = Promise.defer();
+	    var transaction = this.db.transaction(['nodes'], 'readonly');
+	    var cursorReq = transaction.objectStore('nodes').openCursor();
+	
+	    cursorReq.onsuccess = function (evt) {
+	      var cursor = evt.target.result;
+	
+	      if (cursor) {
+	        cb(this.migrate(cursor.value));
+	        cursor.continue();
+	      } else {
+	        pending.resolve();
+	      }
+	    }.bind(this);
+	
+	    return pending.promise;
+	  },
+	
+	  closeDB: function closeDB() {
+	    this.db.close();
+	  }
+	
+	};
+	
+	IndexedDB.open = function (name, callback) {
+	  var timer = setTimeout(function () {
+	    callback("timeout trying to open db");
+	  }, 10000);
+	
+	  try {
+	    var req = indexedDB.open(name, DB_VERSION);
+	
+	    req.onerror = function () {
+	      log('[IndexedDB] Opening DB failed', req);
+	
+	      clearTimeout(timer);
+	      callback(req.error);
+	    };
+	
+	    req.onupgradeneeded = function (event) {
+	      var db = req.result;
+	
+	      log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
+	
+	      if (event.oldVersion !== 1) {
+	        log("[IndexedDB] Creating object store: nodes");
+	        db.createObjectStore('nodes', { keyPath: 'path' });
+	      }
+	
+	      log("[IndexedDB] Creating object store: changes");
+	
+	      db.createObjectStore('changes', { keyPath: 'path' });
+	    };
+	
+	    req.onsuccess = function () {
+	      clearTimeout(timer);
+	
+	      // check if all object stores exist
+	      var db = req.result;
+	      if (!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
+	        log("[IndexedDB] Missing object store. Resetting the database.");
+	        IndexedDB.clean(name, function () {
+	          IndexedDB.open(name, callback);
+	        });
+	        return;
+	      }
+	
+	      callback(null, req.result);
+	    };
+	  } catch (error) {
+	    log("[IndexedDB] Failed to open database: " + error);
+	    log("[IndexedDB] Resetting database and trying again.");
+	
+	    clearTimeout(timer);
+	
+	    IndexedDB.clean(name, function () {
+	      IndexedDB.open(name, callback);
+	    });
+	  };
+	};
+	
+	IndexedDB.clean = function (databaseName, callback) {
+	  var req = indexedDB.deleteDatabase(databaseName);
+	
+	  req.onsuccess = function () {
+	    log('[IndexedDB] Done removing DB');
+	    callback();
+	  };
+	
+	  req.onerror = req.onabort = function (evt) {
+	    console.error('Failed to remove database "' + databaseName + '"', evt);
+	  };
+	};
+	
+	IndexedDB._rs_init = function (remoteStorage) {
+	  var pending = Promise.defer();
+	
+	  IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
+	    if (err) {
+	      pending.reject(err);
+	    } else {
+	      DEFAULT_DB = db;
+	      db.onerror = function () {
+	        remoteStorage._emit('error', err);
+	      };
+	      pending.resolve();
+	    }
+	  });
+	
+	  return pending.promise;
+	};
+	
+	IndexedDB._rs_supported = function () {
+	  var pending = Promise.defer();
+	  var context = window || global;
+	
+	  // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
+	  //                    context.mozIndexedDB || context.oIndexedDB      ||
+	  //                    context.msIndexedDB;
+	
+	  // Detect browsers with known IndexedDb issues (e.g. Android pre-4.4)
+	  var poorIndexedDbSupport = false;
+	  if (typeof navigator !== 'undefined' && navigator.userAgent.match(/Android (2|3|4\.[0-3])/)) {
+	    // Chrome and Firefox support IndexedDB
+	    if (!navigator.userAgent.match(/Chrome|Firefox/)) {
+	      poorIndexedDbSupport = true;
+	    }
+	  }
+	
+	  if ('indexedDB' in context && !poorIndexedDbSupport) {
+	    try {
+	      var check = indexedDB.open("rs-check");
+	      check.onerror = function (event) {
+	        pending.reject();
+	      };
+	      check.onsuccess = function (event) {
+	        check.result.close();
+	        indexedDB.deleteDatabase("rs-check");
+	        pending.resolve();
+	      };
+	    } catch (e) {
+	      pending.reject();
+	    }
+	  } else {
+	    pending.reject();
+	  }
+	
+	  return pending.promise;
+	};
+	
+	IndexedDB._rs_cleanup = function (remoteStorage) {
+	  var pending = Promise.defer();
+	
+	  if (remoteStorage.local) {
+	    remoteStorage.local.closeDB();
+	  }
+	
+	  IndexedDB.clean(DEFAULT_DB_NAME, function () {
+	    pending.resolve();
+	  });
+	
+	  return pending.promise;
+	};
+	
+	module.exports = IndexedDB;
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 24 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	var util = __webpack_require__(2);
+	var config = __webpack_require__(5);
+	
+	/**
+	 * Interface: cachinglayer
+	 *
+	 * This module defines functions that are mixed into remoteStorage.local when
+	 * it is instantiated (currently one of indexeddb.js, localstorage.js, or
+	 * inmemorystorage.js).
+	 *
+	 * All remoteStorage.local implementations should therefore implement
+	 * this.getNodes, this.setNodes, and this.forAllNodes. The rest is blended in
+	 * here to create a GPD (get/put/delete) interface which the BaseClient can
+	 * talk to.
+	 */
+	
+	var isFolder = util.isFolder;
+	var isDocument = util.isDocument;
+	var deepClone = util.deepClone;
+	var equal = util.equal;
+	
+	function getLatest(node) {
+	  if ((typeof node === 'undefined' ? 'undefined' : _typeof(node)) !== 'object' || typeof node.path !== 'string') {
+	    return;
+	  }
+	  if (isFolder(node.path)) {
+	    if (node.local && node.local.itemsMap) {
+	      return node.local;
+	    }
+	    if (node.common && node.common.itemsMap) {
+	      return node.common;
+	    }
+	  } else {
+	    if (node.local && node.local.body && node.local.contentType) {
+	      return node.local;
+	    }
+	    if (node.common && node.common.body && node.common.contentType) {
+	      return node.common;
+	    }
+	    // Migration code! Once all apps use at least this version of the lib, we
+	    // can publish clean-up code that migrates over any old-format data, and
+	    // stop supporting it. For now, new apps will support data in both
+	    // formats, thanks to this:
+	    if (node.body && node.contentType) {
+	      return {
+	        body: node.body,
+	        contentType: node.contentType
+	      };
+	    }
+	  }
+	}
+	
+	function isOutdated(nodes, maxAge) {
+	  var path;
+	  for (path in nodes) {
+	    if (nodes[path] && nodes[path].remote) {
+	      return true;
+	    }
+	    var nodeVersion = getLatest(nodes[path]);
+	    if (nodeVersion && nodeVersion.timestamp && new Date().getTime() - nodeVersion.timestamp <= maxAge) {
+	      return false;
+	    } else if (!nodeVersion) {
+	      return true;
+	    }
+	  }
+	  return true;
+	}
+	
+	var pathsFromRoot = util.pathsFromRoot;
+	
+	function makeNode(path) {
+	  var node = { path: path, common: {} };
+	
+	  if (isFolder(path)) {
+	    node.common.itemsMap = {};
+	  }
+	  return node;
+	}
+	
+	function updateFolderNodeWithItemName(node, itemName) {
+	  if (!node.common) {
+	    node.common = {
+	      itemsMap: {}
+	    };
+	  }
+	  if (!node.common.itemsMap) {
+	    node.common.itemsMap = {};
+	  }
+	  if (!node.local) {
+	    node.local = deepClone(node.common);
+	  }
+	  if (!node.local.itemsMap) {
+	    node.local.itemsMap = node.common.itemsMap;
+	  }
+	  node.local.itemsMap[itemName] = true;
+	
+	  return node;
+	}
+	
+	var methods = {
+	
+	  // TODO: improve our code structure so that this function
+	  // could call sync.queueGetRequest directly instead of needing
+	  // this hacky third parameter as a callback
+	  get: function get(path, maxAge, queueGetRequest) {
+	    var self = this;
+	    if (typeof maxAge === 'number') {
+	      return self.getNodes(pathsFromRoot(path)).then(function (objs) {
+	        var node = getLatest(objs[path]);
+	        if (isOutdated(objs, maxAge)) {
+	          return queueGetRequest(path);
+	        } else if (node) {
+	          return { statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType };
+	        } else {
+	          return { statusCode: 404 };
+	        }
+	      });
+	    } else {
+	      return self.getNodes([path]).then(function (objs) {
+	        var node = getLatest(objs[path]);
+	        if (node) {
+	          if (isFolder(path)) {
+	            for (var i in node.itemsMap) {
+	              // the hasOwnProperty check here is only because our jshint settings require it:
+	              if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
+	                delete node.itemsMap[i];
+	              }
+	            }
+	          }
+	          return { statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType };
+	        } else {
+	          return { statusCode: 404 };
+	        }
+	      });
+	    }
+	  },
+	
+	  put: function put(path, body, contentType) {
+	    var paths = pathsFromRoot(path);
+	
+	    function _processNodes(paths, nodes) {
+	      try {
+	        for (var i = 0, len = paths.length; i < len; i++) {
+	          var path = paths[i];
+	          var node = nodes[path];
+	          var previous;
+	
+	          if (!node) {
+	            nodes[path] = node = makeNode(path);
+	          }
+	
+	          // Document
+	          if (i === 0) {
+	            previous = getLatest(node);
+	            node.local = {
+	              body: body,
+	              contentType: contentType,
+	              previousBody: previous ? previous.body : undefined,
+	              previousContentType: previous ? previous.contentType : undefined
+	            };
+	          }
+	          // Folder
+	          else {
+	              var itemName = paths[i - 1].substring(path.length);
+	              node = updateFolderNodeWithItemName(node, itemName);
+	            }
+	        }
+	        return nodes;
+	      } catch (e) {
+	        log('[Cachinglayer] Error during PUT', nodes, i, e);
+	        throw e;
+	      }
+	    }
+	    return this._updateNodes(paths, _processNodes);
+	  },
+	
+	  delete: function _delete(path) {
+	    var paths = pathsFromRoot(path);
+	
+	    return this._updateNodes(paths, function (paths, nodes) {
+	      for (var i = 0, len = paths.length; i < len; i++) {
+	        var path = paths[i];
+	        var node = nodes[path];
+	        if (!node) {
+	          throw new Error('Cannot delete non-existing node ' + path);
+	        }
+	
+	        if (i === 0) {
+	          // Document
+	          previous = getLatest(node);
+	          node.local = {
+	            body: false,
+	            previousBody: previous ? previous.body : undefined,
+	            previousContentType: previous ? previous.contentType : undefined
+	          };
+	        } else {
+	          // Folder
+	          if (!node.local) {
+	            node.local = deepClone(node.common);
+	          }
+	          var itemName = paths[i - 1].substring(path.length);
+	          delete node.local.itemsMap[itemName];
+	
+	          if (Object.getOwnPropertyNames(node.local.itemsMap).length > 0) {
+	            // This folder still contains other items, don't remove any further ancestors
+	            break;
+	          }
+	        }
+	      }
+	      return nodes;
+	    });
+	  },
+	  flush: function flush(path) {
+	    var self = this;
+	    return self._getAllDescendentPaths(path).then(function (paths) {
+	      return self.getNodes(paths);
+	    }).then(function (nodes) {
+	      for (var path in nodes) {
+	        var node = nodes[path];
+	
+	        if (node && node.common && node.local) {
+	          self._emitChange({
+	            path: node.path,
+	            origin: 'local',
+	            oldValue: node.local.body === false ? undefined : node.local.body,
+	            newValue: node.common.body === false ? undefined : node.common.body
+	          });
+	        }
+	        nodes[path] = undefined;
+	      }
+	      return self.setNodes(nodes);
+	    });
+	  },
+	
+	  _emitChange: function _emitChange(obj) {
+	    if (config.changeEvents[obj.origin]) {
+	      this._emit('change', obj);
+	    }
+	  },
+	
+	  fireInitial: function fireInitial() {
+	    if (!config.changeEvents.local) {
+	      return;
+	    }
+	    var self = this;
+	    self.forAllNodes(function (node) {
+	      var latest;
+	      if (isDocument(node.path)) {
+	        latest = getLatest(node);
+	        if (latest) {
+	          self._emitChange({
+	            path: node.path,
+	            origin: 'local',
+	            oldValue: undefined,
+	            oldContentType: undefined,
+	            newValue: latest.body,
+	            newContentType: latest.contentType
+	          });
+	        }
+	      }
+	    }).then(function () {
+	      self._emit('local-events-done');
+	    });
+	  },
+	
+	  onDiff: function onDiff(diffHandler) {
+	    this.diffHandler = diffHandler;
+	  },
+	
+	  migrate: function migrate(node) {
+	    if ((typeof node === 'undefined' ? 'undefined' : _typeof(node)) === 'object' && !node.common) {
+	      node.common = {};
+	      if (typeof node.path === 'string') {
+	        if (node.path.substr(-1) === '/' && _typeof(node.body) === 'object') {
+	          node.common.itemsMap = node.body;
+	        }
+	      } else {
+	        //save legacy content of document node as local version
+	        if (!node.local) {
+	          node.local = {};
+	        }
+	        node.local.body = node.body;
+	        node.local.contentType = node.contentType;
+	      }
+	    }
+	    return node;
+	  },
+	
+	  // FIXME
+	  // this process of updating nodes needs to be heavily documented first, then
+	  // refactored. Right now it's almost impossible to refactor as there's no
+	  // explanation of why things are implemented certain ways or what the goal(s)
+	  // of the behavior are. -slvrbckt
+	  _updateNodesRunning: false,
+	  _updateNodesQueued: [],
+	  _updateNodes: function _updateNodes(paths, _processNodes) {
+	    var pending = Promise.defer();
+	    this._doUpdateNodes(paths, _processNodes, pending);
+	    return pending.promise;
+	  },
+	  _doUpdateNodes: function _doUpdateNodes(paths, _processNodes, promise) {
+	    var self = this;
+	
+	    if (self._updateNodesRunning) {
+	      self._updateNodesQueued.push({
+	        paths: paths,
+	        cb: _processNodes,
+	        promise: promise
+	      });
+	      return;
+	    } else {
+	      self._updateNodesRunning = true;
+	    }
+	
+	    self.getNodes(paths).then(function (nodes) {
+	      var existingNodes = deepClone(nodes);
+	      var changeEvents = [];
+	      var node;
+	      var equal = util.equal;
+	
+	      nodes = _processNodes(paths, nodes);
+	
+	      for (var path in nodes) {
+	        node = nodes[path];
+	        if (equal(node, existingNodes[path])) {
+	          delete nodes[path];
+	        } else if (isDocument(path)) {
+	          if (!equal(node.local.body, node.local.previousBody) || node.local.contentType !== node.local.previousContentType) {
+	            changeEvents.push({
+	              path: path,
+	              origin: 'window',
+	              oldValue: node.local.previousBody,
+	              newValue: node.local.body === false ? undefined : node.local.body,
+	              oldContentType: node.local.previousContentType,
+	              newContentType: node.local.contentType
+	            });
+	          }
+	          delete node.local.previousBody;
+	          delete node.local.previousContentType;
+	        }
+	      }
+	
+	      self.setNodes(nodes).then(function () {
+	        self._emitChangeEvents(changeEvents);
+	        promise.resolve({ statusCode: 200 });
+	      });
+	    }).then(function () {
+	      return Promise.resolve();
+	    }, function (err) {
+	      promise.reject(err);
+	    }).then(function () {
+	      self._updateNodesRunning = false;
+	      var nextJob = self._updateNodesQueued.shift();
+	      if (nextJob) {
+	        self._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
+	      }
+	    });
+	  },
+	
+	  _emitChangeEvents: function _emitChangeEvents(events) {
+	    for (var i = 0, len = events.length; i < len; i++) {
+	      this._emitChange(events[i]);
+	      if (this.diffHandler) {
+	        this.diffHandler(events[i].path);
+	      }
+	    }
+	  },
+	
+	  _getAllDescendentPaths: function _getAllDescendentPaths(path) {
+	    var self = this;
+	    if (isFolder(path)) {
+	      return self.getNodes([path]).then(function (nodes) {
+	        var allPaths = [path];
+	        var latest = getLatest(nodes[path]);
+	
+	        var itemNames = Object.keys(latest.itemsMap);
+	        var calls = itemNames.map(function (itemName) {
+	          return self._getAllDescendentPaths(path + itemName).then(function (paths) {
+	            for (var i = 0, len = paths.length; i < len; i++) {
+	              allPaths.push(paths[i]);
+	            }
+	          });
+	        });
+	        return Promise.all(calls).then(function () {
+	          return allPaths;
+	        });
+	      });
+	    } else {
+	      return Promise.resolve([path]);
+	    }
+	  },
+	
+	  _getInternals: function _getInternals() {
+	    return {
+	      getLatest: getLatest,
+	      makeNode: makeNode,
+	      isOutdated: isOutdated
+	    };
+	  }
+	};
+	
+	/**
+	 * Function: cachingLayer
+	 *
+	 * Mixes common caching layer functionality into an object.
+	 *
+	 * The first parameter is always the object to be extended.
+	 *
+	 * Example:
+	 *   (start code)
+	 *   var MyConstructor = function () {
+	 *     cachingLayer(this);
+	 *   };
+	 *   (end code)
+	 */
+	var cachingLayer = function cachingLayer(object) {
+	  for (var key in methods) {
+	    object[key] = methods[key];
+	  }
+	};
+	
+	module.exports = cachingLayer;
+
+/***/ },
+/* 25 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var cachingLayer = __webpack_require__(24);
+	var log = __webpack_require__(4);
+	var eventHandling = __webpack_require__(3);
+	var util = __webpack_require__(2);
+	
+	/**
+	 * Class: RemoteStorage.LocalStorage
+	 *
+	 * localStorage caching adapter. Used when no IndexedDB available.
+	 **/
+	
+	var NODES_PREFIX = "remotestorage:cache:nodes:";
+	var CHANGES_PREFIX = "remotestorage:cache:changes:";
+	
+	var LocalStorage = function LocalStorage() {
+	  cachingLayer(this);
+	  log('[LocalStorage] Registering events');
+	  eventHandling(this, 'change', 'local-events-done');
+	};
+	
+	function isRemoteStorageKey(key) {
+	  return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX || key.substr(0, CHANGES_PREFIX.length) === CHANGES_PREFIX;
+	}
+	
+	function isNodeKey(key) {
+	  return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX;
+	}
+	
+	LocalStorage.prototype = {
+	
+	  getNodes: function getNodes(paths) {
+	    var nodes = {};
+	
+	    for (var i = 0, len = paths.length; i < len; i++) {
+	      try {
+	        nodes[paths[i]] = JSON.parse(localStorage[NODES_PREFIX + paths[i]]);
+	      } catch (e) {
+	        nodes[paths[i]] = undefined;
+	      }
+	    }
+	
+	    return Promise.resolve(nodes);
+	  },
+	
+	  setNodes: function setNodes(nodes) {
+	    for (var path in nodes) {
+	      // TODO shouldn't we use getItem/setItem?
+	      localStorage[NODES_PREFIX + path] = JSON.stringify(nodes[path]);
+	    }
+	
+	    return Promise.resolve();
+	  },
+	
+	  forAllNodes: function forAllNodes(cb) {
+	    var node;
+	
+	    for (var i = 0, len = localStorage.length; i < len; i++) {
+	      if (isNodeKey(localStorage.key(i))) {
+	        try {
+	          node = this.migrate(JSON.parse(localStorage[localStorage.key(i)]));
+	        } catch (e) {
+	          node = undefined;
+	        }
+	        if (node) {
+	          cb(node);
+	        }
+	      }
+	    }
+	    return Promise.resolve();
+	  }
+	
+	};
+	
+	LocalStorage._rs_init = function () {};
+	
+	LocalStorage._rs_supported = function () {
+	  return util.localStorageAvailable();
+	};
+	
+	// TODO tests missing!
+	LocalStorage._rs_cleanup = function () {
+	  var keys = [];
+	
+	  for (var i = 0, len = localStorage.length; i < len; i++) {
+	    var key = localStorage.key(i);
+	    if (isRemoteStorageKey(key)) {
+	      keys.push(key);
+	    }
+	  }
+	
+	  keys.forEach(function (key) {
+	    log('[LocalStorage] Removing', key);
+	    delete localStorage[key];
+	  });
+	};
+	
+	module.exports = LocalStorage;
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var eventHandling = __webpack_require__(3);
+	var log = __webpack_require__(4);
+	var cachingLayer = __webpack_require__(24);
+	/**
+	 * Class: RemoteStorage.InMemoryStorage
+	 *
+	 * In-memory caching adapter. Used when no IndexedDB or localStorage
+	 * available.
+	 **/
+	
+	var InMemoryStorage = function InMemoryStorage() {
+	  cachingLayer(this);
+	  log('[InMemoryStorage] Registering events');
+	  eventHandling(this, 'change', 'local-events-done');
+	
+	  this._storage = {};
+	};
+	
+	InMemoryStorage.prototype = {
+	
+	  getNodes: function getNodes(paths) {
+	    var nodes = {};
+	
+	    for (var i = 0, len = paths.length; i < len; i++) {
+	      nodes[paths[i]] = this._storage[paths[i]];
+	    }
+	
+	    return Promise.resolve(nodes);
+	  },
+	
+	  setNodes: function setNodes(nodes) {
+	    for (var path in nodes) {
+	      if (nodes[path] === undefined) {
+	        delete this._storage[path];
+	      } else {
+	        this._storage[path] = nodes[path];
+	      }
+	    }
+	
+	    return Promise.resolve();
+	  },
+	
+	  forAllNodes: function forAllNodes(cb) {
+	    for (var path in this._storage) {
+	      cb(this.migrate(this._storage[path]));
+	    }
+	    return Promise.resolve();
+	  }
+	
+	};
+	
+	InMemoryStorage._rs_init = function () {};
+	
+	InMemoryStorage._rs_supported = function () {
+	  // In-memory storage is always supported
+	  return true;
+	};
+	
+	InMemoryStorage._rs_cleanup = function () {};
+	
+	module.exports = InMemoryStorage;
+
+/***/ },
+/* 27 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var map = {
+		"./access": 28,
+		"./access.js": 28,
+		"./authorize": 7,
+		"./authorize.js": 7,
+		"./baseclient": 8,
+		"./baseclient.js": 8,
+		"./caching": 29,
+		"./caching.js": 29,
+		"./cachinglayer": 24,
+		"./cachinglayer.js": 24,
+		"./config": 5,
+		"./config.js": 5,
+		"./discover": 20,
+		"./discover.js": 20,
+		"./dropbox": 6,
+		"./dropbox.js": 6,
+		"./env": 18,
+		"./env.js": 18,
+		"./eventhandling": 3,
+		"./eventhandling.js": 3,
+		"./googledrive": 19,
+		"./googledrive.js": 19,
+		"./i18n": 30,
+		"./i18n.js": 30,
+		"./indexeddb": 23,
+		"./indexeddb.js": 23,
+		"./inmemorystorage": 26,
+		"./inmemorystorage.js": 26,
+		"./localstorage": 25,
+		"./localstorage.js": 25,
+		"./log": 4,
+		"./log.js": 4,
+		"./modules": 31,
+		"./modules.js": 31,
+		"./remotestorage": 1,
+		"./remotestorage.js": 1,
+		"./sync": 17,
+		"./sync.js": 17,
+		"./syncedgetputdelete": 32,
+		"./syncedgetputdelete.js": 32,
+		"./types": 10,
+		"./types.js": 10,
+		"./util": 2,
+		"./util.js": 2,
+		"./version": 33,
+		"./version.js": 33,
+		"./wireclient": 12,
+		"./wireclient.js": 12
+	};
+	function webpackContext(req) {
+		return __webpack_require__(webpackContextResolve(req));
+	};
+	function webpackContextResolve(req) {
+		return map[req] || (function() { throw new Error("Cannot find module '" + req + "'.") }());
+	};
+	webpackContext.keys = function webpackContextKeys() {
+		return Object.keys(map);
+	};
+	webpackContext.resolve = webpackContextResolve;
+	module.exports = webpackContext;
+	webpackContext.id = 27;
+
+
+/***/ },
+/* 28 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	var SETTINGS_KEY = "remotestorage:access";
+	
+	/**
+	 * Class: RemoteStorage.Access
+	 *
+	 * Keeps track of claimed access and scopes.
+	 */
+	var Access = function Access() {
+	  this.reset();
+	};
+	
+	Access.prototype = {
+	
+	  /**
+	   * Method: claim
+	   *
+	   * Claim access on a given scope with given mode.
+	   *
+	   * Parameters:
+	   *   scope - An access scope, such as "contacts" or "calendar"
+	   *   mode  - Access mode. Either "r" for read-only or "rw" for read/write
+	   *
+	   * Example:
+	   *   (start code)
+	   *   remoteStorage.access.claim('contacts', 'r');
+	   *   remoteStorage.access.claim('pictures', 'rw');
+	   *   (end code)
+	   *
+	   * Root access:
+	   *   Claiming root access, meaning complete access to all files and folders
+	   *   of a storage, can be done using an asterisk:
+	   *
+	   *   (start code)
+	   *   remoteStorage.access.claim('*', 'rw');
+	   *   (end code)
+	   */
+	  claim: function claim(scope, mode) {
+	    if (typeof scope !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
+	      throw new Error('Scope should be a non-empty string without forward slashes');
+	    }
+	    if (!mode.match(/^rw?$/)) {
+	      throw new Error('Mode should be either \'r\' or \'rw\'');
+	    }
+	    this._adjustRootPaths(scope);
+	    this.scopeModeMap[scope] = mode;
+	  },
+	
+	  get: function get(scope) {
+	    return this.scopeModeMap[scope];
+	  },
+	
+	  remove: function remove(scope) {
+	    var savedMap = {};
+	    var name;
+	    for (name in this.scopeModeMap) {
+	      savedMap[name] = this.scopeModeMap[name];
+	    }
+	    this.reset();
+	    delete savedMap[scope];
+	    for (name in savedMap) {
+	      this.set(name, savedMap[name]);
+	    }
+	  },
+	
+	  /**
+	   * Verify permission for a given scope.
+	   */
+	  checkPermission: function checkPermission(scope, mode) {
+	    var actualMode = this.get(scope);
+	    return actualMode && (mode === 'r' || actualMode === 'rw');
+	  },
+	
+	  /**
+	   * Verify permission for a given path.
+	   */
+	  checkPathPermission: function checkPathPermission(path, mode) {
+	    if (this.checkPermission('*', mode)) {
+	      return true;
+	    }
+	    return !!this.checkPermission(this._getModuleName(path), mode);
+	  },
+	
+	  reset: function reset() {
+	    this.rootPaths = [];
+	    this.scopeModeMap = {};
+	  },
+	
+	  /**
+	   * Return the module name for a given path.
+	   */
+	  _getModuleName: function _getModuleName(path) {
+	    if (path[0] !== '/') {
+	      throw new Error('Path should start with a slash');
+	    }
+	    var moduleMatch = path.replace(/^\/public/, '').match(/^\/([^\/]*)\//);
+	    return moduleMatch ? moduleMatch[1] : '*';
+	  },
+	
+	  _adjustRootPaths: function _adjustRootPaths(newScope) {
+	    if ('*' in this.scopeModeMap || newScope === '*') {
+	      this.rootPaths = ['/'];
+	    } else if (!(newScope in this.scopeModeMap)) {
+	      this.rootPaths.push('/' + newScope + '/');
+	      this.rootPaths.push('/public/' + newScope + '/');
+	    }
+	  },
+	
+	  _scopeNameForParameter: function _scopeNameForParameter(scope) {
+	    if (scope.name === '*' && this.storageType) {
+	      if (this.storageType === '2012.04') {
+	        return '';
+	      } else if (this.storageType.match(/remotestorage-0[01]/)) {
+	        return 'root';
+	      }
+	    }
+	    return scope.name;
+	  },
+	
+	  setStorageType: function setStorageType(type) {
+	    this.storageType = type;
+	  }
+	};
+	
+	/**
+	 * Property: scopes
+	 *
+	 * Holds an array of claimed scopes in the form
+	 * > { name: "<scope-name>", mode: "<mode>" }
+	 */
+	Object.defineProperty(Access.prototype, 'scopes', {
+	  get: function get() {
+	    return Object.keys(this.scopeModeMap).map(function (key) {
+	      return { name: key, mode: this.scopeModeMap[key] };
+	    }.bind(this));
+	  }
+	});
+	
+	Object.defineProperty(Access.prototype, 'scopeParameter', {
+	  get: function get() {
+	    return this.scopes.map(function (scope) {
+	      return this._scopeNameForParameter(scope) + ':' + scope.mode;
+	    }.bind(this)).join(' ');
+	  }
+	});
+	
+	Access._rs_init = function () {};
+	
+	module.exports = Access;
+
+/***/ },
+/* 29 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	/**
+	 * Class: RemoteStorage.Caching
+	 *
+	 * Holds/manages caching configuration.
+	 *
+	 * Caching strategies:
+	 *
+	 *   For each subtree, you can set the caching strategy to 'ALL',
+	 *   'SEEN' (default), and 'FLUSH'.
+	 *
+	 *   - 'ALL' means that once all outgoing changes have been pushed, sync
+	 *         will start retrieving nodes to cache pro-actively. If a local
+	 *         copy exists of everything, it will check on each sync whether
+	 *         the ETag of the root folder changed, and retrieve remote changes
+	 *         if they exist.
+	 *   - 'SEEN' does this only for documents and folders that have been either
+	 *         read from or written to at least once since connecting to the current
+	 *         remote backend, plus their parent/ancestor folders up to the root
+	 *         (to make tree-based sync possible).
+	 *   - 'FLUSH' will only cache outgoing changes, and forget them as soon as
+	 *         they have been saved to remote successfully.
+	 *
+	 **/
+	
+	var util = __webpack_require__(2);
+	var log = __webpack_require__(4);
+	
+	var containingFolder = util.containingFolder;
+	
+	var Caching = function Caching() {
+	  this.reset();
+	};
+	
+	Caching.prototype = {
+	  pendingActivations: [],
+	
+	  /**
+	   * Method: set
+	   *
+	   * Configure caching for a given path explicitly.
+	   *
+	   * Not needed when using <enable>/<disable>.
+	   *
+	   * Parameters:
+	   *   path     - Path to cache
+	   *   strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
+	   *
+	   * Example:
+	   *   (start code)
+	   *   remoteStorage.caching.set('/bookmarks/archive')
+	   */
+	  set: function set(path, strategy) {
+	    if (typeof path !== 'string') {
+	      throw new Error('path should be a string');
+	    }
+	    if (!util.isFolder(path)) {
+	      throw new Error('path should be a folder');
+	    }
+	    if (this._remoteStorage && this._remoteStorage.access && !this._remoteStorage.access.checkPathPermission(path, 'r')) {
+	      throw new Error('No access to path "' + path + '". You have to claim access to it first.');
+	    }
+	    if (!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
+	      throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
+	    }
+	
+	    this._rootPaths[path] = strategy;
+	
+	    if (strategy === 'ALL') {
+	      if (this.activateHandler) {
+	        this.activateHandler(path);
+	      } else {
+	        this.pendingActivations.push(path);
+	      }
+	    }
+	  },
+	
+	  /**
+	   * Method: enable
+	   *
+	   * Enable caching for a given path.
+	   *
+	   * Uses caching strategy 'ALL'.
+	   *
+	   * Parameters:
+	   *   path - Path to enable caching for
+	   */
+	  enable: function enable(path) {
+	    this.set(path, 'ALL');
+	  },
+	
+	  /**
+	   * Method: disable
+	   *
+	   * Disable caching for a given path.
+	   *
+	   * Uses caching strategy 'FLUSH' (meaning items are only cached until
+	   * successfully pushed to the remote).
+	   *
+	   * Parameters:
+	   *   path - Path to disable caching for
+	   */
+	  disable: function disable(path) {
+	    this.set(path, 'FLUSH');
+	  },
+	
+	  /**
+	   * Method: onActivate
+	   *
+	   * Set a callback for when caching is activated for a path.
+	   *
+	   * Parameters:
+	   *   callback - Callback function
+	   */
+	  onActivate: function onActivate(cb) {
+	    var i;
+	    log('[Caching] Setting activate handler', cb, this.pendingActivations);
+	    this.activateHandler = cb;
+	    for (i = 0; i < this.pendingActivations.length; i++) {
+	      cb(this.pendingActivations[i]);
+	    }
+	    delete this.pendingActivations;
+	  },
+	
+	  /**
+	   * Method: checkPath
+	   *
+	   * Retrieve caching setting for a given path, or its next parent
+	   * with a caching strategy set.
+	   *
+	   * Parameters:
+	   *   path - Path to retrieve setting for
+	   **/
+	  checkPath: function checkPath(path) {
+	    if (this._rootPaths[path] !== undefined) {
+	      return this._rootPaths[path];
+	    } else if (path === '/') {
+	      return 'SEEN';
+	    } else {
+	      return this.checkPath(containingFolder(path));
+	    }
+	  },
+	
+	  /**
+	   * Method: reset
+	   *
+	   * Reset the state of caching by deleting all caching information.
+	   **/
+	  reset: function reset() {
+	    this._rootPaths = {};
+	    this._remoteStorage = null;
+	  }
+	};
+	
+	Caching._rs_init = function (remoteStorage) {
+	  this._remoteStorage = remoteStorage;
+	};
+	
+	module.exports = Caching;
+
+/***/ },
+/* 30 */
+/***/ function(module, exports) {
+
+	"use strict";
+	
+	/**
+	 * Class: I18n
+	 *
+	 * TODO add documentation
+	 **/
+	
+	var dictionary = {
+	  "view_info": 'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',
+	  "view_connect": "<strong>Connect</strong> remote storage",
+	  "view_connecting": "Connecting <strong>%s</strong>",
+	  "view_offline": "Offline",
+	  "view_error_occured": "Sorry! An error occured.",
+	  "view_invalid_key": "Wrong key!",
+	  "view_confirm_reset": "Are you sure you want to reset everything? This will clear your local data and reload the page.",
+	  "view_get_me_out": "Get me out of here!",
+	  "view_error_plz_report": 'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',
+	  "view_unauthorized": "Unauthorized! Click here to reconnect."
+	};
+	
+	var I18n = {
+	
+	  translate: function translate() {
+	    var str = arguments[0],
+	        params = Array.prototype.splice.call(arguments, 1);
+	
+	    if (typeof dictionary[str] !== "string") {
+	      throw "Unknown translation string: " + str;
+	    } else {
+	      str = dictionary[str];
+	    }
+	    return str.replace(/%s/g, function () {
+	      return params.shift();
+	    });
+	  },
+	
+	  getDictionary: function getDictionary() {
+	    return dictionary;
+	  },
+	
+	  setDictionary: function setDictionary(newDictionary) {
+	    dictionary = newDictionary;
+	  },
+	
+	  _rs_init: function _rs_init() {}
+	};
+	
+	module.exports = I18n;
+
+/***/ },
+/* 31 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var RemoteStorage = __webpack_require__(1);
+	var BaseClient = __webpack_require__(8);
+	
+	RemoteStorage.MODULES = {};
+	
+	/*
+	 * Method: RemoteStorage.defineModule
+	 *
+	 * Method for defining a new remoteStorage data module
+	 *
+	 * Parameters:
+	 *   moduleName - Name of the module
+	 *   builder    - Builder function defining the module
+	 *
+	 * The module builder function should return an object containing another
+	 * object called exports, which will be exported to any <RemoteStorage>
+	 * instance under the module's name. So when defining a locations module,
+	 * like in the example below, it would be accessible via
+	 * `remoteStorage.locations`, which would in turn have a `features` and a
+	 * `collections` property.
+	 *
+	 * The function receives a private and a public client, which are both
+	 * instances of <RemoteStorage.BaseClient>. In the following example, the
+	 * scope of privateClient is `/locations` and the scope of publicClient is
+	 * `/public/locations`.
+	 *
+	 * Example:
+	 *   (start code)
+	 *   RemoteStorage.defineModule('locations', function (privateClient, publicClient) {
+	 *     return {
+	 *       exports: {
+	 *         features: privateClient.scope('features/').defaultType('feature'),
+	 *         collections: privateClient.scope('collections/').defaultType('feature-collection')
+	 *       }
+	 *     };
+	 *   });
+	 * (end code)
+	*/
+	
+	RemoteStorage.defineModule = function (moduleName, builder) {
+	  RemoteStorage.MODULES[moduleName] = builder;
+	
+	  Object.defineProperty(RemoteStorage.prototype, moduleName, {
+	    configurable: true,
+	    get: function get() {
+	      var instance = this._loadModule(moduleName);
+	      Object.defineProperty(this, moduleName, {
+	        value: instance
+	      });
+	      return instance;
+	    }
+	  });
+	
+	  if (moduleName.indexOf('-') !== -1) {
+	    var camelizedName = moduleName.replace(/\-[a-z]/g, function (s) {
+	      return s[1].toUpperCase();
+	    });
+	    Object.defineProperty(RemoteStorage.prototype, camelizedName, {
+	      get: function get() {
+	        return this[moduleName];
+	      }
+	    });
+	  }
+	};
+	
+	RemoteStorage.prototype._loadModule = function (moduleName) {
+	  var builder = RemoteStorage.MODULES[moduleName];
+	  if (builder) {
+	    var module = builder(new BaseClient(this, '/' + moduleName + '/'), new BaseClient(this, '/public/' + moduleName + '/'));
+	    return module.exports;
+	  } else {
+	    throw "Unknown module: " + moduleName;
+	  }
+	};
+	
+	RemoteStorage.prototype.defineModule = function (moduleName) {
+	  console.log("remoteStorage.defineModule is deprecated, use RemoteStorage.defineModule instead!");
+	  RemoteStorage.defineModule.apply(RemoteStorage, arguments);
+	};
+
+/***/ },
+/* 32 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	var log = __webpack_require__(4);
+	
+	function shareFirst(path) {
+	  return this.backend === 'dropbox' && path.match(/^\/public\/.*[^\/]$/);
+	}
+	
+	var SyncedGetPutDelete = {
+	  get: function get(path, maxAge) {
+	    if (this.local) {
+	      if (maxAge === undefined) {
+	        if (_typeof(this.remote) === 'object' && this.remote.connected && this.remote.online) {
+	          maxAge = 2 * this.getSyncInterval();
+	        } else {
+	          log('Not setting default maxAge, because remote is offline or not connected');
+	          maxAge = false;
+	        }
+	      }
+	      var maxAgeInvalid = function maxAgeInvalid(maxAge) {
+	        return maxAge !== false && typeof maxAge !== 'number';
+	      };
+	
+	      if (maxAgeInvalid(maxAge)) {
+	        return Promise.reject('Argument \'maxAge\' must be false or a number');
+	      }
+	      return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
+	    } else {
+	      return this.remote.get(path);
+	    }
+	  },
+	
+	  put: function put(path, body, contentType) {
+	    if (shareFirst.bind(this)(path)) {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	    } else if (this.local) {
+	      return this.local.put(path, body, contentType);
+	    } else {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	    }
+	  },
+	
+	  'delete': function _delete(path) {
+	    if (this.local) {
+	      return this.local.delete(path);
+	    } else {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
+	    }
+	  },
+	
+	  _wrapBusyDone: function _wrapBusyDone(result) {
+	    var self = this;
+	    this._emit('wire-busy');
+	    return result.then(function (r) {
+	      self._emit('wire-done', { success: true });
+	      return Promise.resolve(r);
+	    }, function (err) {
+	      self._emit('wire-done', { success: false });
+	      return Promise.reject(err);
+	    });
+	  }
+	};
+	
+	module.exports = SyncedGetPutDelete;
+
+/***/ },
+/* 33 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var RemoteStorage = __webpack_require__(1);
+	RemoteStorage.version = RemoteStorage.prototype.version = {
+	  productName: 'remotestorage.js',
+	  product: 0,
+	  major: 13,
+	  minor: 1,
+	  postfix: 'pre'
+	};
+	
+	RemoteStorage.version.toString = function () {
+	  return this.productName + ' ' + [this.product, this.major, this.minor].join('.') + (this.postfix ? '-' + this.postfix : '');
+	};
+
+/***/ }
+/******/ ])
+});
+;
 //# sourceMappingURL=remotestorage.js.map

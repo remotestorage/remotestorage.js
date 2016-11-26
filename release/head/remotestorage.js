@@ -7,7 +7,7 @@
 		exports["RemoteStorage"] = factory(require("xmlhttprequest"));
 	else
 		root["RemoteStorage"] = factory(root["xmlhttprequest"]);
-})(this, function(__WEBPACK_EXTERNAL_MODULE_23__) {
+})(this, function(__WEBPACK_EXTERNAL_MODULE_22__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -94,15 +94,73 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 
 	  var util = __webpack_require__(2)
-	  var SyncedGetPutDelete = __webpack_require__(6);
-	  var Dropbox = __webpack_require__(7);
-	  var GoogleDrive = __webpack_require__(20);
-	  var Discover = __webpack_require__(21);
-	  var BaseClient = __webpack_require__(9);
+	  var Dropbox = __webpack_require__(6);
+	  var GoogleDrive = __webpack_require__(19);
+	  var Discover = __webpack_require__(20);
+	  var BaseClient = __webpack_require__(8);
 	  var config = __webpack_require__(5);
-	  var Authorize = __webpack_require__(8);
-	  var Sync = __webpack_require__(18);
+	  var Authorize = __webpack_require__(7);
+	  var Sync = __webpack_require__(17);
 
+	  var SyncedGetPutDelete = {
+	    get: function (path, maxAge) {
+	      console.error('sono qui dentro e il this mi sa che e', this)
+	      console.error(this.sync)
+	      var self = this;
+	      if (this.local) {
+	        if (maxAge === undefined) {
+	          if ((typeof this.remote === 'object') &&
+	               this.remote.connected && this.remote.online) {
+	            maxAge = 2*this.getSyncInterval();
+	          } else {
+	            log('Not setting default maxAge, because remote is offline or not connected');
+	            maxAge = false;
+	          }
+	        }
+	        var maxAgeInvalid = function (maxAge) {
+	          return maxAge !== false && typeof(maxAge) !== 'number';
+	        };
+
+	        if (maxAgeInvalid(maxAge)) {
+	          return Promise.reject('Argument \'maxAge\' must be false or a number');
+	        }
+	        return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
+	      } else {
+	        return this.remote.get(path);
+	      }
+	    },
+
+	    put: function (path, body, contentType) {
+	      if (shareFirst.bind(this)(path)) {
+	        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	      }
+	      else if (this.local) {
+	        return this.local.put(path, body, contentType);
+	      } else {
+	        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	      }
+	    },
+
+	    'delete': function (path) {
+	      if (this.local) {
+	        return this.local.delete(path);
+	      } else {
+	        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
+	      }
+	    },
+
+	    _wrapBusyDone: function (result) {
+	      var self = this;
+	      this._emit('wire-busy');
+	      return result.then(function (r) {
+	        self._emit('wire-done', { success: true });
+	        return Promise.resolve(r);
+	      }, function (err) {
+	        self._emit('wire-done', { success: false });
+	        return Promise.reject(err);
+	      });
+	    }
+	  };
 
 	  /**
 	   * Class: RemoteStorage
@@ -233,9 +291,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var origOn = this.on;
 
 	    this.on = function (eventName, handler) {
+	      if(eventName === 'features-loaded') {
+	        console.error('sono dentro this.on ', eventName, this)
+	      }
 	      if (eventName === 'ready' && this.remote && this.remote.connected && this._allLoaded) {
 	        setTimeout(handler, 0);
 	      } else if (eventName === 'features-loaded' && this._allLoaded) {
+	        console.error('boh dai diocane SIIII')
 	        setTimeout(handler, 0);
 	      }
 	      return origOn.call(this, eventName, handler);
@@ -600,6 +662,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 
 	      this._loadFeatures(function (features) {
+	        console.error('sono qui dentro loadFeatures')
 	        this.log('[RemoteStorage] All features loaded');
 	        this.local = config.cache && features.local && new features.local();
 	        // this.remote set by WireClient._rs_init as lazy property on
@@ -634,6 +697,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	        try {
 	          this._allLoaded = true;
+	          console.error('_allLoaded Lancio feature-loaded!')
 	          this._emit('features-loaded');
 	        } catch(exc) {
 	          logError(exc);
@@ -683,16 +747,30 @@ return /******/ (function(modules) { // webpackBootstrap
 	          setTimeout(function () {
 	            features.caching = !!Caching && config.cache;
 	            features.sync = !!Sync;
+
+	            console.error('prima di questo')
+	            var cachingModule = {
+	              'IndexedDB': __webpack_require__(23),
+	              'LocalStorage': __webpack_require__(25),
+	              'InMemoryStorage': __webpack_require__(26)
+	            };
+
+	            console.error('dopo di questo !');
 	            [
 	              'IndexedDB',
 	              'LocalStorage',
 	              'InMemoryStorage'
 	            ].some(function (cachingLayer) {
+	              console.error('sono qua', cachingLayer, features.map(function(f){return f.name}))
 	              if (features.some(function (feature) { return feature.name === cachingLayer; })) {
-	                features.local = __webpack_require__(24)("./" + cachingLayer.toLowerCase());
+	                console.error('uso ' , feature.name , 'come cachingModule')
+	                features.local = cachingModule[feature.name]
 	                return true;
+	              } else {
+	                console.error('porcoddio')
 	              }
 	            });
+	            console.error('1 sono qui e sto per lanciare tutte cose !')
 	            self.features = features;
 	            callback(features);
 	          }, 0);
@@ -700,7 +778,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 
 	      function featureInitialized(name) {
-	        var feature = __webpack_require__(24)("./" + name.toLowerCase())
+	        var feature = __webpack_require__(27)("./" + name.toLowerCase())
 	        self.log("[RemoteStorage] [FEATURE "+name+"] initialized.");
 	        features.push({
 	          name : name,
@@ -726,7 +804,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      function initFeature(name) {
 
 	        // if (config.cache && name === 'Sync') return
-	        var feature = __webpack_require__(24)("./" + name.toLowerCase())
+	        var feature = __webpack_require__(27)("./" + name.toLowerCase())
 	        var initResult;
 	        try {
 	          initResult = feature._rs_init(self);
@@ -745,7 +823,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 
 	      featureList.forEach(function (featureName) {
-	        var feature = __webpack_require__(24)("./" + featureName.toLowerCase())
+	        var feature = __webpack_require__(27)("./" + featureName.toLowerCase())
 	        self.log("[RemoteStorage] [FEATURE " + featureName + "] initializing...");
 	        var impl = feature;
 	        var supported;
@@ -900,7 +978,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	   *
 	   * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
 	  */
-	  var Access = __webpack_require__(25);
+	  var Access = __webpack_require__(28);
 	  Object.defineProperty(RemoteStorage.prototype, 'access', {
 	    get: function() {
 	      var access = new Access();
@@ -999,21 +1077,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return isBackground ? backgroundSyncInterval : syncInterval;
 	  };
 
-	  var SyncError = function (originalError) {
-	    var msg = 'Sync failed: ';
-	    if (typeof(originalError) === 'object' && 'message' in originalError) {
-	      msg += originalError.message;
-	    } else {
-	      msg += originalError;
-	    }
-	    this.originalError = originalError;
-	    this.message = msg;
-	  };
-
-	  SyncError.prototype = new Error();
-	  SyncError.prototype.constructor = SyncError;
-
-	  Sync.SyncError = SyncError;
 
 
 	  /* TOFIX (in sync.js also... has to be a shared property */
@@ -1073,7 +1136,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * Not available in no-cache builds.
 	   *
 	   */
-	  var Caching = __webpack_require__(26);
+	  var Caching = __webpack_require__(29);
 	  Object.defineProperty(RemoteStorage.prototype, 'caching', {
 	    configurable: true,
 	    get: function () {
@@ -1670,84 +1733,12 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	
-	var log = __webpack_require__(4);
-
-	function shareFirst(path) {
-	  return ( this.backend === 'dropbox' &&
-	           path.match(/^\/public\/.*[^\/]$/) );
-	}
-
-	var SyncedGetPutDelete = {
-	  get: function (path, maxAge) {
-	    if (this.local) {
-	      if (maxAge === undefined) {
-	        if ((typeof this.remote === 'object') &&
-	             this.remote.connected && this.remote.online) {
-	          maxAge = 2*this.getSyncInterval();
-	        } else {
-	          log('Not setting default maxAge, because remote is offline or not connected');
-	          maxAge = false;
-	        }
-	      }
-	      var maxAgeInvalid = function (maxAge) {
-	        return maxAge !== false && typeof(maxAge) !== 'number';
-	      };
-
-	      if (maxAgeInvalid(maxAge)) {
-	        return Promise.reject('Argument \'maxAge\' must be false or a number');
-	      }
-	      return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
-	    } else {
-	      return this.remote.get(path);
-	    }
-	  },
-
-	  put: function (path, body, contentType) {
-	    if (shareFirst.bind(this)(path)) {
-	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
-	    }
-	    else if (this.local) {
-	      return this.local.put(path, body, contentType);
-	    } else {
-	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
-	    }
-	  },
-
-	  'delete': function (path) {
-	    if (this.local) {
-	      return this.local.delete(path);
-	    } else {
-	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
-	    }
-	  },
-
-	  _wrapBusyDone: function (result) {
-	    var self = this;
-	    this._emit('wire-busy');
-	    return result.then(function (r) {
-	      self._emit('wire-done', { success: true });
-	      return Promise.resolve(r);
-	    }, function (err) {
-	      self._emit('wire-done', { success: false });
-	      return Promise.reject(err);
-	    });
-	  }
-	};
-
-	module.exports = SyncedGetPutDelete;
-
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(global) {  var Authorize = __webpack_require__(8);
-	  var BaseClient = __webpack_require__(9);
-	  var WireClient = __webpack_require__(13);
+	/* WEBPACK VAR INJECTION */(function(global) {  var Authorize = __webpack_require__(7);
+	  var BaseClient = __webpack_require__(8);
+	  var WireClient = __webpack_require__(12);
 	  var util = __webpack_require__(2);
 	  var eventHandling = __webpack_require__(3);
-	  var Sync = __webpack_require__(18);
+	  var Sync = __webpack_require__(17);
 	  
 	  // var RemoteStorage = require('./remotestorage');
 
@@ -2713,7 +2704,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 8 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {var log = __webpack_require__(4);
@@ -2952,7 +2943,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 9 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -2964,7 +2955,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var eventHandling = __webpack_require__(3);
 	  var util = __webpack_require__(2);
 	  var config = __webpack_require__(5);
-	  __webpack_require__(10);
+	  __webpack_require__(9);
 
 
 	  /**
@@ -3629,10 +3620,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	   **/
 
 	module.exports = BaseClient;
-	__webpack_require__(11);
+	__webpack_require__(10);
 
 /***/ },
-/* 10 */
+/* 9 */
 /***/ function(module, exports) {
 
 	/*!
@@ -3708,11 +3699,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 11 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
-	  var tv4 = __webpack_require__(12);
-	  var BaseClient = __webpack_require__(9)
+	  var tv4 = __webpack_require__(11);
+	  var BaseClient = __webpack_require__(8)
 
 	  /**
 	   * Class: RemoteStorage.BaseClient.Types
@@ -3871,7 +3862,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 12 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*
@@ -5553,14 +5544,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	}));
 
 /***/ },
-/* 13 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, Buffer) {  // var RemoteStorage = require('./remotestorage');
 	  var log = __webpack_require__(4);
 	  var util = __webpack_require__(2);
 	  var eventHandling = __webpack_require__(3);
-	  var Authorize = __webpack_require__(8);
+	  var Authorize = __webpack_require__(7);
 
 	  /**
 	   * Class: RemoteStorage.WireClient
@@ -6145,10 +6136,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  module.exports = WireClient;
 
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(14).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(13).Buffer))
 
 /***/ },
-/* 14 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer, global) {/*!
@@ -6161,9 +6152,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	'use strict'
 
-	var base64 = __webpack_require__(15)
-	var ieee754 = __webpack_require__(16)
-	var isArray = __webpack_require__(17)
+	var base64 = __webpack_require__(14)
+	var ieee754 = __webpack_require__(15)
+	var isArray = __webpack_require__(16)
 
 	exports.Buffer = Buffer
 	exports.SlowBuffer = SlowBuffer
@@ -7941,10 +7932,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return val !== val // eslint-disable-line no-self-compare
 	}
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(14).Buffer, (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13).Buffer, (function() { return this; }())))
 
 /***/ },
-/* 15 */
+/* 14 */
 /***/ function(module, exports) {
 
 	'use strict'
@@ -8064,7 +8055,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 16 */
+/* 15 */
 /***/ function(module, exports) {
 
 	exports.read = function (buffer, offset, isLE, mLen, nBytes) {
@@ -8154,7 +8145,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 17 */
+/* 16 */
 /***/ function(module, exports) {
 
 	var toString = {}.toString;
@@ -8165,15 +8156,15 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 18 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	  // var RemoteStorage = require('./remotestorage');
 	  var util = __webpack_require__(2);
-	  var Env = __webpack_require__(19);
+	  var Env = __webpack_require__(18);
 	  var eventHandling = __webpack_require__(3);
 	  var log = __webpack_require__(4);
-	  var Authorize = __webpack_require__(8);
+	  var Authorize = __webpack_require__(7);
 	  var config = __webpack_require__(5);
 	  
 	  /* TOFIX */
@@ -8243,7 +8234,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * folder GET comes in, it gives information about all the documents it
 	   * contains (this is the `markChildren` function).
 	   **/
-	  var Sync = function (setLocal, setRemote, setAccess, setCaching) {
+	  var Sync = function (remoteStorage, setLocal, setRemote, setAccess, setCaching) {
+	    this.remoteStorage = remoteStorage;
 	    this.local = setLocal;
 	    this.local.onDiff(function (path) {
 	      this.addTask(path);
@@ -8955,6 +8947,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 
 	    dealWithFailure: function (path, action, statusMeaning) {
+
 	      return this.local.getNodes([path]).then(function (nodes) {
 	        if (nodes[path]) {
 	          delete nodes[path].push;
@@ -9042,7 +9035,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 
 	        return this.dealWithFailure(path, action, status).then(function () {
-	          remoteStorageInstance._emit('error', error);
+	          this.remoteStorage._emit('error', error);
 	          throw error;
 	        });
 	      }
@@ -9188,9 +9181,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 	  var syncCycleCb;
-	  var remoteStorageInstance
 	  Sync._rs_init = function (remoteStorage) {
-	    remoteStorageInstance = remoteStorage
 	    syncCycleCb = function () {
 	      if (!config.cache) return false
 	      log('[Sync] syncCycleCb calling syncCycle');
@@ -9199,7 +9190,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 	      if (!remoteStorage.sync) {
 	        // Call this now that all other modules are also ready:
-	        remoteStorage.sync = new Sync(
+	        remoteStorage.sync = new Sync(remoteStorage,
 	            remoteStorage.local, remoteStorage.remote, remoteStorage.access,
 	            remoteStorage.caching);
 
@@ -9230,11 +9221,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	    delete remoteStorage.sync;
 	  };
 
+	  
+	  var SyncError = function (originalError) {
+	    var msg = 'Sync failed: ';
+	    if (typeof(originalError) === 'object' && 'message' in originalError) {
+	      msg += originalError.message;
+	    } else {
+	      msg += originalError;
+	    }
+	    this.originalError = originalError;
+	    this.message = msg;
+	  };
+
+	  SyncError.prototype = new Error();
+	  SyncError.prototype.constructor = SyncError;
+
+	  Sync.SyncError = SyncError;
+
 	  module.exports = Sync;
 
 
 /***/ },
-/* 19 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	  var eventHandling = __webpack_require__(3);
@@ -9303,7 +9311,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  module.exports = Env;
 
 /***/ },
-/* 20 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -9328,8 +9336,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
 	   **/
 
-	  var Authorize = __webpack_require__(8);
-	  var WireClient = __webpack_require__(13);
+	  var Authorize = __webpack_require__(7);
+	  var WireClient = __webpack_require__(12);
 	  var eventHandling = __webpack_require__(3);
 
 	  var BASE_URL = 'https://www.googleapis.com';
@@ -9781,10 +9789,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 21 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {  var WebFinger = __webpack_require__(22);
+	/* WEBPACK VAR INJECTION */(function(global) {  var WebFinger = __webpack_require__(21);
 	  var log = __webpack_require__(4);
 	  var util = __webpack_require__(2);
 
@@ -9888,7 +9896,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 22 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* global define */
@@ -9911,7 +9919,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 
 	if (typeof XMLHttpRequest === 'undefined') {
-	  XMLHttpRequest = __webpack_require__(23).XMLHttpRequest;
+	  XMLHttpRequest = __webpack_require__(22).XMLHttpRequest;
 	}
 
 	(function (undefined) {
@@ -10238,403 +10246,426 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 23 */
+/* 22 */
 /***/ function(module, exports) {
 
-	module.exports = __WEBPACK_EXTERNAL_MODULE_23__;
+	module.exports = __WEBPACK_EXTERNAL_MODULE_22__;
+
+/***/ },
+/* 23 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {
+	  /**
+	   * Class: RemoteStorage.IndexedDB
+	   *
+	   *
+	   * IndexedDB Interface
+	   * -------------------
+	   *
+	   * TODO rewrite, doesn't expose GPD anymore, it's in cachinglayer now
+	   *
+	   * This file exposes a get/put/delete interface, accessing data in an IndexedDB.
+	   *
+	   * There are multiple parts to this interface:
+	   *
+	   *   The RemoteStorage integration:
+	   *     - RemoteStorage.IndexedDB._rs_supported() determines if IndexedDB support
+	   *       is available. If it isn't, RemoteStorage won't initialize the feature.
+	   *     - RemoteStorage.IndexedDB._rs_init() initializes the feature. It returns
+	   *       a promise that is fulfilled as soon as the database has been opened and
+	   *       migrated.
+	   *
+	   *   The storage interface (RemoteStorage.IndexedDB object):
+	   *     - Usually this is accessible via "remoteStorage.local"
+	   *     - #get() takes a path and returns a promise.
+	   *     - #put() takes a path, body and contentType and also returns a promise.
+	   *     - #delete() takes a path and also returns a promise.
+	   *     - #on('change', ...) events, being fired whenever something changes in
+	   *       the storage. Change events roughly follow the StorageEvent pattern.
+	   *       They have "oldValue" and "newValue" properties, which can be used to
+	   *       distinguish create/update/delete operations and analyze changes in
+	   *       change handlers. In addition they carry a "origin" property, which
+	   *       is either "window", "local", or "remote". "remote" events are fired
+	   *       whenever a change comes in from RemoteStorage.Sync.
+	   *
+	   *   The sync interface (also on RemoteStorage.IndexedDB object):
+	   *     - #getNodes([paths]) returns the requested nodes in a promise.
+	   *     - #setNodes(map) stores all the nodes given in the (path -> node) map.
+	   *
+	   */
+
+	  var log = __webpack_require__(4);
+	  var cachingLayer = __webpack_require__(24);
+	  var eventHandling = __webpack_require__(3);
+	  var util = __webpack_require__(2);
+
+	  var DB_VERSION = 2;
+
+	  var DEFAULT_DB_NAME = 'remotestorage';
+	  var DEFAULT_DB;
+
+	  var IndexedDB = function (database) {
+	    this.db = database || DEFAULT_DB;
+
+	    if (!this.db) {
+	      log("[IndexedDB] Failed to open DB");
+	      return undefined;
+	    }
+
+	    cachingLayer(this);
+	    eventHandling(this, 'change', 'local-events-done');
+
+	    this.getsRunning = 0;
+	    this.putsRunning = 0;
+
+	    /**
+	     * Property: changesQueued
+	     *
+	     * Given a node for which uncommitted changes exist, this cache
+	     * stores either the entire uncommitted node, or false for a deletion.
+	     * The node's path is used as the key.
+	     *
+	     * changesQueued stores changes for which no IndexedDB transaction has
+	     * been started yet.
+	     */
+	    this.changesQueued = {};
+
+	    /**
+	     * Property: changesRunning
+	     *
+	     * Given a node for which uncommitted changes exist, this cache
+	     * stores either the entire uncommitted node, or false for a deletion.
+	     * The node's path is used as the key.
+	     *
+	     * At any time there is at most one IndexedDB transaction running.
+	     * changesRunning stores the changes that are included in that currently
+	     * running IndexedDB transaction, or if none is running, of the last one
+	     * that ran.
+	     */
+	    this.changesRunning = {};
+	  };
+
+	  IndexedDB.prototype = {
+	    getNodes: function (paths) {
+	      var misses = [], fromCache = {};
+	      for (var i = 0, len = paths.length; i < len; i++) {
+	        if (this.changesQueued[paths[i]] !== undefined) {
+	          fromCache[paths[i]] = util.deepClone(this.changesQueued[paths[i]] || undefined);
+	        } else if(this.changesRunning[paths[i]] !== undefined) {
+	          fromCache[paths[i]] = util.deepClone(this.changesRunning[paths[i]] || undefined);
+	        } else {
+	          misses.push(paths[i]);
+	        }
+	      }
+	      if (misses.length > 0) {
+	        return this.getNodesFromDb(misses).then(function (nodes) {
+	          for (var i in fromCache) {
+	            nodes[i] = fromCache[i];
+	          }
+	          return nodes;
+	        });
+	      } else {
+	        return Promise.resolve(fromCache);
+	      }
+	    },
+
+	    setNodes: function (nodes) {
+	      for (var i in nodes) {
+	        this.changesQueued[i] = nodes[i] || false;
+	      }
+	      this.maybeFlush();
+	      return Promise.resolve();
+	    },
+
+	    maybeFlush: function () {
+	      if (this.putsRunning === 0) {
+	        this.flushChangesQueued();
+	      } else {
+	        if (!this.commitSlownessWarning) {
+	          this.commitSlownessWarning = setInterval(function () {
+	            console.log('WARNING: waited more than 10 seconds for previous commit to finish');
+	          }, 10000);
+	        }
+	      }
+	    },
+
+	    flushChangesQueued: function () {
+	      if (this.commitSlownessWarning) {
+	        clearInterval(this.commitSlownessWarning);
+	        this.commitSlownessWarning = null;
+	      }
+	      if (Object.keys(this.changesQueued).length > 0) {
+	        this.changesRunning = this.changesQueued;
+	        this.changesQueued = {};
+	        this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
+	      }
+	    },
+
+	    getNodesFromDb: function (paths) {
+	      var pending = Promise.defer();
+	      var transaction = this.db.transaction(['nodes'], 'readonly');
+	      var nodes = transaction.objectStore('nodes');
+	      var retrievedNodes = {};
+	      var startTime = new Date().getTime();
+
+	      this.getsRunning++;
+
+	      paths.map(function (path, i) {
+	        nodes.get(path).onsuccess = function (evt) {
+	          retrievedNodes[path] = evt.target.result;
+	        };
+	      });
+
+	      transaction.oncomplete = function () {
+	        pending.resolve(retrievedNodes);
+	        this.getsRunning--;
+	      }.bind(this);
+
+	      transaction.onerror = transaction.onabort = function () {
+	        pending.reject('get transaction error/abort');
+	        this.getsRunning--;
+	      }.bind(this);
+
+	      return pending.promise;
+	    },
+
+	    setNodesInDb: function (nodes) {
+	      var pending = Promise.defer();
+	      var transaction = this.db.transaction(['nodes'], 'readwrite');
+	      var nodesStore = transaction.objectStore('nodes');
+	      var startTime = new Date().getTime();
+
+	      this.putsRunning++;
+
+	      log('[IndexedDB] Starting put', nodes, this.putsRunning);
+
+	      for (var path in nodes) {
+	        var node = nodes[path];
+	        if(typeof(node) === 'object') {
+	          try {
+	            nodesStore.put(node);
+	          } catch(e) {
+	            log('[IndexedDB] Error while putting', node, e);
+	            throw e;
+	          }
+	        } else {
+	          try {
+	            nodesStore.delete(path);
+	          } catch(e) {
+	            log('[IndexedDB] Error while removing', nodesStore, node, e);
+	            throw e;
+	          }
+	        }
+	      }
+
+	      transaction.oncomplete = function () {
+	        this.putsRunning--;
+	        log('[IndexedDB] Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
+	        pending.resolve();
+	      }.bind(this);
+
+	      transaction.onerror = function () {
+	        this.putsRunning--;
+	        pending.reject('transaction error');
+	      }.bind(this);
+
+	      transaction.onabort = function () {
+	        pending.reject('transaction abort');
+	        this.putsRunning--;
+	      }.bind(this);
+
+	      return pending.promise;
+	    },
+
+	    reset: function (callback) {
+	      var dbName = this.db.name;
+	      var self = this;
+
+	      this.db.close();
+
+	      IndexedDB.clean(this.db.name, function() {
+	        IndexedDB.open(dbName, function (err, other) {
+	          if (err) {
+	            log('[IndexedDB] Error while resetting local storage', err);
+	          } else {
+	            // hacky!
+	            self.db = other;
+	          }
+	          if (typeof callback === 'function') { callback(self); }
+	        });
+	      });
+	    },
+
+	    forAllNodes: function (cb) {
+	      var pending = Promise.defer();
+	      var transaction = this.db.transaction(['nodes'], 'readonly');
+	      var cursorReq = transaction.objectStore('nodes').openCursor();
+
+	      cursorReq.onsuccess = function (evt) {
+	        var cursor = evt.target.result;
+
+	        if (cursor) {
+	          cb(this.migrate(cursor.value));
+	          cursor.continue();
+	        } else {
+	          pending.resolve();
+	        }
+	      }.bind(this);
+
+	      return pending.promise;
+	    },
+
+	    closeDB: function () {
+	      this.db.close();
+	    }
+
+	  };
+
+	  IndexedDB.open = function (name, callback) {
+	    var timer = setTimeout(function () {
+	      callback("timeout trying to open db");
+	    }, 10000);
+
+	    try {
+	      var req = indexedDB.open(name, DB_VERSION);
+
+	      req.onerror = function () {
+	        log('[IndexedDB] Opening DB failed', req);
+
+	        clearTimeout(timer);
+	        callback(req.error);
+	      };
+
+	      req.onupgradeneeded = function (event) {
+	        var db = req.result;
+
+	        log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
+
+	        if (event.oldVersion !== 1) {
+	          log("[IndexedDB] Creating object store: nodes");
+	          db.createObjectStore('nodes', { keyPath: 'path' });
+	        }
+
+	        log("[IndexedDB] Creating object store: changes");
+
+	        db.createObjectStore('changes', { keyPath: 'path' });
+	      };
+
+	      req.onsuccess = function () {
+	        clearTimeout(timer);
+
+	        // check if all object stores exist
+	        var db = req.result;
+	        if(!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
+	          log("[IndexedDB] Missing object store. Resetting the database.");
+	          IndexedDB.clean(name, function() {
+	            IndexedDB.open(name, callback);
+	          });
+	          return;
+	        }
+
+	        callback(null, req.result);
+	      };
+	    } catch(error) {
+	      log("[IndexedDB] Failed to open database: " + error);
+	      log("[IndexedDB] Resetting database and trying again.");
+
+	      clearTimeout(timer);
+
+	      IndexedDB.clean(name, function() {
+	        IndexedDB.open(name, callback);
+	      });
+	    };
+	  };
+
+	  IndexedDB.clean = function (databaseName, callback) {
+	    var req = indexedDB.deleteDatabase(databaseName);
+
+	    req.onsuccess = function () {
+	      log('[IndexedDB] Done removing DB');
+	      callback();
+	    };
+
+	    req.onerror = req.onabort = function (evt) {
+	      console.error('Failed to remove database "' + databaseName + '"', evt);
+	    };
+	  };
+
+	  IndexedDB._rs_init = function (remoteStorage) {
+	    var pending = Promise.defer();
+
+	    IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
+	      if (err) {
+	        pending.reject(err);
+	      } else {
+	        DEFAULT_DB = db;
+	        db.onerror = function () { remoteStorage._emit('error', err); };
+	        pending.resolve();
+	      }
+	    });
+
+	    return pending.promise;
+	  };
+
+	  IndexedDB._rs_supported = function () {
+	    var pending = Promise.defer();
+
+	    global.indexedDB = global.indexedDB    || global.webkitIndexedDB ||
+	                       global.mozIndexedDB || global.oIndexedDB      ||
+	                       global.msIndexedDB;
+
+	    // Detect browsers with known IndexedDb issues (e.g. Android pre-4.4)
+	    var poorIndexedDbSupport = false;
+	    if (typeof global.navigator !== 'undefined' &&
+	        global.navigator.userAgent.match(/Android (2|3|4\.[0-3])/)) {
+	      // Chrome and Firefox support IndexedDB
+	      if (!navigator.userAgent.match(/Chrome|Firefox/)) {
+	        poorIndexedDbSupport = true;
+	      }
+	    }
+
+	    if ('indexedDB' in global && !poorIndexedDbSupport) {
+	      try {
+	        var check = indexedDB.open("rs-check");
+	        check.onerror = function (event) {
+	          pending.reject();
+	        };
+	        check.onsuccess = function (event) {
+	          check.result.close();
+	          indexedDB.deleteDatabase("rs-check");
+	          pending.resolve();
+	        };
+	      } catch(e) {
+	        pending.reject();
+	      }
+	    } else {
+	      pending.reject();
+	    }
+
+	    return pending.promise;
+	  };
+
+	  IndexedDB._rs_cleanup = function (remoteStorage) {
+	    var pending = Promise.defer();
+
+	    if (remoteStorage.local) {
+	      remoteStorage.local.closeDB();
+	    }
+
+	    IndexedDB.clean(DEFAULT_DB_NAME, function () {
+	      pending.resolve();
+	    });
+
+	    return pending.promise;
+	  };
+
+
+	  module.exports = IndexedDB;
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
 /* 24 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var map = {
-		"./access": 25,
-		"./access.js": 25,
-		"./authorize": 8,
-		"./authorize.js": 8,
-		"./baseclient": 9,
-		"./baseclient.js": 9,
-		"./caching": 26,
-		"./caching.js": 26,
-		"./cachinglayer": 27,
-		"./cachinglayer.js": 27,
-		"./config": 5,
-		"./config.js": 5,
-		"./discover": 21,
-		"./discover.js": 21,
-		"./dropbox": 7,
-		"./dropbox.js": 7,
-		"./env": 19,
-		"./env.js": 19,
-		"./eventhandling": 3,
-		"./eventhandling.js": 3,
-		"./googledrive": 20,
-		"./googledrive.js": 20,
-		"./i18n": 28,
-		"./i18n.js": 28,
-		"./indexeddb": 29,
-		"./indexeddb.js": 29,
-		"./inmemorystorage": 30,
-		"./inmemorystorage.js": 30,
-		"./localstorage": 31,
-		"./localstorage.js": 31,
-		"./log": 4,
-		"./log.js": 4,
-		"./modules": 32,
-		"./modules.js": 32,
-		"./remotestorage": 1,
-		"./remotestorage.js": 1,
-		"./sync": 18,
-		"./sync.js": 18,
-		"./syncedgetputdelete": 6,
-		"./syncedgetputdelete.js": 6,
-		"./types": 11,
-		"./types.js": 11,
-		"./util": 2,
-		"./util.js": 2,
-		"./version": 33,
-		"./version.js": 33,
-		"./wireclient": 13,
-		"./wireclient.js": 13
-	};
-	function webpackContext(req) {
-		return __webpack_require__(webpackContextResolve(req));
-	};
-	function webpackContextResolve(req) {
-		return map[req] || (function() { throw new Error("Cannot find module '" + req + "'.") }());
-	};
-	webpackContext.keys = function webpackContextKeys() {
-		return Object.keys(map);
-	};
-	webpackContext.resolve = webpackContextResolve;
-	module.exports = webpackContext;
-	webpackContext.id = 24;
-
-
-/***/ },
-/* 25 */
-/***/ function(module, exports) {
-
-	  var SETTINGS_KEY = "remotestorage:access";
-
-	  /**
-	   * Class: RemoteStorage.Access
-	   *
-	   * Keeps track of claimed access and scopes.
-	   */
-	  var Access = function() {
-	    this.reset();
-	  };
-
-	  Access.prototype = {
-
-	    /**
-	     * Method: claim
-	     *
-	     * Claim access on a given scope with given mode.
-	     *
-	     * Parameters:
-	     *   scope - An access scope, such as "contacts" or "calendar"
-	     *   mode  - Access mode. Either "r" for read-only or "rw" for read/write
-	     *
-	     * Example:
-	     *   (start code)
-	     *   remoteStorage.access.claim('contacts', 'r');
-	     *   remoteStorage.access.claim('pictures', 'rw');
-	     *   (end code)
-	     *
-	     * Root access:
-	     *   Claiming root access, meaning complete access to all files and folders
-	     *   of a storage, can be done using an asterisk:
-	     *
-	     *   (start code)
-	     *   remoteStorage.access.claim('*', 'rw');
-	     *   (end code)
-	     */
-	    claim: function(scope, mode) {
-	      if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
-	        throw new Error('Scope should be a non-empty string without forward slashes');
-	      }
-	      if (!mode.match(/^rw?$/)) {
-	        throw new Error('Mode should be either \'r\' or \'rw\'');
-	      }
-	      this._adjustRootPaths(scope);
-	      this.scopeModeMap[scope] = mode;
-	    },
-
-	    get: function(scope) {
-	      return this.scopeModeMap[scope];
-	    },
-
-	    remove: function(scope) {
-	      var savedMap = {};
-	      var name;
-	      for (name in this.scopeModeMap) {
-	        savedMap[name] = this.scopeModeMap[name];
-	      }
-	      this.reset();
-	      delete savedMap[scope];
-	      for (name in savedMap) {
-	        this.set(name, savedMap[name]);
-	      }
-	    },
-
-	    /**
-	     * Verify permission for a given scope.
-	     */
-	    checkPermission: function(scope, mode) {
-	      var actualMode = this.get(scope);
-	      return actualMode && (mode === 'r' || actualMode === 'rw');
-	    },
-
-	    /**
-	     * Verify permission for a given path.
-	     */
-	    checkPathPermission: function(path, mode) {
-	      if (this.checkPermission('*', mode)) {
-	        return true;
-	      }
-	      return !!this.checkPermission(this._getModuleName(path), mode);
-	    },
-
-	    reset: function() {
-	      this.rootPaths = [];
-	      this.scopeModeMap = {};
-	    },
-
-	    /**
-	     * Return the module name for a given path.
-	     */
-	    _getModuleName: function(path) {
-	      if (path[0] !== '/') {
-	        throw new Error('Path should start with a slash');
-	      }
-	      var moduleMatch = path.replace(/^\/public/, '').match(/^\/([^\/]*)\//);
-	      return moduleMatch ? moduleMatch[1] : '*';
-	    },
-
-	    _adjustRootPaths: function(newScope) {
-	      if ('*' in this.scopeModeMap || newScope === '*') {
-	        this.rootPaths = ['/'];
-	      } else if (! (newScope in this.scopeModeMap)) {
-	        this.rootPaths.push('/' + newScope + '/');
-	        this.rootPaths.push('/public/' + newScope + '/');
-	      }
-	    },
-
-	    _scopeNameForParameter: function(scope) {
-	      if (scope.name === '*' && this.storageType) {
-	        if (this.storageType === '2012.04') {
-	          return '';
-	        } else if (this.storageType.match(/remotestorage-0[01]/)) {
-	          return 'root';
-	        }
-	      }
-	      return scope.name;
-	    },
-
-	    setStorageType: function(type) {
-	      this.storageType = type;
-	    }
-	  };
-
-	  /**
-	   * Property: scopes
-	   *
-	   * Holds an array of claimed scopes in the form
-	   * > { name: "<scope-name>", mode: "<mode>" }
-	   */
-	  Object.defineProperty(Access.prototype, 'scopes', {
-	    get: function() {
-	      return Object.keys(this.scopeModeMap).map(function(key) {
-	        return { name: key, mode: this.scopeModeMap[key] };
-	      }.bind(this));
-	    }
-	  });
-
-	  Object.defineProperty(Access.prototype, 'scopeParameter', {
-	    get: function() {
-	      return this.scopes.map(function(scope) {
-	        return this._scopeNameForParameter(scope) + ':' + scope.mode;
-	      }.bind(this)).join(' ');
-	    }
-	  });
-
-
-	  Access._rs_init = function() {};
-
-	  module.exports = Access;
-
-
-/***/ },
-/* 26 */
-/***/ function(module, exports, __webpack_require__) {
-
-	  /**
-	   * Class: RemoteStorage.Caching
-	   *
-	   * Holds/manages caching configuration.
-	   *
-	   * Caching strategies:
-	   *
-	   *   For each subtree, you can set the caching strategy to 'ALL',
-	   *   'SEEN' (default), and 'FLUSH'.
-	   *
-	   *   - 'ALL' means that once all outgoing changes have been pushed, sync
-	   *         will start retrieving nodes to cache pro-actively. If a local
-	   *         copy exists of everything, it will check on each sync whether
-	   *         the ETag of the root folder changed, and retrieve remote changes
-	   *         if they exist.
-	   *   - 'SEEN' does this only for documents and folders that have been either
-	   *         read from or written to at least once since connecting to the current
-	   *         remote backend, plus their parent/ancestor folders up to the root
-	   *         (to make tree-based sync possible).
-	   *   - 'FLUSH' will only cache outgoing changes, and forget them as soon as
-	   *         they have been saved to remote successfully.
-	   *
-	   **/
-
-	  var util = __webpack_require__(2);
-	  var log = __webpack_require__(4);
-	  var SETTINGS_KEY = "remotestorage:caching";
-
-	  var containingFolder = util.containingFolder;
-
-	  var Caching = function () {
-	    this.reset();
-	  };
-
-	  Caching.prototype = {
-	    pendingActivations: [],
-
-	    /**
-	     * Method: set
-	     *
-	     * Configure caching for a given path explicitly.
-	     *
-	     * Not needed when using <enable>/<disable>.
-	     *
-	     * Parameters:
-	     *   path     - Path to cache
-	     *   strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
-	     *
-	     * Example:
-	     *   (start code)
-	     *   remoteStorage.caching.set('/bookmarks/archive')
-	     */
-	    set: function (path, strategy) {
-	      if (typeof path !== 'string') {
-	        throw new Error('path should be a string');
-	      }
-	      if (!util.isFolder(path)) {
-	        throw new Error('path should be a folder');
-	      }
-	      if (this._remoteStorage && this._remoteStorage.access &&
-	          !this._remoteStorage.access.checkPathPermission(path, 'r')) {
-	        throw new Error('No access to path "'+path+'". You have to claim access to it first.');
-	      }
-	      if (!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
-	        throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
-	      }
-
-	      this._rootPaths[path] = strategy;
-
-	      if (strategy === 'ALL') {
-	        if (this.activateHandler) {
-	          this.activateHandler(path);
-	        } else {
-	          this.pendingActivations.push(path);
-	        }
-	      }
-	    },
-
-	    /**
-	     * Method: enable
-	     *
-	     * Enable caching for a given path.
-	     *
-	     * Uses caching strategy 'ALL'.
-	     *
-	     * Parameters:
-	     *   path - Path to enable caching for
-	     */
-	    enable: function (path) {
-	      this.set(path, 'ALL');
-	    },
-
-	    /**
-	     * Method: disable
-	     *
-	     * Disable caching for a given path.
-	     *
-	     * Uses caching strategy 'FLUSH' (meaning items are only cached until
-	     * successfully pushed to the remote).
-	     *
-	     * Parameters:
-	     *   path - Path to disable caching for
-	     */
-	    disable: function (path) {
-	      this.set(path, 'FLUSH');
-	    },
-
-	    /**
-	     * Method: onActivate
-	     *
-	     * Set a callback for when caching is activated for a path.
-	     *
-	     * Parameters:
-	     *   callback - Callback function
-	     */
-	    onActivate: function (cb) {
-	      var i;
-	      log('[Caching] Setting activate handler', cb, this.pendingActivations);
-	      this.activateHandler = cb;
-	      for (i=0; i<this.pendingActivations.length; i++) {
-	        cb(this.pendingActivations[i]);
-	      }
-	      delete this.pendingActivations;
-	    },
-
-	    /**
-	     * Method: checkPath
-	     *
-	     * Retrieve caching setting for a given path, or its next parent
-	     * with a caching strategy set.
-	     *
-	     * Parameters:
-	     *   path - Path to retrieve setting for
-	     **/
-	    checkPath: function (path) {
-	      if (this._rootPaths[path] !== undefined) {
-	        return this._rootPaths[path];
-	      } else if (path === '/') {
-	        return 'SEEN';
-	      } else {
-	        return this.checkPath(containingFolder(path));
-	      }
-	    },
-
-	    /**
-	     * Method: reset
-	     *
-	     * Reset the state of caching by deleting all caching information.
-	     **/
-	    reset: function () {
-	      this._rootPaths = {};
-	      this._remoteStorage = null;
-	    }
-	  };
-
-
-	  Caching._rs_init = function (remoteStorage) {
-	    this._remoteStorage = remoteStorage;
-	  };
-
-	module.exports = Caching;
-
-
-/***/ },
-/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	  var util = __webpack_require__(2);
@@ -11068,540 +11099,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 28 */
-/***/ function(module, exports) {
-
-	  /**
-	   * Class: I18n
-	   *
-	   * TODO add documentation
-	   **/
-
-	  var dictionary = {
-	    "view_info": 'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',
-	    "view_connect": "<strong>Connect</strong> remote storage",
-	    "view_connecting": "Connecting <strong>%s</strong>",
-	    "view_offline": "Offline",
-	    "view_error_occured": "Sorry! An error occured.",
-	    "view_invalid_key": "Wrong key!",
-	    "view_confirm_reset": "Are you sure you want to reset everything? This will clear your local data and reload the page.",
-	    "view_get_me_out": "Get me out of here!",
-	    "view_error_plz_report": 'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',
-	    "view_unauthorized": "Unauthorized! Click here to reconnect."
-	  };
-
-	var I18n = {
-
-	    translate: function () {
-	      var str    = arguments[0],
-	          params = Array.prototype.splice.call(arguments, 1);
-
-	      if (typeof dictionary[str] !== "string") {
-	        throw "Unknown translation string: " + str;
-	      } else {
-	        str = dictionary[str];
-	      }
-	      return (str.replace(/%s/g, function (){ return params.shift(); }));
-	    },
-
-	    getDictionary: function () {
-	      return dictionary;
-	    },
-
-	    setDictionary: function (newDictionary) {
-	      dictionary = newDictionary;
-	    },
-
-	    _rs_init: function() {
-	    }
-	  };
-
-	  module.exports = I18n;
-
-/***/ },
-/* 29 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {
-	  /**
-	   * Class: RemoteStorage.IndexedDB
-	   *
-	   *
-	   * IndexedDB Interface
-	   * -------------------
-	   *
-	   * TODO rewrite, doesn't expose GPD anymore, it's in cachinglayer now
-	   *
-	   * This file exposes a get/put/delete interface, accessing data in an IndexedDB.
-	   *
-	   * There are multiple parts to this interface:
-	   *
-	   *   The RemoteStorage integration:
-	   *     - RemoteStorage.IndexedDB._rs_supported() determines if IndexedDB support
-	   *       is available. If it isn't, RemoteStorage won't initialize the feature.
-	   *     - RemoteStorage.IndexedDB._rs_init() initializes the feature. It returns
-	   *       a promise that is fulfilled as soon as the database has been opened and
-	   *       migrated.
-	   *
-	   *   The storage interface (RemoteStorage.IndexedDB object):
-	   *     - Usually this is accessible via "remoteStorage.local"
-	   *     - #get() takes a path and returns a promise.
-	   *     - #put() takes a path, body and contentType and also returns a promise.
-	   *     - #delete() takes a path and also returns a promise.
-	   *     - #on('change', ...) events, being fired whenever something changes in
-	   *       the storage. Change events roughly follow the StorageEvent pattern.
-	   *       They have "oldValue" and "newValue" properties, which can be used to
-	   *       distinguish create/update/delete operations and analyze changes in
-	   *       change handlers. In addition they carry a "origin" property, which
-	   *       is either "window", "local", or "remote". "remote" events are fired
-	   *       whenever a change comes in from RemoteStorage.Sync.
-	   *
-	   *   The sync interface (also on RemoteStorage.IndexedDB object):
-	   *     - #getNodes([paths]) returns the requested nodes in a promise.
-	   *     - #setNodes(map) stores all the nodes given in the (path -> node) map.
-	   *
-	   */
-
-	  var log = __webpack_require__(4);
-	  var cachingLayer = __webpack_require__(27);
-	  var eventHandling = __webpack_require__(3);
-	  var util = __webpack_require__(2);
-
-	  var DB_VERSION = 2;
-
-	  var DEFAULT_DB_NAME = 'remotestorage';
-	  var DEFAULT_DB;
-
-	  var IndexedDB = function (database) {
-	    this.db = database || DEFAULT_DB;
-
-	    if (!this.db) {
-	      log("[IndexedDB] Failed to open DB");
-	      return undefined;
-	    }
-
-	    cachingLayer(this);
-	    eventHandling(this, 'change', 'local-events-done');
-
-	    this.getsRunning = 0;
-	    this.putsRunning = 0;
-
-	    /**
-	     * Property: changesQueued
-	     *
-	     * Given a node for which uncommitted changes exist, this cache
-	     * stores either the entire uncommitted node, or false for a deletion.
-	     * The node's path is used as the key.
-	     *
-	     * changesQueued stores changes for which no IndexedDB transaction has
-	     * been started yet.
-	     */
-	    this.changesQueued = {};
-
-	    /**
-	     * Property: changesRunning
-	     *
-	     * Given a node for which uncommitted changes exist, this cache
-	     * stores either the entire uncommitted node, or false for a deletion.
-	     * The node's path is used as the key.
-	     *
-	     * At any time there is at most one IndexedDB transaction running.
-	     * changesRunning stores the changes that are included in that currently
-	     * running IndexedDB transaction, or if none is running, of the last one
-	     * that ran.
-	     */
-	    this.changesRunning = {};
-	  };
-
-	  IndexedDB.prototype = {
-	    getNodes: function (paths) {
-	      var misses = [], fromCache = {};
-	      for (var i = 0, len = paths.length; i < len; i++) {
-	        if (this.changesQueued[paths[i]] !== undefined) {
-	          fromCache[paths[i]] = util.deepClone(this.changesQueued[paths[i]] || undefined);
-	        } else if(this.changesRunning[paths[i]] !== undefined) {
-	          fromCache[paths[i]] = util.deepClone(this.changesRunning[paths[i]] || undefined);
-	        } else {
-	          misses.push(paths[i]);
-	        }
-	      }
-	      if (misses.length > 0) {
-	        return this.getNodesFromDb(misses).then(function (nodes) {
-	          for (var i in fromCache) {
-	            nodes[i] = fromCache[i];
-	          }
-	          return nodes;
-	        });
-	      } else {
-	        return Promise.resolve(fromCache);
-	      }
-	    },
-
-	    setNodes: function (nodes) {
-	      for (var i in nodes) {
-	        this.changesQueued[i] = nodes[i] || false;
-	      }
-	      this.maybeFlush();
-	      return Promise.resolve();
-	    },
-
-	    maybeFlush: function () {
-	      if (this.putsRunning === 0) {
-	        this.flushChangesQueued();
-	      } else {
-	        if (!this.commitSlownessWarning) {
-	          this.commitSlownessWarning = setInterval(function () {
-	            console.log('WARNING: waited more than 10 seconds for previous commit to finish');
-	          }, 10000);
-	        }
-	      }
-	    },
-
-	    flushChangesQueued: function () {
-	      if (this.commitSlownessWarning) {
-	        clearInterval(this.commitSlownessWarning);
-	        this.commitSlownessWarning = null;
-	      }
-	      if (Object.keys(this.changesQueued).length > 0) {
-	        this.changesRunning = this.changesQueued;
-	        this.changesQueued = {};
-	        this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
-	      }
-	    },
-
-	    getNodesFromDb: function (paths) {
-	      var pending = Promise.defer();
-	      var transaction = this.db.transaction(['nodes'], 'readonly');
-	      var nodes = transaction.objectStore('nodes');
-	      var retrievedNodes = {};
-	      var startTime = new Date().getTime();
-
-	      this.getsRunning++;
-
-	      paths.map(function (path, i) {
-	        nodes.get(path).onsuccess = function (evt) {
-	          retrievedNodes[path] = evt.target.result;
-	        };
-	      });
-
-	      transaction.oncomplete = function () {
-	        pending.resolve(retrievedNodes);
-	        this.getsRunning--;
-	      }.bind(this);
-
-	      transaction.onerror = transaction.onabort = function () {
-	        pending.reject('get transaction error/abort');
-	        this.getsRunning--;
-	      }.bind(this);
-
-	      return pending.promise;
-	    },
-
-	    setNodesInDb: function (nodes) {
-	      var pending = Promise.defer();
-	      var transaction = this.db.transaction(['nodes'], 'readwrite');
-	      var nodesStore = transaction.objectStore('nodes');
-	      var startTime = new Date().getTime();
-
-	      this.putsRunning++;
-
-	      log('[IndexedDB] Starting put', nodes, this.putsRunning);
-
-	      for (var path in nodes) {
-	        var node = nodes[path];
-	        if(typeof(node) === 'object') {
-	          try {
-	            nodesStore.put(node);
-	          } catch(e) {
-	            log('[IndexedDB] Error while putting', node, e);
-	            throw e;
-	          }
-	        } else {
-	          try {
-	            nodesStore.delete(path);
-	          } catch(e) {
-	            log('[IndexedDB] Error while removing', nodesStore, node, e);
-	            throw e;
-	          }
-	        }
-	      }
-
-	      transaction.oncomplete = function () {
-	        this.putsRunning--;
-	        log('[IndexedDB] Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
-	        pending.resolve();
-	      }.bind(this);
-
-	      transaction.onerror = function () {
-	        this.putsRunning--;
-	        pending.reject('transaction error');
-	      }.bind(this);
-
-	      transaction.onabort = function () {
-	        pending.reject('transaction abort');
-	        this.putsRunning--;
-	      }.bind(this);
-
-	      return pending.promise;
-	    },
-
-	    reset: function (callback) {
-	      var dbName = this.db.name;
-	      var self = this;
-
-	      this.db.close();
-
-	      IndexedDB.clean(this.db.name, function() {
-	        IndexedDB.open(dbName, function (err, other) {
-	          if (err) {
-	            log('[IndexedDB] Error while resetting local storage', err);
-	          } else {
-	            // hacky!
-	            self.db = other;
-	          }
-	          if (typeof callback === 'function') { callback(self); }
-	        });
-	      });
-	    },
-
-	    forAllNodes: function (cb) {
-	      var pending = Promise.defer();
-	      var transaction = this.db.transaction(['nodes'], 'readonly');
-	      var cursorReq = transaction.objectStore('nodes').openCursor();
-
-	      cursorReq.onsuccess = function (evt) {
-	        var cursor = evt.target.result;
-
-	        if (cursor) {
-	          cb(this.migrate(cursor.value));
-	          cursor.continue();
-	        } else {
-	          pending.resolve();
-	        }
-	      }.bind(this);
-
-	      return pending.promise;
-	    },
-
-	    closeDB: function () {
-	      this.db.close();
-	    }
-
-	  };
-
-	  IndexedDB.open = function (name, callback) {
-	    var timer = setTimeout(function () {
-	      callback("timeout trying to open db");
-	    }, 10000);
-
-	    try {
-	      var req = indexedDB.open(name, DB_VERSION);
-
-	      req.onerror = function () {
-	        log('[IndexedDB] Opening DB failed', req);
-
-	        clearTimeout(timer);
-	        callback(req.error);
-	      };
-
-	      req.onupgradeneeded = function (event) {
-	        var db = req.result;
-
-	        log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
-
-	        if (event.oldVersion !== 1) {
-	          log("[IndexedDB] Creating object store: nodes");
-	          db.createObjectStore('nodes', { keyPath: 'path' });
-	        }
-
-	        log("[IndexedDB] Creating object store: changes");
-
-	        db.createObjectStore('changes', { keyPath: 'path' });
-	      };
-
-	      req.onsuccess = function () {
-	        clearTimeout(timer);
-
-	        // check if all object stores exist
-	        var db = req.result;
-	        if(!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
-	          log("[IndexedDB] Missing object store. Resetting the database.");
-	          IndexedDB.clean(name, function() {
-	            IndexedDB.open(name, callback);
-	          });
-	          return;
-	        }
-
-	        callback(null, req.result);
-	      };
-	    } catch(error) {
-	      log("[IndexedDB] Failed to open database: " + error);
-	      log("[IndexedDB] Resetting database and trying again.");
-
-	      clearTimeout(timer);
-
-	      IndexedDB.clean(name, function() {
-	        IndexedDB.open(name, callback);
-	      });
-	    };
-	  };
-
-	  IndexedDB.clean = function (databaseName, callback) {
-	    var req = indexedDB.deleteDatabase(databaseName);
-
-	    req.onsuccess = function () {
-	      log('[IndexedDB] Done removing DB');
-	      callback();
-	    };
-
-	    req.onerror = req.onabort = function (evt) {
-	      console.error('Failed to remove database "' + databaseName + '"', evt);
-	    };
-	  };
-
-	  IndexedDB._rs_init = function (remoteStorage) {
-	    var pending = Promise.defer();
-
-	    IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
-	      if (err) {
-	        pending.reject(err);
-	      } else {
-	        DEFAULT_DB = db;
-	        db.onerror = function () { remoteStorage._emit('error', err); };
-	        pending.resolve();
-	      }
-	    });
-
-	    return pending.promise;
-	  };
-
-	  IndexedDB._rs_supported = function () {
-	    var pending = Promise.defer();
-
-	    global.indexedDB = global.indexedDB    || global.webkitIndexedDB ||
-	                       global.mozIndexedDB || global.oIndexedDB      ||
-	                       global.msIndexedDB;
-
-	    // Detect browsers with known IndexedDb issues (e.g. Android pre-4.4)
-	    var poorIndexedDbSupport = false;
-	    if (typeof global.navigator !== 'undefined' &&
-	        global.navigator.userAgent.match(/Android (2|3|4\.[0-3])/)) {
-	      // Chrome and Firefox support IndexedDB
-	      if (!navigator.userAgent.match(/Chrome|Firefox/)) {
-	        poorIndexedDbSupport = true;
-	      }
-	    }
-
-	    if ('indexedDB' in global && !poorIndexedDbSupport) {
-	      try {
-	        var check = indexedDB.open("rs-check");
-	        check.onerror = function (event) {
-	          pending.reject();
-	        };
-	        check.onsuccess = function (event) {
-	          check.result.close();
-	          indexedDB.deleteDatabase("rs-check");
-	          pending.resolve();
-	        };
-	      } catch(e) {
-	        pending.reject();
-	      }
-	    } else {
-	      pending.reject();
-	    }
-
-	    return pending.promise;
-	  };
-
-	  IndexedDB._rs_cleanup = function (remoteStorage) {
-	    var pending = Promise.defer();
-
-	    if (remoteStorage.local) {
-	      remoteStorage.local.closeDB();
-	    }
-
-	    IndexedDB.clean(DEFAULT_DB_NAME, function () {
-	      pending.resolve();
-	    });
-
-	    return pending.promise;
-	  };
-
-
-	  module.exports = IndexedDB;
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
-
-/***/ },
-/* 30 */
-/***/ function(module, exports, __webpack_require__) {
-
-	  var eventHandling = __webpack_require__(3);
-	  var log = __webpack_require__(4);
-	  var cachingLayer = __webpack_require__(27);
-	  /**
-	   * Class: RemoteStorage.InMemoryStorage
-	   *
-	   * In-memory caching adapter. Used when no IndexedDB or localStorage
-	   * available.
-	   **/
-
-	  var InMemoryStorage = function () {
-	    cachingLayer(this);
-	    log('[InMemoryStorage] Registering events');
-	    eventHandling(this, 'change', 'local-events-done');
-
-	    this._storage = {};
-	  };
-
-	  InMemoryStorage.prototype = {
-
-	    getNodes: function (paths) {
-	      var nodes = {};
-
-	      for(var i = 0, len = paths.length; i < len; i++) {
-	        nodes[paths[i]] = this._storage[paths[i]];
-	      }
-
-	      return Promise.resolve(nodes);
-	    },
-
-	    setNodes: function (nodes) {
-	      for (var path in nodes) {
-	        if (nodes[path] === undefined) {
-	          delete this._storage[path];
-	        } else {
-	          this._storage[path] = nodes[path];
-	        }
-	      }
-
-	      return Promise.resolve();
-	    },
-
-	    forAllNodes: function (cb) {
-	      for (var path in this._storage) {
-	        cb(this.migrate(this._storage[path]));
-	      }
-	      return Promise.resolve();
-	    }
-
-	  };
-
-	  InMemoryStorage._rs_init = function () {};
-
-	  InMemoryStorage._rs_supported = function () {
-	    // In-memory storage is always supported
-	    return true;
-	  };
-
-	  InMemoryStorage._rs_cleanup = function () {};
-
-	  module.exports = InMemoryStorage;
-
-/***/ },
-/* 31 */
-/***/ function(module, exports, __webpack_require__) {
-
-	  var cachingLayer = __webpack_require__(27)
+	  var cachingLayer = __webpack_require__(24)
 	  var log = __webpack_require__(4);
 	  var eventHandling = __webpack_require__(3);
 	  var util = __webpack_require__(2);
@@ -11702,11 +11203,517 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 32 */
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	  var eventHandling = __webpack_require__(3);
+	  var log = __webpack_require__(4);
+	  var cachingLayer = __webpack_require__(24);
+	  /**
+	   * Class: RemoteStorage.InMemoryStorage
+	   *
+	   * In-memory caching adapter. Used when no IndexedDB or localStorage
+	   * available.
+	   **/
+
+	  var InMemoryStorage = function () {
+	    cachingLayer(this);
+	    log('[InMemoryStorage] Registering events');
+	    eventHandling(this, 'change', 'local-events-done');
+
+	    this._storage = {};
+	  };
+
+	  InMemoryStorage.prototype = {
+
+	    getNodes: function (paths) {
+	      var nodes = {};
+
+	      for(var i = 0, len = paths.length; i < len; i++) {
+	        nodes[paths[i]] = this._storage[paths[i]];
+	      }
+
+	      return Promise.resolve(nodes);
+	    },
+
+	    setNodes: function (nodes) {
+	      for (var path in nodes) {
+	        if (nodes[path] === undefined) {
+	          delete this._storage[path];
+	        } else {
+	          this._storage[path] = nodes[path];
+	        }
+	      }
+
+	      return Promise.resolve();
+	    },
+
+	    forAllNodes: function (cb) {
+	      for (var path in this._storage) {
+	        cb(this.migrate(this._storage[path]));
+	      }
+	      return Promise.resolve();
+	    }
+
+	  };
+
+	  InMemoryStorage._rs_init = function () {};
+
+	  InMemoryStorage._rs_supported = function () {
+	    // In-memory storage is always supported
+	    return true;
+	  };
+
+	  InMemoryStorage._rs_cleanup = function () {};
+
+	  module.exports = InMemoryStorage;
+
+/***/ },
+/* 27 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var map = {
+		"./access": 28,
+		"./access.js": 28,
+		"./authorize": 7,
+		"./authorize.js": 7,
+		"./baseclient": 8,
+		"./baseclient.js": 8,
+		"./caching": 29,
+		"./caching.js": 29,
+		"./cachinglayer": 24,
+		"./cachinglayer.js": 24,
+		"./config": 5,
+		"./config.js": 5,
+		"./discover": 20,
+		"./discover.js": 20,
+		"./dropbox": 6,
+		"./dropbox.js": 6,
+		"./env": 18,
+		"./env.js": 18,
+		"./eventhandling": 3,
+		"./eventhandling.js": 3,
+		"./googledrive": 19,
+		"./googledrive.js": 19,
+		"./i18n": 30,
+		"./i18n.js": 30,
+		"./indexeddb": 23,
+		"./indexeddb.js": 23,
+		"./inmemorystorage": 26,
+		"./inmemorystorage.js": 26,
+		"./localstorage": 25,
+		"./localstorage.js": 25,
+		"./log": 4,
+		"./log.js": 4,
+		"./modules": 31,
+		"./modules.js": 31,
+		"./remotestorage": 1,
+		"./remotestorage.js": 1,
+		"./sync": 17,
+		"./sync.js": 17,
+		"./syncedgetputdelete": 32,
+		"./syncedgetputdelete.js": 32,
+		"./types": 10,
+		"./types.js": 10,
+		"./util": 2,
+		"./util.js": 2,
+		"./version": 33,
+		"./version.js": 33,
+		"./wireclient": 12,
+		"./wireclient.js": 12
+	};
+	function webpackContext(req) {
+		return __webpack_require__(webpackContextResolve(req));
+	};
+	function webpackContextResolve(req) {
+		return map[req] || (function() { throw new Error("Cannot find module '" + req + "'.") }());
+	};
+	webpackContext.keys = function webpackContextKeys() {
+		return Object.keys(map);
+	};
+	webpackContext.resolve = webpackContextResolve;
+	module.exports = webpackContext;
+	webpackContext.id = 27;
+
+
+/***/ },
+/* 28 */
+/***/ function(module, exports) {
+
+	  var SETTINGS_KEY = "remotestorage:access";
+
+	  /**
+	   * Class: RemoteStorage.Access
+	   *
+	   * Keeps track of claimed access and scopes.
+	   */
+	  var Access = function() {
+	    this.reset();
+	  };
+
+	  Access.prototype = {
+
+	    /**
+	     * Method: claim
+	     *
+	     * Claim access on a given scope with given mode.
+	     *
+	     * Parameters:
+	     *   scope - An access scope, such as "contacts" or "calendar"
+	     *   mode  - Access mode. Either "r" for read-only or "rw" for read/write
+	     *
+	     * Example:
+	     *   (start code)
+	     *   remoteStorage.access.claim('contacts', 'r');
+	     *   remoteStorage.access.claim('pictures', 'rw');
+	     *   (end code)
+	     *
+	     * Root access:
+	     *   Claiming root access, meaning complete access to all files and folders
+	     *   of a storage, can be done using an asterisk:
+	     *
+	     *   (start code)
+	     *   remoteStorage.access.claim('*', 'rw');
+	     *   (end code)
+	     */
+	    claim: function(scope, mode) {
+	      if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
+	        throw new Error('Scope should be a non-empty string without forward slashes');
+	      }
+	      if (!mode.match(/^rw?$/)) {
+	        throw new Error('Mode should be either \'r\' or \'rw\'');
+	      }
+	      this._adjustRootPaths(scope);
+	      this.scopeModeMap[scope] = mode;
+	    },
+
+	    get: function(scope) {
+	      return this.scopeModeMap[scope];
+	    },
+
+	    remove: function(scope) {
+	      var savedMap = {};
+	      var name;
+	      for (name in this.scopeModeMap) {
+	        savedMap[name] = this.scopeModeMap[name];
+	      }
+	      this.reset();
+	      delete savedMap[scope];
+	      for (name in savedMap) {
+	        this.set(name, savedMap[name]);
+	      }
+	    },
+
+	    /**
+	     * Verify permission for a given scope.
+	     */
+	    checkPermission: function(scope, mode) {
+	      var actualMode = this.get(scope);
+	      return actualMode && (mode === 'r' || actualMode === 'rw');
+	    },
+
+	    /**
+	     * Verify permission for a given path.
+	     */
+	    checkPathPermission: function(path, mode) {
+	      if (this.checkPermission('*', mode)) {
+	        return true;
+	      }
+	      return !!this.checkPermission(this._getModuleName(path), mode);
+	    },
+
+	    reset: function() {
+	      this.rootPaths = [];
+	      this.scopeModeMap = {};
+	    },
+
+	    /**
+	     * Return the module name for a given path.
+	     */
+	    _getModuleName: function(path) {
+	      if (path[0] !== '/') {
+	        throw new Error('Path should start with a slash');
+	      }
+	      var moduleMatch = path.replace(/^\/public/, '').match(/^\/([^\/]*)\//);
+	      return moduleMatch ? moduleMatch[1] : '*';
+	    },
+
+	    _adjustRootPaths: function(newScope) {
+	      if ('*' in this.scopeModeMap || newScope === '*') {
+	        this.rootPaths = ['/'];
+	      } else if (! (newScope in this.scopeModeMap)) {
+	        this.rootPaths.push('/' + newScope + '/');
+	        this.rootPaths.push('/public/' + newScope + '/');
+	      }
+	    },
+
+	    _scopeNameForParameter: function(scope) {
+	      if (scope.name === '*' && this.storageType) {
+	        if (this.storageType === '2012.04') {
+	          return '';
+	        } else if (this.storageType.match(/remotestorage-0[01]/)) {
+	          return 'root';
+	        }
+	      }
+	      return scope.name;
+	    },
+
+	    setStorageType: function(type) {
+	      this.storageType = type;
+	    }
+	  };
+
+	  /**
+	   * Property: scopes
+	   *
+	   * Holds an array of claimed scopes in the form
+	   * > { name: "<scope-name>", mode: "<mode>" }
+	   */
+	  Object.defineProperty(Access.prototype, 'scopes', {
+	    get: function() {
+	      return Object.keys(this.scopeModeMap).map(function(key) {
+	        return { name: key, mode: this.scopeModeMap[key] };
+	      }.bind(this));
+	    }
+	  });
+
+	  Object.defineProperty(Access.prototype, 'scopeParameter', {
+	    get: function() {
+	      return this.scopes.map(function(scope) {
+	        return this._scopeNameForParameter(scope) + ':' + scope.mode;
+	      }.bind(this)).join(' ');
+	    }
+	  });
+
+
+	  Access._rs_init = function() {};
+
+	  module.exports = Access;
+
+
+/***/ },
+/* 29 */
+/***/ function(module, exports, __webpack_require__) {
+
+	  /**
+	   * Class: RemoteStorage.Caching
+	   *
+	   * Holds/manages caching configuration.
+	   *
+	   * Caching strategies:
+	   *
+	   *   For each subtree, you can set the caching strategy to 'ALL',
+	   *   'SEEN' (default), and 'FLUSH'.
+	   *
+	   *   - 'ALL' means that once all outgoing changes have been pushed, sync
+	   *         will start retrieving nodes to cache pro-actively. If a local
+	   *         copy exists of everything, it will check on each sync whether
+	   *         the ETag of the root folder changed, and retrieve remote changes
+	   *         if they exist.
+	   *   - 'SEEN' does this only for documents and folders that have been either
+	   *         read from or written to at least once since connecting to the current
+	   *         remote backend, plus their parent/ancestor folders up to the root
+	   *         (to make tree-based sync possible).
+	   *   - 'FLUSH' will only cache outgoing changes, and forget them as soon as
+	   *         they have been saved to remote successfully.
+	   *
+	   **/
+
+	  var util = __webpack_require__(2);
+	  var log = __webpack_require__(4);
+
+	  var containingFolder = util.containingFolder;
+
+	  var Caching = function () {
+	    this.reset();
+	  };
+
+	  Caching.prototype = {
+	    pendingActivations: [],
+
+	    /**
+	     * Method: set
+	     *
+	     * Configure caching for a given path explicitly.
+	     *
+	     * Not needed when using <enable>/<disable>.
+	     *
+	     * Parameters:
+	     *   path     - Path to cache
+	     *   strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
+	     *
+	     * Example:
+	     *   (start code)
+	     *   remoteStorage.caching.set('/bookmarks/archive')
+	     */
+	    set: function (path, strategy) {
+	      if (typeof path !== 'string') {
+	        throw new Error('path should be a string');
+	      }
+	      if (!util.isFolder(path)) {
+	        throw new Error('path should be a folder');
+	      }
+	      if (this._remoteStorage && this._remoteStorage.access &&
+	          !this._remoteStorage.access.checkPathPermission(path, 'r')) {
+	        throw new Error('No access to path "'+path+'". You have to claim access to it first.');
+	      }
+	      if (!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
+	        throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
+	      }
+
+	      this._rootPaths[path] = strategy;
+
+	      if (strategy === 'ALL') {
+	        if (this.activateHandler) {
+	          this.activateHandler(path);
+	        } else {
+	          this.pendingActivations.push(path);
+	        }
+	      }
+	    },
+
+	    /**
+	     * Method: enable
+	     *
+	     * Enable caching for a given path.
+	     *
+	     * Uses caching strategy 'ALL'.
+	     *
+	     * Parameters:
+	     *   path - Path to enable caching for
+	     */
+	    enable: function (path) {
+	      this.set(path, 'ALL');
+	    },
+
+	    /**
+	     * Method: disable
+	     *
+	     * Disable caching for a given path.
+	     *
+	     * Uses caching strategy 'FLUSH' (meaning items are only cached until
+	     * successfully pushed to the remote).
+	     *
+	     * Parameters:
+	     *   path - Path to disable caching for
+	     */
+	    disable: function (path) {
+	      this.set(path, 'FLUSH');
+	    },
+
+	    /**
+	     * Method: onActivate
+	     *
+	     * Set a callback for when caching is activated for a path.
+	     *
+	     * Parameters:
+	     *   callback - Callback function
+	     */
+	    onActivate: function (cb) {
+	      var i;
+	      log('[Caching] Setting activate handler', cb, this.pendingActivations);
+	      this.activateHandler = cb;
+	      for (i=0; i<this.pendingActivations.length; i++) {
+	        cb(this.pendingActivations[i]);
+	      }
+	      delete this.pendingActivations;
+	    },
+
+	    /**
+	     * Method: checkPath
+	     *
+	     * Retrieve caching setting for a given path, or its next parent
+	     * with a caching strategy set.
+	     *
+	     * Parameters:
+	     *   path - Path to retrieve setting for
+	     **/
+	    checkPath: function (path) {
+	      if (this._rootPaths[path] !== undefined) {
+	        return this._rootPaths[path];
+	      } else if (path === '/') {
+	        return 'SEEN';
+	      } else {
+	        return this.checkPath(containingFolder(path));
+	      }
+	    },
+
+	    /**
+	     * Method: reset
+	     *
+	     * Reset the state of caching by deleting all caching information.
+	     **/
+	    reset: function () {
+	      this._rootPaths = {};
+	      this._remoteStorage = null;
+	    }
+	  };
+
+
+	  Caching._rs_init = function (remoteStorage) {
+	    this._remoteStorage = remoteStorage;
+	  };
+
+	module.exports = Caching;
+
+
+/***/ },
+/* 30 */
+/***/ function(module, exports) {
+
+	  /**
+	   * Class: I18n
+	   *
+	   * TODO add documentation
+	   **/
+
+	  var dictionary = {
+	    "view_info": 'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',
+	    "view_connect": "<strong>Connect</strong> remote storage",
+	    "view_connecting": "Connecting <strong>%s</strong>",
+	    "view_offline": "Offline",
+	    "view_error_occured": "Sorry! An error occured.",
+	    "view_invalid_key": "Wrong key!",
+	    "view_confirm_reset": "Are you sure you want to reset everything? This will clear your local data and reload the page.",
+	    "view_get_me_out": "Get me out of here!",
+	    "view_error_plz_report": 'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',
+	    "view_unauthorized": "Unauthorized! Click here to reconnect."
+	  };
+
+	var I18n = {
+
+	    translate: function () {
+	      var str    = arguments[0],
+	          params = Array.prototype.splice.call(arguments, 1);
+
+	      if (typeof dictionary[str] !== "string") {
+	        throw "Unknown translation string: " + str;
+	      } else {
+	        str = dictionary[str];
+	      }
+	      return (str.replace(/%s/g, function (){ return params.shift(); }));
+	    },
+
+	    getDictionary: function () {
+	      return dictionary;
+	    },
+
+	    setDictionary: function (newDictionary) {
+	      dictionary = newDictionary;
+	    },
+
+	    _rs_init: function() {
+	    }
+	  };
+
+	  module.exports = I18n;
+
+/***/ },
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	  var RemoteStorage = __webpack_require__(1);
-	  var BaseClient = __webpack_require__(9);
+	  var BaseClient = __webpack_require__(8);
 	  
 	  RemoteStorage.MODULES = {};
 
@@ -11786,6 +11793,78 @@ return /******/ (function(modules) { // webpackBootstrap
 	    RemoteStorage.defineModule.apply(RemoteStorage, arguments);
 	  };
 
+
+
+/***/ },
+/* 32 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	var log = __webpack_require__(4);
+
+	function shareFirst(path) {
+	  return ( this.backend === 'dropbox' &&
+	           path.match(/^\/public\/.*[^\/]$/) );
+	}
+
+	var SyncedGetPutDelete = {
+	  get: function (path, maxAge) {
+	    if (this.local) {
+	      if (maxAge === undefined) {
+	        if ((typeof this.remote === 'object') &&
+	             this.remote.connected && this.remote.online) {
+	          maxAge = 2*this.getSyncInterval();
+	        } else {
+	          log('Not setting default maxAge, because remote is offline or not connected');
+	          maxAge = false;
+	        }
+	      }
+	      var maxAgeInvalid = function (maxAge) {
+	        return maxAge !== false && typeof(maxAge) !== 'number';
+	      };
+
+	      if (maxAgeInvalid(maxAge)) {
+	        return Promise.reject('Argument \'maxAge\' must be false or a number');
+	      }
+	      return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
+	    } else {
+	      return this.remote.get(path);
+	    }
+	  },
+
+	  put: function (path, body, contentType) {
+	    if (shareFirst.bind(this)(path)) {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	    }
+	    else if (this.local) {
+	      return this.local.put(path, body, contentType);
+	    } else {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	    }
+	  },
+
+	  'delete': function (path) {
+	    if (this.local) {
+	      return this.local.delete(path);
+	    } else {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
+	    }
+	  },
+
+	  _wrapBusyDone: function (result) {
+	    var self = this;
+	    this._emit('wire-busy');
+	    return result.then(function (r) {
+	      self._emit('wire-done', { success: true });
+	      return Promise.resolve(r);
+	    }, function (err) {
+	      self._emit('wire-done', { success: false });
+	      return Promise.reject(err);
+	    });
+	  }
+	};
+
+	module.exports = SyncedGetPutDelete;
 
 
 /***/ },
