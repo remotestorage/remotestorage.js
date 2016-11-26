@@ -1,8 +1,8 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
-       function (Promise, SyncedGetPutDelete, Authorize, log, Dropbox, config, eventHandling, require, tv4) {
+define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/authorize', './src/log', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
+       function (Promise, RemoteStorage, SyncedGetPutDelete, Authorize, log, Dropbox, config, eventHandling, require, tv4) {
 
   var suites = [];
 
@@ -69,8 +69,8 @@ define(['bluebird', './src/syncedgetputdelete', './src/authorize', './src/log', 
     setup:  function(env, test) {
       global.Sync = require('./src/sync');
       global.config = require('./src/config')
-      global.RemoteStorage = require('./src/remotestorage');
-      global.Authorize = require('./src/authorize');
+      // global.RemoteStorage = require('./src/remotestorage');
+      // global.Authorize = require('./src/authorize');
 
       config.cache = false
       global.RemoteStorage.Discover = function(userAddress) {

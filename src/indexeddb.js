@@ -353,22 +353,23 @@
 
   IndexedDB._rs_supported = function () {
     var pending = Promise.defer();
+    var context = window || global
 
-    // window.indexedDB = window.indexedDB    || window.webkitIndexedDB ||
-    //                    window.mozIndexedDB || window.oIndexedDB      ||
-    //                    window.msIndexedDB;
+    // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
+    //                    context.mozIndexedDB || context.oIndexedDB      ||
+    //                    context.msIndexedDB;
 
     // Detect browsers with known IndexedDb issues (e.g. Android pre-4.4)
     var poorIndexedDbSupport = false;
-    if (typeof window.navigator !== 'undefined' &&
-        window.navigator.userAgent.match(/Android (2|3|4\.[0-3])/)) {
+    if (typeof navigator !== 'undefined' &&
+        navigator.userAgent.match(/Android (2|3|4\.[0-3])/)) {
       // Chrome and Firefox support IndexedDB
       if (!navigator.userAgent.match(/Chrome|Firefox/)) {
         poorIndexedDbSupport = true;
       }
     }
 
-    if ('indexedDB' in window && !poorIndexedDbSupport) {
+    if ('indexedDB' in context && !poorIndexedDbSupport) {
       try {
         var check = indexedDB.open("rs-check");
         check.onerror = function (event) {
