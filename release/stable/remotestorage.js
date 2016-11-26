@@ -61,33 +61,15 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
+	'use strict';
+	
+	var _RemoteStorage$protot;
 	
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+	
 	var hasLocalStorage;
-	
-	// wrapper to implement defer() functionality
-	Promise.defer = function () {
-	  var resolve, reject;
-	  var promise = new Promise(function () {
-	    resolve = arguments[0];
-	    reject = arguments[1];
-	  });
-	  return {
-	    resolve: resolve,
-	    reject: reject,
-	    promise: promise
-	  };
-	};
-	
-	function logError(error) {
-	  if (typeof error === 'string') {
-	    console.error(error);
-	  } else {
-	    console.error(error.message, error.stack);
-	  }
-	}
 	
 	function emitUnauthorized(r) {
 	  if (r.statusCode === 403 || r.statusCode === 401) {
@@ -104,71 +86,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	var config = __webpack_require__(5);
 	var Authorize = __webpack_require__(7);
 	var Sync = __webpack_require__(17);
-	
-	var SyncedGetPutDelete = {
-	  get: function get(path, maxAge) {
-	    var self = this;
-	    if (this.local) {
-	      if (maxAge === undefined) {
-	        if (_typeof(this.remote) === 'object' && this.remote.connected && this.remote.online) {
-	          maxAge = 2 * this.getSyncInterval();
-	        } else {
-	          _log('Not setting default maxAge, because remote is offline or not connected');
-	          maxAge = false;
-	        }
-	      }
-	      var maxAgeInvalid = function maxAgeInvalid(maxAge) {
-	        return maxAge !== false && typeof maxAge !== 'number';
-	      };
-	
-	      if (maxAgeInvalid(maxAge)) {
-	        return Promise.reject('Argument \'maxAge\' must be false or a number');
-	      }
-	      return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
-	    } else {
-	      return this.remote.get(path);
-	    }
-	  },
-	
-	  put: function put(path, body, contentType) {
-	    if (shareFirst.bind(this)(path)) {
-	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
-	    } else if (this.local) {
-	      return this.local.put(path, body, contentType);
-	    } else {
-	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
-	    }
-	  },
-	
-	  'delete': function _delete(path) {
-	    if (this.local) {
-	      return this.local.delete(path);
-	    } else {
-	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
-	    }
-	  },
-	
-	  _wrapBusyDone: function _wrapBusyDone(result) {
-	    var self = this;
-	    this._emit('wire-busy');
-	    return result.then(function (r) {
-	      self._emit('wire-done', { success: true });
-	      return Promise.resolve(r);
-	    }, function (err) {
-	      self._emit('wire-done', { success: false });
-	      return Promise.reject(err);
-	    });
-	  }
-	};
+	var SyncedGetPutDelete = __webpack_require__(23);
+	var _log = __webpack_require__(4);
+	var Features = __webpack_require__(24);
+	var globalContext = util.getGlobalContext();
 	
 	/**
 	 * Class: RemoteStorage
 	 *
 	 * TODO needs proper introduction and links to relevant classes etc
 	 *
-	 * Constructor for global remoteStorage object.
+	 * Constructor for remoteStorage object.
 	 *
-	 * This class primarily contains feature detection code and a global convenience API.
+	 * This class primarily contains feature detection code and convenience API.
 	 *
 	 * Depending on which features are built in, it contains different attributes and
 	 * functions. See the individual features for more information.
@@ -248,6 +178,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	   **/
 	
 	  // Initial configuration property settings.
+	  // TODO merge user configuration with default configuration
 	  if ((typeof cfg === 'undefined' ? 'undefined' : _typeof(cfg)) === 'object') {
 	    config.logging = !!cfg.logging;
 	    config.cordovaRedirectUri = cfg.cordovaRedirectUri;
@@ -294,6 +225,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return origOn.call(this, eventName, handler);
 	  };
 	
+	  // load all features and emit `ready`
 	  this._init();
 	
 	  this.fireInitial = function () {
@@ -305,65 +237,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	  this.on('ready', this.fireInitial.bind(this));
 	};
 	
-	// RemoteStorage.Access = require('./access');
-	// RemoteStorage.util = require('./util');
-	// RemoteStorage.eventHandling = require('./eventhandling');
-	// RemoteStorage.Authorize = require('./authorize');
-	// RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
-	
+	// TOFIX: Instead of doing this, would be better to only 
+	// export setAuthURL / getAuthURL from RemoteStorage prototype
 	RemoteStorage.Authorize = Authorize;
-	// RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
-	//   this.access.setStorageType(this.remote.storageType);
-	//   var scope = this.access.scopeParameter;
-	
-	//   var redirectUri = global.cordova ?
-	//     cordovaRedirectUri :
-	//     String(Authorize.getLocation());
-	
-	//   var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
-	
-	//   Authorize(this, authURL, scope, redirectUri, clientId);
-	// };
-	
 	
 	RemoteStorage.SyncError = Sync.SyncError;
-	RemoteStorage.DiscoveryError = function (message) {
-	  Error.apply(this, arguments);
-	  this.message = message;
-	};
+	RemoteStorage.Unauthorized = Authorize.Unauthorized;
+	RemoteStorage.DiscoveryError = Discover.DiscoveryError;
 	
-	RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
-	
-	// RemoteStorage.Unauthorized = Authorize.Unauthorized;
-	/**
-	 * Method: RemoteStorage.log
-	 *
-	 * Log using console.log, when remoteStorage logging is enabled.
-	 *
-	 * You can enable logging with <enableLog>.
-	 *
-	 * (In node.js you can also enable logging during remoteStorage object
-	 * creation. See: <RemoteStorage>).
-	 */
-	
-	config.logging = false;
-	config.changeEvents = {
-	  local: true,
-	  window: false,
-	  remote: true,
-	  conflict: true
-	};
-	config.cache = true;
-	config.discoveryTimeout = 10000;
-	config.cordovaRedirectUri = undefined;
-	
-	var _log = __webpack_require__(4);
-	RemoteStorage.prototype = {
+	RemoteStorage.prototype = (_RemoteStorage$protot = {
 	  authorize: function authorize(authURL, cordovaRedirectUri) {
 	    this.access.setStorageType(this.remote.storageType);
 	    var scope = this.access.scopeParameter;
 	
-	    var redirectUri = global.cordova ? cordovaRedirectUri : String(Authorize.getLocation());
+	    var redirectUri = globalContext.cordova ? cordovaRedirectUri : String(Authorize.getLocation());
 	
 	    var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 	
@@ -435,12 +322,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return;
 	    }
 	
-	    if (global.cordova) {
+	    if (globalContext.cordova) {
 	      if (typeof config.cordovaRedirectUri !== 'string') {
 	        this._emit('error', new RemoteStorage.DiscoveryError("Please supply a custom HTTPS redirect URI for your Cordova app"));
 	        return;
 	      }
-	      if (!global.cordova.InAppBrowser) {
+	      if (!globalContext.cordova.InAppBrowser) {
 	        this._emit('error', new RemoteStorage.DiscoveryError("Please include the InAppBrowser Cordova plugin to enable OAuth"));
 	        return;
 	      }
@@ -637,410 +524,132 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  setCordovaRedirectUri: function setCordovaRedirectUri(uri) {
 	    if (typeof uri !== 'string' || !uri.match(/http(s)?\:\/\//)) {
-	      throw new Error("Cordova redirect URI must be a URI string");
+	      throw new Error("Cordova redirectingect URI must be a URI string");
 	    }
 	    config.cordovaRedirectUri = uri;
 	  },
 	
-	  /**
-	   ** INITIALIZATION
-	   **/
-	
-	  _init: function _init() {
-	    var self = this,
-	        readyFired = false;
-	
-	    function fireReady() {
-	      try {
-	        if (!readyFired) {
-	          self._emit('ready');
-	          readyFired = true;
-	        }
-	      } catch (e) {
-	        console.error("'ready' failed: ", e, e.stack);
-	        self._emit('error', e);
-	      }
-	    }
-	
-	    this._loadFeatures(function (features) {
-	      this.log('[RemoteStorage] All features loaded');
-	      this.local = config.cache && features.local && new features.local();
-	      // this.remote set by WireClient._rs_init as lazy property on
-	      // RS.prototype
-	
-	      if (this.local && this.remote) {
-	        this._setGPD(SyncedGetPutDelete, this);
-	        this._bindChange(this.local);
-	      } else if (this.remote) {
-	        this._setGPD(this.remote, this.remote);
-	      }
-	      if (this.remote) {
-	        this.remote.on('connected', function () {
-	          fireReady();
-	          self._emit('connected');
-	        });
-	        this.remote.on('not-connected', function () {
-	          fireReady();
-	          self._emit('not-connected');
-	        });
-	        if (this.remote.connected) {
-	          fireReady();
-	          self._emit('connected');
-	        }
-	
-	        if (!this.hasFeature('Authorize')) {
-	          this.remote.stopWaitingForToken();
-	        }
-	      }
-	
-	      this._collectCleanupFunctions();
-	
-	      try {
-	        this._allLoaded = true;
-	        this._emit('features-loaded');
-	      } catch (exc) {
-	        logError(exc);
-	        this._emit('error', exc);
-	      }
-	      this._processPending();
-	    }.bind(this));
-	  },
-	
-	  _collectCleanupFunctions: function _collectCleanupFunctions() {
-	    this._cleanups = [];
-	    for (var i = 0; i < this.features.length; i++) {
-	      var cleanup = this.features[i].cleanup;
-	      if (typeof cleanup === 'function') {
-	        this._cleanups.push(cleanup);
-	      }
-	    }
-	  },
-	
-	  /**
-	   ** FEATURE DETECTION
-	   **/
-	  _loadFeatures: function _loadFeatures(callback) {
-	    var featureList = ['WireClient', 'I18n', 'Dropbox', 'GoogleDrive', 'Access', 'Caching', 'Discover', 'Authorize', 'IndexedDB', 'LocalStorage', 'InMemoryStorage', 'Sync', 'BaseClient', 'Env'];
-	    var features = [];
-	    var featuresDone = 0;
-	    var self = this;
-	
-	    function featureDone() {
-	      featuresDone++;
-	      if (featuresDone === featureList.length) {
-	        setTimeout(function () {
-	          features.caching = !!Caching && config.cache;
-	          features.sync = !!Sync;
-	
-	          var cachingModule = {
-	            'IndexedDB': __webpack_require__(23),
-	            'LocalStorage': __webpack_require__(25),
-	            'InMemoryStorage': __webpack_require__(26)
-	          };
-	
-	          ['IndexedDB', 'LocalStorage', 'InMemoryStorage'].some(function (cachingLayer) {
-	            if (features.some(function (feature) {
-	              return feature.name === cachingLayer;
-	            })) {
-	              features.local = cachingModule[cachingLayer];
-	              return true;
-	            }
-	          });
-	          self.features = features;
-	          callback(features);
-	        }, 0);
-	      }
-	    }
-	
-	    function featureInitialized(name) {
-	      var feature = __webpack_require__(27)("./" + name.toLowerCase());
-	      self.log("[RemoteStorage] [FEATURE " + name + "] initialized.");
-	      features.push({
-	        name: name,
-	        init: feature._rs_init,
-	        supported: true,
-	        cleanup: feature._rs_cleanup
-	      });
-	      featureDone();
-	    }
-	
-	    function featureFailed(name, err) {
-	      self.log("[RemoteStorage] [FEATURE " + name + "] initialization failed ( " + err + ")");
-	      featureDone();
-	    }
-	
-	    function featureSupported(name, success) {
-	      self.log( true ? "" : " not" + " supported");
-	      if (!success) {
-	        featureDone();
-	      }
-	    }
-	
-	    function initFeature(name) {
-	
-	      // if (config.cache && name === 'Sync') return
-	      var feature = __webpack_require__(27)("./" + name.toLowerCase());
-	      var initResult;
-	      try {
-	        initResult = feature._rs_init(self);
-	      } catch (e) {
-	        featureFailed(name, e);
-	        return;
-	      }
-	      if ((typeof initResult === 'undefined' ? 'undefined' : _typeof(initResult)) === 'object' && typeof initResult.then === 'function') {
-	        initResult.then(function () {
-	          featureInitialized(name);
-	        }, function (err) {
-	          featureFailed(name, err);
-	        });
-	      } else {
-	        featureInitialized(name);
-	      }
-	    }
-	
-	    featureList.forEach(function (featureName) {
-	      var feature = __webpack_require__(27)("./" + featureName.toLowerCase());
-	      self.log("[RemoteStorage] [FEATURE " + featureName + "] initializing...");
-	      var impl = feature;
-	      var supported;
-	
-	      if (impl) {
-	        supported = !impl._rs_supported || impl._rs_supported();
-	
-	        if ((typeof supported === 'undefined' ? 'undefined' : _typeof(supported)) === 'object') {
-	          supported.then(function () {
-	            featureSupported(featureName, true);
-	            initFeature(featureName);
-	          }, function () {
-	            featureSupported(featureName, false);
-	          });
-	        } else if (typeof supported === 'boolean') {
-	          featureSupported(featureName, supported);
-	          if (supported) {
-	            initFeature(featureName);
-	          }
-	        }
-	      } else {
-	        featureSupported(featureName, false);
-	      }
-	    });
-	  },
-	
-	  /**
-	   * Method: hasFeature
-	   *
-	   * Checks whether a feature is enabled or not within remoteStorage.
-	   * Returns a boolean.
-	   *
-	   * Parameters:
-	   *   name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
-	   *
-	   * Example:
-	   *   (start code)
-	   *   if (remoteStorage.hasFeature('LocalStorage')) {
-	   *     console.log('LocalStorage is enabled!');
-	   *   }
-	   *   (end code)
-	   *
-	   */
-	  hasFeature: function hasFeature(feature) {
-	    for (var i = this.features.length - 1; i >= 0; i--) {
-	      if (this.features[i].name === feature) {
-	        return this.features[i].supported;
-	      }
-	    }
-	    return false;
-	  },
-	
-	  /**
-	   ** GET/PUT/DELETE INTERFACE HELPERS
-	   **/
-	
-	  _setGPD: function _setGPD(impl, context) {
-	    function wrap(func) {
-	      return function () {
-	        return func.apply(context, arguments).then(emitUnauthorized.bind(this));
-	      };
-	    }
-	    this.get = wrap(impl.get);
-	    this.put = wrap(impl.put);
-	    this.delete = wrap(impl.delete);
-	  },
-	
-	  _pendingGPD: function _pendingGPD(methodName) {
+	  /* FEATURES INITIALIZATION */
+	  _init: Features.loadFeatures,
+	  features: Features.features,
+	  loadFeature: Features.loadFeature,
+	  featureSupported: Features.featureSupported,
+	  featureDone: Features.featureDone,
+	  featuresDone: Features.featuresDone,
+	  featuresLoaded: Features.featuresLoaded,
+	  featureInitialized: Features.featureInitialized,
+	  featureFailed: Features.featureFailed
+	}, _defineProperty(_RemoteStorage$protot, 'featureSupported', Features.featureSupported), _defineProperty(_RemoteStorage$protot, 'hasFeature', Features.hasFeature), _defineProperty(_RemoteStorage$protot, '_setCachingModule', Features._setCachingModule), _defineProperty(_RemoteStorage$protot, '_collectCleanupFunctions', Features._collectCleanupFunctions), _defineProperty(_RemoteStorage$protot, '_fireReady', Features._fireReady), _defineProperty(_RemoteStorage$protot, 'initFeature', Features.initFeature), _defineProperty(_RemoteStorage$protot, '_setGPD', function _setGPD(impl, context) {
+	  function wrap(func) {
 	    return function () {
-	      var pending = Promise.defer();
-	      this._pending.push({
-	        method: methodName,
-	        args: Array.prototype.slice.call(arguments),
-	        promise: pending
-	      });
-	      return pending.promise;
-	    }.bind(this);
-	  },
-	
-	  _processPending: function _processPending() {
-	    this._pending.forEach(function (pending) {
-	      try {
-	        this[pending.method].apply(this, pending.args).then(pending.promise.resolve, pending.promise.reject);
-	      } catch (e) {
-	        pending.promise.reject(e);
-	      }
-	    }.bind(this));
-	    this._pending = [];
-	  },
-	
-	  /**
-	   ** CHANGE EVENT HANDLING
-	   **/
-	
-	  _bindChange: function _bindChange(object) {
-	    object.on('change', this._dispatchEvent.bind(this, 'change'));
-	  },
-	
-	  _dispatchEvent: function _dispatchEvent(eventName, event) {
-	    var self = this;
-	    Object.keys(this._pathHandlers[eventName]).forEach(function (path) {
-	      var pl = path.length;
-	      if (event.path.substr(0, pl) === path) {
-	        self._pathHandlers[eventName][path].forEach(function (handler) {
-	          var ev = {};
-	          for (var key in event) {
-	            ev[key] = event[key];
-	          }
-	          ev.relativePath = event.path.replace(new RegExp('^' + path), '');
-	          try {
-	            handler(ev);
-	          } catch (e) {
-	            console.error("'change' handler failed: ", e, e.stack);
-	            self._emit('error', e);
-	          }
-	        });
-	      }
+	      return func.apply(context, arguments).then(emitUnauthorized.bind(this));
+	    };
+	  }
+	  this.get = wrap(impl.get);
+	  this.put = wrap(impl.put);
+	  this.delete = wrap(impl.delete);
+	}), _defineProperty(_RemoteStorage$protot, '_pendingGPD', function _pendingGPD(methodName) {
+	  return function () {
+	    var pending = Promise.defer();
+	    this._pending.push({
+	      method: methodName,
+	      args: Array.prototype.slice.call(arguments),
+	      promise: pending
 	    });
-	  },
-	
-	  scope: function scope(path) {
-	    if (typeof path !== 'string') {
-	      throw 'Argument \'path\' of baseClient.scope must be a string';
+	    return pending.promise;
+	  }.bind(this);
+	}), _defineProperty(_RemoteStorage$protot, '_processPending', function _processPending() {
+	  this._pending.forEach(function (pending) {
+	    try {
+	      this[pending.method].apply(this, pending.args).then(pending.promise.resolve, pending.promise.reject);
+	    } catch (e) {
+	      pending.promise.reject(e);
 	    }
-	
-	    if (!this.access.checkPathPermission(path, 'r')) {
-	      var escapedPath = path.replace(/(['\\])/g, '\\$1');
-	      console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
-	    }
-	    return new BaseClient(this, path);
-	  },
-	
-	  /**
-	   * Method: getSyncInterval
-	   *
-	   * Get the value of the sync interval when application is in the foreground
-	   *
-	   * Returns a number of milliseconds
-	   *
-	  //  */
-	  getSyncInterval: function getSyncInterval() {
-	    return config.syncInterval;
-	  },
-	
-	  /**
-	   * Method: setSyncInterval
-	   *
-	   * Set the value of the sync interval when application is in the foreground
-	   *
-	   * Parameters:
-	   *   interval - sync interval in milliseconds
-	   *
-	   */
-	  setSyncInterval: function setSyncInterval(interval) {
-	    if (!isValidInterval(interval)) {
-	      throw interval + " is not a valid sync interval";
-	    }
-	    var oldValue = config.syncInterval;
-	    syncInterval = parseInt(interval, 10);
-	    this._emit('sync-interval-change', { oldValue: oldValue, newValue: interval });
-	  },
-	
-	  /**
-	   * Method: getBackgroundSyncInterval
-	   *
-	   * Get the value of the sync interval when application is in the background
-	   *
-	   * Returns a number of milliseconds
-	   *
-	   */
-	  getBackgroundSyncInterval: function getBackgroundSyncInterval() {
-	    return config.backgroundSyncInterval;
-	  },
-	
-	  /**
-	   * Method: setBackgroundSyncInterval
-	   *
-	   * Set the value of the sync interval when the application is in the background
-	   *
-	   * Parameters:
-	   *   interval - sync interval in milliseconds
-	   *
-	   */
-	  setBackgroundSyncInterval: function setBackgroundSyncInterval(interval) {
-	    if (!isValidInterval(interval)) {
-	      throw interval + " is not a valid sync interval";
-	    }
-	    var oldValue = config.backgroundSyncInterval;
-	    config.backgroundSyncInterval = parseInt(interval, 10);
-	    this._emit('sync-interval-change', { oldValue: oldValue, newValue: interval });
-	  },
-	
-	  /**
-	   * Method: getCurrentSyncInterval
-	   *
-	   * Get the value of the current sync interval
-	   *
-	   * Returns a number of milliseconds
-	   *
-	   */
-	  getCurrentSyncInterval: function getCurrentSyncInterval() {
-	    return config.isBackground ? config.backgroundSyncInterval : config.syncInterval;
-	  },
-	
-	  syncCycle: function syncCycle() {
-	    if (this.sync.stopped) {
-	      return;
-	    }
-	
-	    this.sync.on('done', function () {
-	      _log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
-	      if (!this.sync.stopped) {
-	        if (this._syncTimer) {
-	          clearTimeout(this._syncTimer);
+	  }.bind(this));
+	  this._pending = [];
+	}), _defineProperty(_RemoteStorage$protot, '_bindChange', function _bindChange(object) {
+	  object.on('change', this._dispatchEvent.bind(this, 'change'));
+	}), _defineProperty(_RemoteStorage$protot, '_dispatchEvent', function _dispatchEvent(eventName, event) {
+	  var self = this;
+	  Object.keys(this._pathHandlers[eventName]).forEach(function (path) {
+	    var pl = path.length;
+	    if (event.path.substr(0, pl) === path) {
+	      self._pathHandlers[eventName][path].forEach(function (handler) {
+	        var ev = {};
+	        for (var key in event) {
+	          ev[key] = event[key];
 	        }
-	        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
-	      }
-	    }.bind(this));
-	
-	    this.sync.sync();
-	  },
-	
-	  stopSync: function stopSync() {
-	    if (this.sync) {
-	      _log('[Sync] Stopping sync');
-	      this.sync.stopped = true;
-	    } else {
-	      // TODO When is this ever the case and what is syncStopped for then?
-	      _log('[Sync] Will instantiate sync stopped');
-	      this.syncStopped = true;
+	        ev.relativePath = event.path.replace(new RegExp('^' + path), '');
+	        try {
+	          handler(ev);
+	        } catch (e) {
+	          console.error("'change' handler failed: ", e, e.stack);
+	          self._emit('error', e);
+	        }
+	      });
 	    }
-	  },
-	
-	  startSync: function startSync() {
-	    if (!config.cache) return;
-	    this.sync.stopped = false;
-	    this.syncStopped = false;
-	    this.sync.sync();
+	  });
+	}), _defineProperty(_RemoteStorage$protot, 'scope', function scope(path) {
+	  if (typeof path !== 'string') {
+	    throw 'Argument \'path\' of baseClient.scope must be a string';
 	  }
 	
-	};
+	  if (!this.access.checkPathPermission(path, 'r')) {
+	    var escapedPath = path.replace(/(['\\])/g, '\\$1');
+	    console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
+	  }
+	  return new BaseClient(this, path);
+	}), _defineProperty(_RemoteStorage$protot, 'getSyncInterval', function getSyncInterval() {
+	  return config.syncInterval;
+	}), _defineProperty(_RemoteStorage$protot, 'setSyncInterval', function setSyncInterval(interval) {
+	  if (!isValidInterval(interval)) {
+	    throw interval + " is not a valid sync interval";
+	  }
+	  var oldValue = config.syncInterval;
+	  config.syncInterval = parseInt(interval, 10);
+	  this._emit('sync-interval-change', { oldValue: oldValue, newValue: interval });
+	}), _defineProperty(_RemoteStorage$protot, 'getBackgroundSyncInterval', function getBackgroundSyncInterval() {
+	  return config.backgroundSyncInterval;
+	}), _defineProperty(_RemoteStorage$protot, 'setBackgroundSyncInterval', function setBackgroundSyncInterval(interval) {
+	  if (!isValidInterval(interval)) {
+	    throw interval + " is not a valid sync interval";
+	  }
+	  var oldValue = config.backgroundSyncInterval;
+	  config.backgroundSyncInterval = parseInt(interval, 10);
+	  this._emit('sync-interval-change', { oldValue: oldValue, newValue: interval });
+	}), _defineProperty(_RemoteStorage$protot, 'getCurrentSyncInterval', function getCurrentSyncInterval() {
+	  return config.isBackground ? config.backgroundSyncInterval : config.syncInterval;
+	}), _defineProperty(_RemoteStorage$protot, 'syncCycle', function syncCycle() {
+	  if (this.sync.stopped) {
+	    return;
+	  }
+	
+	  this.sync.on('done', function () {
+	    _log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
+	    if (!this.sync.stopped) {
+	      if (this._syncTimer) {
+	        clearTimeout(this._syncTimer);
+	      }
+	      this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
+	    }
+	  }.bind(this));
+	
+	  this.sync.sync();
+	}), _defineProperty(_RemoteStorage$protot, 'stopSync', function stopSync() {
+	  if (this.sync) {
+	    _log('[Sync] Stopping sync');
+	    this.sync.stopped = true;
+	  } else {
+	    // TODO When is this ever the case and what is syncStopped for then?
+	    _log('[Sync] Will instantiate sync stopped');
+	    this.syncStopped = true;
+	  }
+	}), _defineProperty(_RemoteStorage$protot, 'startSync', function startSync() {
+	  if (!config.cache) return;
+	  this.sync.stopped = false;
+	  this.syncStopped = false;
+	  this.sync.sync();
+	}), _RemoteStorage$protot);
 	
 	/**
 	* Check if interval is valid: numeric and between 1000ms and 3600000ms
@@ -1049,6 +658,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	function isValidInterval(interval) {
 	  return typeof interval === 'number' && interval > 1000 && interval < 3600000;
 	}
+	
+	RemoteStorage.util = util;
+	// RemoteStorage.defineModule = modules.defineModule;
 	
 	/**
 	 * Property: connected
@@ -1066,7 +678,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 *
 	 * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
 	*/
-	var Access = __webpack_require__(28);
+	var Access = __webpack_require__(26);
 	Object.defineProperty(RemoteStorage.prototype, 'access', {
 	  get: function get() {
 	    var access = new Access();
@@ -1083,7 +695,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	// TODO clean up/harmonize how modules are loaded and/or document this architecture properly
 	//
-	// At this point the global remoteStorage object has not been created yet.
+	// At this point the remoteStorage object has not been created yet.
 	// Only its prototype exists so far, so we define a self-constructing
 	// property on there:
 	/**
@@ -1095,7 +707,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * Not available in no-cache builds.
 	 *
 	 */
-	var Caching = __webpack_require__(29);
+	var Caching = __webpack_require__(27);
 	Object.defineProperty(RemoteStorage.prototype, 'caching', {
 	  configurable: true,
 	  get: function get() {
@@ -1122,7 +734,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	*/
 	
 	module.exports = RemoteStorage;
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+	__webpack_require__(32);
 
 /***/ },
 /* 2 */
@@ -1132,13 +744,25 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
+	// Reusable utility functions
+	
+	
 	var eventHandling = __webpack_require__(3);
-	/**
-	 * Class: RemoteStorage.Util
-	 *
-	 * Provides reusable utility functions at RemoteStorage.util
-	 *
-	 */
+	
+	// wrapper to implement defer() functionality
+	Promise.defer = function () {
+	  var resolve, reject;
+	  var promise = new Promise(function () {
+	    resolve = arguments[0];
+	    reject = arguments[1];
+	  });
+	  return {
+	    resolve: resolve,
+	    reject: reject,
+	    promise: promise
+	  };
+	};
+	
 	/**
 	 * Function: fixArrayBuffers
 	 *
@@ -1168,15 +792,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	var util = {
-	  getEventEmitter: function getEventEmitter() {
-	    var object = {};
-	    var args = Array.prototype.slice.call(arguments);
-	    args.unshift(object);
-	    eventHandling.apply(RemoteStorage, args);
-	    object.emit = object._emit;
-	    return object;
+	  logError: function logError(error) {
+	    if (typeof error === 'string') {
+	      console.error(error);
+	    } else {
+	      console.error(error.message, error.stack);
+	    }
 	  },
-	
+	  getGlobalContext: function getGlobalContext() {
+	    return typeof window !== 'undefined' ? window : global;
+	  },
 	  extend: function extend(target) {
 	    var sources = Array.prototype.slice.call(arguments, 1);
 	    sources.forEach(function (source) {
@@ -1186,13 +811,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 	    return target;
 	  },
-	
 	  asyncEach: function asyncEach(array, callback) {
 	    return this.asyncMap(array, callback).then(function () {
 	      return array;
 	    });
 	  },
-	
 	  asyncMap: function asyncMap(array, callback) {
 	    var pending = Promise.defer();
 	    var n = array.length,
@@ -1229,7 +852,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	    return pending.promise;
 	  },
-	
 	  containingFolder: function containingFolder(path) {
 	    if (path === '') {
 	      return '/';
@@ -1240,15 +862,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	    return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
 	  },
-	
 	  isFolder: function isFolder(path) {
 	    return path.substr(-1) === '/';
 	  },
-	
 	  isDocument: function isDocument(path) {
 	    return !util.isFolder(path);
 	  },
-	
 	  baseName: function baseName(path) {
 	    var parts = path.split('/');
 	    if (util.isFolder(path)) {
@@ -1257,11 +876,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return parts[parts.length - 1];
 	    }
 	  },
-	
 	  cleanPath: function cleanPath(path) {
 	    return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/').replace(/'/g, '%27');
 	  },
-	
 	  bindAll: function bindAll(object) {
 	    for (var key in this) {
 	      if (typeof object[key] === 'function') {
@@ -1269,7 +886,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 	    }
 	  },
-	
 	  equal: function equal(a, b, seen) {
 	    var key;
 	    seen = seen || [];
@@ -1344,12 +960,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	    return true;
 	  },
-	
 	  equalObj: function equalObj(obj1, obj2) {
 	    console.warn('DEPRECATION WARNING: util.equalObj has been replaced by util.equal.');
 	    return util.equal(obj1, obj2);
 	  },
-	
 	  deepClone: function deepClone(obj) {
 	    var clone;
 	    if (obj === undefined) {
@@ -1360,7 +974,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return clone;
 	    }
 	  },
-	
 	  pathsFromRoot: function pathsFromRoot(path) {
 	    var paths = [path];
 	    var parts = path.replace(/\/$/, '').split('/');
@@ -1371,6 +984,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	    return paths;
 	  },
+	
 	
 	  /* jshint ignore:start */
 	  md5sum: function md5sum(str) {
@@ -1545,22 +1159,24 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	    return md5(str);
 	  },
+	
 	  /* jshint ignore:end */
 	
 	  localStorageAvailable: function localStorageAvailable() {
-	    if (!('localStorage' in global)) {
+	    var context = util.getGlobalContext();
+	
+	    if (!('localStorage' in context)) {
 	      return false;
 	    }
 	
 	    try {
-	      global.localStorage.setItem('rs-check', 1);
-	      global.localStorage.removeItem('rs-check');
+	      context.localStorage.setItem('rs-check', 1);
+	      context.localStorage.removeItem('rs-check');
 	      return true;
 	    } catch (error) {
 	      return false;
 	    }
 	  }
-	
 	};
 	
 	module.exports = util;
@@ -1590,7 +1206,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (typeof handler !== 'function') {
 	      throw new Error('Argument handler should be a function');
 	    }
-	    log('[Eventhandling] Adding event listener', eventName, handler);
+	    log('[Eventhandling] Adding event listener', eventName);
 	    this._validateEvent(eventName);
 	    this._handlers[eventName].push(handler);
 	  },
@@ -1689,11 +1305,23 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var config = __webpack_require__(5);
 	
-	module.exports = function () {
+	/**
+	 * Method: log
+	 *
+	 * Log using console.log, when remoteStorage logging is enabled.
+	 *
+	 * You can enable logging with <enableLog>.
+	 *
+	 * (In node.js you can also enable logging during remoteStorage object
+	 * creation. See: <RemoteStorage>).
+	 */
+	function log() {
 	  if (config.logging) {
 	    console.log.apply(console, arguments);
 	  }
 	};
+	
+	module.exports = log;
 
 /***/ },
 /* 5 */
@@ -1701,7 +1329,18 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	"use strict";
 	
-	var config = {};
+	var config = {
+	     logging: false,
+	     changeEvents: {
+	          local: true,
+	          window: false,
+	          remote: true,
+	          conflict: true
+	     },
+	     cache: true,
+	     discoveryTimeout: 10000,
+	     cordovaRedirectUri: undefined
+	};
 	
 	module.exports = config;
 
@@ -2703,7 +2342,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var log = __webpack_require__(4);
 	var util = __webpack_require__(2);
-	// var RemoteStorage = require('./remotestorage');
 	
 	function extractParams(url) {
 	  //FF already decodes the URL fragment in document.location.hash, so use this instead:
@@ -8379,7 +8017,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return true;
 	      }
 	      return this.now() - node.common.timestamp > config.syncInterval;
-	    }config;
+	    }
 	    return false;
 	  },
 	
@@ -9184,11 +8822,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	};
 	
 	Sync._rs_cleanup = function (remoteStorage) {
+	  console.error('SYNC _rs_cleanup');
 	  remoteStorage.stopSync();
+	  console.error('SYNC dopo stopSync');
 	  remoteStorage.removeEventListener('ready', syncCycleCb);
 	  remoteStorage.removeEventListener('connected', _syncOnConnect);
+	  console.error('SYNC remoteEventListener');
+	
 	  remoteStorage.sync = undefined;
 	  delete remoteStorage.sync;
+	  console.error('DAI CHE SONO ARRIVATO PORCO');
 	};
 	
 	var SyncError = function SyncError(originalError) {
@@ -9763,7 +9406,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var log = __webpack_require__(4);
 	var util = __webpack_require__(2);
-	__webpack_require__(21);
+	var WebFinger = __webpack_require__(21);
+	console.log('WebFinger: ', WebFinger);
 	
 	// feature detection flags
 	var haveXMLHttpRequest, hasLocalStorage;
@@ -9832,6 +9476,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  return pending.promise;
 	};
+	
+	Discover.DiscoveryError = function (message) {
+	  Error.apply(this, arguments);
+	  this.message = message;
+	};
+	
+	Discover.DiscoveryError.prototype = Object.create(Error.prototype);
 	
 	Discover._rs_init = function (remoteStorage) {
 	  hasLocalStorage = util.localStorageAvailable();
@@ -10220,7 +9871,699 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
+	'use strict';
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	var log = __webpack_require__(4);
+	
+	function shareFirst(path) {
+	  return this.backend === 'dropbox' && path.match(/^\/public\/.*[^\/]$/);
+	}
+	
+	var SyncedGetPutDelete = {
+	  get: function get(path, maxAge) {
+	    if (this.local) {
+	      if (maxAge === undefined) {
+	        if (_typeof(this.remote) === 'object' && this.remote.connected && this.remote.online) {
+	          maxAge = 2 * this.getSyncInterval();
+	        } else {
+	          log('Not setting default maxAge, because remote is offline or not connected');
+	          maxAge = false;
+	        }
+	      }
+	      var maxAgeInvalid = function maxAgeInvalid(maxAge) {
+	        return maxAge !== false && typeof maxAge !== 'number';
+	      };
+	
+	      if (maxAgeInvalid(maxAge)) {
+	        return Promise.reject('Argument \'maxAge\' must be false or a number');
+	      }
+	      return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
+	    } else {
+	      return this.remote.get(path);
+	    }
+	  },
+	
+	  put: function put(path, body, contentType) {
+	    if (shareFirst.bind(this)(path)) {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	    } else if (this.local) {
+	      return this.local.put(path, body, contentType);
+	    } else {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+	    }
+	  },
+	
+	  'delete': function _delete(path) {
+	    if (this.local) {
+	      return this.local.delete(path);
+	    } else {
+	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
+	    }
+	  },
+	
+	  _wrapBusyDone: function _wrapBusyDone(result) {
+	    var self = this;
+	    this._emit('wire-busy');
+	    return result.then(function (r) {
+	      self._emit('wire-done', { success: true });
+	      return Promise.resolve(r);
+	    }, function (err) {
+	      self._emit('wire-done', { success: false });
+	      return Promise.reject(err);
+	    });
+	  }
+	};
+	
+	module.exports = SyncedGetPutDelete;
+
+/***/ },
+/* 24 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _module$exports;
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+	
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+	
+	var util = __webpack_require__(2);
+	var log = __webpack_require__(4);
+	var SyncedGetPutDelete = __webpack_require__(23);
+	
+	var featuresDone = 0;
+	var features = [];
+	
+	var featureModules = {
+	  'WireClient': __webpack_require__(12),
+	  'I18n': __webpack_require__(25),
+	  'Dropbox': __webpack_require__(6),
+	  'GoogleDrive': __webpack_require__(19),
+	  'Access': __webpack_require__(26),
+	  'Caching': __webpack_require__(27),
+	  'Discover': __webpack_require__(20),
+	  'Authorize': __webpack_require__(7),
+	  'IndexedDB': __webpack_require__(28),
+	  'LocalStorage': __webpack_require__(30),
+	  'InMemoryStorage': __webpack_require__(31),
+	  'Sync': __webpack_require__(17),
+	  'BaseClient': __webpack_require__(8),
+	  'Env': __webpack_require__(18)
+	};
+	
+	function loadFeatures() {
+	  for (var featureName in featureModules) {
+	    // TOFIX this has to push the promised return value into an
+	    // array of promises and use Promise.all to emit `ready`
+	    // instead of increment a counter of loaded features.
+	    this.loadFeature(featureName);
+	  }
+	}
+	
+	/**
+	 * Method: hasFeature
+	 *
+	 * Checks whether a feature is enabled or not within remoteStorage.
+	 * Returns a boolean.
+	 *
+	 * Parameters:
+	 *   name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
+	 *
+	 * Example:
+	 *   (start code)
+	 *   if (remoteStorage.hasFeature('LocalStorage')) {
+	 *     console.log('LocalStorage is enabled!');
+	 *   }
+	 *   (end code)
+	 *
+	 */
+	function hasFeature(feature) {
+	  for (var i = this.features.length - 1; i >= 0; i--) {
+	    if (this.features[i].name === feature) {
+	      return this.features[i].supported;
+	    }
+	  }
+	  return false;
+	}
+	
+	function loadFeature(featureName) {
+	  var _this = this;
+	
+	  var feature = featureModules[featureName];
+	  log('[RemoteStorage] [FEATURE ' + featureName + '] initializing ...');
+	
+	  var supported = !feature._rs_supported || feature._rs_supported();
+	  if ((typeof supported === 'undefined' ? 'undefined' : _typeof(supported)) === 'object') {
+	    supported.then(function () {
+	      _this.featureSupported(featureName, true);
+	      _this.initFeature(featureName);
+	    }, function () {
+	      _this.featureSupported(featureName, false);
+	    });
+	  } else if (typeof supported === 'boolean') {
+	    this.featureSupported(featureName, supported);
+	    if (supported) {
+	      this.initFeature(featureName);
+	    }
+	  } else {
+	    this.featureSupported(featureName, false);
+	  }
+	}
+	
+	function initFeature(featureName) {
+	  var _this2 = this;
+	
+	  var feature = featureModules[featureName];
+	  var initResult = void 0;
+	  try {
+	    initResult = feature._rs_init(this);
+	  } catch (e) {
+	    this.featureFailed(featureName, e);
+	    return;
+	  }
+	
+	  if ((typeof initResult === 'undefined' ? 'undefined' : _typeof(initResult)) === 'object' && typeof initResult.then === 'function') {
+	    initResult.then(function () {
+	      _this2.featureInitialized(featureName);
+	    }, function (err) {
+	      _this2.featureFailed(featureName, err);
+	    });
+	  } else {
+	    this.featureInitialized(featureName);
+	  }
+	}
+	
+	function featureFailed(featureName, err) {
+	  log('[RemoteStorage] [FEATURE ' + featureName + '] initialization failed (' + err + ')');
+	  this.featureDone();
+	}
+	
+	function featureSupported(featureName, success) {
+	  log('[RemoteStorage] [FEATURE ' + featureName + ']  ' + (success ? '' : ' not') + ' supported');
+	  if (!success) {
+	    this.featureDone();
+	  }
+	}
+	
+	function featureInitialized(featureName) {
+	  log('[RemoteStorage] [FEATURE ' + featureName + '] initialized.');
+	  this.features.push({
+	    name: featureName,
+	    init: featureModules[featureName]._rs_init,
+	    supported: true,
+	    cleanup: featureModules[featureName]._rs_cleanup
+	  });
+	  this.featureDone();
+	}
+	
+	function featureDone() {
+	  featuresDone++;
+	  if (featuresDone === Object.keys(featureModules).length) {
+	    setTimeout(this.featuresLoaded.bind(this), 0);
+	  }
+	}
+	
+	function _setCachingModule() {
+	  var _this3 = this;
+	
+	  var cachingModules = ['IndexedDB', 'LocalStorage', 'InMemoryStorage'];
+	
+	  cachingModules.some(function (cachingLayer) {
+	    if (_this3.features.some(function (feature) {
+	      return feature.name === cachingLayer;
+	    })) {
+	      _this3.features.local = featureModules[cachingLayer];
+	      return true;
+	    }
+	  });
+	}
+	
+	var readyFired = false;
+	function _fireReady() {
+	  try {
+	    if (!readyFired) {
+	      this._emit('ready');
+	      readyFired = true;
+	    }
+	  } catch (e) {
+	    console.error("'ready' failed: ", e, e.stack);
+	    this._emit('error', e);
+	  }
+	}
+	
+	function featuresLoaded() {
+	  var _this4 = this;
+	
+	  log('[REMOTESTORAGE] All features loaded !');
+	
+	  this._setCachingModule();
+	  this.local = this.features.local && new this.features.local();
+	
+	  // this.remote set by WireClient._rs_init as lazy property on
+	  // RS.prototype
+	
+	  if (this.local && this.remote) {
+	    this._setGPD(SyncedGetPutDelete, this);
+	    this._bindChange(this.local);
+	  } else if (this.remote) {
+	    this._setGPD(this.remote, this.remote);
+	  }
+	  if (this.remote) {
+	    this.remote.on('connected', function () {
+	      _this4._fireReady();
+	      _this4._emit('connected');
+	    });
+	    this.remote.on('not-connected', function () {
+	      _this4._fireReady();
+	      _this4._emit('not-connected');
+	    });
+	    if (this.remote.connected) {
+	      this._fireReady();
+	      this._emit('connected');
+	    }
+	
+	    if (!this.hasFeature('Authorize')) {
+	      this.remote.stopWaitingForToken();
+	    }
+	  }
+	
+	  this._collectCleanupFunctions();
+	
+	  try {
+	    this._allLoaded = true;
+	    this._emit('features-loaded');
+	  } catch (exc) {
+	    util.logError(exc);
+	    this._emit('error', exc);
+	  }
+	  this._processPending();
+	}
+	
+	function _collectCleanupFunctions() {
+	  this._cleanups = [];
+	  for (var i = 0; i < this.features.length; i++) {
+	    var cleanup = this.features[i].cleanup;
+	    if (typeof cleanup === 'function') {
+	      this._cleanups.push(cleanup);
+	    }
+	  }
+	}
+	
+	module.exports = (_module$exports = {
+	  features: features,
+	  loadFeature: loadFeature,
+	  initFeature: initFeature,
+	  loadFeatures: loadFeatures,
+	  featureSupported: featureSupported,
+	  featuresDone: featuresDone,
+	  featureDone: featureDone,
+	  featuresLoaded: featuresLoaded,
+	  featureInitialized: featureInitialized,
+	  featureFailed: featureFailed
+	}, _defineProperty(_module$exports, 'featureSupported', featureSupported), _defineProperty(_module$exports, 'hasFeature', hasFeature), _defineProperty(_module$exports, '_setCachingModule', _setCachingModule), _defineProperty(_module$exports, '_collectCleanupFunctions', _collectCleanupFunctions), _defineProperty(_module$exports, '_fireReady', _fireReady), _module$exports);
+
+/***/ },
+/* 25 */
+/***/ function(module, exports) {
+
+	"use strict";
+	
+	/**
+	 * Class: I18n
+	 *
+	 * TODO add documentation
+	 **/
+	
+	var dictionary = {
+	  "view_info": 'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',
+	  "view_connect": "<strong>Connect</strong> remote storage",
+	  "view_connecting": "Connecting <strong>%s</strong>",
+	  "view_offline": "Offline",
+	  "view_error_occured": "Sorry! An error occured.",
+	  "view_invalid_key": "Wrong key!",
+	  "view_confirm_reset": "Are you sure you want to reset everything? This will clear your local data and reload the page.",
+	  "view_get_me_out": "Get me out of here!",
+	  "view_error_plz_report": 'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',
+	  "view_unauthorized": "Unauthorized! Click here to reconnect."
+	};
+	
+	var I18n = {
+	
+	  translate: function translate() {
+	    var str = arguments[0],
+	        params = Array.prototype.splice.call(arguments, 1);
+	
+	    if (typeof dictionary[str] !== "string") {
+	      throw "Unknown translation string: " + str;
+	    } else {
+	      str = dictionary[str];
+	    }
+	    return str.replace(/%s/g, function () {
+	      return params.shift();
+	    });
+	  },
+	
+	  getDictionary: function getDictionary() {
+	    return dictionary;
+	  },
+	
+	  setDictionary: function setDictionary(newDictionary) {
+	    dictionary = newDictionary;
+	  },
+	
+	  _rs_init: function _rs_init() {}
+	};
+	
+	module.exports = I18n;
+
+/***/ },
+/* 26 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	var SETTINGS_KEY = "remotestorage:access";
+	
+	/**
+	 * Class: RemoteStorage.Access
+	 *
+	 * Keeps track of claimed access and scopes.
+	 */
+	var Access = function Access() {
+	  this.reset();
+	};
+	
+	Access.prototype = {
+	
+	  /**
+	   * Method: claim
+	   *
+	   * Claim access on a given scope with given mode.
+	   *
+	   * Parameters:
+	   *   scope - An access scope, such as "contacts" or "calendar"
+	   *   mode  - Access mode. Either "r" for read-only or "rw" for read/write
+	   *
+	   * Example:
+	   *   (start code)
+	   *   remoteStorage.access.claim('contacts', 'r');
+	   *   remoteStorage.access.claim('pictures', 'rw');
+	   *   (end code)
+	   *
+	   * Root access:
+	   *   Claiming root access, meaning complete access to all files and folders
+	   *   of a storage, can be done using an asterisk:
+	   *
+	   *   (start code)
+	   *   remoteStorage.access.claim('*', 'rw');
+	   *   (end code)
+	   */
+	  claim: function claim(scope, mode) {
+	    if (typeof scope !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
+	      throw new Error('Scope should be a non-empty string without forward slashes');
+	    }
+	    if (!mode.match(/^rw?$/)) {
+	      throw new Error('Mode should be either \'r\' or \'rw\'');
+	    }
+	    this._adjustRootPaths(scope);
+	    this.scopeModeMap[scope] = mode;
+	  },
+	
+	  get: function get(scope) {
+	    return this.scopeModeMap[scope];
+	  },
+	
+	  remove: function remove(scope) {
+	    var savedMap = {};
+	    var name;
+	    for (name in this.scopeModeMap) {
+	      savedMap[name] = this.scopeModeMap[name];
+	    }
+	    this.reset();
+	    delete savedMap[scope];
+	    for (name in savedMap) {
+	      this.set(name, savedMap[name]);
+	    }
+	  },
+	
+	  /**
+	   * Verify permission for a given scope.
+	   */
+	  checkPermission: function checkPermission(scope, mode) {
+	    var actualMode = this.get(scope);
+	    return actualMode && (mode === 'r' || actualMode === 'rw');
+	  },
+	
+	  /**
+	   * Verify permission for a given path.
+	   */
+	  checkPathPermission: function checkPathPermission(path, mode) {
+	    if (this.checkPermission('*', mode)) {
+	      return true;
+	    }
+	    return !!this.checkPermission(this._getModuleName(path), mode);
+	  },
+	
+	  reset: function reset() {
+	    this.rootPaths = [];
+	    this.scopeModeMap = {};
+	  },
+	
+	  /**
+	   * Return the module name for a given path.
+	   */
+	  _getModuleName: function _getModuleName(path) {
+	    if (path[0] !== '/') {
+	      throw new Error('Path should start with a slash');
+	    }
+	    var moduleMatch = path.replace(/^\/public/, '').match(/^\/([^\/]*)\//);
+	    return moduleMatch ? moduleMatch[1] : '*';
+	  },
+	
+	  _adjustRootPaths: function _adjustRootPaths(newScope) {
+	    if ('*' in this.scopeModeMap || newScope === '*') {
+	      this.rootPaths = ['/'];
+	    } else if (!(newScope in this.scopeModeMap)) {
+	      this.rootPaths.push('/' + newScope + '/');
+	      this.rootPaths.push('/public/' + newScope + '/');
+	    }
+	  },
+	
+	  _scopeNameForParameter: function _scopeNameForParameter(scope) {
+	    if (scope.name === '*' && this.storageType) {
+	      if (this.storageType === '2012.04') {
+	        return '';
+	      } else if (this.storageType.match(/remotestorage-0[01]/)) {
+	        return 'root';
+	      }
+	    }
+	    return scope.name;
+	  },
+	
+	  setStorageType: function setStorageType(type) {
+	    this.storageType = type;
+	  }
+	};
+	
+	/**
+	 * Property: scopes
+	 *
+	 * Holds an array of claimed scopes in the form
+	 * > { name: "<scope-name>", mode: "<mode>" }
+	 */
+	Object.defineProperty(Access.prototype, 'scopes', {
+	  get: function get() {
+	    return Object.keys(this.scopeModeMap).map(function (key) {
+	      return { name: key, mode: this.scopeModeMap[key] };
+	    }.bind(this));
+	  }
+	});
+	
+	Object.defineProperty(Access.prototype, 'scopeParameter', {
+	  get: function get() {
+	    return this.scopes.map(function (scope) {
+	      return this._scopeNameForParameter(scope) + ':' + scope.mode;
+	    }.bind(this)).join(' ');
+	  }
+	});
+	
+	Access._rs_init = function () {};
+	
+	module.exports = Access;
+
+/***/ },
+/* 27 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	/**
+	 * Class: RemoteStorage.Caching
+	 *
+	 * Holds/manages caching configuration.
+	 *
+	 * Caching strategies:
+	 *
+	 *   For each subtree, you can set the caching strategy to 'ALL',
+	 *   'SEEN' (default), and 'FLUSH'.
+	 *
+	 *   - 'ALL' means that once all outgoing changes have been pushed, sync
+	 *         will start retrieving nodes to cache pro-actively. If a local
+	 *         copy exists of everything, it will check on each sync whether
+	 *         the ETag of the root folder changed, and retrieve remote changes
+	 *         if they exist.
+	 *   - 'SEEN' does this only for documents and folders that have been either
+	 *         read from or written to at least once since connecting to the current
+	 *         remote backend, plus their parent/ancestor folders up to the root
+	 *         (to make tree-based sync possible).
+	 *   - 'FLUSH' will only cache outgoing changes, and forget them as soon as
+	 *         they have been saved to remote successfully.
+	 *
+	 **/
+	
+	var util = __webpack_require__(2);
+	var log = __webpack_require__(4);
+	
+	var containingFolder = util.containingFolder;
+	
+	var Caching = function Caching() {
+	  this.reset();
+	};
+	
+	Caching.prototype = {
+	  pendingActivations: [],
+	
+	  /**
+	   * Method: set
+	   *
+	   * Configure caching for a given path explicitly.
+	   *
+	   * Not needed when using <enable>/<disable>.
+	   *
+	   * Parameters:
+	   *   path     - Path to cache
+	   *   strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
+	   *
+	   * Example:
+	   *   (start code)
+	   *   remoteStorage.caching.set('/bookmarks/archive')
+	   */
+	  set: function set(path, strategy) {
+	    if (typeof path !== 'string') {
+	      throw new Error('path should be a string');
+	    }
+	    if (!util.isFolder(path)) {
+	      throw new Error('path should be a folder');
+	    }
+	    if (this._remoteStorage && this._remoteStorage.access && !this._remoteStorage.access.checkPathPermission(path, 'r')) {
+	      throw new Error('No access to path "' + path + '". You have to claim access to it first.');
+	    }
+	    if (!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
+	      throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
+	    }
+	
+	    this._rootPaths[path] = strategy;
+	
+	    if (strategy === 'ALL') {
+	      if (this.activateHandler) {
+	        this.activateHandler(path);
+	      } else {
+	        this.pendingActivations.push(path);
+	      }
+	    }
+	  },
+	
+	  /**
+	   * Method: enable
+	   *
+	   * Enable caching for a given path.
+	   *
+	   * Uses caching strategy 'ALL'.
+	   *
+	   * Parameters:
+	   *   path - Path to enable caching for
+	   */
+	  enable: function enable(path) {
+	    this.set(path, 'ALL');
+	  },
+	
+	  /**
+	   * Method: disable
+	   *
+	   * Disable caching for a given path.
+	   *
+	   * Uses caching strategy 'FLUSH' (meaning items are only cached until
+	   * successfully pushed to the remote).
+	   *
+	   * Parameters:
+	   *   path - Path to disable caching for
+	   */
+	  disable: function disable(path) {
+	    this.set(path, 'FLUSH');
+	  },
+	
+	  /**
+	   * Method: onActivate
+	   *
+	   * Set a callback for when caching is activated for a path.
+	   *
+	   * Parameters:
+	   *   callback - Callback function
+	   */
+	  onActivate: function onActivate(cb) {
+	    var i;
+	    log('[Caching] Setting activate handler', cb, this.pendingActivations);
+	    this.activateHandler = cb;
+	    for (i = 0; i < this.pendingActivations.length; i++) {
+	      cb(this.pendingActivations[i]);
+	    }
+	    delete this.pendingActivations;
+	  },
+	
+	  /**
+	   * Method: checkPath
+	   *
+	   * Retrieve caching setting for a given path, or its next parent
+	   * with a caching strategy set.
+	   *
+	   * Parameters:
+	   *   path - Path to retrieve setting for
+	   **/
+	  checkPath: function checkPath(path) {
+	    if (this._rootPaths[path] !== undefined) {
+	      return this._rootPaths[path];
+	    } else if (path === '/') {
+	      return 'SEEN';
+	    } else {
+	      return this.checkPath(containingFolder(path));
+	    }
+	  },
+	
+	  /**
+	   * Method: reset
+	   *
+	   * Reset the state of caching by deleting all caching information.
+	   **/
+	  reset: function reset() {
+	    this._rootPaths = {};
+	    this._remoteStorage = null;
+	  }
+	};
+	
+	Caching._rs_init = function (remoteStorage) {
+	  this._remoteStorage = remoteStorage;
+	};
+	
+	module.exports = Caching;
+
+/***/ },
+/* 28 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
 	
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
@@ -10264,7 +10607,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	
 	var log = __webpack_require__(4);
-	var cachingLayer = __webpack_require__(24);
+	var cachingLayer = __webpack_require__(29);
 	var eventHandling = __webpack_require__(3);
 	var util = __webpack_require__(2);
 	
@@ -10583,7 +10926,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	IndexedDB._rs_supported = function () {
 	  var pending = Promise.defer();
-	  var context = window || global;
+	  var context = util.getGlobalContext();
 	
 	  // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
 	  //                    context.mozIndexedDB || context.oIndexedDB      ||
@@ -10634,10 +10977,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	};
 	
 	module.exports = IndexedDB;
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 24 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -11068,12 +11410,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = cachingLayer;
 
 /***/ },
-/* 25 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var cachingLayer = __webpack_require__(24);
+	var cachingLayer = __webpack_require__(29);
 	var log = __webpack_require__(4);
 	var eventHandling = __webpack_require__(3);
 	var util = __webpack_require__(2);
@@ -11172,14 +11514,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = LocalStorage;
 
 /***/ },
-/* 26 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var eventHandling = __webpack_require__(3);
 	var log = __webpack_require__(4);
-	var cachingLayer = __webpack_require__(24);
+	var cachingLayer = __webpack_require__(29);
 	/**
 	 * Class: RemoteStorage.InMemoryStorage
 	 *
@@ -11240,455 +11582,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = InMemoryStorage;
 
 /***/ },
-/* 27 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var map = {
-		"./access": 28,
-		"./access.js": 28,
-		"./authorize": 7,
-		"./authorize.js": 7,
-		"./baseclient": 8,
-		"./baseclient.js": 8,
-		"./caching": 29,
-		"./caching.js": 29,
-		"./cachinglayer": 24,
-		"./cachinglayer.js": 24,
-		"./config": 5,
-		"./config.js": 5,
-		"./discover": 20,
-		"./discover.js": 20,
-		"./dropbox": 6,
-		"./dropbox.js": 6,
-		"./env": 18,
-		"./env.js": 18,
-		"./eventhandling": 3,
-		"./eventhandling.js": 3,
-		"./googledrive": 19,
-		"./googledrive.js": 19,
-		"./i18n": 30,
-		"./i18n.js": 30,
-		"./indexeddb": 23,
-		"./indexeddb.js": 23,
-		"./inmemorystorage": 26,
-		"./inmemorystorage.js": 26,
-		"./localstorage": 25,
-		"./localstorage.js": 25,
-		"./log": 4,
-		"./log.js": 4,
-		"./modules": 31,
-		"./modules.js": 31,
-		"./remotestorage": 1,
-		"./remotestorage.js": 1,
-		"./sync": 17,
-		"./sync.js": 17,
-		"./syncedgetputdelete": 32,
-		"./syncedgetputdelete.js": 32,
-		"./types": 10,
-		"./types.js": 10,
-		"./util": 2,
-		"./util.js": 2,
-		"./version": 33,
-		"./version.js": 33,
-		"./wireclient": 12,
-		"./wireclient.js": 12
-	};
-	function webpackContext(req) {
-		return __webpack_require__(webpackContextResolve(req));
-	};
-	function webpackContextResolve(req) {
-		return map[req] || (function() { throw new Error("Cannot find module '" + req + "'.") }());
-	};
-	webpackContext.keys = function webpackContextKeys() {
-		return Object.keys(map);
-	};
-	webpackContext.resolve = webpackContextResolve;
-	module.exports = webpackContext;
-	webpackContext.id = 27;
-
-
-/***/ },
-/* 28 */
-/***/ function(module, exports) {
-
-	'use strict';
-	
-	var SETTINGS_KEY = "remotestorage:access";
-	
-	/**
-	 * Class: RemoteStorage.Access
-	 *
-	 * Keeps track of claimed access and scopes.
-	 */
-	var Access = function Access() {
-	  this.reset();
-	};
-	
-	Access.prototype = {
-	
-	  /**
-	   * Method: claim
-	   *
-	   * Claim access on a given scope with given mode.
-	   *
-	   * Parameters:
-	   *   scope - An access scope, such as "contacts" or "calendar"
-	   *   mode  - Access mode. Either "r" for read-only or "rw" for read/write
-	   *
-	   * Example:
-	   *   (start code)
-	   *   remoteStorage.access.claim('contacts', 'r');
-	   *   remoteStorage.access.claim('pictures', 'rw');
-	   *   (end code)
-	   *
-	   * Root access:
-	   *   Claiming root access, meaning complete access to all files and folders
-	   *   of a storage, can be done using an asterisk:
-	   *
-	   *   (start code)
-	   *   remoteStorage.access.claim('*', 'rw');
-	   *   (end code)
-	   */
-	  claim: function claim(scope, mode) {
-	    if (typeof scope !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
-	      throw new Error('Scope should be a non-empty string without forward slashes');
-	    }
-	    if (!mode.match(/^rw?$/)) {
-	      throw new Error('Mode should be either \'r\' or \'rw\'');
-	    }
-	    this._adjustRootPaths(scope);
-	    this.scopeModeMap[scope] = mode;
-	  },
-	
-	  get: function get(scope) {
-	    return this.scopeModeMap[scope];
-	  },
-	
-	  remove: function remove(scope) {
-	    var savedMap = {};
-	    var name;
-	    for (name in this.scopeModeMap) {
-	      savedMap[name] = this.scopeModeMap[name];
-	    }
-	    this.reset();
-	    delete savedMap[scope];
-	    for (name in savedMap) {
-	      this.set(name, savedMap[name]);
-	    }
-	  },
-	
-	  /**
-	   * Verify permission for a given scope.
-	   */
-	  checkPermission: function checkPermission(scope, mode) {
-	    var actualMode = this.get(scope);
-	    return actualMode && (mode === 'r' || actualMode === 'rw');
-	  },
-	
-	  /**
-	   * Verify permission for a given path.
-	   */
-	  checkPathPermission: function checkPathPermission(path, mode) {
-	    if (this.checkPermission('*', mode)) {
-	      return true;
-	    }
-	    return !!this.checkPermission(this._getModuleName(path), mode);
-	  },
-	
-	  reset: function reset() {
-	    this.rootPaths = [];
-	    this.scopeModeMap = {};
-	  },
-	
-	  /**
-	   * Return the module name for a given path.
-	   */
-	  _getModuleName: function _getModuleName(path) {
-	    if (path[0] !== '/') {
-	      throw new Error('Path should start with a slash');
-	    }
-	    var moduleMatch = path.replace(/^\/public/, '').match(/^\/([^\/]*)\//);
-	    return moduleMatch ? moduleMatch[1] : '*';
-	  },
-	
-	  _adjustRootPaths: function _adjustRootPaths(newScope) {
-	    if ('*' in this.scopeModeMap || newScope === '*') {
-	      this.rootPaths = ['/'];
-	    } else if (!(newScope in this.scopeModeMap)) {
-	      this.rootPaths.push('/' + newScope + '/');
-	      this.rootPaths.push('/public/' + newScope + '/');
-	    }
-	  },
-	
-	  _scopeNameForParameter: function _scopeNameForParameter(scope) {
-	    if (scope.name === '*' && this.storageType) {
-	      if (this.storageType === '2012.04') {
-	        return '';
-	      } else if (this.storageType.match(/remotestorage-0[01]/)) {
-	        return 'root';
-	      }
-	    }
-	    return scope.name;
-	  },
-	
-	  setStorageType: function setStorageType(type) {
-	    this.storageType = type;
-	  }
-	};
-	
-	/**
-	 * Property: scopes
-	 *
-	 * Holds an array of claimed scopes in the form
-	 * > { name: "<scope-name>", mode: "<mode>" }
-	 */
-	Object.defineProperty(Access.prototype, 'scopes', {
-	  get: function get() {
-	    return Object.keys(this.scopeModeMap).map(function (key) {
-	      return { name: key, mode: this.scopeModeMap[key] };
-	    }.bind(this));
-	  }
-	});
-	
-	Object.defineProperty(Access.prototype, 'scopeParameter', {
-	  get: function get() {
-	    return this.scopes.map(function (scope) {
-	      return this._scopeNameForParameter(scope) + ':' + scope.mode;
-	    }.bind(this)).join(' ');
-	  }
-	});
-	
-	Access._rs_init = function () {};
-	
-	module.exports = Access;
-
-/***/ },
-/* 29 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	/**
-	 * Class: RemoteStorage.Caching
-	 *
-	 * Holds/manages caching configuration.
-	 *
-	 * Caching strategies:
-	 *
-	 *   For each subtree, you can set the caching strategy to 'ALL',
-	 *   'SEEN' (default), and 'FLUSH'.
-	 *
-	 *   - 'ALL' means that once all outgoing changes have been pushed, sync
-	 *         will start retrieving nodes to cache pro-actively. If a local
-	 *         copy exists of everything, it will check on each sync whether
-	 *         the ETag of the root folder changed, and retrieve remote changes
-	 *         if they exist.
-	 *   - 'SEEN' does this only for documents and folders that have been either
-	 *         read from or written to at least once since connecting to the current
-	 *         remote backend, plus their parent/ancestor folders up to the root
-	 *         (to make tree-based sync possible).
-	 *   - 'FLUSH' will only cache outgoing changes, and forget them as soon as
-	 *         they have been saved to remote successfully.
-	 *
-	 **/
-	
-	var util = __webpack_require__(2);
-	var log = __webpack_require__(4);
-	
-	var containingFolder = util.containingFolder;
-	
-	var Caching = function Caching() {
-	  this.reset();
-	};
-	
-	Caching.prototype = {
-	  pendingActivations: [],
-	
-	  /**
-	   * Method: set
-	   *
-	   * Configure caching for a given path explicitly.
-	   *
-	   * Not needed when using <enable>/<disable>.
-	   *
-	   * Parameters:
-	   *   path     - Path to cache
-	   *   strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
-	   *
-	   * Example:
-	   *   (start code)
-	   *   remoteStorage.caching.set('/bookmarks/archive')
-	   */
-	  set: function set(path, strategy) {
-	    if (typeof path !== 'string') {
-	      throw new Error('path should be a string');
-	    }
-	    if (!util.isFolder(path)) {
-	      throw new Error('path should be a folder');
-	    }
-	    if (this._remoteStorage && this._remoteStorage.access && !this._remoteStorage.access.checkPathPermission(path, 'r')) {
-	      throw new Error('No access to path "' + path + '". You have to claim access to it first.');
-	    }
-	    if (!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
-	      throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
-	    }
-	
-	    this._rootPaths[path] = strategy;
-	
-	    if (strategy === 'ALL') {
-	      if (this.activateHandler) {
-	        this.activateHandler(path);
-	      } else {
-	        this.pendingActivations.push(path);
-	      }
-	    }
-	  },
-	
-	  /**
-	   * Method: enable
-	   *
-	   * Enable caching for a given path.
-	   *
-	   * Uses caching strategy 'ALL'.
-	   *
-	   * Parameters:
-	   *   path - Path to enable caching for
-	   */
-	  enable: function enable(path) {
-	    this.set(path, 'ALL');
-	  },
-	
-	  /**
-	   * Method: disable
-	   *
-	   * Disable caching for a given path.
-	   *
-	   * Uses caching strategy 'FLUSH' (meaning items are only cached until
-	   * successfully pushed to the remote).
-	   *
-	   * Parameters:
-	   *   path - Path to disable caching for
-	   */
-	  disable: function disable(path) {
-	    this.set(path, 'FLUSH');
-	  },
-	
-	  /**
-	   * Method: onActivate
-	   *
-	   * Set a callback for when caching is activated for a path.
-	   *
-	   * Parameters:
-	   *   callback - Callback function
-	   */
-	  onActivate: function onActivate(cb) {
-	    var i;
-	    log('[Caching] Setting activate handler', cb, this.pendingActivations);
-	    this.activateHandler = cb;
-	    for (i = 0; i < this.pendingActivations.length; i++) {
-	      cb(this.pendingActivations[i]);
-	    }
-	    delete this.pendingActivations;
-	  },
-	
-	  /**
-	   * Method: checkPath
-	   *
-	   * Retrieve caching setting for a given path, or its next parent
-	   * with a caching strategy set.
-	   *
-	   * Parameters:
-	   *   path - Path to retrieve setting for
-	   **/
-	  checkPath: function checkPath(path) {
-	    if (this._rootPaths[path] !== undefined) {
-	      return this._rootPaths[path];
-	    } else if (path === '/') {
-	      return 'SEEN';
-	    } else {
-	      return this.checkPath(containingFolder(path));
-	    }
-	  },
-	
-	  /**
-	   * Method: reset
-	   *
-	   * Reset the state of caching by deleting all caching information.
-	   **/
-	  reset: function reset() {
-	    this._rootPaths = {};
-	    this._remoteStorage = null;
-	  }
-	};
-	
-	Caching._rs_init = function (remoteStorage) {
-	  this._remoteStorage = remoteStorage;
-	};
-	
-	module.exports = Caching;
-
-/***/ },
-/* 30 */
-/***/ function(module, exports) {
-
-	"use strict";
-	
-	/**
-	 * Class: I18n
-	 *
-	 * TODO add documentation
-	 **/
-	
-	var dictionary = {
-	  "view_info": 'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',
-	  "view_connect": "<strong>Connect</strong> remote storage",
-	  "view_connecting": "Connecting <strong>%s</strong>",
-	  "view_offline": "Offline",
-	  "view_error_occured": "Sorry! An error occured.",
-	  "view_invalid_key": "Wrong key!",
-	  "view_confirm_reset": "Are you sure you want to reset everything? This will clear your local data and reload the page.",
-	  "view_get_me_out": "Get me out of here!",
-	  "view_error_plz_report": 'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',
-	  "view_unauthorized": "Unauthorized! Click here to reconnect."
-	};
-	
-	var I18n = {
-	
-	  translate: function translate() {
-	    var str = arguments[0],
-	        params = Array.prototype.splice.call(arguments, 1);
-	
-	    if (typeof dictionary[str] !== "string") {
-	      throw "Unknown translation string: " + str;
-	    } else {
-	      str = dictionary[str];
-	    }
-	    return str.replace(/%s/g, function () {
-	      return params.shift();
-	    });
-	  },
-	
-	  getDictionary: function getDictionary() {
-	    return dictionary;
-	  },
-	
-	  setDictionary: function setDictionary(newDictionary) {
-	    dictionary = newDictionary;
-	  },
-	
-	  _rs_init: function _rs_init() {}
-	};
-	
-	module.exports = I18n;
-
-/***/ },
-/* 31 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	var RemoteStorage = __webpack_require__(1);
 	var BaseClient = __webpack_require__(8);
+	var RemoteStorage = __webpack_require__(1);
 	
 	RemoteStorage.MODULES = {};
 	
@@ -11765,96 +11665,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	RemoteStorage.prototype.defineModule = function (moduleName) {
 	  console.log("remoteStorage.defineModule is deprecated, use RemoteStorage.defineModule instead!");
 	  RemoteStorage.defineModule.apply(RemoteStorage, arguments);
-	};
-
-/***/ },
-/* 32 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-	
-	var log = __webpack_require__(4);
-	
-	function shareFirst(path) {
-	  return this.backend === 'dropbox' && path.match(/^\/public\/.*[^\/]$/);
-	}
-	
-	var SyncedGetPutDelete = {
-	  get: function get(path, maxAge) {
-	    if (this.local) {
-	      if (maxAge === undefined) {
-	        if (_typeof(this.remote) === 'object' && this.remote.connected && this.remote.online) {
-	          maxAge = 2 * this.getSyncInterval();
-	        } else {
-	          log('Not setting default maxAge, because remote is offline or not connected');
-	          maxAge = false;
-	        }
-	      }
-	      var maxAgeInvalid = function maxAgeInvalid(maxAge) {
-	        return maxAge !== false && typeof maxAge !== 'number';
-	      };
-	
-	      if (maxAgeInvalid(maxAge)) {
-	        return Promise.reject('Argument \'maxAge\' must be false or a number');
-	      }
-	      return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
-	    } else {
-	      return this.remote.get(path);
-	    }
-	  },
-	
-	  put: function put(path, body, contentType) {
-	    if (shareFirst.bind(this)(path)) {
-	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
-	    } else if (this.local) {
-	      return this.local.put(path, body, contentType);
-	    } else {
-	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
-	    }
-	  },
-	
-	  'delete': function _delete(path) {
-	    if (this.local) {
-	      return this.local.delete(path);
-	    } else {
-	      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
-	    }
-	  },
-	
-	  _wrapBusyDone: function _wrapBusyDone(result) {
-	    var self = this;
-	    this._emit('wire-busy');
-	    return result.then(function (r) {
-	      self._emit('wire-done', { success: true });
-	      return Promise.resolve(r);
-	    }, function (err) {
-	      self._emit('wire-done', { success: false });
-	      return Promise.reject(err);
-	    });
-	  }
-	};
-	
-	module.exports = SyncedGetPutDelete;
-
-/***/ },
-/* 33 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	var RemoteStorage = __webpack_require__(1);
-	RemoteStorage.version = RemoteStorage.prototype.version = {
-	  productName: 'remotestorage.js',
-	  product: 0,
-	  major: 13,
-	  minor: 1,
-	  postfix: 'pre'
-	};
-	
-	RemoteStorage.version.toString = function () {
-	  return this.productName + ' ' + [this.product, this.major, this.minor].join('.') + (this.postfix ? '-' + this.postfix : '');
 	};
 
 /***/ }

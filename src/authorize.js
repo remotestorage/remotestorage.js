@@ -1,6 +1,5 @@
 var log = require('./log');
 var util = require('./util');
-// var RemoteStorage = require('./remotestorage');
   
   function extractParams(url) {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:

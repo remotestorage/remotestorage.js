@@ -1,5 +1,5 @@
-  var RemoteStorage = require('./remotestorage');
   var BaseClient = require('./baseclient');
+  var RemoteStorage = require('./remotestorage');
   
   RemoteStorage.MODULES = {};
 

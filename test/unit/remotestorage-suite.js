@@ -73,7 +73,7 @@ define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/aut
       // global.Authorize = require('./src/authorize');
 
       config.cache = false
-      global.RemoteStorage.Discover = function(userAddress) {
+      RemoteStorage.Discover = function(userAddress) {
         var pending = Promise.defer();
         if (userAddress === "someone@somewhere") {
           pending.reject('in this test, discovery fails for that address');
@@ -86,6 +86,7 @@ define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/aut
     },
 
     beforeEach: function(env, test) {
+      console.error('BEFORE EACH ! ')
       var remoteStorage = new RemoteStorage();
       remoteStorage.remote = new FakeRemote(true);
       env.rs = remoteStorage;
@@ -282,8 +283,10 @@ define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/aut
           // Mock feature to be loaded on initialization
           Sync._rs_init = function Sync_rs_init() {};
           Sync._rs_cleanup = function Sync_rs_cleanup() {};
+
           var loadedHandler = function() {
             initsCalled++;
+            console.error('[ST] loadedHandler', initsCalled)
             
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
               test.assertAnd(env.rs._cleanups.length, 0);

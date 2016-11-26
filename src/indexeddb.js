@@ -353,7 +353,7 @@
 
   IndexedDB._rs_supported = function () {
     var pending = Promise.defer();
-    var context = window || global
+    var context = util.getGlobalContext();
 
     // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
     //                    context.mozIndexedDB || context.oIndexedDB      ||

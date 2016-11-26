@@ -1055,11 +1055,16 @@
   };
 
   Sync._rs_cleanup = function (remoteStorage) {
+    console.error('SYNC _rs_cleanup')
     remoteStorage.stopSync();
+    console.error('SYNC dopo stopSync')
     remoteStorage.removeEventListener('ready', syncCycleCb);
     remoteStorage.removeEventListener('connected', syncOnConnect);
+    console.error('SYNC remoteEventListener')
+
     remoteStorage.sync = undefined
     delete remoteStorage.sync;
+    console.error('DAI CHE SONO ARRIVATO PORCO')
   };
 
   

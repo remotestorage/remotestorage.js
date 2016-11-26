@@ -1,6 +1,6 @@
   var log = require('./log');
   var util = require('./util');
-  require('webfinger.js');
+  var WebFinger = require('webfinger.js');
 
   // feature detection flags
   var haveXMLHttpRequest, hasLocalStorage;
@@ -73,6 +73,15 @@
 
     return pending.promise;
   };
+
+
+  Discover.DiscoveryError = function (message) {
+    Error.apply(this, arguments);
+    this.message = message;
+  };
+
+  Discover.DiscoveryError.prototype = Object.create(Error.prototype);
+
 
   Discover._rs_init = function (remoteStorage) {
     hasLocalStorage = util.localStorageAvailable();
