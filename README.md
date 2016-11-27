@@ -12,11 +12,11 @@ servers and syncing data across devices and applications.
 
 ### Where to get help?
 
-* Use the [remoteStorage.js API docs](https://remotestorage.github.io/remotestorage.js)
-* See [remotestorage.io](http://remotestorage.io/) for documentation, community
-  forums, and links
-* Get instant support via IRC in
-  [#remotestorage on Freenode](irc://irc.freenode.net:7000/remotestorage)
+* See [remotestorage.io](http://remotestorage.io/) for general information about remoteStorage
+* Follow the [remoteStorage.js Beginners Guide](https://wiki.remotestorage.io/RemoteStorage.js:Beginners'_Guide) to get started
+* Read detailed library documentation in the [remoteStorage.js API docs](https://remotestorage.github.io/remotestorage.js)
+* Ask questions on the [community forums](https://community.remotestorage.io/)
+* Get instant support via IRC in [#remotestorage on Freenode](irc://irc.freenode.net:7000/remotestorage)
 
 ### Running a local test server
 
