@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "tv4": "^1.2.7",
-    "webfinger.js": "^2.4.2",
+    "webfinger.js": "^2.6.0",
     "xhr2": "^0.1.3"
   }
 }

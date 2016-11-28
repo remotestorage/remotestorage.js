@@ -159,7 +159,6 @@ define(['bluebird', 'require', 'test/helpers/mocks'],
         desc : "Sync adapter removes itself from remoteStorage instance after cleanup",
         run : function(env, test) {
           test.assertAnd(typeof env.rs.sync, "object", "sync is not defined");
-          console.error(env.rs.sync)
 
           Sync._rs_cleanup(env.rs);
 

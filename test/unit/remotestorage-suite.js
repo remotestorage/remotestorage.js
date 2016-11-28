@@ -1,15 +1,18 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/authorize', './src/log', './src/dropbox', './src/config', './src/eventhandling', 'require', 'tv4'], 
-       function (Promise, RemoteStorage, SyncedGetPutDelete, Authorize, log, Dropbox, config, eventHandling, require, tv4) {
+define(['bluebird', 'require', 'tv4'], 
+       function (Promise, require, tv4) {
 
   var suites = [];
 
   var consoleLog, fakeLogs;
   global.Promise = Promise;
+  global.XMLHttpRequest = require('xmlhttprequest');
+  global.eventHandling = require('./src/eventhandling');
 
   function FakeRemote(connected) {
+    this.fakeRemote = true;
     this.connected = (typeof connected === 'boolean') ? connected : true;
     this.configure = function() {};
     this.stopWaitingForToken = function() {
@@ -64,16 +67,23 @@ define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/aut
   }
 
   suites.push({
+    // abortOnFail: true,
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
+      global.RemoteStorage = require('./src/remotestorage');
+      global.XMLHttpRequest = require('xmlhttprequest');
+      global.SyncedGetPutDelete = require('./src/syncedgetputdelete');
+      global.Authorize = require('./src/authorize');
       global.Sync = require('./src/sync');
-      global.config = require('./src/config')
+      global.config = require('./src/config');
+      global.log = require('./src/log');
+      global.Dropbox = require('./src/dropbox');
+      // global.Dropbox = {};
       // global.RemoteStorage = require('./src/remotestorage');
       // global.Authorize = require('./src/authorize');
 
-      config.cache = false
-      RemoteStorage.Discover = function(userAddress) {
+      global.RemoteStorage.Discover = function(userAddress) {
         var pending = Promise.defer();
         if (userAddress === "someone@somewhere") {
           pending.reject('in this test, discovery fails for that address');
@@ -81,17 +91,16 @@ define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/aut
         return  pending.promise;
       };
       global.localStorage = {};
-      // RemoteStorage.prototype.remote = new FakeRemote();
+      global.RemoteStorage.prototype.remote = new FakeRemote();
       test.done();
     },
 
     beforeEach: function(env, test) {
-      console.error('BEFORE EACH ! ')
-      var remoteStorage = new RemoteStorage();
-      remoteStorage.remote = new FakeRemote(true);
+      var remoteStorage = new RemoteStorage({cache: false});
+      // remoteStorage.remote = new FakeRemote(true);
       env.rs = remoteStorage;
       config.cordovaRedirectUri = undefined;
-      test.done();
+      remoteStorage.on('ready', test.done );
     },
 
     tests: [
@@ -99,6 +108,7 @@ define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/aut
         desc: "#get emiting error RemoteStorage.Unauthorized on 403",
         run: function (env, test) {
           var success = false;
+
           env.rs.on('error', function (e) {
             if (e instanceof Authorize.Unauthorized) {
               success = true;
@@ -280,18 +290,17 @@ define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/aut
         desc: "cleanup functions don't bloat up on repeated initialization",
         run: function(env, test) {
           var initsCalled = 0;
-          // Mock feature to be loaded on initialization
-          Sync._rs_init = function Sync_rs_init() {};
-          Sync._rs_cleanup = function Sync_rs_cleanup() {};
+          // // Mock feature to be loaded on initialization
+          // Sync._rs_init = function Sync_rs_init() {};
+          // Sync._rs_cleanup = function Sync_rs_cleanup() {};
 
           var loadedHandler = function() {
             initsCalled++;
-            console.error('[ST] loadedHandler', initsCalled)
             
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
-              test.assertAnd(env.rs._cleanups.length, 0);
+              test.assertAnd(env.rs._cleanups.length, 6);
             } else {
-              test.assertAnd(env.rs._cleanups.length, 1);
+              test.assertAnd(env.rs._cleanups.length, 6);
             }
 
             if (initsCalled === 2) {
@@ -482,12 +491,14 @@ define(['bluebird','./src/remotestorage', './src/syncedgetputdelete', './src/aut
 
   suites.push({
     name: "RemoteStorage",
+    // abortOnFail: true,
     desc: "The global RemoteStorage namespace",
     setup: function(env, test) {
       test.done();
     },
 
     beforeEach: function(env, test) {
+      global.log = require('./src/log');
       fakeLogs = [];
       test.done();
     },

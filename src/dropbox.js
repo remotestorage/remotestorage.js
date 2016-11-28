@@ -627,7 +627,7 @@
             self.online = false;
             self.rs._emit('network-offline');
           }
-          return global.setTimeout(self._request(method, url, options), 3210);
+          return setTimeout(self._request(method, url, options), 3210);
         } else {
           if (!self.online) {
             self.online = true;
