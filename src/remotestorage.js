@@ -313,6 +313,20 @@
      */
 
     /**
+     * Method: startSync
+     *
+     * Start synchronization with remote storage, downloading and uploading any
+     * changes within the cached paths.
+     *
+     * Please consider: local changes will attempt sync immediately, and remote
+     * changes should also be synced timely when using library defaults. So
+     * this is mostly useful for letting users sync manually, when pressing a
+     * sync button for example. This might feel safer to them sometimes, esp.
+     * when shifting between offline and online a lot.
+     */
+     // (see src/sync.js for implementation)
+
+    /**
      * Method: connect
      *
      * Connect to a remoteStorage server.
