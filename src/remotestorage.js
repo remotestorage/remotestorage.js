@@ -20,6 +20,8 @@
   const log = require('./log');
   const Features = require('./features');
   const globalContext = util.getGlobalContext();
+  const eventHandling = require('./eventhandling');
+
 
   /**
    * Class: RemoteStorage
@@ -111,10 +113,10 @@
     // TODO merge user configuration with default configuration
     if (typeof cfg === 'object') {
       config.logging = !!cfg.logging;
+      config.cache = !!cfg.cache;
       config.cordovaRedirectUri = cfg.cordovaRedirectUri;
     }
 
-    var eventHandling = require('./eventhandling');
     eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
             'error', 'features-loaded', 'connecting', 'authing',
@@ -151,8 +153,6 @@
     var origOn = this.on;
 
     this.on = function (eventName, handler) {
-      if(eventName === 'features-loaded') {
-      }
       if (eventName === 'ready' && this.remote && this.remote.connected && this._allLoaded) {
         setTimeout(handler, 0);
       } else if (eventName === 'features-loaded' && this._allLoaded) {

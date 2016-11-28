@@ -3,13 +3,15 @@
 const util = require('./util');
 const log = require('./log');
 const SyncedGetPutDelete = require('./syncedgetputdelete');
+const config = require('./config');
 
 let featuresDone = 0;
 let features = [];
+let readyFired = false;
 
 
-const featureModules = {
-  'WireClient': require('./wireclient'),
+let featureModules = {
+  // 'WireClient': require('./wireclient'),
   'I18n': require('./i18n'),
   'Dropbox': require('./dropbox'),
   'GoogleDrive': require('./googledrive'),
@@ -26,12 +28,17 @@ const featureModules = {
 };
 
 function loadFeatures() {
-	for (let featureName in featureModules) {
-		// TOFIX this has to push the promised return value into an
-		// array of promises and use Promise.all to emit `ready`
-		// instead of increment a counter of loaded features.
-		this.loadFeature(featureName)
-	}
+  featuresDone = 0;
+  features = [];
+  readyFired = false;
+  
+  this._allLoaded = false;
+  for (let featureName in featureModules) {
+    // TOFIX this has to push the promised return value into an
+    // array of promises and use Promise.all to emit `ready`
+    // instead of increment a counter of loaded features.
+    this.loadFeature(featureName)
+  }
 }
 
     /**
@@ -52,34 +59,38 @@ function loadFeatures() {
      *
      */
 function hasFeature(feature) {
-  for (var i = this.features.length - 1; i >= 0; i--) {
-    if (this.features[i].name === feature) {
-      return this.features[i].supported;
+  for (var i = features.length - 1; i >= 0; i--) {
+    if (features[i].name === feature) {
+      return features[i].supported;
     }
   }
   return false;
 }
 
 function loadFeature(featureName) {
-	const feature = featureModules[featureName];
-	log(`[RemoteStorage] [FEATURE ${featureName}] initializing ...`);
+  const feature = featureModules[featureName];
+  let supported = !feature._rs_supported || feature._rs_supported();
 
-	const supported = !feature._rs_supported || feature._rs_supported();
-	if (typeof supported === 'object') {
-		supported.then( () => {
-			this.featureSupported(featureName, true);
-			this.initFeature(featureName);
-		}, () => {
-			this.featureSupported(featureName, false);
-		});
-	} else if (typeof supported === 'boolean') {
-		this.featureSupported(featureName, supported);
-		if (supported) {
-			this.initFeature(featureName);
-		}
-	} else {
-		this.featureSupported(featureName, false);
-	}
+  if (!config.cache && featureName === 'Sync') {
+    supported = false;
+  }
+  // log(`[RemoteStorage] [FEATURE ${featureName}] initializing ...`);
+
+  if (typeof supported === 'object') {
+    supported.then( () => {
+      this.featureSupported(featureName, true);
+      this.initFeature(featureName);
+    }, () => {
+      this.featureSupported(featureName, false);
+    });
+  } else if (typeof supported === 'boolean') {
+    this.featureSupported(featureName, supported);
+    if (supported) {
+      this.initFeature(featureName);
+    }
+  } else {
+    this.featureSupported(featureName, false);
+  }
 }
 
 function initFeature(featureName) {
@@ -103,21 +114,21 @@ function initFeature(featureName) {
 }
 
 function featureFailed(featureName, err) {
-  log(`[RemoteStorage] [FEATURE ${featureName}] initialization failed (${err})`);
+  // log(`[RemoteStorage] [FEATURE ${featureName}] initialization failed (${err})`);
   this.featureDone();
 }
 
 
 function featureSupported(featureName, success) {
-  log(`[RemoteStorage] [FEATURE ${featureName}]  ${success ? '' : ' not'} supported`);
+  // log(`[RemoteStorage] [FEATURE ${featureName}]  ${success ? '' : ' not'} supported`);
   if (!success) {
-  	this.featureDone()
+    this.featureDone()
   }
 }
 
 function featureInitialized(featureName) {
   log(`[RemoteStorage] [FEATURE ${featureName}] initialized.`);
-  this.features.push({
+  features.push({
     name : featureName,
     init :  featureModules[featureName]._rs_init,
     supported : true,
@@ -127,25 +138,24 @@ function featureInitialized(featureName) {
 }
 
 function featureDone () {
-	featuresDone++;
-	if (featuresDone === Object.keys(featureModules).length) {
-		setTimeout(this.featuresLoaded.bind(this), 0);
-	}
+  featuresDone++;
+  if (featuresDone === Object.keys(featureModules).length) {
+    setTimeout(this.featuresLoaded.bind(this), 0);
+  }
 }
 
 function _setCachingModule () {
   const cachingModules = ['IndexedDB', 'LocalStorage', 'InMemoryStorage'];
 
   cachingModules.some( cachingLayer => {
-    if (this.features.some(feature => feature.name === cachingLayer)) {
-      this.features.local = featureModules[cachingLayer];
+    if (features.some(feature => feature.name === cachingLayer)) {
+      features.local = featureModules[cachingLayer];
       return true;
     }
   });
 }
 
 
-let readyFired = false;
 function _fireReady() {
   try {
     if (!readyFired) {
@@ -162,7 +172,7 @@ function featuresLoaded () {
 	log(`[REMOTESTORAGE] All features loaded !`)
 	
 	this._setCachingModule()
-  this.local = this.features.local && new this.features.local();
+  this.local = config.cache && features.local && new features.local();
 
   // this.remote set by WireClient._rs_init as lazy property on
   // RS.prototype
@@ -206,8 +216,8 @@ function featuresLoaded () {
 
 function _collectCleanupFunctions () {
   this._cleanups = [];
-  for (var i=0; i < this.features.length; i++) {
-    var cleanup = this.features[i].cleanup;
+  for (let i=0; i < features.length; i++) {
+    let cleanup = features[i].cleanup;
     if (typeof(cleanup) === 'function') {
       this._cleanups.push(cleanup);
     }

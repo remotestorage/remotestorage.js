@@ -73,7 +73,7 @@ var util = require('./util');
     }
     url += '&response_type=token';
 
-    if (global.cordova) {
+    if (util.globalContext.cordova) {
       return Authorize.openWindow(
           url,
           redirectUri,
@@ -115,7 +115,7 @@ var util = require('./util');
    * Override this method if access to document.location is forbidden
    */
   Authorize.getLocation = function () {
-    return global.document.location;
+    return document.location;
   };
 
   /**
@@ -125,9 +125,9 @@ var util = require('./util');
    */
   Authorize.setLocation = function (location) {
     if (typeof location === 'string') {
-      global.document.location.href = location;
+      document.location.href = location;
     } else if (typeof location === 'object') {
-      global.document.location = location;
+      document.location = location;
     } else {
       throw "Invalid location " + location;
     }
@@ -138,7 +138,7 @@ var util = require('./util');
    */
   Authorize.openWindow = function (url, redirectUri, options) {
     var pending = Promise.defer();
-    var newWindow = global.open(url, '_blank', options);
+    var newWindow = open(url, '_blank', options);
 
     if (!newWindow || newWindow.closed) {
       pending.reject('Authorization popup was blocked');

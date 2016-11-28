@@ -97,8 +97,8 @@
 
   function readBinaryData(content, mimeType, callback) {
     var blob;
-    global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
-    if (typeof global.BlobBuilder !== 'undefined') {
+    util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
+    if (typeof util.globalContext.BlobBuilder !== 'undefined') {
       var bb = new global.BlobBuilder();
       bb.append(content);
       blob = bb.getBlob(mimeType);
@@ -126,8 +126,8 @@
       pending.resolve(buffer.toString(encoding));
     } else {
       var blob;
-      global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
-      if (typeof global.BlobBuilder !== 'undefined') {
+      util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
+      if (typeof util.globalContext.BlobBuilder !== 'undefined') {
         var bb = new global.BlobBuilder();
         bb.append(arrayBuffer);
         blob = bb.getBlob();
@@ -574,7 +574,7 @@
   };
 
   WireClient._rs_supported = function () {
-    return !! global.XMLHttpRequest;
+    return !! XMLHttpRequest;
   };
 
   WireClient._rs_cleanup = function (remoteStorage){

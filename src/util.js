@@ -56,6 +56,7 @@ Promise.defer = function () {
       }
     },
 
+    globalContext: (typeof(window) !== 'undefined' ? window : global),
 
     getGlobalContext () {
       return (typeof(window) !== 'undefined' ? window : global)

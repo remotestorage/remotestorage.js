@@ -1,7 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require', 'bluebird', 'fs', './src/discover', 'webfinger.js'], function (require, Promise, fs, Discover, WebFinger) {
+define(['require', 'bluebird', 'fs'], 
+       function (require, Promise, fs) {
 
   var suites = [];
 
@@ -9,6 +10,9 @@ define(['require', 'bluebird', 'fs', './src/discover', 'webfinger.js'], function
     name: "Discover",
     desc: "Webfinger discovery",
     setup: function(env, test) {
+      global.XMLHttpRequest = require('xmlhttprequest');
+      global.WebFinger = require('webfinger.js')
+      global.Discover = require('./src/discover');
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };

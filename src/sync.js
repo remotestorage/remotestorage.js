@@ -1023,11 +1023,13 @@
   Sync._rs_init = function (remoteStorage) {
 
     syncCycleCb = function () {
-      if (!config.cache) return false
+      // if (!config.cache) return false
       log('[Sync] syncCycleCb calling syncCycle');
       if (Env.isBrowser()) {
         handleVisibility.bind(remoteStorage)();
       }
+
+
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
         remoteStorage.sync = new Sync(remoteStorage,
@@ -1055,16 +1057,12 @@
   };
 
   Sync._rs_cleanup = function (remoteStorage) {
-    console.error('SYNC _rs_cleanup')
     remoteStorage.stopSync();
-    console.error('SYNC dopo stopSync')
     remoteStorage.removeEventListener('ready', syncCycleCb);
     remoteStorage.removeEventListener('connected', syncOnConnect);
-    console.error('SYNC remoteEventListener')
 
     remoteStorage.sync = undefined
     delete remoteStorage.sync;
-    console.error('DAI CHE SONO ARRIVATO PORCO')
   };
 
   
