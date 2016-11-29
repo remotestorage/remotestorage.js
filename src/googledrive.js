@@ -29,6 +29,8 @@
   var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
+  var isFolder = RemoteStorage.util.isFolder;
+
   function buildQueryString(params) {
     return Object.keys(params).map(function (key) {
       return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
@@ -398,6 +400,11 @@
       if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + self.token;
 
+      this._emit('wire-busy', {
+        method: method,
+        isFolder: isFolder(url)
+      });
+
       return RS.WireClient.request.call(this, method, url, options).then(function(xhr) {
         // Google tokens expire from time to time...
         if (xhr && xhr.status === 401) {
@@ -408,6 +415,12 @@
             self.online = true;
             self.rs._emit('network-online');
           }
+          self._emit('wire-done', {
+            method: method,
+            isFolder: isFolder(url),
+            success: true
+          });
+
           return Promise.resolve(xhr);
         }
       }, function(error) {
@@ -415,6 +428,12 @@
           self.online = false;
           self.rs._emit('network-offline');
         }
+        self._emit('wire-done', {
+          method: method,
+          isFolder: isFolder(url),
+          success: false
+        });
+
         return Promise.reject(error);
       });
     }

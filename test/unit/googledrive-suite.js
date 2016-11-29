@@ -94,8 +94,12 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
     mocks.defineMocks(env);
 
+    env.busy = new test.Stub(function(){});
+    env.done = new test.Stub(function(){});
     env.networkOffline = new test.Stub(function(){});
     env.networkOnline = new test.Stub(function(){});
+    env.connectedClient.on('wire-busy', env.busy);
+    env.connectedClient.on('wire-done', env.done);
     env.rs.on('network-offline', env.networkOffline);
     env.rs.on('network-online', env.networkOnline);
 
@@ -379,6 +383,42 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
               { etag: '"1234"' }
             ] });
             req._onload();
+          });
+        }
+      },
+
+      {
+        desc: "#get emits wire-busy and wire-done on success",
+        run: function(env, test) {
+          env.connectedClient._fileIdCache.set('/foo/', 'abcd');
+          env.connectedClient.get('/foo/').then(function() {
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({ items: [
+              { etag: '"1234"' }
+            ] });
+            req._onload();
+          });
+        }
+      },
+
+      {
+        desc: "#get emits wire-busy and wire-done on failure",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/').then(function() {
+          }, function (err) {
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
           }, 10);
         }
       },
