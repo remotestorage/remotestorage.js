@@ -104,6 +104,11 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
     mocks.defineMocks(env);
 
+    env.networkOffline = new test.Stub(function(){});
+    env.networkOnline = new test.Stub(function(){});
+    env.rs.on('network-offline', env.networkOffline);
+    env.rs.on('network-online', env.networkOnline);
+
     test.done();
   }
 
@@ -153,6 +158,82 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         willFail: true,
         run: function (env, test) {
           env.client.delete('/foo');
+        }
+      },
+
+      {
+        desc: "#get with request failure emits network-offline if remote.online was true",
+        run: function(env, test) {
+          env.connectedClient.online = true;
+          env.connectedClient.get('/foo').then(function() {
+          }, function(err) {
+            test.assertAnd(env.networkOffline.numCalled, 1);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#get with request failure does not emit network-offline if remote.online was false",
+        run: function(env, test) {
+          env.connectedClient.online = false;
+          env.connectedClient.get('/foo').then(function() {
+          }, function(err) {
+            test.assertAnd(env.networkOffline.numCalled, 0);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#get with success emits network-online if remote.online was false",
+        run: function(env, test) {
+          env.connectedClient.online = false;
+          env.connectedClient.get('/foo').then(function() {
+            test.assertAnd(env.networkOnline.numCalled, 1);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+            req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+              mime_type: 'text/plain; charset=UTF-8',
+              rev: 'rev'
+            });
+            req.status = 200;
+            req.responseText = '{"foo":"response-body"}';
+            req._onload();
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#get with success does not emit network-online if remote.online was true",
+        run: function(env, test) {
+          env.connectedClient.online = true;
+          env.connectedClient.get('/foo').then(function() {
+            test.assertAnd(env.networkOnline.numCalled, 0);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+            req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+              mime_type: 'text/plain; charset=UTF-8',
+              rev: 'rev'
+            });
+            req.status = 200;
+            req.responseText = '{"foo":"response-body"}';
+            req._onload();
+          }, 10);
         }
       },
 
