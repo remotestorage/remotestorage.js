@@ -43,6 +43,8 @@
   var SETTINGS_KEY = 'remotestorage:dropbox';
   var PATH_PREFIX = '/remotestorage';
 
+  var isFolder = RemoteStorage.util.isFolder;
+
   /**
    * Function: getDropboxPath(path)
    *
@@ -613,13 +615,33 @@
       var self = this;
       if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + this.token;
-      return RS.WireClient.request.call(this, method, url, options).then(function (xhr) {
-        //503 means retry this later
+
+      this._emit('wire-busy', {
+        method: method,
+        isFolder: isFolder(url)
+      });
+
+      return RS.WireClient.request.call(this, method, url, options).then(function(xhr) {
+        // 503 means retry this later
         if (xhr && xhr.status === 503) {
           return global.setTimeout(self._request(method, url, options), 3210);
         } else {
+          self._emit('wire-done', {
+            method: method,
+            isFolder: isFolder(url),
+            success: true
+          });
+
           return Promise.resolve(xhr);
         }
+      }, function(error) {
+        self._emit('wire-done', {
+          method: method,
+          isFolder: isFolder(url),
+          success: false
+        });
+
+        return Promise.reject(error);
       });
     },
 
