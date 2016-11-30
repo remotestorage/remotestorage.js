@@ -3,6 +3,20 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.14.0 (November 2016)
+
+### Enhancements
+
+* Add network-offline and network-online events (#952)
+* Document `remoteStorage.startSync()` (#954)
+* Improve README.md a bit
+
+### Bugfixes
+
+* Fix widget not showing errors (#948)
+* Keep Dropbox client trying to sync when offline (#956)
+* Fix widget offline mode for Dropbox and Google Drive (#959)
+
 ## 0.13.0 (September 2016)
 
 ### Enhancements
