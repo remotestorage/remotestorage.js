@@ -23,6 +23,7 @@
   var Authorize = require('./authorize');
   var WireClient = require('./wireclient');
   var eventHandling = require('./eventhandling');
+  var util = require('./util');
 
   var BASE_URL = 'https://www.googleapis.com';
   var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -31,7 +32,7 @@
   var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
-  var isFolder = RemoteStorage.util.isFolder;
+  var isFolder = util.isFolder;
 
   function buildQueryString(params) {
     return Object.keys(params).map(function (key) {

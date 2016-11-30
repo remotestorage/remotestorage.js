@@ -49,7 +49,7 @@
   var SETTINGS_KEY = 'remotestorage:dropbox';
   var PATH_PREFIX = '/remotestorage';
 
-  var isFolder = RemoteStorage.util.isFolder;
+  var isFolder = util.isFolder;
 
   /**
    * Function: getDropboxPath(path)
