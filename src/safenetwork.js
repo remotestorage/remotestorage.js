@@ -164,18 +164,27 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       }
     },
 
+    reflectNetworkStatus: function (isOnline){
+      if (this.online != isOnline) {
+        this.online = isOnline;
+        this._emit( isOnline ? 'network-online' : 'network-offline');
+      }
+    },
+    
     safenetworkAuthorize: function (appApiKeys) {
       var self = this;
       self.appKeys = appApiKeys.app;
       
       tokenKey = SETTINGS_KEY + ':token';
       window.safeAuth.authorise(self.appKeys, tokenKey).then( function(res) {   // mrhTODO - am leaving off local storage key
-        // Save session info
+                // Save session info
         self.configure({ 
-            token:          res.token,                  // Auth token
-            permissions:    res.permissions,   // List of permissions approved by the user
+            token:          res.token,          // Auth token
+            permissions:    res.permissions,    // List of permissions approved by the user
           });
+        self.reflectNetworkStatus(true);             // Emit network-online
       }, function (err){
+        self.reflectNetworkStatus(false);
         RS.log('SafeNetwork Authorisation Failed');
         RS.log(err);
       });
@@ -275,6 +284,8 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         return deleteFunction(self.token, fullPath, self.isPathShared).then(function (success){
           // mrhTODO must handle: if file doesn't exist also do self._fileInfoCache.delete(fullPath);
 
+          self.reflectNetworkStatus(true);   // mrhTODO - should be true, unless 401 - Unauthorized
+
           if (success) {
             self._fileInfoCache.delete(fullPath);
             return Promise.resolve({statusCode: 200});
@@ -287,6 +298,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         });
 
       }, function (err){
+        self.reflectNetworkStatus(false);
         RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
@@ -307,10 +319,12 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         // self._shareIfNeeded(fullPath);  // mrhTODO what's this? (was part of dropbox.js)
 
         var response = { statusCode: ( result ? 200 : 400  ) }; // mrhTODO currently just a response that resolves to truthy (may be extended to return status?)
+        self.reflectNetworkStatus(true);
         
         self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
         return Promise.resolve( response );
       }, function (err){
+        self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
         RS.log('REJECTING!!! safeNFS.createOrUpdateFile("' + fullPath + '") failed: ' + err.message)
         return Promise.reject(err);
       });
@@ -327,10 +341,12 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           // self._shareIfNeeded(fullPath);  // mrhTODO what's this?
 
           var response = { statusCode: ( result ? 200 : 400  ) }; // mrhTODO currently just a response that resolves to truthy (may be extended to return status?)
+          self.reflectNetworkStatus(true);
 
           self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
           return Promise.resolve(response);
         }, function (err){
+          self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
           RS.log('REJECTING!!! _createFile("' + fullPath + '") failed: ' + err.message)
           return Promise.reject(err);
         });
@@ -381,8 +397,10 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
             retResponse.contentType = fileInfo['Content-Type'];
           }
          
+          self.reflectNetworkStatus(true);
           return Promise.resolve( retResponse );
         }, function (err){
+          self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
           RS.log('REJECTING!!! safeNFS.getFile("' + fullPath + '") failed: ' + err.message)
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
@@ -417,6 +435,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         RS.log('safeNFS.getDir(token, ' + fullPath + ', isPathShared = ' + self.isPathShared + ')' );
         return window.safeNFS.getDir(self.token, fullPath, self.isPathShared).then(function (body) {
 
+          self.reflectNetworkStatus(true);
           var listing, listingFiles, listingSubdirectories, mime, rev;
           if (body.info) {
             var folderETagWithoutQuotes = fullPath + '-' + body.info.createdOn + '-' + body.info.modifiedOn;
@@ -489,6 +508,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
           return Promise.resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE/*, mrhTODO revision: folderETagWithoutQuotes*/ });
         }, function (err){
+          self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
           RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err )
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
@@ -530,8 +550,10 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
         return window.safeNFS.createDir(self.token, folderPath, self.isPrivate, self.userMetadata, self.isPathShared).then(function (response) {
 //          self._shareIfNeeded(folderPath);  // mrhTODO what's this? (was part of dropbox.js)
+          self.reflectNetworkStatus(true);
           return Promise.resolve(response);
         }, function (err){
+          self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
           RS.log('safeNFS.createDir("' + folderPath + '") failed: ' + err.message)
           return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
         });
