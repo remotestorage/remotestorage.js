@@ -383,7 +383,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
               { etag: '"1234"' }
             ] });
             req._onload();
-          });
+          }, 10);
         }
       },
 
@@ -403,7 +403,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
               { etag: '"1234"' }
             ] });
             req._onload();
-          });
+          }, 10);
         }
       },
 
