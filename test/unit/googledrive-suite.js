@@ -10,7 +10,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
   function setup (env, test) {
     global.localStorage = {};
     global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error');
+      RemoteStorage.eventHandling(this, 'error', 'network-offline', 'network-online');
     };
     RemoteStorage.log = function () {};
     RemoteStorage.prototype = {
@@ -93,6 +93,11 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     });
 
     mocks.defineMocks(env);
+
+    env.networkOffline = new test.Stub(function(){});
+    env.networkOnline = new test.Stub(function(){});
+    env.rs.on('network-offline', env.networkOffline);
+    env.rs.on('network-online', env.networkOnline);
 
     test.done();
   }
@@ -301,6 +306,78 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           setTimeout(function () {
             var req = XMLHttpRequest.instances.shift();
             req.status = 404;
+            req._onload();
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#get with request failure emits network-offline if remote.online was true",
+        run: function(env, test) {
+          env.connectedClient.online = true;
+          env.connectedClient.get('/foo').then(function() {
+          }, function(err) {
+            test.assertAnd(env.networkOffline.numCalled, 1);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#get with request failure does not emit network-offline if remote.online was false",
+        run: function(env, test) {
+          env.connectedClient.online = false;
+          env.connectedClient.get('/foo').then(function() {
+          }, function(err) {
+            test.assertAnd(env.networkOffline.numCalled, 0);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#get with success emits network-online if remote.online was false",
+        run: function(env, test) {
+          env.connectedClient.online = false;
+          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient.get('/foo').then(function() {
+            test.assertAnd(env.networkOnline.numCalled, 1);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({ items: [
+              { etag: '"1234"' }
+            ] });
+            req._onload();
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#get with success does not emit network-online if remote.online was true",
+        run: function(env, test) {
+          env.connectedClient.online = true;
+          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient.get('/foo').then(function() {
+            test.assertAnd(env.networkOnline.numCalled, 0);
+            test.done();
+          });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({ items: [
+              { etag: '"1234"' }
+            ] });
             req._onload();
           }, 10);
         }

@@ -167,6 +167,18 @@
      *
      * Fired when a wire request completes
      **/
+    /**
+     * Event: network-offline
+     *
+     * Fired once when a wire request fails for the first time, and
+     * `remote.online` is set to false
+     **/
+    /**
+     * Event: network-online
+     *
+     * Fired once when a wire request succeeds for the first time after a
+     * failed one, and `remote.online` is set back to true
+     **/
 
     // Initial configuration property settings.
     if (typeof cfg === 'object') {
@@ -176,8 +188,9 @@
 
     RemoteStorage.eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
-            'error', 'features-loaded', 'connecting', 'authing', 'wire-busy',
-            'wire-done', 'sync-interval-change'
+            'error', 'features-loaded', 'connecting', 'authing',
+            'sync-interval-change', 'wire-busy', 'wire-done',
+            'network-offline', 'network-online'
     );
 
     // pending get/put/delete calls.

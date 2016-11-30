@@ -872,7 +872,6 @@
           error = new RemoteStorage.Unauthorized();
         } else if (status.networkProblems) {
           error = new RemoteStorage.SyncError('Network request failed.');
-          this.remote.online = false;
         } else {
           error = new Error('HTTP response code ' + status.statusCode + ' received.');
         }
@@ -903,7 +902,6 @@
       .then(function (completed) {
         delete self._timeStarted[task.path];
         delete self._running[task.path];
-        self.remote.online = true;
 
         if (completed) {
           if (self._tasks[task.path]) {
