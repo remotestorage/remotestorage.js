@@ -97,6 +97,8 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     var self = this;
 
     onErrorCb = function (error){
+      // mrhTODO should this affect this.connected, this.online and emit network-offline?
+      
       if (error instanceof RemoteStorage.Unauthorized) {
 
         // Delete all the settings - see the documentation of
@@ -116,7 +118,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       }
     };
 
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+    RS.eventHandling(this, 'change', 'connected', 'not-connected');
     this.rs.on('error', onErrorCb);
 
     // mrhTODO port dropbox style load/save settings from localStorage
