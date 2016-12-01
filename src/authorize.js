@@ -36,14 +36,6 @@ var util = require('./util');
     }, {});
   }
 
-  // RemoteStorage.ImpliedAuth = function (storageApi, redirectUri) {
-  //   log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
-  //   // Set a fixed access token, signalling to not send it as Bearer
-  //   remoteStorage.remote.configure({
-  //     token: Authorize.IMPLIED_FAKE_TOKEN
-  //   });
-  //   document.location = redirectUri;
-  // };
 
   var Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
     log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
@@ -91,20 +83,6 @@ var util = require('./util');
 
   Authorize.IMPLIED_FAKE_TOKEN = false;
   
-  // RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
-  //   this.access.setStorageType(this.remote.storageType);
-  //   var scope = this.access.scopeParameter;
-
-  //   var redirectUri = global.cordova ?
-  //     cordovaRedirectUri :
-  //     String(Authorize.getLocation());
-
-  //   var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
-
-  //   Authorize(this, authURL, scope, redirectUri, clientId);
-  // };
-  // 
-  // 
   Authorize.Unauthorized = function () { Error.apply(this, arguments); };
   Authorize.Unauthorized.prototype = Object.create(Error.prototype);
 
@@ -172,9 +150,6 @@ var util = require('./util');
     return pending.promise;
   };
 
-  // RS.prototype.impliedauth = function () {
-  //   RS.ImpliedAuth(this.remote.storageApi, String(document.location));
-  // };
 
   Authorize._rs_supported = function () {
     return typeof(document) !== 'undefined';

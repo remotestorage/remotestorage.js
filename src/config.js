@@ -9,6 +9,9 @@ var config = {
   cache: true,
   disableFeatures: [],
   discoveryTimeout: 10000,
+  syncInterval: 10000,
+  backgroundSyncInterval: 60000,
+  isBackground: false,
   cordovaRedirectUri: undefined
 };
 

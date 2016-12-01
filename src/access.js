@@ -1,7 +1,7 @@
   var SETTINGS_KEY = "remotestorage:access";
 
   /**
-   * Class: RemoteStorage.Access
+   * Class: Access
    *
    * Keeps track of claimed access and scopes.
    */

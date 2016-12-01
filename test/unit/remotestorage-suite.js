@@ -1,15 +1,15 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird', 'require', 'tv4'], 
-       function (Promise, require, tv4) {
+define(['bluebird', 'require', 'tv4', './src/eventhandling'], 
+       function (Promise, require, tv4, eventHandling) {
 
   var suites = [];
 
   var consoleLog, fakeLogs;
   global.Promise = Promise;
-  global.XMLHttpRequest = require('xmlhttprequest');
-  global.eventHandling = require('./src/eventhandling');
+  global.XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+  // global.eventHandling = require('./src/eventhandling');
 
   function FakeRemote(connected) {
     this.fakeRemote = true;
@@ -71,25 +71,27 @@ define(['bluebird', 'require', 'tv4'],
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      global.RemoteStorage = require('./src/remotestorage');
-      global.XMLHttpRequest = require('xmlhttprequest');
+      global.XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+      // global.WebFinger = require('webfinger.js')
+      // global.Discover = require('./src/discover');
       global.SyncedGetPutDelete = require('./src/syncedgetputdelete');
       global.Authorize = require('./src/authorize');
       global.Sync = require('./src/sync');
       global.config = require('./src/config');
       global.log = require('./src/log');
       global.Dropbox = require('./src/dropbox');
-      // global.Dropbox = {};
-      // global.RemoteStorage = require('./src/remotestorage');
-      // global.Authorize = require('./src/authorize');
+      
+      global.RemoteStorage = require('./src/remotestorage');
 
-      global.RemoteStorage.Discover = function(userAddress) {
+
+      global.Discover = function(userAddress) {
         var pending = Promise.defer();
         if (userAddress === "someone@somewhere") {
           pending.reject('in this test, discovery fails for that address');
         }
         return  pending.promise;
       };
+      
       global.localStorage = {};
       global.RemoteStorage.prototype.remote = new FakeRemote();
       test.done();
@@ -97,7 +99,6 @@ define(['bluebird', 'require', 'tv4'],
 
     beforeEach: function(env, test) {
       var remoteStorage = new RemoteStorage({cache: false, disableFeatures: ['WireClient'] });
-      // remoteStorage.remote = new FakeRemote(true);
       env.rs = remoteStorage;
       config.cordovaRedirectUri = undefined;
       remoteStorage.on('ready', test.done );

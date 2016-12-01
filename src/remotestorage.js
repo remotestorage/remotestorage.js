@@ -199,6 +199,17 @@
     },
   
 
+    impliedauth: function (storageApi, redirectUri) {
+      var storageApi = this.remote.storageApi;
+      var redirectUri =  String(document.location);
+
+      log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
+      // Set a fixed access token, signalling to not send it as Bearer
+      this.remote.configure({
+        token: Authorize.IMPLIED_FAKE_TOKEN
+      });
+      document.location = redirectUri;
+    },
     /**
      * Property: remote
      *
@@ -272,6 +283,7 @@
      *    Kerberos and similar protocols.
      */
     connect: function (userAddress, token) {
+      
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
@@ -300,7 +312,6 @@
 
       Discover(userAddress).then(function (info) {
         // Info contains fields: href, storageApi, authURL (optional), properties
-
         clearTimeout(discoveryTimeout);
         this._emit('authing');
         info.userAddress = userAddress;
@@ -738,13 +749,6 @@
     },
     configurable: true
   });
-
-
-    /* TOFIX (in sync.js also... has to be a shared property) */
-    config.syncInterval = 10000,
-    config.backgroundSyncInterval = 60000,
-    config.isBackground = false;
-
 
 
 
