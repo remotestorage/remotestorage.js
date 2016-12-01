@@ -96,7 +96,7 @@ define(['bluebird', 'require', 'tv4'],
     },
 
     beforeEach: function(env, test) {
-      var remoteStorage = new RemoteStorage({cache: false});
+      var remoteStorage = new RemoteStorage({cache: false, disableFeatures: ['WireClient'] });
       // remoteStorage.remote = new FakeRemote(true);
       env.rs = remoteStorage;
       config.cordovaRedirectUri = undefined;
@@ -298,9 +298,9 @@ define(['bluebird', 'require', 'tv4'],
             initsCalled++;
             
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
-              test.assertAnd(env.rs._cleanups.length, 6);
+              test.assertAnd(env.rs._cleanups.length, 4);
             } else {
-              test.assertAnd(env.rs._cleanups.length, 6);
+              test.assertAnd(env.rs._cleanups.length, 4);
             }
 
             if (initsCalled === 2) {

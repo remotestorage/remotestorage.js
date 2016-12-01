@@ -10,6 +10,7 @@ define(['./src/remotestorage', './src/modules'], function(RemoteStorage, modules
     desc: "RemoteStorage modules",
     setup: function(env, test) {
       global.Promise = require('./lib/bluebird.js');
+      global.XMLHttpRequest = require('xmlhttprequest');
  
       RemoteStorage.prototype.remote = {
         connected: false

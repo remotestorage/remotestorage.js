@@ -7,6 +7,7 @@ var config = {
       conflict: true
   },
   cache: true,
+  disableFeatures: [],
   discoveryTimeout: 10000,
   cordovaRedirectUri: undefined
 };

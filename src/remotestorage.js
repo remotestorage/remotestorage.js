@@ -16,7 +16,6 @@
   const config = require('./config');
   const Authorize = require('./authorize');
   const Sync = require('./sync');
-  const SyncedGetPutDelete = require('./syncedgetputdelete');
   const log = require('./log');
   const Features = require('./features');
   const globalContext = util.getGlobalContext();
@@ -112,10 +111,12 @@
     // Initial configuration property settings.
     // TODO merge user configuration with default configuration
     if (typeof cfg === 'object') {
-      config.logging = !!cfg.logging;
-      config.cache = !!cfg.cache;
-      config.cordovaRedirectUri = cfg.cordovaRedirectUri;
+      util.extend( config, cfg)
+      // config.logging = !!cfg.logging;
+      // config.cache = !!cfg.cache;
+      // config.cordovaRedirectUri = cfg.cordovaRedirectUri;
     }
+
 
     eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
@@ -496,7 +497,6 @@
     featuresLoaded: Features.featuresLoaded,
     featureInitialized: Features.featureInitialized,
     featureFailed: Features.featureFailed,
-    featureSupported: Features.featureSupported,
     hasFeature: Features.hasFeature,
     _setCachingModule: Features._setCachingModule,
     _collectCleanupFunctions: Features._collectCleanupFunctions,

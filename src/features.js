@@ -5,35 +5,49 @@ const log = require('./log');
 const SyncedGetPutDelete = require('./syncedgetputdelete');
 const config = require('./config');
 
-let featuresDone = 0;
 let features = [];
-let readyFired = false;
-
-
-let featureModules = {
-  // 'WireClient': require('./wireclient'),
-  'I18n': require('./i18n'),
-  'Dropbox': require('./dropbox'),
-  'GoogleDrive': require('./googledrive'),
-  'Access': require('./access'),
-  'Caching': require('./caching'),
-  'Discover': require('./discover'),
-  'Authorize': require('./authorize'),
-  'IndexedDB': require('./indexeddb'),
-  'LocalStorage': require('./localstorage'),
-  'InMemoryStorage': require('./inmemorystorage'),
-  'Sync': require('./sync'),
-  'BaseClient': require('./baseclient'),
-  'Env': require('./env')
-};
+let featuresDone = 0;
 
 function loadFeatures() {
-  featuresDone = 0;
-  features = [];
-  readyFired = false;
+  this.featuresDone = 0;
+  this.features = [];
+  this.readyFired = false;
+
+  this.featureModules = {
+    'WireClient': require('./wireclient'),
+    'I18n': require('./i18n'),
+    'Dropbox': require('./dropbox'),
+    'GoogleDrive': require('./googledrive'),
+    'Access': require('./access'),
+    'Discover': require('./discover'),
+    'Authorize': require('./authorize'),
+    'BaseClient': require('./baseclient'),
+    'Env': require('./env')
+  };
   
+  // enable caching releate module if needed
+  if (config.cache) {
+    util.extend( this.featureModules, {
+      'Caching': require('./caching'),
+      'IndexedDB': require('./indexeddb'),
+      'LocalStorage': require('./localstorage'),
+      'InMemoryStorage': require('./inmemorystorage'),
+      'Sync': require('./sync'),
+    })
+  }
+
+  // disable specified modules
+  config.disableFeatures.forEach( feature => {
+    if (this.featureModules[feature]) {
+      // this.featureModules[feature] = undefined
+      delete this.featureModules[feature]
+    }
+
+  })
+
   this._allLoaded = false;
-  for (let featureName in featureModules) {
+
+  for (let featureName in this.featureModules) {
     // TOFIX this has to push the promised return value into an
     // array of promises and use Promise.all to emit `ready`
     // instead of increment a counter of loaded features.
@@ -41,40 +55,40 @@ function loadFeatures() {
   }
 }
 
-    /**
-     * Method: hasFeature
-     *
-     * Checks whether a feature is enabled or not within remoteStorage.
-     * Returns a boolean.
-     *
-     * Parameters:
-     *   name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
-     *
-     * Example:
-     *   (start code)
-     *   if (remoteStorage.hasFeature('LocalStorage')) {
-     *     console.log('LocalStorage is enabled!');
-     *   }
-     *   (end code)
-     *
-     */
+
+
+/**
+ * Method: hasFeature
+ *
+ * Checks whether a feature is enabled or not within remoteStorage.
+ * Returns a boolean.
+ *
+ * Parameters:
+ *   name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
+ *
+ * Example:
+ *   (start code)
+ *   if (remoteStorage.hasFeature('LocalStorage')) {
+ *     console.log('LocalStorage is enabled!');
+ *   }
+ *   (end code)
+ *
+ */
 function hasFeature(feature) {
-  for (var i = features.length - 1; i >= 0; i--) {
-    if (features[i].name === feature) {
-      return features[i].supported;
+  for (var i = this.features.length - 1; i >= 0; i--) {
+    if (this.features[i].name === feature) {
+      return this.features[i].supported;
     }
   }
   return false;
 }
 
+
 function loadFeature(featureName) {
-  const feature = featureModules[featureName];
+  const feature = this.featureModules[featureName];
   let supported = !feature._rs_supported || feature._rs_supported();
 
-  if (!config.cache && featureName === 'Sync') {
-    supported = false;
-  }
-  // log(`[RemoteStorage] [FEATURE ${featureName}] initializing ...`);
+  log(`[RemoteStorage] [FEATURE ${featureName}] initializing ...`);
 
   if (typeof supported === 'object') {
     supported.then( () => {
@@ -94,7 +108,7 @@ function loadFeature(featureName) {
 }
 
 function initFeature(featureName) {
-  const feature = featureModules[featureName]
+  const feature = this.featureModules[featureName]
   let initResult;
   try {
     initResult = feature._rs_init(this);
@@ -114,13 +128,13 @@ function initFeature(featureName) {
 }
 
 function featureFailed(featureName, err) {
-  // log(`[RemoteStorage] [FEATURE ${featureName}] initialization failed (${err})`);
+  log(`[RemoteStorage] [FEATURE ${featureName}] initialization failed (${err})`);
   this.featureDone();
 }
 
 
 function featureSupported(featureName, success) {
-  // log(`[RemoteStorage] [FEATURE ${featureName}]  ${success ? '' : ' not'} supported`);
+  log(`[RemoteStorage] [FEATURE ${featureName}]  ${success ? '' : ' not'} supported`);
   if (!success) {
     this.featureDone()
   }
@@ -128,18 +142,18 @@ function featureSupported(featureName, success) {
 
 function featureInitialized(featureName) {
   log(`[RemoteStorage] [FEATURE ${featureName}] initialized.`);
-  features.push({
+  this.features.push({
     name : featureName,
-    init :  featureModules[featureName]._rs_init,
+    init :  this.featureModules[featureName]._rs_init,
     supported : true,
-    cleanup : featureModules[featureName]._rs_cleanup
+    cleanup : this.featureModules[featureName]._rs_cleanup
   });
   this.featureDone();
 }
 
 function featureDone () {
-  featuresDone++;
-  if (featuresDone === Object.keys(featureModules).length) {
+  this.featuresDone++;
+  if (this.featuresDone === Object.keys(this.featureModules).length) {
     setTimeout(this.featuresLoaded.bind(this), 0);
   }
 }
@@ -148,8 +162,8 @@ function _setCachingModule () {
   const cachingModules = ['IndexedDB', 'LocalStorage', 'InMemoryStorage'];
 
   cachingModules.some( cachingLayer => {
-    if (features.some(feature => feature.name === cachingLayer)) {
-      features.local = featureModules[cachingLayer];
+    if (this.features.some(feature => feature.name === cachingLayer)) {
+      this.features.local = this.featureModules[cachingLayer];
       return true;
     }
   });
@@ -158,9 +172,9 @@ function _setCachingModule () {
 
 function _fireReady() {
   try {
-    if (!readyFired) {
+    if (!this.readyFired) {
       this._emit('ready');
-      readyFired = true;
+      this.readyFired = true;
     }
   } catch(e) {
     console.error("'ready' failed: ", e, e.stack);
@@ -172,7 +186,7 @@ function featuresLoaded () {
 	log(`[REMOTESTORAGE] All features loaded !`)
 	
 	this._setCachingModule()
-  this.local = config.cache && features.local && new features.local();
+  this.local = config.cache && this.features.local && new this.features.local();
 
   // this.remote set by WireClient._rs_init as lazy property on
   // RS.prototype
@@ -216,8 +230,8 @@ function featuresLoaded () {
 
 function _collectCleanupFunctions () {
   this._cleanups = [];
-  for (let i=0; i < features.length; i++) {
-    let cleanup = features[i].cleanup;
+  for (let i=0; i < this.features.length; i++) {
+    let cleanup = this.features[i].cleanup;
     if (typeof(cleanup) === 'function') {
       this._cleanups.push(cleanup);
     }
