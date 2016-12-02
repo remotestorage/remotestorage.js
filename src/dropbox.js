@@ -4,8 +4,6 @@
   var util = require('./util');
   var eventHandling = require('./eventhandling');
   var Sync = require('./sync');
-  
-  // var RemoteStorage = require('./remotestorage');
 
   /**
    * File: Dropbox

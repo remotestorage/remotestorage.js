@@ -4,6 +4,8 @@
    * TODO add documentation
    **/
 
+  "use strict";
+
   var dictionary = {
     "view_info": 'This app allows you to use your own storage. <a href="http://remotestorage.io/" target="_blank">Learn more!</a>',
     "view_connect": "<strong>Connect</strong> remote storage",

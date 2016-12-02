@@ -1,4 +1,5 @@
 NODEJS         = node
+NPM            = npm
 DOC_BIN        = naturaldocs
 DOC_DIR        = ./doc/code
 DOC_CONFIG_DIR = ./doc/config
@@ -17,8 +18,6 @@ help:
 	@echo "help           - display this text"
 	@echo "all            - build regular, minified and AMD targets, plus all -nocache targets"
 	@echo "build          - build remotestorage.js"
-	@echo "build-amd      - build remotestorage.js with AMD wrapper"
-	@echo "build-nocache  - build remotestorage.js without caching (plus AMD and .min versions of that)"
 	@echo "doc            - generate documentation via NaturalDocs"
 	@echo "minify         - minify remotestorage.js -> remotestorage.min.js"
 	@echo "clean          - remove all builds and editor swapfiles"
@@ -29,8 +28,6 @@ all: deps build build-amd minify build-nocache doc
 build-all: all
 minify: remotestorage.min.js
 build: deps remotestorage.js
-build-amd: deps remotestorage.amd.js
-build-nocache: deps remotestorage-nocache.js remotestorage-nocache.min.js remotestorage-nocache.amd.js
 
 .PHONY: help buildserver build-all minify build doc clean test
 
@@ -51,24 +48,7 @@ test:
 	done
 
 remotestorage.js: $(SOURCES)
-	$(NODEJS) build/do-build.js remotestorage.js $(DEFAULT_COMPONENTS)
-
-remotestorage.amd.js: $(SOURCES)
-	$(NODEJS) build/do-build.js remotestorage.amd.js --amd $(DEFAULT_COMPONENTS)
-
-# remotestorage.min.js: remotestorage.js
-# 	minify remotestorage.js -o remotestorage.min.js --mangle --wrap --export-all
-# ## copy version header from original (minify strips all comments):
-# 	mv remotestorage.min.js remotestorage.min.js.tmp
-# 	head -n1 remotestorage.js > remotestorage.min.js
-# 	cat remotestorage.min.js.tmp >> remotestorage.min.js
-# 	rm remotestorage.min.js.tmp
-
-remotestorage-nocache.js: $(SOURCES)
-	$(NODEJS) build/do-build.js $@ $(NOCACHE_COMPONENTS)
-
-remotestorage-nocache.amd.js: $(SOURCES)
-	$(NODEJS) build/do-build.js $@ --amd $(NOCACHE_COMPONENTS)
+	$(NPM) run build
 
 doc:
 	mkdir -p $(DOC_DIR) $(DOC_CONFIG_DIR)

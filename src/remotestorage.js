@@ -109,14 +109,9 @@
      **/
 
     // Initial configuration property settings.
-    // TODO merge user configuration with default configuration
     if (typeof cfg === 'object') {
-      util.extend( config, cfg)
-      // config.logging = !!cfg.logging;
-      // config.cache = !!cfg.cache;
-      // config.cordovaRedirectUri = cfg.cordovaRedirectUri;
+      util.extend(config, cfg)
     }
-
 
     eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
@@ -163,7 +158,7 @@
     };
 
     // load all features and emit `ready`
-    this._init()
+    this._init();
 
     this.fireInitial = function () {
       if (this.local) {
@@ -283,7 +278,6 @@
      *    Kerberos and similar protocols.
      */
     connect: function (userAddress, token) {
-      
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
@@ -312,6 +306,7 @@
 
       Discover(userAddress).then(function (info) {
         // Info contains fields: href, storageApi, authURL (optional), properties
+
         clearTimeout(discoveryTimeout);
         this._emit('authing');
         info.userAddress = userAddress;
@@ -492,7 +487,7 @@
      */
     setCordovaRedirectUri: function (uri) {
       if (typeof uri !== 'string' || !uri.match(/http(s)?\:\/\//)) {
-        throw new Error("Cordova redirectingect URI must be a URI string");
+        throw new Error("Cordova redirect URI must be a URI string");
       }
       config.cordovaRedirectUri = uri;
     },
@@ -519,6 +514,7 @@
     /**
      ** GET/PUT/DELETE INTERFACE HELPERS
      **/
+
     _setGPD: function (impl, context) {
       function wrap(func) {
         return function () {

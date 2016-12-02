@@ -15,7 +15,6 @@ function loadFeatures() {
 
   this.featureModules = {
     'WireClient': require('./wireclient'),
-    'I18n': require('./i18n'),
     'Dropbox': require('./dropbox'),
     'GoogleDrive': require('./googledrive'),
     'Access': require('./access'),

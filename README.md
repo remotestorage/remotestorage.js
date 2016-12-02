@@ -39,37 +39,13 @@ for testing but aren't necessarily "stable" releases.
 
 [release/head](https://github.com/remotestorage/remotestorage.js/tree/master/release/head/)
 contains a semi-current HEAD build. It is updated manually and irregularly. To
-build an up-to-date version of all files, run `make all` in the repository
+build an up-to-date version of all files, run `npm run build` in the repository
 root.
 
-### Which build file to use for my app?
+## Usage
+[TODO]
 
-There are a number of different builds available:
-
-* <kbd>remotestorage.js</kbd> - Contains all components of remotestorage.js for
-  running in a browser.
-* <kbd>remotestorage.amd.js</kbd> - The same as remotestorage.js, but wrapped
-  for use with
-  [AMD](https://en.wikipedia.org/wiki/Asynchronous_module_definition) loaders
-  such as [RequireJS](http://requirejs.org/). When using AMD, be aware of issues
-  [#709](https://github.com/remotestorage/remotestorage.js/issues/709).
-* <kbd>remotestorage.min.js</kbd> - Minified version of remotestorage.js
-* <kbd>remotestorage-nocache.js</kbd> - A version without any caching features
-  included. Use this if you want your app to write directly to the remote
-  server without caching any data in the browser's storage (localStorage or
-  IndexedDB).
-* <kbd>remotestorage-nocache.amd.js</kbd>,
-  <kbd>remotestorage-nocache.min.js</kbd> - same as the other .amd/.min
-  build, but based on remotestorage-nocache.js.
-
-
-For more information on using the AMD build(s) and its dependencies, see the [AMD documentation](https://github.com/remotestorage/remotestorage.js/blob/master/doc/amd.md).
-
-#### Bower
-
-    $ bower install -S remotestorage
-
-#### Node.js / NPM
+### Node
 
     $ npm install remotestoragejs
 

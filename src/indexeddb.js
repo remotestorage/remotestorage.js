@@ -355,6 +355,7 @@
     var pending = Promise.defer();
     var context = util.getGlobalContext();
 
+    // thi is causing an error in chrome
     // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
     //                    context.mozIndexedDB || context.oIndexedDB      ||
     //                    context.msIndexedDB;
