@@ -7,7 +7,7 @@
   var eventHandling = require('./eventhandling');
   var util = require('./util');
   var config = require('./config');
-  require('../lib/Math.uuid');
+  var uuid = require('uuid/v4');
 
 
   /**
@@ -618,7 +618,7 @@
     },
 
     uuid: function () {
-      return Math.uuid();
+      return uuid();
     }
 
   };
