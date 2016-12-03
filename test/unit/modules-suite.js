@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
-define(['./src/remotestorage', './src/modules'], function(RemoteStorage, modules) {
+define(['./src/remotestorage', './src/modules', 'bluebird'], function(RemoteStorage, modules, Promise) {
 
   var suites = [];
 
@@ -9,7 +9,6 @@ define(['./src/remotestorage', './src/modules'], function(RemoteStorage, modules
     name: "modules",
     desc: "RemoteStorage modules",
     setup: function(env, test) {
-      global.Promise = require('./lib/bluebird.js');
       global.XMLHttpRequest = require('xmlhttprequest');
  
       RemoteStorage.prototype.remote = {
