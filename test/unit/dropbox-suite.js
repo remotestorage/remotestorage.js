@@ -15,11 +15,14 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     RemoteStorage.prototype = {
       setBackend: function (b){
         this.backend = b;
-      },
-      localStorageAvailable: function () {
-        return false;
       }
     };
+
+    global.localStorage = {
+      setItem: function() {},
+      removeItem: function() {}
+    };
+
     global.RemoteStorage.Unauthorized = function () {};
 
     require('./src/util');
@@ -92,8 +95,11 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     });
     env.rs = new RemoteStorage();
     env.rs.apiKeys = { dropbox: {appKey: 'testkey'} };
+    var oldLocalStorageAvailable = RemoteStorage.util.localStorageAvailable;
+    RemoteStorage.util.localStorageAvailable = function() { return true; };
     env.client = new RemoteStorage.Dropbox(env.rs);
     env.connectedClient = new RemoteStorage.Dropbox(env.rs);
+    RemoteStorage.util.localStorageAvailable = oldLocalStorageAvailable;
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({
@@ -290,6 +296,30 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       },
 
       {
+        desc: "#configure fetches the user info when no userAddress is given",
+        run: function (env, test) {
+          env.rs.widget = { view: { setUserAddress: function() {} } };
+
+          env.client.on('connected', function() {
+            test.assert(env.client.userAddress, 'John Doe');
+          });
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              display_name: 'John Doe'
+            });
+            req._onload();
+          }, 10);
+        }
+      },
+
+      {
         desc: "#configure doesn't overwrite parameters if they are given as 'undefined'",
         run: function (env, test) {
           env.client.configure({ userAddress: 'test@example.com' });
@@ -312,6 +342,36 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         run: function (env, test) {
           env.client.configure({ token: 'foobarbaz' });
           test.assert(env.client.connected, true);
+        }
+      },
+
+      {
+        desc: "#configure caches token and userAddress in localStorage",
+        run: function (env, test) {
+          env.rs.widget = { view: { setUserAddress: function() {} } };
+
+          var oldSetItem = global.localStorage.setItem;
+          global.localStorage.setItem = function(key, value) {
+            test.assertAnd(key, 'remotestorage:dropbox');
+            test.assert(value, JSON.stringify({
+              userAddress: 'John Doe',
+              token: 'thetoken'
+            }));
+            global.localStorage.setItem = oldSetItem;
+          };
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              display_name: 'John Doe'
+            });
+            req._onload();
+          }, 10);
         }
       },
 
