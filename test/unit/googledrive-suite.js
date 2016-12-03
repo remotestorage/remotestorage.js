@@ -197,7 +197,6 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
               userAddress: 'John Doe',
               token: 'thetoken'
             }));
-            // delete global.localStorage.setItem;
             global.localStorage.setItem = oldSetItem;
           };
 
