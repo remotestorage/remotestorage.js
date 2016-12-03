@@ -356,7 +356,7 @@ define(['bluebird', 'require', './src/eventhandling', './src/googledrive', 'test
               { etag: '"1234"' }
             ] });
             req._onload();
-          });
+          }, 10);
         }
       },
 
@@ -376,7 +376,7 @@ define(['bluebird', 'require', './src/eventhandling', './src/googledrive', 'test
               { etag: '"1234"' }
             ] });
             req._onload();
-          });
+          }, 10);
         }
       },
 
