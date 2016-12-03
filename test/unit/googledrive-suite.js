@@ -8,7 +8,9 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
   var suites = [];
 
   function setup (env, test) {
-    global.localStorage = {};
+    global.localStorage = {
+      setItem: function() {}
+    };
     global.RemoteStorage = function () {
       RemoteStorage.eventHandling(this, 'error', 'network-offline', 'network-online');
     };
@@ -82,8 +84,11 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     });
     env.rs = new RemoteStorage();
     env.rs.apiKeys= { googledrive: {clientId: 'testkey'} };
+    var oldLocalStorageAvailable = RemoteStorage.util.localStorageAvailable;
+    RemoteStorage.util.localStorageAvailable = function() { return true; };
     env.client = new RemoteStorage.GoogleDrive(env.rs);
     env.connectedClient = new RemoteStorage.GoogleDrive(env.rs);
+    RemoteStorage.util.localStorageAvailable = oldLocalStorageAvailable;
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({
@@ -139,6 +144,77 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             token: 'foobarbaz'
           });
           test.assert(env.client.connected, true);
+        }
+      },
+
+      {
+        desc: "#configure sets token and userAddress when given",
+        run: function (env, test) {
+          env.client.configure({
+            token: 'thetoken',
+            userAddress: 'John Doe'
+          });
+          test.assertAnd(env.client.token, 'thetoken');
+          test.assert(env.client.userAddress, 'John Doe');
+        }
+      },
+
+      {
+        desc: "#configure fetches the user info when no userAddress is given",
+        run: function (env, test) {
+          env.rs.widget = { view: { setUserAddress: function() {} } };
+
+          env.client.on('connected', function() {
+            test.assert(env.client.userAddress, 'John Doe');
+          });
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              user: {
+                displayName: 'John Doe'
+              }
+            });
+            req._onload();
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#configure caches token and userAddress in localStorage",
+        run: function (env, test) {
+          env.rs.widget = { view: { setUserAddress: function() {} } };
+
+          var oldSetItem = global.localStorage.setItem;
+          global.localStorage.setItem = function(key, value) {
+            test.assertAnd(key, 'remotestorage:googledrive');
+            test.assert(value, JSON.stringify({
+              userAddress: 'John Doe',
+              token: 'thetoken'
+            }));
+            // delete global.localStorage.setItem;
+            global.localStorage.setItem = oldSetItem;
+          };
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              user: {
+                displayName: 'John Doe'
+              }
+            });
+            req._onload();
+          }, 10);
         }
       },
 
