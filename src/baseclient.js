@@ -11,7 +11,7 @@
 
 
   /**
-   * Class: RemoteStorage.BaseClient
+   * Class: BaseClient
    *
    * Provides a high-level interface to access data below a given root path.
    *
@@ -111,7 +111,7 @@
      * (end code)
      *
      * Example of a conflict:
-     * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `RemoteStorage.config.changeEvents.window` to `true`,
+     * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `config.changeEvents.window` to `true`,
      * then you will receive:
      *
      * (start code)
@@ -668,8 +668,11 @@
    * Method: declareType
    *
    * Declare a remoteStorage object type using a JSON schema. See
-   * <RemoteStorage.BaseClient.Types>
+   * <BaseClient.Types>
    **/
 
 module.exports = BaseClient;
+
+// needs to be after the export to change prototype
+// this should be different (we need to import `types` functionality, not modifing BaseClient.prototype from there)
 require('./types');

@@ -1,6 +1,6 @@
 
   /**
-   * Class: RemoteStorage.IndexedDB
+   * Class: IndexedDB
    *
    *
    * IndexedDB Interface
@@ -13,13 +13,13 @@
    * There are multiple parts to this interface:
    *
    *   The RemoteStorage integration:
-   *     - RemoteStorage.IndexedDB._rs_supported() determines if IndexedDB support
+   *     - IndexedDB._rs_supported() determines if IndexedDB support
    *       is available. If it isn't, RemoteStorage won't initialize the feature.
-   *     - RemoteStorage.IndexedDB._rs_init() initializes the feature. It returns
+   *     - IndexedDB._rs_init() initializes the feature. It returns
    *       a promise that is fulfilled as soon as the database has been opened and
    *       migrated.
    *
-   *   The storage interface (RemoteStorage.IndexedDB object):
+   *   The storage interface (IndexedDB object):
    *     - Usually this is accessible via "remoteStorage.local"
    *     - #get() takes a path and returns a promise.
    *     - #put() takes a path, body and contentType and also returns a promise.
@@ -30,9 +30,9 @@
    *       distinguish create/update/delete operations and analyze changes in
    *       change handlers. In addition they carry a "origin" property, which
    *       is either "window", "local", or "remote". "remote" events are fired
-   *       whenever a change comes in from RemoteStorage.Sync.
+   *       whenever a change comes in from Sync.
    *
-   *   The sync interface (also on RemoteStorage.IndexedDB object):
+   *   The sync interface (also on IndexedDB object):
    *     - #getNodes([paths]) returns the requested nodes in a promise.
    *     - #setNodes(map) stores all the nodes given in the (path -> node) map.
    *
@@ -355,7 +355,7 @@
     var pending = Promise.defer();
     var context = util.getGlobalContext();
 
-    // thi is causing an error in chrome
+    // TOFIX this is causing an error in chrome
     // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
     //                    context.mozIndexedDB || context.oIndexedDB      ||
     //                    context.msIndexedDB;

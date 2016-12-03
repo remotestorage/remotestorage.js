@@ -1,5 +1,5 @@
   /**
-   * Class: RemoteStorage.Caching
+   * Class: Caching
    *
    * Holds/manages caching configuration.
    *

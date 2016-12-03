@@ -12,7 +12,7 @@
    *
    * Dropbox backend for RemoteStorage.js
    * This file exposes a get/put/delete interface which is compatible with
-   * <RemoteStorage.WireClient>.
+   * <WireClient>.
    *
    * When remoteStorage.backend is set to 'dropbox', this backend will
    * initialize and replace remoteStorage.remote with remoteStorage.dropbox.
@@ -177,7 +177,7 @@
   var onErrorCb;
 
   /**
-   * Class: RemoteStorage.Dropbox
+   * Class: Dropbox
    */
   var Dropbox = function (rs) {
 
@@ -245,7 +245,7 @@
 
     /**
      * Method : configure(settings)
-     * Accepts its parameters according to the <RemoteStorage.WireClient>.
+     * Accepts its parameters according to the <WireClient>.
      * Sets the connected flag
      **/
     configure: function (settings) {
@@ -338,12 +338,12 @@
     /**
      * Method: get
      *
-     * Compatible with <RemoteStorage.WireClient.get>
+     * Compatible with <WireClient.get>
      *
      * Checks for the path in _revCache and decides based on that if file has
      * changed. Calls _getFolder is the path points to a folder.
      *
-     * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+     * Calls <Dropbox.share> afterwards to fill _itemRefs.
      */
     get: function (path, options) {
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
@@ -417,12 +417,12 @@
     /**
      * Method: put
      *
-     * Compatible with <RemoteStorage.WireClient>
+     * Compatible with <WireClient>
      *
      * Checks for the path in _revCache and decides based on that if file has
      * changed.
      *
-     * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+     * Calls <Dropbox.share> afterwards to fill _itemRefs.
      */
     put: function (path, body, contentType, options) {
       var self = this;
@@ -492,12 +492,12 @@
     /**
      * Method: delete
      *
-     * Compatible with <RemoteStorage.WireClient.delete>
+     * Compatible with <WireClient.delete>
      *
      * Checks for the path in _revCache and decides based on that if file has
      * changed.
      *
-     * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+     * Calls <Dropbox.share> afterwards to fill _itemRefs.
      */
     'delete': function (path, options) {
       var self = this;

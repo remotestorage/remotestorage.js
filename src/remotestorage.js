@@ -764,6 +764,8 @@
    * Not available in no-cache builds.
    *
    */
+
+  // TOFIX was in rs_init of Caching but don't want to require RemoteStorage from there.
   var Caching = require('./caching');
   Object.defineProperty(RemoteStorage.prototype, 'caching', {
     configurable: true,

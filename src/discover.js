@@ -10,13 +10,13 @@
   var cachedInfo = {};
 
   /**
-   * Class: RemoteStorage.Discover
+   * Class: Discover
    *
    * This function deals with the Webfinger lookup, discovering a connecting
    * user's storage details.
    *
    * The discovery timeout can be configured via
-   * `RemoteStorage.config.discoveryTimeout` (in ms).
+   * `config.discoveryTimeout` (in ms).
    *
    * Arguments:
    *

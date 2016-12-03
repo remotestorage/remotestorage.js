@@ -1,4 +1,3 @@
-  // var RemoteStorage = require('./remotestorage');
   var util = require('./util');
   var Env = require('./env');
   var eventHandling = require('./eventhandling');
@@ -6,11 +5,6 @@
   var Authorize = require('./authorize');
   var config = require('./config');
   
-  /* TOFIX */
-  // var syncInterval = 10000,
-  //     backgroundSyncInterval = 60000,
-  //     isBackground = false;
-
   var isFolder = util.isFolder;
   var isDocument = util.isDocument;
   var equal = util.equal;

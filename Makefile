@@ -16,27 +16,18 @@ default: help
 
 help:
 	@echo "help           - display this text"
-	@echo "all            - build regular, minified and AMD targets, plus all -nocache targets"
 	@echo "build          - build remotestorage.js"
 	@echo "doc            - generate documentation via NaturalDocs"
-	@echo "minify         - minify remotestorage.js -> remotestorage.min.js"
 	@echo "clean          - remove all builds and editor swapfiles"
 
 
-all: deps build build-amd minify build-nocache doc
+all: deps build doc
 
 build-all: all
 minify: remotestorage.min.js
 build: deps remotestorage.js
 
 .PHONY: help buildserver build-all minify build doc clean test
-
-%.min.js: %.js
-	$(UGLIFY_BIN) -c -o $@ $<
-	mv $@ $@.tmp
-	head -n1 $< > $@
-	cat $@.tmp >> $@
-	rm $@.tmp
 
 deps:
 	npm install

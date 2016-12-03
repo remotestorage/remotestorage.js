@@ -2,7 +2,7 @@
   var BaseClient = require('./baseclient')
 
   /**
-   * Class: RemoteStorage.BaseClient.Types
+   * Class: BaseClient.Types
    *
    * - Manages and validates types of remoteStorage objects, using JSON-LD and
    *   JSON Schema
@@ -71,7 +71,7 @@
   BaseClient.Types.SchemaNotFound = SchemaNotFound;
 
   /**
-   * Class: RemoteStorage.BaseClient
+   * Class: BaseClient
    **/
   BaseClient.prototype.extend({
     /**

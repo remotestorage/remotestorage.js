@@ -2,7 +2,7 @@
   var log = require('./log');
   var cachingLayer = require('./cachinglayer');
   /**
-   * Class: RemoteStorage.InMemoryStorage
+   * Class: InMemoryStorage
    *
    * In-memory caching adapter. Used when no IndexedDB or localStorage
    * available.

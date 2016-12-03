@@ -1,11 +1,10 @@
-  // var RemoteStorage = require('./remotestorage');
   var log = require('./log');
   var util = require('./util');
   var eventHandling = require('./eventhandling');
   var Authorize = require('./authorize');
 
   /**
-   * Class: RemoteStorage.WireClient
+   * Class: WireClient
    *
    * WireClient Interface
    * --------------------
@@ -179,7 +178,7 @@
   var onErrorCb;
 
   /**
-   * Class : RemoteStorage.WireClient
+   * Class : WireClient
    **/
   var WireClient = function (rs) {
     this.rs = rs;

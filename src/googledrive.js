@@ -1,6 +1,6 @@
 
   /**
-   * Class: RemoteStorage.GoogleDrive
+   * Class: GoogleDrive
    *
    * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
    *

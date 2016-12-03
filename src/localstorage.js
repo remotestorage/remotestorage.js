@@ -4,7 +4,7 @@
   var util = require('./util');
 
   /**
-   * Class: RemoteStorage.LocalStorage
+   * Class: LocalStorage
    *
    * localStorage caching adapter. Used when no IndexedDB available.
    **/
