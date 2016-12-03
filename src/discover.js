@@ -95,7 +95,7 @@
   };
 
   Discover._rs_supported = function () {
-    haveXMLHttpRequest = !! XMLHttpRequest;
+    haveXMLHttpRequest = !! util.globalContext.XMLHttpRequest;
     return haveXMLHttpRequest;
   };
 
