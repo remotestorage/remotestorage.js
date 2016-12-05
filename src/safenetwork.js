@@ -118,7 +118,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       }
     };
     
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected', 'network-online', 'network-offline');
     this.rs.on('error', onErrorCb);
 
     // mrhTODO port dropbox style load/save settings from localStorage
@@ -169,7 +169,8 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     reflectNetworkStatus: function (isOnline){
       if (this.online != isOnline) {
         this.online = isOnline;
-        this._emit( isOnline ? 'network-online' : 'network-offline');
+        RS.log('reflectNetworkStatus() emitting: ' + (isOnline ? 'network-online' : 'network-offline'));
+        this._emit(isOnline ? 'network-online' : 'network-offline');
       }
     },
     
