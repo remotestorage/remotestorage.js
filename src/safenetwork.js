@@ -117,8 +117,8 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         });
       }
     };
-
-    RS.eventHandling(this, 'change', 'connected', 'not-connected');
+    
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     this.rs.on('error', onErrorCb);
 
     // mrhTODO port dropbox style load/save settings from localStorage
