@@ -231,7 +231,7 @@
      *   A promise to the user's info
      */
     info: function () {
-      var url = BASE_URL + '/drive/v2/about';
+      var url = BASE_URL + '/drive/v2/about?fields=user';
       // requesting user info(mainly for userAdress)
       return this._request('GET', url, {}).then(function (resp){
         try {

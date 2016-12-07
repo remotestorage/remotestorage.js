@@ -176,8 +176,15 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              user: {
-                displayName: 'John Doe'
+              "user": {
+                "displayName": "John Doe",
+                "emailAddress": "john.doe@gmail.com",
+                "isAuthenticatedUser": true,
+                "kind": "drive#user",
+                "permissionId": "02787362847200372917",
+                "picture": {
+                  "url": "https://lh6.googleusercontent.com/-vOkeOMO0HKQ/AAAAAAAAAAI/AAAAAAAAAQ4/KeL71nrpGVs/s64/photo.jpg"
+                }
               }
             });
             req._onload();
@@ -208,8 +215,15 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              user: {
-                displayName: 'John Doe'
+              "user": {
+                "displayName": "John Doe",
+                "emailAddress": "john.doe@gmail.com",
+                "isAuthenticatedUser": true,
+                "kind": "drive#user",
+                "permissionId": "02787362847200372917",
+                "picture": {
+                  "url": "https://lh6.googleusercontent.com/-vOkeOMO0HKQ/AAAAAAAAAAI/AAAAAAAAAQ4/KeL71nrpGVs/s64/photo.jpg"
+                }
               }
             });
             req._onload();
