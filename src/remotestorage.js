@@ -541,6 +541,8 @@
      * Set API keys for (currently) GoogleDrive, Dropbox and SAFE Network backend 
      * support.
      * 
+     * mrhTODO the following is changing needs updating once new scheme clear
+     * 
      * Note that SafeNetwork (SAFE Network) backend does not require an API key from
      * an authority as in the case of most cloud services, so setApiKeys() is
      * used to define the application related information that is passed to 
