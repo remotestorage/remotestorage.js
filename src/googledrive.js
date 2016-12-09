@@ -133,7 +133,7 @@
           writeSettingsToCache.apply(this);
         } else {
           this.info().then(function(info) {
-            this.userAddress = info.user.displayName;
+            this.userAddress = info.user.emailAddress;
             this.rs.widget.view.setUserAddress(this.userAddress);
           }.bind(this), function() {}).finally(function() {
             this._emit('connected');

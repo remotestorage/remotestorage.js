@@ -152,10 +152,10 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         run: function (env, test) {
           env.client.configure({
             token: 'thetoken',
-            userAddress: 'John Doe'
+            userAddress: 'john.doe@gmail.com'
           });
           test.assertAnd(env.client.token, 'thetoken');
-          test.assert(env.client.userAddress, 'John Doe');
+          test.assert(env.client.userAddress, 'john.doe@gmail.com');
         }
       },
 
@@ -165,7 +165,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           env.rs.widget = { view: { setUserAddress: function() {} } };
 
           env.client.on('connected', function() {
-            test.assert(env.client.userAddress, 'John Doe');
+            test.assert(env.client.userAddress, 'john.doe@gmail.com');
           });
 
           env.client.configure({
@@ -201,7 +201,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           global.localStorage.setItem = function(key, value) {
             test.assertAnd(key, 'remotestorage:googledrive');
             test.assert(value, JSON.stringify({
-              userAddress: 'John Doe',
+              userAddress: 'john.doe@gmail.com',
               token: 'thetoken'
             }));
             global.localStorage.setItem = oldSetItem;
