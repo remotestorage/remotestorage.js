@@ -261,6 +261,13 @@
         }
       };
 
+      var handleError = function() {
+        this.connected = false;
+        if (hasLocalStorage) {
+          localStorage.removeItem(SETTINGS_KEY);
+        }
+      };
+
       if (this.token) {
         this.connected = true;
         if (this.userAddress) {
@@ -270,16 +277,15 @@
           this.info().then(function (info){
             this.userAddress = info.display_name;
             this.rs.widget.view.setUserAddress(this.userAddress);
-          }.bind(this), function() {}).finally(function() {
             this._emit('connected');
             writeSettingsToCache.apply(this);
+          }.bind(this)).catch(function() {
+            handleError.apply(this);
+            this.rs._emit('error', new Error('Could not fetch user info.'));
           }.bind(this));
         }
       } else {
-        this.connected = false;
-        if (hasLocalStorage) {
-          localStorage.removeItem(SETTINGS_KEY);
-        }
+        handleError.apply(this);
       }
     },
 

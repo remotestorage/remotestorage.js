@@ -320,6 +320,34 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       },
 
       {
+        desc: "#configure emits error when the user info can't be fetched",
+        run: function (env, test) {
+          var oldRemoveItem = global.localStorage.removeItem;
+          global.localStorage.removeItem = function(key) {
+            test.assertAnd(key, 'remotestorage:dropbox');
+            global.localStorage.removeItem = oldRemoveItem;
+          };
+
+          env.rs.on('error', function(error) {
+            test.assert(error.message, 'Could not fetch user info.');
+          });
+
+          env.client.on('connected', function() {
+            test.result(false);
+          });
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+        }
+      },
+
+      {
         desc: "#configure doesn't overwrite parameters if they are given as 'undefined'",
         run: function (env, test) {
           env.client.configure({ userAddress: 'test@example.com' });
