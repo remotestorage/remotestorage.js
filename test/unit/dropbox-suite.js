@@ -301,7 +301,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           env.rs.widget = { view: { setUserAddress: function() {} } };
 
           env.client.on('connected', function() {
-            test.assert(env.client.userAddress, 'John Doe');
+            test.assert(env.client.userAddress, 'john.doe@example.com');
           });
 
           env.client.configure({
@@ -312,7 +312,26 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              display_name: 'John Doe'
+              "referral_link": "https://db.tt/QjJhCJr1",
+              "display_name": "John Doe",
+              "uid": 123456,
+              "locale": "en",
+              "email_verified": true,
+              "team": null,
+              "quota_info": {
+                "datastores": 0,
+                "shared": 1415283650,
+                "quota": 6721372160,
+                "normal": 860651695
+              },
+              "is_paired": false,
+              "country": "DE",
+              "name_details": {
+                "familiar_name": "John",
+                "surname": "Doe",
+                "given_name": "John"
+              },
+              "email": "john.doe@example.com"
             });
             req._onload();
           }, 10);
@@ -382,7 +401,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           global.localStorage.setItem = function(key, value) {
             test.assertAnd(key, 'remotestorage:dropbox');
             test.assert(value, JSON.stringify({
-              userAddress: 'John Doe',
+              userAddress: 'john.doe@example.com',
               token: 'thetoken'
             }));
             global.localStorage.setItem = oldSetItem;
@@ -396,7 +415,26 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              display_name: 'John Doe'
+              "referral_link": "https://db.tt/QjJhCJr1",
+              "display_name": "John Doe",
+              "uid": 123456,
+              "locale": "en",
+              "email_verified": true,
+              "team": null,
+              "quota_info": {
+                "datastores": 0,
+                "shared": 1415283650,
+                "quota": 6721372160,
+                "normal": 860651695
+              },
+              "is_paired": false,
+              "country": "DE",
+              "name_details": {
+                "familiar_name": "John",
+                "surname": "Doe",
+                "given_name": "John"
+              },
+              "email": "john.doe@example.com"
             });
             req._onload();
           }, 10);

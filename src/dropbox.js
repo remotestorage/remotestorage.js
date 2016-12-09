@@ -275,7 +275,7 @@
           writeSettingsToCache.apply(this);
         } else {
           this.info().then(function (info){
-            this.userAddress = info.display_name;
+            this.userAddress = info.email;
             this.rs.widget.view.setUserAddress(this.userAddress);
             this._emit('connected');
             writeSettingsToCache.apply(this);
