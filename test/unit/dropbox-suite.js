@@ -15,11 +15,14 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     RemoteStorage.prototype = {
       setBackend: function (b){
         this.backend = b;
-      },
-      localStorageAvailable: function () {
-        return false;
       }
     };
+
+    global.localStorage = {
+      setItem: function() {},
+      removeItem: function() {}
+    };
+
     global.RemoteStorage.Unauthorized = function () {};
 
     require('./src/util');
@@ -92,8 +95,11 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     });
     env.rs = new RemoteStorage();
     env.rs.apiKeys = { dropbox: {appKey: 'testkey'} };
+    var oldLocalStorageAvailable = RemoteStorage.util.localStorageAvailable;
+    RemoteStorage.util.localStorageAvailable = function() { return true; };
     env.client = new RemoteStorage.Dropbox(env.rs);
     env.connectedClient = new RemoteStorage.Dropbox(env.rs);
+    RemoteStorage.util.localStorageAvailable = oldLocalStorageAvailable;
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({
@@ -290,6 +296,77 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       },
 
       {
+        desc: "#configure fetches the user info when no userAddress is given",
+        run: function (env, test) {
+          env.rs.widget = { view: { setUserAddress: function() {} } };
+
+          env.client.on('connected', function() {
+            test.assert(env.client.userAddress, 'john.doe@example.com');
+          });
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              "referral_link": "https://db.tt/QjJhCJr1",
+              "display_name": "John Doe",
+              "uid": 123456,
+              "locale": "en",
+              "email_verified": true,
+              "team": null,
+              "quota_info": {
+                "datastores": 0,
+                "shared": 1415283650,
+                "quota": 6721372160,
+                "normal": 860651695
+              },
+              "is_paired": false,
+              "country": "DE",
+              "name_details": {
+                "familiar_name": "John",
+                "surname": "Doe",
+                "given_name": "John"
+              },
+              "email": "john.doe@example.com"
+            });
+            req._onload();
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#configure emits error when the user info can't be fetched",
+        run: function (env, test) {
+          var oldRemoveItem = global.localStorage.removeItem;
+          global.localStorage.removeItem = function(key) {
+            test.assertAnd(key, 'remotestorage:dropbox');
+            global.localStorage.removeItem = oldRemoveItem;
+          };
+
+          env.rs.on('error', function(error) {
+            test.assert(error.message, 'Could not fetch user info.');
+          });
+
+          env.client.on('connected', function() {
+            test.result(false);
+          });
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+        }
+      },
+
+      {
         desc: "#configure doesn't overwrite parameters if they are given as 'undefined'",
         run: function (env, test) {
           env.client.configure({ userAddress: 'test@example.com' });
@@ -312,6 +389,55 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         run: function (env, test) {
           env.client.configure({ token: 'foobarbaz' });
           test.assert(env.client.connected, true);
+        }
+      },
+
+      {
+        desc: "#configure caches token and userAddress in localStorage",
+        run: function (env, test) {
+          env.rs.widget = { view: { setUserAddress: function() {} } };
+
+          var oldSetItem = global.localStorage.setItem;
+          global.localStorage.setItem = function(key, value) {
+            test.assertAnd(key, 'remotestorage:dropbox');
+            test.assert(value, JSON.stringify({
+              userAddress: 'john.doe@example.com',
+              token: 'thetoken'
+            }));
+            global.localStorage.setItem = oldSetItem;
+          };
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              "referral_link": "https://db.tt/QjJhCJr1",
+              "display_name": "John Doe",
+              "uid": 123456,
+              "locale": "en",
+              "email_verified": true,
+              "team": null,
+              "quota_info": {
+                "datastores": 0,
+                "shared": 1415283650,
+                "quota": 6721372160,
+                "normal": 860651695
+              },
+              "is_paired": false,
+              "country": "DE",
+              "name_details": {
+                "familiar_name": "John",
+                "surname": "Doe",
+                "given_name": "John"
+              },
+              "email": "john.doe@example.com"
+            });
+            req._onload();
+          }, 10);
         }
       },
 
