@@ -46,7 +46,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
   var RS = RemoteStorage;
   
-  var hasLocalStorage;// mrhTODO look at use of this
+  var hasLocalStorage;  // mrhTODO not using this everywhere because as GoogleDrive omits in entirely - remove?
   var SETTINGS_KEY = 'remotestorage:safenetwork';
   var PATH_PREFIX = '/remotestorage/';  // mrhTODO app configurable?
   
@@ -134,18 +134,21 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       // mrhTODO: review dropbox approach later
       
       if (settings.token) {
-        localStorage['remotestorage:safenetwork:token'] = settings.token;
+        localStorage[SETTINGS_KEY + ':token'] = settings.token;
+        localStorage[SETTINGS_KEY + ':permissions'] = settings.permissions;
         this.token = settings.token;
-        this.connected = true;
         this.permissions = settings.permissions;    // List of permissions approved by the user
 
+        this.connected = true;
+        this.online = true;
         this._emit('connected');
         RS.log('SafeNetwork.configure() [CONNECTED]');
       } else {
         this.connected = false;
         delete this.token;
         this.permissions = null;
-        delete localStorage['remotestorage:safenetwork:token'];
+        delete localStorage[SETTINGS_KEY + ':token'];
+        delete localStorage[SETTINGS_KEY + ':permissions'];
         RS.log('SafeNetwork.configure() [DISCONNECTED]');
       }
     },
@@ -177,22 +180,27 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     safenetworkAuthorize: function (appApiKeys) {
       var self = this;
       self.appKeys = appApiKeys.app;
-      
+
       tokenKey = SETTINGS_KEY + ':token';
-      window.safeAuth.authorise(self.appKeys, tokenKey).then( function(res) {   // mrhTODO - am leaving off local storage key
-                // Save session info
+      window.safeAuth.authorise(self.appKeys, tokenKey).then( function(response) {
         self.configure({ 
-            token:          res.token,          // Auth token
-            permissions:    res.permissions,    // List of permissions approved by the user
+            token:          response.token,         // Auth token
+            permissions:    response.permissions,   // List of permissions approved by the user
           });
-        self.reflectNetworkStatus(true);             // Emit network-online
+        
+        // This backend doesn't redirect, so to ensure sync starts on very first connection.
+        // Auth without re-direct won't init properly unless we 'configure()' after reload (theWebalyst/remotestorage.js issue #1)
+        if (self.rs.backend === 'safenetwork' && typeof self.rs._safenetworkOrigRemote === 'undefined'){
+          localStorage[SETTINGS_KEY + ':connect-on-load'] = 'true';  // Ensure connected on reload
+          location.reload();
+        }
       }, function (err){
         self.reflectNetworkStatus(false);
         RS.log('SafeNetwork Authorisation Failed');
         RS.log(err);
       });
     },
-    
+
     // For reference see WireClient#get (wireclient.js)
     get: function (path, options) {
       RS.log('SafeNetwork.get(' + path + ',...)' );
@@ -513,7 +521,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         }, function (err){
           self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
           RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err )
-          return Promise.reject({statusCode: 404}); // mrhTODO can we get statusCode from err?
+          return Promise.reject({statusCode: (err == 'Unauthorized' ? 401 : 404)}); // mrhTODO ideally safe-js would provide response code (possible enhancement)
         });
       }, function (err){
         RS.log('_getFileInfo("' + fullPath + '") failed: ' + err)
@@ -640,14 +648,27 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
   // mrhTODO and may cause problems with starting sync?
   // mrhTODO Maybe the hookIt stuff in Dropbox allows chaining, but not yet in GD or SN?
   //
+  
   RS.SafeNetwork._rs_init = function (remoteStorage) {
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
 
     var config = remoteStorage.apiKeys.safenetwork;
     if (config) {
       remoteStorage.safenetwork = new RS.SafeNetwork(remoteStorage, config.clientId);
-      if (remoteStorage.backend === 'safenetwork') {
-        remoteStorage._origRemote = remoteStorage.remote;
+      if (remoteStorage.backend === 'safenetwork' && remoteStorage.remote !== remoteStorage.safenetwork) {
+        remoteStorage._safenetworkOrigRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.safenetwork;
+
+          // Handle connect on load of app (final part of SN authorisation)
+        if ( hasLocalStorage && localStorage.getItem(SETTINGS_KEY + ':connect-on-load') ){
+          localStorage.removeItem(SETTINGS_KEY + ':connect-on-load');
+          
+          remoteStorage.remote.configure({
+            token:        localStorage[SETTINGS_KEY + ':token'],
+            permissions:  localStorage[SETTINGS_KEY + ':permissions']
+          });             // Complete the connect
+          remoteStorage.remote.reflectNetworkStatus(true);      // Emit network-online
+        }
       }
     }
   };
@@ -659,9 +680,9 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
   // mrhTODO see dropbox version
   RS.SafeNetwork._rs_cleanup = function (remoteStorage) {
     remoteStorage.setBackend(undefined);
-    if (remoteStorage._origRemote) {
-      remoteStorage.remote = remoteStorage._origRemote;
-      delete remoteStorage._origRemote;
+    if (remoteStorage._safenetworkOrigRemote) {
+      remoteStorage.remote = remoteStorage._safenetworkOrigRemote;
+      delete remoteStorage._safenetworkOrigRemote;
     }
   };
 
