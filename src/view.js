@@ -58,6 +58,10 @@
       this._emit('connect', { special: 'dropbox'});
     },
 
+    connectSafeNetwork: function (){
+      this._emit('connect', { special: 'safenetwork'});
+    },
+
     /**
      * Method: setState
      *
@@ -221,9 +225,10 @@
       // The cube
       this.cube = setupButton(element, 'rs-cube', 'remoteStorageIcon', this.toggleBubble.bind(this));
 
-      // Google Drive and Dropbox icons
+      // Google Drive, Dropbox and SafeNetwork icons
       setupButton(element, 'rs-dropbox', 'dropbox', this.connectDropbox.bind(this));
       setupButton(element, 'rs-googledrive', 'googledrive', this.connectGdrive.bind(this));
+      setupButton(element, 'rs-safenetwork', 'safenetwork', this.connectSafeNetwork.bind(this));
 
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
       var eventListener = function (event) {
@@ -269,10 +274,11 @@
           delete this.userSecretKey;
         }
 
-        // Google Drive and Dropbox icons
+        // Google Drive, Dropbox and SafeNetwork icons
         var backends = 1;
         if (this._activateBackend('dropbox')) { backends += 1; }
         if (this._activateBackend('googledrive')) { backends += 1; }
+        if (this._activateBackend('safenetwork')) { backends += 1; }
         this.div.querySelector('.rs-bubble-text').style.paddingRight = backends*32+8+'px';
 
         // If address not empty connect button enabled
@@ -329,9 +335,13 @@
 
         var icons = {
           googledrive: this.div.querySelector('.rs-googledrive'),
-          dropbox: this.div.querySelector('.rs-dropbox')
+          dropbox: this.div.querySelector('.rs-dropbox'),
+          safenetwork: this.div.querySelector('.rs-safenetwork')
         };
-        icons.googledrive.style.display = icons.dropbox.style.display = 'none';
+        icons.googledrive.style.display 
+          = icons.dropbox.style.display 
+          = icons.safenetwork.style.display 
+          = 'none';
         if (icons[this.rs.backend]) {
           icons[this.rs.backend].style.display = 'inline-block';
           this.div.querySelector('.rs-bubble-text').style.paddingRight = 2*32+8+'px';

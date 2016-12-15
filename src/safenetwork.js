@@ -181,6 +181,13 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       var self = this;
       self.appKeys = appApiKeys.app;
 
+      // Need to fudge backend (and restore on failed auth below) or sync won't start first time
+      // mrhTODO DOESN'T WORK! Maybe because other stuff done by _loadFeatures() still being missed?
+      if (self.rs.backend === 'safenetwork' && typeof self.rs._safenetworkOrigRemote === 'undefined') {
+        self.rs._safenetworkOrigRemote = self.rs.remote;
+        self.rs.remote = self.rs.safenetwork;
+      }
+
       tokenKey = SETTINGS_KEY + ':token';
       window.safeAuth.authorise(self.appKeys, tokenKey).then( function(response) {
         self.configure({ 
@@ -190,11 +197,19 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         
         // This backend doesn't redirect, so to ensure sync starts on very first connection.
         // Auth without re-direct won't init properly unless we 'configure()' after reload (theWebalyst/remotestorage.js issue #1)
-        if (self.rs.backend === 'safenetwork' && typeof self.rs._safenetworkOrigRemote === 'undefined'){
+/*        if (self.rs.backend === 'safenetwork' && typeof self.rs._safenetworkOrigRemote === 'undefined'){
           localStorage[SETTINGS_KEY + ':connect-on-load'] = 'true';  // Ensure connected on reload
           location.reload();
         }
+*/
       }, function (err){
+        // Undo fudge backend (see above)
+                self.rs.setBackend(undefined);
+                if (self.rs._safenetworkOrigRemote) {
+                  self.rs.remote = self.rs._safenetworkOrigRemote;
+                  delete self.rs._safenetworkOrigRemote;
+                }
+
         self.reflectNetworkStatus(false);
         RS.log('SafeNetwork Authorisation Failed');
         RS.log(err);
@@ -660,7 +675,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         remoteStorage.remote = remoteStorage.safenetwork;
 
           // Handle connect on load of app (final part of SN authorisation)
-        if ( hasLocalStorage && localStorage.getItem(SETTINGS_KEY + ':connect-on-load') ){
+/*        if ( hasLocalStorage && localStorage.getItem(SETTINGS_KEY + ':connect-on-load') ){
           localStorage.removeItem(SETTINGS_KEY + ':connect-on-load');
           
           remoteStorage.remote.configure({
@@ -669,7 +684,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
           });             // Complete the connect
           remoteStorage.remote.reflectNetworkStatus(true);      // Emit network-online
         }
-      }
+*/      }
     }
   };
 
