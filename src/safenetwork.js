@@ -141,7 +141,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
         this.connected = true;
         this.online = true;
-        this._emit('connected');
+        this.rs._emit('connected');
         RS.log('SafeNetwork.configure() [CONNECTED]');
       } else {
         this.connected = false;
@@ -181,35 +181,23 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       var self = this;
       self.appKeys = appApiKeys.app;
 
-      // Need to fudge backend (and restore on failed auth below) or sync won't start first time
-      // mrhTODO DOESN'T WORK! Maybe because other stuff done by _loadFeatures() still being missed?
-      if (self.rs.backend === 'safenetwork' && typeof self.rs._safenetworkOrigRemote === 'undefined') {
-        self.rs._safenetworkOrigRemote = self.rs.remote;
-        self.rs.remote = self.rs.safenetwork;
-      }
-
       tokenKey = SETTINGS_KEY + ':token';
       window.safeAuth.authorise(self.appKeys, tokenKey).then( function(response) {
+        // Need to ensure we're the active backend or sync won't start first time
+        // https://github.com/theWebalyst/remotestorage.js/issues/1#
+        // mrhTODO dodgy? See https://github.com/theWebalyst/remotestorage.js/issues/1#issuecomment-267617083
+        if (self.rs.backend === 'safenetwork' && typeof self.rs._safenetworkOrigRemote === 'undefined') {
+          self.rs._safenetworkOrigRemote = self.rs.remote;
+          self.rs.remote = self.rs.safenetwork;
+          self.rs.sync.remote = self.rs.safenetwork;
+        }
+
         self.configure({ 
             token:          response.token,         // Auth token
             permissions:    response.permissions,   // List of permissions approved by the user
           });
         
-        // This backend doesn't redirect, so to ensure sync starts on very first connection.
-        // Auth without re-direct won't init properly unless we 'configure()' after reload (theWebalyst/remotestorage.js issue #1)
-/*        if (self.rs.backend === 'safenetwork' && typeof self.rs._safenetworkOrigRemote === 'undefined'){
-          localStorage[SETTINGS_KEY + ':connect-on-load'] = 'true';  // Ensure connected on reload
-          location.reload();
-        }
-*/
       }, function (err){
-        // Undo fudge backend (see above)
-                self.rs.setBackend(undefined);
-                if (self.rs._safenetworkOrigRemote) {
-                  self.rs.remote = self.rs._safenetworkOrigRemote;
-                  delete self.rs._safenetworkOrigRemote;
-                }
-
         self.reflectNetworkStatus(false);
         RS.log('SafeNetwork Authorisation Failed');
         RS.log(err);
