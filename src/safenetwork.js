@@ -1,14 +1,3 @@
-// For now, the safenetwork.js backend requires RS.js built with different LAUNCHER_URL (see below)
-// according to the test environment.
-//
-// Note: during SAFEnetwork testing the SAFE API is changing regularly, so if you want to build RS.js with this backend
-//       yourself, you will need to make sure that the version of safestore.js is in step with that API of the SAFEnetwork
-//       you are connecting to at the time (which changes periodically). If in doubt ask webalyst (aka happybeing).
-
-LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.safenet when live on SAFEnetwork
-//LAUNCHER_URL = 'http://api.safenet'; // For live tests using Firefox/Chrome with proxy configured, and running SAFE Launcher locally
-//LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser, no proxy needed, and running SAFE Launcher locally
-
 ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
 (function (global) {
@@ -128,7 +117,6 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     connected: false,
     online: true,
     isPathShared: true,         // App private storage mrhTODO shared or private? app able to control?
-    launcherUrl: LAUNCHER_URL,  // Can be overridden by App
         
     configure: function (settings) { // Settings parameter compatible with WireClient
       // mrhTODO: review dropbox approach later
