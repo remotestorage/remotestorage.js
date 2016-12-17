@@ -1,5 +1,3 @@
-ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
-
 (function (global) {
   /**
    * Class: RemoteStorage.SafeNetwork
@@ -33,9 +31,11 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
    * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
    **/
 
+  ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
+
   var RS = RemoteStorage;
   
-  var hasLocalStorage;  // mrhTODO not using this everywhere because as GoogleDrive omits in entirely - remove?
+  var hasLocalStorage;
   var SETTINGS_KEY = 'remotestorage:safenetwork';
   var PATH_PREFIX = '/remotestorage/';  // mrhTODO app configurable?
   
@@ -85,6 +85,20 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
     var self = this;
 
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+
+    if (hasLocalStorage){
+      var settings;
+      try {
+        settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+      } catch(e) {
+        localStorage.removeItem(SETTINGS_KEY);  // Clear broken settings
+      }
+      
+      if (settings)
+        this.configure(settings);
+    }
+    
     onErrorCb = function (error){
       // mrhTODO should this affect this.connected, this.online and emit network-offline?
       
@@ -107,7 +121,7 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
       }
     };
     
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected', 'network-online', 'network-offline');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     this.rs.on('error', onErrorCb);
 
     // mrhTODO port dropbox style load/save settings from localStorage
@@ -118,29 +132,60 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
     online: true,
     isPathShared: true,         // App private storage mrhTODO shared or private? app able to control?
         
-    configure: function (settings) { // Settings parameter compatible with WireClient
-      // mrhTODO: review dropbox approach later
-      
-      if (settings.token) {
-        localStorage[SETTINGS_KEY + ':token'] = settings.token;
-        localStorage[SETTINGS_KEY + ':permissions'] = settings.permissions;
-        this.token = settings.token;
-        this.permissions = settings.permissions;    // List of permissions approved by the user
+    configure: function (settings) {
+      // We only update this.userAddress if settings.userAddress is set to a string or to null:
+      if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
+      // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
+      if (typeof settings.token !== 'undefined') { this.token = settings.token; }
 
-        this.connected = true;
-        this.online = true;
-        this.rs._emit('connected');
-        RS.log('SafeNetwork.configure() [CONNECTED]');
-      } else {
+      var writeSettingsToCache = function() {
+        if (hasLocalStorage) {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+            userAddress: this.userAddress,
+            token: this.token,
+            permissions: this.permissions,
+          }));
+        }
+      };
+
+      var handleError = function() {
         this.connected = false;
-        delete this.token;
-        this.permissions = null;
-        delete localStorage[SETTINGS_KEY + ':token'];
-        delete localStorage[SETTINGS_KEY + ':permissions'];
+        delete this.permissions;
+        
+        if (hasLocalStorage) {
+          localStorage.removeItem(SETTINGS_KEY);
+        }
         RS.log('SafeNetwork.configure() [DISCONNECTED]');
+      };
+
+      if (this.token) {
+        this.connected = true;
+        this.permissions = settings.permissions;
+        if (this.userAddress) {
+          // this._emit('connected'); // mrhTODO BUG? reload page fails here - what about for googledrive?
+
+          this.rs._emit('connected');
+          writeSettingsToCache.apply(this);
+          RS.log('SafeNetwork.configure() [CONNECTED]');
+        } else {
+          // mrhTODO if SN implements account names implement in SafeNetwork.info:
+          this.info().then(function (info){
+            this.userAddress = info.accountName;
+            this.rs.widget.view.setUserAddress(this.userAddress);//SN
+            this._emit('connected');
+            this.rs._emit('connected');
+            writeSettingsToCache.apply(this);
+            RS.log('SafeNetwork.configure() [CONNECTED]');
+          }.bind(this)).catch(function() {
+            handleError.apply(this);
+            this._emit('error', new Error('Could not fetch account info.'));
+          }.bind(this));
+        }
+      } else {
+        handleError.apply(this);
       }
     },
-
+    
     connect: function () {
       RS.log('SafeNetwork.connect()...');
 
@@ -304,6 +349,20 @@ ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
         RS.log('REJECTING!!! ' + err.message)
         return Promise.reject(err);
       });
+    },
+
+    /**
+     * Method: info
+     *
+     * Fetches an account name for display in widget
+     *
+     * Returns:
+     *
+     *   A promise to the user's account info
+     */
+    info: function () {
+      // Not yet implemented on SAFE, so provdie a default
+      return Promise.resolve({accountName: 'SafeNetwork'});
     },
 
     _updateFile: function (fullPath, body, contentType, options) {
