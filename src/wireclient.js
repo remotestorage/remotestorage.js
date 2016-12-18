@@ -520,18 +520,14 @@
 
       log('[WireClient]', method, url);
 
-
       var timedOut = false;
 
-
-      var xhr = new XMLHttpRequest();
-      xhr.timeout = WireClient.REQUEST_TIMEOUT;
-
-      xhr.ontimeout = () => {
+      var timer = setTimeout(function () {
         timedOut = true;
         reject('timeout');
-      };
+      }, WireClient.REQUEST_TIMEOUT);
 
+      var xhr = new XMLHttpRequest();
       xhr.open(method, url, true);
 
       if (options.responseType) {
@@ -545,10 +541,14 @@
       }
 
       xhr.onload = () => {
+        if (timedOut) { return; }
+        clearTimeout(timer);
         resolve(xhr);
       };
 
       xhr.onerror = (error) => {
+        if (timedOut) { return; }
+        clearTimeout(timer);
         reject(error);
       };
 
