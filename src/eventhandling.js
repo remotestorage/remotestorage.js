@@ -70,6 +70,14 @@
   methods.on = methods.addEventListener;
 
   /**
+   * Method: eventhandling.off
+   *
+   * Alias for <removeEventListener>
+   **/
+  methods.off = methods.removeEventListener;
+
+
+  /**
    * Function: eventHandling
    *
    * Mixes event handling functionality into an object.
