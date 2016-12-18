@@ -23,7 +23,7 @@
   },
   "scripts": {
     "test": "make test",
-    "build": "NODE_ENV=production webpack",
+    "build": "NODE_ENV=production webpack -p",
     "dev": "webpack -w"
   },
   "dependencies": {
