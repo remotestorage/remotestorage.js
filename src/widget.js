@@ -29,35 +29,19 @@
    **/
   RemoteStorage.Widget = function (remoteStorage) {
     var self = this;
-    var requestsToFlashFor = 0;
+
+    self.requestsToFlashFor = 0;
 
     // setting event listeners on rs events to put
     // the widget into corresponding states
     this.rs = remoteStorage;
-    this.rs.remote.on('connected', stateSetter(this, 'connected'));
     this.rs.on('disconnected', stateSetter(this, 'initial'));
     this.rs.on('connecting', stateSetter(this, 'authing'));
     this.rs.on('authing', stateSetter(this, 'authing'));
     this.rs.on('error', errorsHandler(this));
 
-    if (this.rs.remote) {
-      this.rs.remote.on('wire-busy', function (evt) {
-        if (flashFor(evt)) {
-          requestsToFlashFor++;
-          stateSetter(self, 'busy')();
-        }
-      });
-
-      this.rs.remote.on('wire-done', function (evt) {
-        if (flashFor(evt)) {
-          requestsToFlashFor--;
-        }
-        if (requestsToFlashFor <= 0 && evt.success) {
-          stateSetter(self, 'connected')();
-        }
-      });
-    }
-
+    self.initRemoteListeners();
+    
     if (hasLocalStorage) {
       var state = localStorage[LS_STATE_KEY];
       if (state && VALID_ENTRY_STATES[state]) {
@@ -68,6 +52,30 @@
 
   RemoteStorage.Widget.prototype = {
 
+      initRemoteListeners: function(){
+      var self = this;
+      
+        if (self.rs.remote) {
+          self.rs.remote.on('connected', stateSetter(this, 'connected'));
+
+          self.rs.remote.on('wire-busy', function (evt) {
+            if (flashFor(evt)) {
+              self.requestsToFlashFor++;
+              stateSetter(self, 'busy')();
+            }
+          });
+
+          self.rs.remote.on('wire-done', function (evt) {
+            if (flashFor(evt)) {
+              self.requestsToFlashFor--;
+            }
+            if (self.requestsToFlashFor <= 0 && evt.success) {
+              stateSetter(self, 'connected')();
+            }
+          });
+        }
+      },
+      
     /**
     * Method: display
     *

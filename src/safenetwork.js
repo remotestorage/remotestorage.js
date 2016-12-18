@@ -35,6 +35,7 @@
 
   var RS = RemoteStorage;
   
+  var isFolder = RemoteStorage.util.isFolder;
   var hasLocalStorage;
   var SETTINGS_KEY = 'remotestorage:safenetwork';
   var PATH_PREFIX = '/remotestorage/';  // mrhTODO app configurable?
@@ -76,29 +77,14 @@
   var onErrorCb;
 
   RS.SafeNetwork = function (remoteStorage, clientId) {
-
     this.rs = remoteStorage;
     this.clientId = clientId;
     this._fileInfoCache = new Cache(60 * 5); // mrhTODO: info expires after 5 minutes (is this a good idea?)
-
     this.connected = false;
-
     var self = this;
 
     hasLocalStorage = RemoteStorage.util.localStorageAvailable();
 
-    if (hasLocalStorage){
-      var settings;
-      try {
-        settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-      } catch(e) {
-        localStorage.removeItem(SETTINGS_KEY);  // Clear broken settings
-      }
-      
-      if (settings)
-        this.configure(settings);
-    }
-    
     onErrorCb = function (error){
       // mrhTODO should this affect this.connected, this.online and emit network-offline?
       
@@ -119,12 +105,24 @@
           permissions: null,    // List of granted SAFE Network access permssions (e.g. 'SAFE_DRIVE_ACCESS')
         });
       }
-    };
-    
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+    };    
+
+    // Events that we either handle, or emit on self
+    RS.eventHandling(this, 'connected', 'not-connected', 'wire-busy', 'wire-done');
     this.rs.on('error', onErrorCb);
 
-    // mrhTODO port dropbox style load/save settings from localStorage
+    if (hasLocalStorage){
+      var settings;
+      try {
+        settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+      } catch(e) {
+        localStorage.removeItem(SETTINGS_KEY);  // Clear broken settings
+      }
+      
+      if (settings)
+        this.configure(settings);
+    }
+    
 };
 
   RS.SafeNetwork.prototype = {
@@ -162,20 +160,17 @@
         this.connected = true;
         this.permissions = settings.permissions;
         if (this.userAddress) {
-          // this._emit('connected'); // mrhTODO BUG? reload page fails here - what about for googledrive?
-
-          this.rs._emit('connected');
+          this._emit('connected');
           writeSettingsToCache.apply(this);
-          RS.log('SafeNetwork.configure() [CONNECTED]');
+          RS.log('SafeNetwork.configure() [CONNECTED-1]');
         } else {
           // mrhTODO if SN implements account names implement in SafeNetwork.info:
           this.info().then(function (info){
             this.userAddress = info.accountName;
-            this.rs.widget.view.setUserAddress(this.userAddress);//SN
+            this.rs.widget.view.setUserAddress(this.userAddress);
             this._emit('connected');
-            this.rs._emit('connected');
             writeSettingsToCache.apply(this);
-            RS.log('SafeNetwork.configure() [CONNECTED]');
+            RS.log('SafeNetwork.configure() [CONNECTED]-2');
           }.bind(this)).catch(function() {
             handleError.apply(this);
             this._emit('error', new Error('Could not fetch account info.'));
@@ -193,9 +188,60 @@
       // mrhTODO: note dropbox connect skips auth if it has a token - enables it to remember connection across sessions
       // mrhTODO: if storing Authorization consider security risk - e.g. another app could steal to access SAFE Drive?
       this.rs.setBackend('safenetwork');
+      this._setBackendExtras('safenetwork');
       this.safenetworkAuthorize(this.rs.apiKeys['safenetwork']);
     },
 
+    // SafeNetwork is the first backend that doesn't involve a re-direct, and so
+    // doesn't trigger RS._init() upon successful authorisation. So we have to
+    // do a bit more here to ensure what happens at the end of RS loadFeatures()
+    // as a result of the redirect is also done without it.
+    //
+    // mrhTODO - this should probably go in the RS setBackend()
+    _setBackendExtras: function () {
+      var rs = this.rs;
+
+      // Missing from RS.setBackend()
+      // Needed to ensure we're the active backend or sync won't start 
+      // if:
+      //    - this backend was not already set in localStorage on load, *and*
+      //    - this backend doesn't do a redirect (page reload) after authorisation
+      //
+      // See: https://github.com/theWebalyst/remotestorage.js/issues/1#
+      //
+      if (this.rs.backend === 'safenetwork' && typeof this.rs._safenetworkOrigRemote === 'undefined') {
+        this.rs._safenetworkOrigRemote = this.rs.remote;
+        this.rs.remote = this.rs.safenetwork;
+        this.rs.sync.remote = this.rs.safenetwork;
+
+        // mrhTODO - this doesn't check that the event listener hasn't already been installed - should it?
+        
+        // mrhTODO - hope fireReady() only matters in RS _init() (see below)
+        
+        if (rs.widget)
+          rs.widget.initRemoteListeners();
+
+        this.on('connected', function (){
+          //fireReady();
+          rs._emit('connected');
+        });
+        this.on('not-connected', function (){
+          //fireReady();
+          rs._emit('not-connected');
+        });
+        
+        if (this.connected) {
+          //fireReady();
+          rs._emit('connected');
+        }
+
+        if (!rs.hasFeature('Authorize')) {
+          this.stopWaitingForToken();
+        }
+      }
+    },
+
+    
     stopWaitingForToken: function () {
       if (!this.connected) {
         this._emit('not-connected');
@@ -206,25 +252,16 @@
       if (this.online != isOnline) {
         this.online = isOnline;
         RS.log('reflectNetworkStatus() emitting: ' + (isOnline ? 'network-online' : 'network-offline'));
-        this._emit(isOnline ? 'network-online' : 'network-offline');
+        this.rs._emit(isOnline ? 'network-online' : 'network-offline');
       }
     },
-    
+
     safenetworkAuthorize: function (appApiKeys) {
       var self = this;
       self.appKeys = appApiKeys.app;
 
       tokenKey = SETTINGS_KEY + ':token';
       window.safeAuth.authorise(self.appKeys, tokenKey).then( function(response) {
-        // Need to ensure we're the active backend or sync won't start first time
-        // https://github.com/theWebalyst/remotestorage.js/issues/1#
-        // mrhTODO dodgy? See https://github.com/theWebalyst/remotestorage.js/issues/1#issuecomment-267617083
-        if (self.rs.backend === 'safenetwork' && typeof self.rs._safenetworkOrigRemote === 'undefined') {
-          self.rs._safenetworkOrigRemote = self.rs.remote;
-          self.rs.remote = self.rs.safenetwork;
-          self.rs.sync.remote = self.rs.safenetwork;
-        }
-
         self.configure({ 
             token:          response.token,         // Auth token
             permissions:    response.permissions,   // List of permissions approved by the user
@@ -237,8 +274,26 @@
       });
     },
 
+    
+    // mrhTODO Adapted from remotestorage.js
+    _wrapBusyDone: function (result, method, path) {
+      var self = this;
+      var folderFlag = isFolder(path);
+      
+      self._emit('wire-busy', { method: method, isFolder: folderFlag });
+      return result.then(function (r) {
+        self._emit('wire-done', { method: method, success: true, isFolder: folderFlag });
+        return Promise.resolve(r);
+      }, function (err) {
+        self._emit('wire-done', { method: method, success: false, isFolder: folderFlag });
+        return Promise.reject(err);
+      });
+    },
+
     // For reference see WireClient#get (wireclient.js)
-    get: function (path, options) {
+    get: function (path) {        return this._wrapBusyDone.call(this, this._get(path), "get", path); },
+
+    _get: function (path, options) {
       RS.log('SafeNetwork.get(' + path + ',...)' );
       var fullPath = ( PATH_PREFIX + '/' + path ).replace(/\/+/g, '/');
 
@@ -262,7 +317,9 @@
     // mrhTODO      FIX: when API stable, best may be to store contentType in the file not as metadata
     // mrhTODO           when API stable, best may be to store contentType in the file not as metadata
     
-    put: function (path, body, contentType, options) {
+    put: function (path) {        return this._wrapBusyDone.call(this, this._put(path), "put", path); },
+
+    _put: function (path, body, contentType, options) {
       RS.log('SafeNetwork.put(' + path + ', ' + (options ? ( '{IfMatch: ' + options.IfMatch + ', IfNoneMatch: ' + options.IfNoneMatch + '})') : 'null)' ) );
       var fullPath = ( PATH_PREFIX + '/' + path ).replace(/\/+/g, '/');
 
@@ -309,7 +366,9 @@
     // mrhTODO:       be deleted from the SAFE NFS drive, and so on for its parent folder as 
     // mrhTODO:       needed. This is not done currently.
     //
-    'delete': function (path, options) {
+    delete: function (path) {        return this._wrapBusyDone.call(this, this._delete(path), "delete", path); },
+
+    _delete: function (path, options) {
       RS.log('SafeNetwork.delete(' + path + ',...)' );
       var fullPath = ( PATH_PREFIX + '/' + path ).replace(/\/+/g, '/');
 
@@ -360,7 +419,9 @@
      *
      *   A promise to the user's account info
      */
-    info: function () {
+    info: function () {        return this._wrapBusyDone.call(this, this._info(), "get", ''); },
+
+    _info: function () {
       // Not yet implemented on SAFE, so provdie a default
       return Promise.resolve({accountName: 'SafeNetwork'});
     },
@@ -570,8 +631,15 @@
           return Promise.resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE/*, mrhTODO revision: folderETagWithoutQuotes*/ });
         }, function (err){
           self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
-          RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err )
-          return Promise.reject({statusCode: (err == 'Unauthorized' ? 401 : 404)}); // mrhTODO ideally safe-js would provide response code (possible enhancement)
+          RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err.status );
+          //var status = (err == 'Unauthorized' ? 401 : 404); // mrhTODO ideally safe-js would provide response code (possible enhancement)
+          if (err.status == 401){
+            // Modelled on how googledrive.js handles expired token
+            if (self.connected)
+              self.connect();
+              return;
+          }
+          return Promise.reject({statusCode: err.status});
         });
       }, function (err){
         RS.log('_getFileInfo("' + fullPath + '") failed: ' + err)
