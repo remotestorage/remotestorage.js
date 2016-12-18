@@ -1,9 +1,6 @@
 // Reusable utility functions
 
 
-const eventHandling = require('./eventhandling');
-
-
 // wrapper to implement defer() functionality
 Promise.defer = function () {
   var resolve, reject;

@@ -1,7 +1,9 @@
-  var log = require('./log');
-  var util = require('./util');
-  var eventHandling = require('./eventhandling');
-  var Authorize = require('./authorize');
+'use strict';
+
+  const log = require('./log');
+  const util = require('./util');
+  const eventHandling = require('./eventhandling');
+  const Authorize = require('./authorize');
 
   /**
    * Class: WireClient
@@ -63,7 +65,7 @@
       Int32Array, Uint32Array, Float32Array, Float64Array
     ];
     isArrayBufferView = function (object) {
-      for (var i=0;i<8;i++) {
+      for (let i=0;i<8;i++) {
         if (object instanceof arrayBufferViews[i]) {
           return true;
         }
@@ -72,8 +74,8 @@
     };
   }
 
-  var isFolder = util.isFolder;
-  var cleanPath = util.cleanPath;
+  const isFolder = util.isFolder;
+  const cleanPath = util.cleanPath;
 
   function addQuotes(str) {
     if (typeof(str) !== 'string') {
@@ -119,34 +121,34 @@
   }
 
   function getTextFromArrayBuffer(arrayBuffer, encoding) {
-    var pending = Promise.defer();
-    if (typeof Blob === 'undefined') {
-      var buffer = new Buffer(new Uint8Array(arrayBuffer));
-      pending.resolve(buffer.toString(encoding));
-    } else {
-      var blob;
-      util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
-      if (typeof util.globalContext.BlobBuilder !== 'undefined') {
-        var bb = new global.BlobBuilder();
-        bb.append(arrayBuffer);
-        blob = bb.getBlob();
+    return new Promise((resolve, reject) => {
+      if (typeof Blob === 'undefined') {
+        var buffer = new Buffer(new Uint8Array(arrayBuffer));
+        resolve(buffer.toString(encoding));
       } else {
-        blob = new Blob([arrayBuffer]);
-      }
+        var blob;
+        util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
+        if (typeof util.globalContext.BlobBuilder !== 'undefined') {
+          var bb = new global.BlobBuilder();
+          bb.append(arrayBuffer);
+          blob = bb.getBlob();
+        } else {
+          blob = new Blob([arrayBuffer]);
+        }
 
-      var fileReader = new FileReader();
-      if (typeof fileReader.addEventListener === 'function') {
-        fileReader.addEventListener('loadend', function (evt) {
-          pending.resolve(evt.target.result);
-        });
-      } else {
-        fileReader.onloadend = function(evt) {
-          pending.resolve(evt.target.result);
-        };
+        var fileReader = new FileReader();
+        if (typeof fileReader.addEventListener === 'function') {
+          fileReader.addEventListener('loadend', function (evt) {
+            resolve(evt.target.result);
+          });
+        } else {
+          fileReader.onloadend = function(evt) {
+            resolve(evt.target.result);
+          };
+        }
+        fileReader.readAsText(blob, encoding);
       }
-      fileReader.readAsText(blob, encoding);
-    }
-    return pending.promise;
+    })
   }
 
   function determineCharset(mimeType) {
@@ -180,7 +182,7 @@
   /**
    * Class : WireClient
    **/
-  var WireClient = function (rs) {
+  var WireClient = function WireClient(rs) {
     this.rs = rs;
     this.connected = false;
 
@@ -219,6 +221,7 @@
     }
   };
 
+  // should we put this in config ?
   WireClient.REQUEST_TIMEOUT = 30000;
 
   WireClient.prototype = {
@@ -511,49 +514,51 @@
   WireClient.readBinaryData = readBinaryData;
 
   // Shared request function used by WireClient, GoogleDrive and Dropbox.
+  // TODO: Should we use fetch ?
   WireClient.request = function (method, url, options) {
-    var pending = Promise.defer();
-    log('[WireClient]', method, url);
+    return new Promise ((resolve, reject) => {
 
-    var timedOut = false;
+      log('[WireClient]', method, url);
 
-    var timer = setTimeout(function () {
-      timedOut = true;
-      pending.reject('timeout');
-    }, WireClient.REQUEST_TIMEOUT);
 
-    var xhr = new XMLHttpRequest();
-    xhr.open(method, url, true);
+      var timedOut = false;
 
-    if (options.responseType) {
-      xhr.responseType = options.responseType;
-    }
 
-    if (options.headers) {
-      for (var key in options.headers) {
-        xhr.setRequestHeader(key, options.headers[key]);
+      var xhr = new XMLHttpRequest();
+      xhr.timeout = WireClient.REQUEST_TIMEOUT;
+
+      xhr.ontimeout = () => {
+        timedOut = true;
+        reject('timeout');
+      };
+
+      xhr.open(method, url, true);
+
+      if (options.responseType) {
+        xhr.responseType = options.responseType;
       }
-    }
 
-    xhr.onload = function () {
-      if (timedOut) { return; }
-      clearTimeout(timer);
-      pending.resolve(xhr);
-    };
+      if (options.headers) {
+        for (var key in options.headers) {
+          xhr.setRequestHeader(key, options.headers[key]);
+        }
+      }
 
-    xhr.onerror = function (error) {
-      if (timedOut) { return; }
-      clearTimeout(timer);
-      pending.reject(error);
-    };
+      xhr.onload = () => {
+        resolve(xhr);
+      };
 
-    var body = options.body;
+      xhr.onerror = (error) => {
+        reject(error);
+      };
 
-    if (typeof(body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
-      body = new Uint8Array(body);
-    }
-    xhr.send(body);
-    return pending.promise;
+      var body = options.body;
+
+      if (typeof(body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
+        body = new Uint8Array(body);
+      }
+      xhr.send(body);
+    })
   };
 
   Object.defineProperty(WireClient.prototype, 'storageType', {

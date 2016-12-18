@@ -1,5 +1,5 @@
-  var util = require('./util');
-  var config = require('./config');
+  const util = require('./util');
+  const config = require('./config');
 
   /**
    * Interface: cachinglayer
@@ -14,10 +14,9 @@
    * talk to.
    */
 
-  var isFolder = util.isFolder;
-  var isDocument = util.isDocument;
-  var deepClone = util.deepClone;
-  var equal = util.equal;
+  const isFolder = util.isFolder;
+  const isDocument = util.isDocument;
+  const deepClone = util.deepClone;
 
   function getLatest(node) {
     if (typeof(node) !== 'object' || typeof(node.path) !== 'string') {
