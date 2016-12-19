@@ -15,20 +15,25 @@
    * <BaseClient.getItemURL> gets hijacked to return the Dropbox public share
    * URL.
    * 
-   * mrhTODO: To use this backend, you need to specify the app's client ID like so:
+   * To use this backend, you need to provide information for SAFE authorisation:
    *
    * (start code)
    *
-   * remoteStorage.setApiKeys('safenetwork', {
-   *   clientId: 'your-client-id'
-   * });
+   * remoteStorage.setApiKeys('safenetwork', 
+   *     {   
+   *         // For details see safe-js safeAuth API
+   *         app: {
+   *             name: 'RemoteStorage Demo',        // Your app name etc.
+   *             version: '0.0.1',
+   *             vendor: 'remoteStorage',
+   *             id: 'org.remotestorage.rsdemo',    // Identifies stored data (unique per vendor)
+   *             permissions: ['SAFE_DRIVE_ACCESS'] // List of permissions to request. On authorisation, 
+   *         },                                     // holds permissions granted by user    
+   *     }
+   * ); 
    *
    * (end code)
    *
-   * An client ID can be obtained by registering your app in the Google
-   * Developers Console: https://developers.google.com/drive/web/auth/web-client
-   *
-   * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
    **/
 
   ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
