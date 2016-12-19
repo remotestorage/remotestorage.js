@@ -291,7 +291,7 @@
     },
 
     // For reference see WireClient#get (wireclient.js)
-    get: function (path) {        return this._wrapBusyDone.call(this, this._get(path), "get", path); },
+    get: function (path, options) {        return this._wrapBusyDone.call(this, this._get(path, options), "get", path); },
 
     _get: function (path, options) {
       RS.log('SafeNetwork.get(' + path + ',...)' );
@@ -317,7 +317,7 @@
     // mrhTODO      FIX: when API stable, best may be to store contentType in the file not as metadata
     // mrhTODO           when API stable, best may be to store contentType in the file not as metadata
     
-    put: function (path) {        return this._wrapBusyDone.call(this, this._put(path), "put", path); },
+    put: function (path, body, contentType, options) {        return this._wrapBusyDone.call(this, this._put(path, body, contentType, options), "put", path); },
 
     _put: function (path, body, contentType, options) {
       RS.log('SafeNetwork.put(' + path + ', ' + (options ? ( '{IfMatch: ' + options.IfMatch + ', IfNoneMatch: ' + options.IfNoneMatch + '})') : 'null)' ) );
@@ -366,7 +366,7 @@
     // mrhTODO:       be deleted from the SAFE NFS drive, and so on for its parent folder as 
     // mrhTODO:       needed. This is not done currently.
     //
-    delete: function (path) {        return this._wrapBusyDone.call(this, this._delete(path), "delete", path); },
+    delete: function (path, options) {        return this._wrapBusyDone.call(this, this._delete(path, options), "delete", path); },
 
     _delete: function (path, options) {
       RS.log('SafeNetwork.delete(' + path + ',...)' );
