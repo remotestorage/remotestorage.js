@@ -781,18 +781,7 @@
       if (remoteStorage.backend === 'safenetwork' && remoteStorage.remote !== remoteStorage.safenetwork) {
         remoteStorage._safenetworkOrigRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.safenetwork;
-
-          // Handle connect on load of app (final part of SN authorisation)
-/*        if ( hasLocalStorage && localStorage.getItem(SETTINGS_KEY + ':connect-on-load') ){
-          localStorage.removeItem(SETTINGS_KEY + ':connect-on-load');
-          
-          remoteStorage.remote.configure({
-            token:        localStorage[SETTINGS_KEY + ':token'],
-            permissions:  localStorage[SETTINGS_KEY + ':permissions']
-          });             // Complete the connect
-          remoteStorage.remote.reflectNetworkStatus(true);      // Emit network-online
-        }
-*/      }
+      }
     }
   };
 
