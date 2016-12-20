@@ -1,15 +1,18 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'require', './src/eventhandling', './src/googledrive', 'test/behavior/backend', 'test/helpers/mocks'], 
-       function (Promise, require, eventHandling, GoogleDrive, backend, mocks) {
+define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function (Promise, util, require, eventHandling, GoogleDrive, backend, mocks) {
 
   global.Promise = Promise;
 
   var suites = [];
 
   function setup (env, test) {
-    global.localStorage = {};
+    global.localStorage = {
+      setItem: function() {},
+      removeItem: function() {}
+    };
     global.RemoteStorage = function () {
       eventHandling(this, 'error', 'network-offline', 'network-online');
     };
@@ -55,8 +58,11 @@ define(['bluebird', 'require', './src/eventhandling', './src/googledrive', 'test
     });
     env.rs = new RemoteStorage();
     env.rs.apiKeys= { googledrive: {clientId: 'testkey'} };
+    var oldLocalStorageAvailable = util.localStorageAvailable;
+    util.localStorageAvailable = function() { return true; };
     env.client = new GoogleDrive(env.rs);
     env.connectedClient = new GoogleDrive(env.rs);
+    util.localStorageAvailable = oldLocalStorageAvailable;
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({
@@ -112,6 +118,118 @@ define(['bluebird', 'require', './src/eventhandling', './src/googledrive', 'test
             token: 'foobarbaz'
           });
           test.assert(env.client.connected, true);
+        }
+      },
+
+      {
+        desc: "#configure sets token and userAddress when given",
+        run: function (env, test) {
+          env.client.configure({
+            token: 'thetoken',
+            userAddress: 'john.doe@gmail.com'
+          });
+          test.assertAnd(env.client.token, 'thetoken');
+          test.assert(env.client.userAddress, 'john.doe@gmail.com');
+        }
+      },
+
+      {
+        desc: "#configure fetches the user info when no userAddress is given",
+        run: function (env, test) {
+          env.rs.widget = { view: { setUserAddress: function() {} } };
+
+          env.client.on('connected', function() {
+            test.assert(env.client.userAddress, 'john.doe@gmail.com');
+          });
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              "user": {
+                "displayName": "John Doe",
+                "emailAddress": "john.doe@gmail.com",
+                "isAuthenticatedUser": true,
+                "kind": "drive#user",
+                "permissionId": "02787362847200372917",
+                "picture": {
+                  "url": "https://lh6.googleusercontent.com/-vOkeOMO0HKQ/AAAAAAAAAAI/AAAAAAAAAQ4/KeL71nrpGVs/s64/photo.jpg"
+                }
+              }
+            });
+            req._onload();
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#configure emits error when the user info can't be fetched",
+        run: function (env, test) {
+          var oldRemoveItem = global.localStorage.removeItem;
+          global.localStorage.removeItem = function(key) {
+            test.assertAnd(key, 'remotestorage:googledrive');
+            global.localStorage.removeItem = oldRemoveItem;
+          };
+
+          env.rs.on('error', function(error) {
+            test.assert(error.message, 'Could not fetch user info.');
+          });
+
+          env.client.on('connected', function() {
+            test.result(false);
+          });
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+        }
+      },
+
+      {
+        desc: "#configure caches token and userAddress in localStorage",
+        run: function (env, test) {
+          env.rs.widget = { view: { setUserAddress: function() {} } };
+
+          var oldSetItem = global.localStorage.setItem;
+          global.localStorage.setItem = function(key, value) {
+            test.assertAnd(key, 'remotestorage:googledrive');
+            test.assert(value, JSON.stringify({
+              userAddress: 'john.doe@gmail.com',
+              token: 'thetoken'
+            }));
+            global.localStorage.setItem = oldSetItem;
+          };
+
+          env.client.configure({
+            token: 'thetoken'
+          });
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              "user": {
+                "displayName": "John Doe",
+                "emailAddress": "john.doe@gmail.com",
+                "isAuthenticatedUser": true,
+                "kind": "drive#user",
+                "permissionId": "02787362847200372917",
+                "picture": {
+                  "url": "https://lh6.googleusercontent.com/-vOkeOMO0HKQ/AAAAAAAAAAI/AAAAAAAAAQ4/KeL71nrpGVs/s64/photo.jpg"
+                }
+              }
+            });
+            req._onload();
+          }, 10);
         }
       },
 

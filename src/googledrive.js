@@ -28,11 +28,13 @@
   var BASE_URL = 'https://www.googleapis.com';
   var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
   var AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
+  var SETTINGS_KEY = 'remotestorage:googledrive';
 
   var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
   var isFolder = util.isFolder;
+  var hasLocalStorage;
 
   function buildQueryString(params) {
     return Object.keys(params).map(function (key) {
@@ -92,6 +94,19 @@
     this.clientId = clientId;
 
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
+
+    hasLocalStorage = util.localStorageAvailable();
+
+    if (hasLocalStorage){
+      var settings;
+      try {
+        settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+      } catch(e){}
+      if (settings) {
+        this.configure(settings);
+      }
+    }
+
   };
 
   GoogleDrive.prototype = {
@@ -99,15 +114,47 @@
     online: true,
 
     configure: function (settings) { // Settings parameter compatible with WireClient
-      if (settings.token) {
-        localStorage['remotestorage:googledrive:token'] = settings.token;
-        this.token = settings.token;
-        this.connected = true;
-        this._emit('connected');
-      } else {
+      // We only update this.userAddress if settings.userAddress is set to a string or to null
+      if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
+      // Same for this.token. If only one of these two is set, we leave the other one at its existing value
+      if (typeof settings.token !== 'undefined') { this.token = settings.token; }
+
+      var writeSettingsToCache = function() {
+        if (hasLocalStorage) {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+            userAddress: this.userAddress,
+            token: this.token
+          }));
+        }
+      };
+
+      var handleError = function() {
         this.connected = false;
         delete this.token;
-        delete localStorage['remotestorage:googledrive:token'];
+        if (hasLocalStorage) {
+          localStorage.removeItem(SETTINGS_KEY);
+        }
+      };
+
+      if (this.token) {
+        this.connected = true;
+
+        if (this.userAddress) {
+          this._emit('connected');
+          writeSettingsToCache.apply(this);
+        } else {
+          this.info().then(function(info) {
+            this.userAddress = info.user.emailAddress;
+            this.rs.widget.view.setUserAddress(this.userAddress);
+            this._emit('connected');
+            writeSettingsToCache.apply(this);
+          }.bind(this)).catch(function() {
+            handleError.apply(this);
+            this.rs._emit('error', new Error('Could not fetch user info.'));
+          }.bind(this));
+        }
+      } else {
+        handleError.apply(this);
       }
     },
 
@@ -180,6 +227,28 @@
             }
           });
         });
+      });
+    },
+
+    /**
+     * Method: info
+     *
+     * Fetches the user's info from Google and returns a promise for it.
+     *
+     * Returns:
+     *
+     *   A promise to the user's info
+     */
+    info: function () {
+      var url = BASE_URL + '/drive/v2/about?fields=user';
+      // requesting user info(mainly for userAdress)
+      return this._request('GET', url, {}).then(function (resp){
+        try {
+          var info = JSON.parse(resp.responseText);
+          return Promise.resolve(info);
+        } catch (e) {
+          return Promise.reject(e);
+        }
       });
     },
 

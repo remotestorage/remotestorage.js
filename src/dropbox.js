@@ -207,16 +207,18 @@
     this._itemRefs = {};
     this._metadataCache = {};
 
+    hasLocalStorage = util.localStorageAvailable();
+
     if (hasLocalStorage){
       var settings;
       try {
-        settings = JSON.parse(localStorage[SETTINGS_KEY]);
+        settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
       } catch(e){}
       if (settings) {
         this.configure(settings);
       }
       try {
-        this._itemRefs = JSON.parse(localStorage[ SETTINGS_KEY+':shares' ]);
+        this._itemRefs = JSON.parse(localStorage.getItem(SETTINGS_KEY+':shares'));
       } catch(e) {  }
     }
     if (this.connected) {
@@ -254,22 +256,39 @@
       // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
       if (typeof settings.token !== 'undefined') { this.token = settings.token; }
 
+      var writeSettingsToCache = function() {
+        if (hasLocalStorage) {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+            userAddress: this.userAddress,
+            token: this.token
+          }));
+        }
+      };
+
+      var handleError = function() {
+        this.connected = false;
+        if (hasLocalStorage) {
+          localStorage.removeItem(SETTINGS_KEY);
+        }
+      };
+
       if (this.token) {
         this.connected = true;
-        if ( !this.userAddress ){
+        if (this.userAddress) {
+          this._emit('connected');
+          writeSettingsToCache.apply(this);
+        } else {
           this.info().then(function (info){
-            this.userAddress = info.display_name;
+            this.userAddress = info.email;
             this._emit('connected');
+            writeSettingsToCache.apply(this);
+          }.bind(this)).catch(function() {
+            handleError.apply(this);
+            this.rs._emit('error', new Error('Could not fetch user info.'));
           }.bind(this));
         }
       } else {
-        this.connected = false;
-      }
-      if (hasLocalStorage){
-        localStorage[SETTINGS_KEY] = JSON.stringify({
-          userAddress: this.userAddress,
-          token: this.token
-        });
+        handleError.apply(this);
       }
     },
 
@@ -567,7 +586,7 @@
         self._itemRefs[path] = response.url;
 
         if (hasLocalStorage) {
-          localStorage[SETTINGS_KEY + ':shares'] = JSON.stringify(self._itemRefs);
+          localStorage.setItem(SETTINGS_KEY+':shares', JSON.stringify(self._itemRefs));
         }
 
         return Promise.resolve(url);
@@ -974,7 +993,7 @@
   Dropbox._rs_cleanup = function (rs) {
     unHookIt(rs);
     if (hasLocalStorage){
-      delete localStorage[SETTINGS_KEY];
+      localStorage.removeItem(SETTINGS_KEY);
     }
     rs.removeEventListener('error', onErrorCb);
     rs.setBackend(undefined);
