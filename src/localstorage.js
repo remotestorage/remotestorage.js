@@ -1,4 +1,4 @@
-  var cachingLayer = require('./cachinglayer')
+  var cachingLayer = require('./cachinglayer');
   var log = require('./log');
   var eventHandling = require('./eventhandling');
   var util = require('./util');

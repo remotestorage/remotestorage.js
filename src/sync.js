@@ -1055,7 +1055,7 @@
     remoteStorage.removeEventListener('ready', syncCycleCb);
     remoteStorage.removeEventListener('connected', syncOnConnect);
 
-    remoteStorage.sync = undefined
+    remoteStorage.sync = undefined;
     delete remoteStorage.sync;
   };
 

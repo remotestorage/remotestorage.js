@@ -75,7 +75,7 @@ var util = require('./util');
           remoteStorage.remote.configure({
             token: authResult.access_token
           });
-        })
+        });
     }
 
     Authorize.setLocation(url);

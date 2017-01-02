@@ -14,6 +14,6 @@ function log() {
   if (config.logging) {
     console.log.apply(console, arguments);
   }
-};
+}
 
 module.exports = log;

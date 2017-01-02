@@ -8,7 +8,7 @@
     return Promise.resolve(r);
   }
 
-  const util = require('./util')
+  const util = require('./util');
   const Dropbox = require('./dropbox');
   const GoogleDrive = require('./googledrive');
   const Discover = require('./discover');
@@ -110,7 +110,7 @@
 
     // Initial configuration property settings.
     if (typeof cfg === 'object') {
-      util.extend(config, cfg)
+      util.extend(config, cfg);
     }
 
     eventHandling(
@@ -195,8 +195,8 @@
   
 
     impliedauth: function (storageApi, redirectUri) {
-      var storageApi = this.remote.storageApi;
-      var redirectUri =  String(document.location);
+      storageApi = this.remote.storageApi;
+      redirectUri =  String(document.location);
 
       log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
       // Set a fixed access token, signalling to not send it as Bearer
@@ -697,7 +697,7 @@
     },
 
     startSync: function () {
-      if (!config.cache) return
+      if (!config.cache) { return; }
       this.sync.stopped = false;
       this.syncStopped = false;
       this.sync.sync();
@@ -794,4 +794,4 @@
 
 
 module.exports = RemoteStorage;
-require('./modules')
+require('./modules');

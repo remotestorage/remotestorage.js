@@ -148,7 +148,7 @@
         }
         fileReader.readAsText(blob, encoding);
       }
-    })
+    });
   }
 
   function determineCharset(mimeType) {
@@ -558,7 +558,7 @@
         body = new Uint8Array(body);
       }
       xhr.send(body);
-    })
+    });
   };
 
   Object.defineProperty(WireClient.prototype, 'storageType', {

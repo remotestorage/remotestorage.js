@@ -1,5 +1,5 @@
   var tv4 = require('tv4');
-  var BaseClient = require('./baseclient')
+  var BaseClient = require('./baseclient');
 
   /**
    * Class: BaseClient.Types

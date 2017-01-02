@@ -74,7 +74,7 @@ const Discover = function Discover(userAddress) {
 
       return resolve(cachedInfo[userAddress]);
     });
-  })
+  });
 };
 
 

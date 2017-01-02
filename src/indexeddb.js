@@ -319,7 +319,7 @@
       IndexedDB.clean(name, function() {
         IndexedDB.open(name, callback);
       });
-    };
+    }
   };
 
   IndexedDB.clean = function (databaseName, callback) {

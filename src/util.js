@@ -56,7 +56,7 @@ Promise.defer = function () {
     globalContext: (typeof(window) !== 'undefined' ? window : global),
 
     getGlobalContext () {
-      return (typeof(window) !== 'undefined' ? window : global)
+      return (typeof(window) !== 'undefined' ? window : global);
     },
 
     extend (target) {
@@ -423,7 +423,7 @@ Promise.defer = function () {
     localStorageAvailable () {
       const context = util.getGlobalContext();
 
-      if (!('localStorage' in context)) { return false }
+      if (!('localStorage' in context)) { return false; }
 
       try {
         context.localStorage.setItem('rs-check', 1);
@@ -436,4 +436,4 @@ Promise.defer = function () {
 
   };
 
-  module.exports = util
+  module.exports = util;
