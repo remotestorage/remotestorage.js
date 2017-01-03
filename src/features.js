@@ -5,14 +5,12 @@ const log = require('./log');
 const SyncedGetPutDelete = require('./syncedgetputdelete');
 const config = require('./config');
 
-let features = [];
-let featuresDone = 0;
-
 const Features = {
+  features: [],
+  featuresDone: 0,
+  readyFired: false,
+  
   loadFeatures () {
-    this.featuresDone = 0;
-    this.features = [];
-    this.readyFired = false;
 
     this.featureModules = {
       'WireClient': require('./wireclient'),

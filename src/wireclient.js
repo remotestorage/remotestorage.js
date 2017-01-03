@@ -421,9 +421,11 @@
         if (options.ifNoneMatch) {
           headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
         }
-      } else if (options.ifNoneMatch) {
-        var oldRev = this._revisionCache[path];
       }
+      // commenting it out as this is doing nothing and jshint is complaining -les
+      // else if (options.ifNoneMatch) {
+      //   var oldRev = this._revisionCache[path];
+      // }
 
 
       return this._request('GET', this.href + cleanPath(path), this.token, headers,

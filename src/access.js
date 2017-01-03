@@ -1,4 +1,4 @@
-  var SETTINGS_KEY = "remotestorage:access";
+  // var SETTINGS_KEY = "remotestorage:access";
 
   /**
    * Class: Access

@@ -151,7 +151,6 @@
         var transaction = this.db.transaction(['nodes'], 'readonly');
         var nodes = transaction.objectStore('nodes');
         var retrievedNodes = {};
-        var startTime = new Date().getTime();
 
         this.getsRunning++;
 

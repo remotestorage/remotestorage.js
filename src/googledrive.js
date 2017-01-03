@@ -36,15 +36,15 @@
   var isFolder = util.isFolder;
   var hasLocalStorage;
 
-  function buildQueryString(params) {
-    return Object.keys(params).map(function (key) {
-      return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
-    }).join('&');
-  }
+  // function buildQueryString(params) {
+  //   return Object.keys(params).map(function (key) {
+  //     return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+  //   }).join('&');
+  // }
 
-  function fileNameFromMeta(meta) {
-    return encodeURIComponent(meta.title) + (meta.mimeType === GD_DIR_MIME_TYPE ? '/' : '');
-  }
+  // function fileNameFromMeta(meta) {
+  //   return encodeURIComponent(meta.title) + (meta.mimeType === GD_DIR_MIME_TYPE ? '/' : '');
+  // }
 
   function metaTitleFromFileName(filename) {
     if (filename.substr(-1) === '/') {
@@ -450,7 +450,6 @@
           } else {
             return Promise.resolve();
           }
-          return;
         }
         return Promise.resolve(id);
       });

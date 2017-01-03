@@ -421,14 +421,16 @@
         }
 
         // handling json (always try)
-        if (mime && mime.search('application/json') >= 0 || true) {
-          try {
-            body = JSON.parse(body);
-            mime = 'application/json; charset=UTF-8';
-          } catch(e) {
-            //Failed parsing Json, assume it is something else then
-          }
+        // comment it out as this is always true (false && false || true)
+        // and jshint is complaining
+        // if (mime && mime.search('application/json') >= 0 || true) {
+        try {
+          body = JSON.parse(body);
+          mime = 'application/json; charset=UTF-8';
+        } catch(e) {
+          //Failed parsing Json, assume it is something else then
         }
+        // }
 
         return Promise.resolve({statusCode: status, body: body, contentType: mime, revision: rev});
       });
@@ -713,7 +715,6 @@
           } else {
             return Promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
           }
-          return;
         }
 
         var delta;
