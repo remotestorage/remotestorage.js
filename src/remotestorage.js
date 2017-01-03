@@ -510,7 +510,6 @@
     initFeature: Features.initFeature,
 
 
-
     /**
      * TOFIX: needs some explanation on this -les
      ** GET/PUT/DELETE INTERFACE HELPERS

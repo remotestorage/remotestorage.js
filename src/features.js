@@ -11,6 +11,9 @@ const Features = {
   readyFired: false,
   
   loadFeatures () {
+    this.features = [];
+    this.featuresDone = 0;
+    this.readyFired = false;
 
     this.featureModules = {
       'WireClient': require('./wireclient'),
@@ -30,7 +33,7 @@ const Features = {
         'IndexedDB': require('./indexeddb'),
         'LocalStorage': require('./localstorage'),
         'InMemoryStorage': require('./inmemorystorage'),
-        'Sync': require('./sync'),
+        'Sync': require('./sync')
       });
     }
 
@@ -48,7 +51,7 @@ const Features = {
     for (let featureName in this.featureModules) {
       // TOFIX this has to push the promised return value into an
       // array of promises and use Promise.all to emit `ready`
-      // instead of increment a counter of loaded features.
+      // instead of increment a counter of loaded features. -les
       this.loadFeature(featureName);
     }
   },

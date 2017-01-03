@@ -209,7 +209,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
 
           Dropbox._rs_init = function(remoteStorage) {
               test.fail('Backend got reinitialized again although the key did not change.');
-            }
+            };
 
           env.rs.setApiKeys('dropbox', { appKey: 'old key' });
           test.done();
@@ -243,7 +243,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
           };
 
           env.rs = new RemoteStorage();
-          env.rs.remote = new FakeRemote(false)
+          env.rs.remote = new FakeRemote(false);
 
           env.rs.connect('user@ho.st');
           test.assert(localStorage.getItem('remotestorage:backend'), 'remotestorage');
@@ -311,7 +311,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
               // delete Sync;
               test.done();
             }
-          }
+          };
           
           env.rs.on('features-loaded', loadedHandler);
           env.rs._init();
