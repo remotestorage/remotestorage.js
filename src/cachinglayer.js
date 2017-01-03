@@ -291,7 +291,7 @@
     // this process of updating nodes needs to be heavily documented first, then
     // refactored. Right now it's almost impossible to refactor as there's no
     // explanation of why things are implemented certain ways or what the goal(s)
-    // of the behavior are. -slvrbckt
+    // of the behavior are. -slvrbckt (+1 -les)
     _updateNodesRunning: false,
     _updateNodesQueued: [],
     _updateNodes: function (paths, _processNodes) {

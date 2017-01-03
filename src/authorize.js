@@ -115,39 +115,39 @@ var util = require('./util');
    * Open new InAppBrowser window for OAuth in Cordova
    */
   Authorize.openWindow = function (url, redirectUri, options) {
-    var pending = Promise.defer();
-    var newWindow = open(url, '_blank', options);
+    return new Promise( (resolve, reject) => {
 
-    if (!newWindow || newWindow.closed) {
-      pending.reject('Authorization popup was blocked');
-      return pending.promise;
-    }
+      var newWindow = open(url, '_blank', options);
 
-    var handleExit = function () {
-      pending.reject('Authorization was canceled');
-    };
-
-    var handleLoadstart = function (event) {
-      if (event.url.indexOf(redirectUri) !== 0) {
-        return;
+      if (!newWindow || newWindow.closed) {
+        return reject('Authorization popup was blocked');
       }
 
-      newWindow.removeEventListener('exit', handleExit);
-      newWindow.close();
+      var handleExit = function () {
+        return reject('Authorization was canceled');
+      };
 
-      var authResult = extractParams(event.url);
+      var handleLoadstart = function (event) {
+        if (event.url.indexOf(redirectUri) !== 0) {
+          return;
+        }
 
-      if (!authResult) {
-        return pending.reject('Authorization error');
-      }
+        newWindow.removeEventListener('exit', handleExit);
+        newWindow.close();
 
-      return pending.resolve(authResult);
-    };
+        var authResult = extractParams(event.url);
 
-    newWindow.addEventListener('loadstart', handleLoadstart);
-    newWindow.addEventListener('exit', handleExit);
+        if (!authResult) {
+          return reject('Authorization error');
+        }
 
-    return pending.promise;
+        return resolve(authResult);
+      };
+
+      newWindow.addEventListener('loadstart', handleLoadstart);
+      newWindow.addEventListener('exit', handleExit);
+
+    });
   };
 
 

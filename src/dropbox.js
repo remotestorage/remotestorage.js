@@ -405,18 +405,19 @@
         // handling binary
         if (!resp.getResponseHeader('Content-Type') ||
             resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
-          var pending = Promise.defer();
 
-          WireClient.readBinaryData(resp.response, mime, function (result) {
-            pending.resolve({
-              statusCode: status,
-              body: result,
-              contentType: mime,
-              revision: rev
+          // TOFIX: would be better to make readBinaryData return a Promise - les
+          return new Promise( (resolve, reject) => {
+            WireClient.readBinaryData(resp.response, mime, function (result) {
+              resolve({
+                statusCode: status,
+                body: result,
+                contentType: mime,
+                revision: rev
+              });
             });
-          });
 
-          return pending.promise;
+          });
         }
 
         // handling json (always try)

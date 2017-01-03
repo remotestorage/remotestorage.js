@@ -7,10 +7,12 @@ and RemoteStorage hackers prospective. The first gloal is achieved reducing the 
 includig the lib in new project for every usage case, supporting AMD
 and commonjs (to make it easy to use with new js tools like
 webpack / browserify / requirejs and in node itself) and old `<script>`
-inclusion style. The lib is also behave better in other ecosystems
+inclusion style, everything with the same build (downloading the same .js or
+installing it trought npm). The lib is also behave better in other ecosystems
 because it is not polluting the global namespace anymore.
 The second step is achieved in cleaning the source code and explicit
-requiring dependencies in every module.
+requiring dependencies in every module, remove non standard defer Promise feature,
+and try to clean out where possible.
 
 
 ### Building 
@@ -36,7 +38,3 @@ as an example).
 Each internal feature is now exported at the end of file and
 imported at beginning of features that needs it.
 
-
-### Changes
-### Breaking changes
-### TODO
