@@ -27,7 +27,7 @@ needed modules are automatically included into build (entry point is remotestora
 Little changes in `package.json` to use new building scripts, you can 
 use `npm run build` to build a release and `npm run dev` to build a dev
 version (this will watch for modification and rebuild in case), 
-if you want to dig in, take a look at [config file](webpack.config.js)
+if you want to dig in, take a look at [config file](../webpack.config.js)
 
 
 ### Refactoring 
