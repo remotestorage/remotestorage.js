@@ -182,6 +182,8 @@
         for (var i = 0, len = paths.length; i < len; i++) {
           var path = paths[i];
           var node = nodes[path];
+          var previous;
+          
           if (!node) {
             throw new Error('Cannot delete non-existing node '+path);
           }
