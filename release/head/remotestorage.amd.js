@@ -1,4 +1,4 @@
-/** remotestorage.js 0.14.0, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.14.1-pre, http://remotestorage.io, MIT-licensed **/
 define([], function() {
 
 /** FILE: src/remotestorage.js **/
@@ -2155,11 +2155,11 @@ define([], function() {
 /* global define */
 /*!
  * webfinger.js
- *   version 2.4.2
+ *   version 2.6.4
  *   http://github.com/silverbucket/webfinger.js
  *
  * Developed and Maintained by:
- *   Nick Jennings <nick@silverbucket.net> 2012 - 2016
+ *   Nick Jennings <nick@silverbucket.net> 2012
  *
  * webfinger.js is released under the AGPL (see LICENSE).
  *
@@ -2172,10 +2172,11 @@ define([], function() {
  */
 
 if (typeof XMLHttpRequest === 'undefined') {
-  XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+  // XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+  XMLHttpRequest = require('xhr2');
 }
 
-(function (undefined) {
+(function (global) {
 
   // URI to property name map
   var LINK_URI_MAPS = {
@@ -2257,6 +2258,7 @@ if (typeof XMLHttpRequest === 'undefined') {
     var self = this;
 
     var xhr = new XMLHttpRequest();
+    xhr.timeout = this.config.request_timeout;
 
     function __processState() {
       if (xhr.status === 200) {
@@ -2302,9 +2304,18 @@ if (typeof XMLHttpRequest === 'undefined') {
         }
       };
 
-      xhr.onload = function (a, b) {
+      xhr.onload = function () {
         __processState();
-      }
+      };
+
+      xhr.ontimeout = function () {
+        return errorHandler(generateErrorObject({
+          message: 'request timed out',
+          url: url,
+          status: xhr.status
+        }));
+      };
+
       xhr.open('GET', url, true);
       xhr.setRequestHeader('Accept', 'application/jrd+json, application/json');
       xhr.send();
@@ -2341,6 +2352,9 @@ if (typeof XMLHttpRequest === 'undefined') {
     }
 
     var links = parsedJRD.links;
+    if (!Array.isArray(links)) {
+      links = [];
+    }
     var result = {  // webfinger JRD - object, json, and our own indexing
       object: parsedJRD,
       json: JRD,
@@ -2388,7 +2402,7 @@ if (typeof XMLHttpRequest === 'undefined') {
     var host = '';
     if (address.indexOf('://') > -1) {
       // other uri format
-      host = address.replace(/ /g,'').split('://')[1];
+      host = address.replace(/ /g,'').split('/')[2];
     } else {
       // useraddress
       host = address.replace(/ /g,'').split('@')[1];
@@ -2475,17 +2489,24 @@ if (typeof XMLHttpRequest === 'undefined') {
     }
   };
 
-  if (typeof window === 'object') {
-    window.WebFinger = WebFinger;
-  } else if (typeof (define) === 'function' && define.amd) {
-    define([], function () { return WebFinger; });
-  } else {
-    try {
-      module.exports = WebFinger;
-    } catch (e) {}
-  }
-})();
 
+
+  // AMD support
+  if (typeof define === 'function' && define.amd) {
+      define([], function () { return WebFinger; });
+  // CommonJS and Node.js module support.
+  } else if (typeof exports !== 'undefined') {
+    // Support Node.js specific `module.exports` (which can be a function)
+    if (typeof module !== 'undefined' && module.exports) {
+        exports = module.exports = WebFinger;
+    }
+    // But always support CommonJS module 1.1.1 spec (`exports` cannot be a function)
+    exports.WebFinger = WebFinger;
+  } else {
+    // browser <script> support
+    global.WebFinger = WebFinger;
+  }
+})(this);
 
 
 /** FILE: src/authorize.js **/
@@ -9026,11 +9047,13 @@ Math.uuid = function (len, radix) {
   var BASE_URL = 'https://www.googleapis.com';
   var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
   var AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
+  var SETTINGS_KEY = 'remotestorage:googledrive';
 
   var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
   var isFolder = RemoteStorage.util.isFolder;
+  var hasLocalStorage;
 
   function buildQueryString(params) {
     return Object.keys(params).map(function (key) {
@@ -9090,6 +9113,19 @@ Math.uuid = function (len, radix) {
     this.clientId = clientId;
 
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
+
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+
+    if (hasLocalStorage){
+      var settings;
+      try {
+        settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+      } catch(e){}
+      if (settings) {
+        this.configure(settings);
+      }
+    }
+
   };
 
   RS.GoogleDrive.prototype = {
@@ -9097,15 +9133,47 @@ Math.uuid = function (len, radix) {
     online: true,
 
     configure: function (settings) { // Settings parameter compatible with WireClient
-      if (settings.token) {
-        localStorage['remotestorage:googledrive:token'] = settings.token;
-        this.token = settings.token;
-        this.connected = true;
-        this._emit('connected');
-      } else {
+      // We only update this.userAddress if settings.userAddress is set to a string or to null
+      if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
+      // Same for this.token. If only one of these two is set, we leave the other one at its existing value
+      if (typeof settings.token !== 'undefined') { this.token = settings.token; }
+
+      var writeSettingsToCache = function() {
+        if (hasLocalStorage) {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+            userAddress: this.userAddress,
+            token: this.token
+          }));
+        }
+      };
+
+      var handleError = function() {
         this.connected = false;
         delete this.token;
-        delete localStorage['remotestorage:googledrive:token'];
+        if (hasLocalStorage) {
+          localStorage.removeItem(SETTINGS_KEY);
+        }
+      };
+
+      if (this.token) {
+        this.connected = true;
+
+        if (this.userAddress) {
+          this._emit('connected');
+          writeSettingsToCache.apply(this);
+        } else {
+          this.info().then(function(info) {
+            this.userAddress = info.user.emailAddress;
+            this.rs.widget.view.setUserAddress(this.userAddress);
+            this._emit('connected');
+            writeSettingsToCache.apply(this);
+          }.bind(this)).catch(function() {
+            handleError.apply(this);
+            this.rs._emit('error', new Error('Could not fetch user info.'));
+          }.bind(this));
+        }
+      } else {
+        handleError.apply(this);
       }
     },
 
@@ -9178,6 +9246,28 @@ Math.uuid = function (len, radix) {
             }
           });
         });
+      });
+    },
+
+    /**
+     * Method: info
+     *
+     * Fetches the user's info from Google and returns a promise for it.
+     *
+     * Returns:
+     *
+     *   A promise to the user's info
+     */
+    info: function () {
+      var url = BASE_URL + '/drive/v2/about?fields=user';
+      // requesting user info(mainly for userAdress)
+      return this._request('GET', url, {}).then(function (resp){
+        try {
+          var info = JSON.parse(resp.responseText);
+          return Promise.resolve(info);
+        } catch (e) {
+          return Promise.reject(e);
+        }
       });
     },
 
@@ -9672,16 +9762,18 @@ Math.uuid = function (len, radix) {
     this._itemRefs = {};
     this._metadataCache = {};
 
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+
     if (hasLocalStorage){
       var settings;
       try {
-        settings = JSON.parse(localStorage[SETTINGS_KEY]);
+        settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
       } catch(e){}
       if (settings) {
         this.configure(settings);
       }
       try {
-        this._itemRefs = JSON.parse(localStorage[ SETTINGS_KEY+':shares' ]);
+        this._itemRefs = JSON.parse(localStorage.getItem(SETTINGS_KEY+':shares'));
       } catch(e) {  }
     }
     if (this.connected) {
@@ -9719,23 +9811,40 @@ Math.uuid = function (len, radix) {
       // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
       if (typeof settings.token !== 'undefined') { this.token = settings.token; }
 
+      var writeSettingsToCache = function() {
+        if (hasLocalStorage) {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+            userAddress: this.userAddress,
+            token: this.token
+          }));
+        }
+      };
+
+      var handleError = function() {
+        this.connected = false;
+        if (hasLocalStorage) {
+          localStorage.removeItem(SETTINGS_KEY);
+        }
+      };
+
       if (this.token) {
         this.connected = true;
-        if ( !this.userAddress ){
+        if (this.userAddress) {
+          this._emit('connected');
+          writeSettingsToCache.apply(this);
+        } else {
           this.info().then(function (info){
-            this.userAddress = info.display_name;
+            this.userAddress = info.email;
             this.rs.widget.view.setUserAddress(this.userAddress);
             this._emit('connected');
+            writeSettingsToCache.apply(this);
+          }.bind(this)).catch(function() {
+            handleError.apply(this);
+            this.rs._emit('error', new Error('Could not fetch user info.'));
           }.bind(this));
         }
       } else {
-        this.connected = false;
-      }
-      if (hasLocalStorage){
-        localStorage[SETTINGS_KEY] = JSON.stringify({
-          userAddress: this.userAddress,
-          token: this.token
-        });
+        handleError.apply(this);
       }
     },
 
@@ -10033,7 +10142,7 @@ Math.uuid = function (len, radix) {
         self._itemRefs[path] = response.url;
 
         if (hasLocalStorage) {
-          localStorage[SETTINGS_KEY + ':shares'] = JSON.stringify(self._itemRefs);
+          localStorage.setItem(SETTINGS_KEY+':shares', JSON.stringify(self._itemRefs));
         }
 
         return Promise.resolve(url);
@@ -10425,7 +10534,6 @@ Math.uuid = function (len, radix) {
   }
 
   RS.Dropbox._rs_init = function (rs) {
-    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
     if ( rs.apiKeys.dropbox ) {
       rs.dropbox = new RS.Dropbox(rs);
     }
@@ -10441,7 +10549,7 @@ Math.uuid = function (len, radix) {
   RS.Dropbox._rs_cleanup = function (rs) {
     unHookIt(rs);
     if (hasLocalStorage){
-      delete localStorage[SETTINGS_KEY];
+      localStorage.removeItem(SETTINGS_KEY);
     }
     rs.removeEventListener('error', onErrorCb);
     rs.setBackend(undefined);
