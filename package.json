@@ -1,7 +1,7 @@
 {
   "name": "remotestoragejs",
   "description": "JavaScript library for integrating remoteStorage",
-  "version": "1.0.0-beta",
+  "version": "1.0.1-beta",
   "private": false,
   "license": "MIT",
   "main": "./release/stable/remotestorage.js",
@@ -18,8 +18,7 @@
     "jaribu": "^2.0.0",
     "uglify-js": "^2.6.1",
     "uuid": "^3.0.1",
-    "webpack": "^1.13.2",
-    "xmlhttprequest": "^1.8.0"
+    "webpack": "^1.13.2"
   },
   "scripts": {
     "test": "make test",
@@ -28,7 +27,7 @@
   },
   "dependencies": {
     "tv4": "^1.2.7",
-    "webfinger.js": "^2.6.0",
+    "webfinger.js": "^2.6.4",
     "xhr2": "^0.1.3"
   }
 }
