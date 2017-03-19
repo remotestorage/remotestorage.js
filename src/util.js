@@ -406,7 +406,7 @@
 
 
     localStorageAvailable: function() {
-      if (!('localStorage' in global)) { return false }
+      if (!('localStorage' in global)) { return false; }
 
       try {
         global.localStorage.setItem('rs-check', 1);
