@@ -168,7 +168,7 @@
           }
           return nodes;
         } catch (e) {
-          RemoteStorage.log('[Cachinglayer] Error during PUT', nodes, i, e);
+          RemoteStorage.log('[Cachinglayer] Error during PUT', nodes, e);
           throw e;
         }
       }

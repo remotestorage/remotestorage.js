@@ -317,7 +317,7 @@
       RS.IndexedDB.clean(name, function() {
         RS.IndexedDB.open(name, callback);
       });
-    };
+    }
   };
 
   RS.IndexedDB.clean = function (databaseName, callback) {
