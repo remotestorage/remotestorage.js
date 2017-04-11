@@ -8,7 +8,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
 
   var consoleLog, fakeLogs;
   global.Promise = Promise;
-  global.XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+  global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
   // global.eventHandling = require('./src/eventhandling');
 
   function FakeRemote(connected) {
@@ -71,7 +71,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      global.XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+      global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
       // global.WebFinger = require('webfinger.js')
       // global.Discover = require('./src/discover');
       global.SyncedGetPutDelete = require('./src/syncedgetputdelete');

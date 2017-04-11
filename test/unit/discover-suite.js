@@ -10,7 +10,7 @@ define(['require', 'bluebird', 'fs'],
     name: "Discover",
     desc: "Webfinger discovery",
     setup: function(env, test) {
-      global.XMLHttpRequest = require('xmlhttprequest');
+      global.XMLHttpRequest = require('xhr2');
       global.WebFinger = require('webfinger.js')
       global.Discover = require('./src/discover');
       global.RemoteStorage = function() {};

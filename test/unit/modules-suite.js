@@ -9,7 +9,7 @@ define(['./src/remotestorage', './src/modules', 'bluebird'], function(RemoteStor
     name: "modules",
     desc: "RemoteStorage modules",
     setup: function(env, test) {
-      global.XMLHttpRequest = require('xmlhttprequest');
+      global.XMLHttpRequest = require('xhr2');
  
       RemoteStorage.prototype.remote = {
         connected: false
