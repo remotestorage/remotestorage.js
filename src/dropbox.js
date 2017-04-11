@@ -1,5 +1,9 @@
-(function (global) {
-  var RS = RemoteStorage;
+  var Authorize = require('./authorize');
+  var BaseClient = require('./baseclient');
+  var WireClient = require('./wireclient');
+  var util = require('./util');
+  var eventHandling = require('./eventhandling');
+  var Sync = require('./sync');
 
   /**
    * File: Dropbox
@@ -8,7 +12,7 @@
    *
    * Dropbox backend for RemoteStorage.js
    * This file exposes a get/put/delete interface which is compatible with
-   * <RemoteStorage.WireClient>.
+   * <WireClient>.
    *
    * When remoteStorage.backend is set to 'dropbox', this backend will
    * initialize and replace remoteStorage.remote with remoteStorage.dropbox.
@@ -43,7 +47,7 @@
   var SETTINGS_KEY = 'remotestorage:dropbox';
   var PATH_PREFIX = '/remotestorage';
 
-  var isFolder = RemoteStorage.util.isFolder;
+  var isFolder = util.isFolder;
 
   /**
    * Function: getDropboxPath(path)
@@ -51,7 +55,7 @@
    * Map a local path to a path in DropBox.
    */
   var getDropboxPath = function (path) {
-    return RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
+    return WireClient.cleanPath(PATH_PREFIX + '/' + path);
   };
 
   var encodeQuery = function (obj) {
@@ -173,9 +177,9 @@
   var onErrorCb;
 
   /**
-   * Class: RemoteStorage.Dropbox
+   * Class: Dropbox
    */
-  RS.Dropbox = function (rs) {
+  var Dropbox = function (rs) {
 
     this.rs = rs;
     this.connected = false;
@@ -183,7 +187,7 @@
     var self = this;
 
     onErrorCb = function (error){
-      if (error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof Authorize.Unauthorized) {
         // Delete all the settings - see the documentation of wireclient.configure
         self.configure({
           userAddress: null,
@@ -195,7 +199,7 @@
       }
     };
 
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+    eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     rs.on('error', onErrorCb);
 
     this.clientId = rs.apiKeys.dropbox.appKey;
@@ -203,7 +207,7 @@
     this._itemRefs = {};
     this._metadataCache = {};
 
-    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+    hasLocalStorage = util.localStorageAvailable();
 
     if (hasLocalStorage){
       var settings;
@@ -222,7 +226,7 @@
     }
   };
 
-  RS.Dropbox.prototype = {
+  Dropbox.prototype = {
     online: true,
 
     /**
@@ -237,13 +241,13 @@
       if (this.token){
         hookIt(this.rs);
       } else {
-        RS.Authorize(this.rs, AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
+        Authorize(this.rs, AUTH_URL, '', String(Authorize.getLocation()), this.clientId);
       }
     },
 
     /**
      * Method : configure(settings)
-     * Accepts its parameters according to the <RemoteStorage.WireClient>.
+     * Accepts its parameters according to the <WireClient>.
      * Sets the connected flag
      **/
     configure: function (settings) {
@@ -276,7 +280,6 @@
         } else {
           this.info().then(function (info){
             this.userAddress = info.email;
-            this.rs.widget.view.setUserAddress(this.userAddress);
             this._emit('connected');
             writeSettingsToCache.apply(this);
           }.bind(this)).catch(function() {
@@ -354,12 +357,12 @@
     /**
      * Method: get
      *
-     * Compatible with <RemoteStorage.WireClient.get>
+     * Compatible with <WireClient.get>
      *
      * Checks for the path in _revCache and decides based on that if file has
      * changed. Calls _getFolder is the path points to a folder.
      *
-     * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+     * Calls <Dropbox.share> afterwards to fill _itemRefs.
      */
     get: function (path, options) {
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
@@ -402,29 +405,32 @@
         // handling binary
         if (!resp.getResponseHeader('Content-Type') ||
             resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
-          var pending = Promise.defer();
 
-          RS.WireClient.readBinaryData(resp.response, mime, function (result) {
-            pending.resolve({
-              statusCode: status,
-              body: result,
-              contentType: mime,
-              revision: rev
+          // TOFIX: would be better to make readBinaryData return a Promise - les
+          return new Promise( (resolve, reject) => {
+            WireClient.readBinaryData(resp.response, mime, function (result) {
+              resolve({
+                statusCode: status,
+                body: result,
+                contentType: mime,
+                revision: rev
+              });
             });
-          });
 
-          return pending.promise;
+          });
         }
 
         // handling json (always try)
-        if (mime && mime.search('application/json') >= 0 || true) {
-          try {
-            body = JSON.parse(body);
-            mime = 'application/json; charset=UTF-8';
-          } catch(e) {
-            //Failed parsing Json, assume it is something else then
-          }
+        // comment it out as this is always true (false && false || true)
+        // and jshint is complaining
+        // if (mime && mime.search('application/json') >= 0 || true) {
+        try {
+          body = JSON.parse(body);
+          mime = 'application/json; charset=UTF-8';
+        } catch(e) {
+          //Failed parsing Json, assume it is something else then
         }
+        // }
 
         return Promise.resolve({statusCode: status, body: body, contentType: mime, revision: rev});
       });
@@ -433,12 +439,12 @@
     /**
      * Method: put
      *
-     * Compatible with <RemoteStorage.WireClient>
+     * Compatible with <WireClient>
      *
      * Checks for the path in _revCache and decides based on that if file has
      * changed.
      *
-     * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+     * Calls <Dropbox.share> afterwards to fill _itemRefs.
      */
     put: function (path, body, contentType, options) {
       var self = this;
@@ -459,7 +465,7 @@
       }
 
       if ((!contentType.match(/charset=/)) &&
-          (body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body))) {
+          (body instanceof ArrayBuffer || WireClient.isArrayBufferView(body))) {
         contentType += '; charset=binary';
       }
 
@@ -508,12 +514,12 @@
     /**
      * Method: delete
      *
-     * Compatible with <RemoteStorage.WireClient.delete>
+     * Compatible with <WireClient.delete>
      *
      * Checks for the path in _revCache and decides based on that if file has
      * changed.
      *
-     * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+     * Calls <Dropbox.share> afterwards to fill _itemRefs.
      */
     'delete': function (path, options) {
       var self = this;
@@ -641,15 +647,14 @@
         isFolder: isFolder(url)
       });
 
-      return RS.WireClient.request.call(this, method, url, options).then(function(xhr) {
+      return WireClient.request.call(this, method, url, options).then(function(xhr) {
         // 503 means retry this later
         if (xhr && xhr.status === 503) {
           if (self.online) {
             self.online = false;
             self.rs._emit('network-offline');
           }
-
-          return global.setTimeout(self._request(method, url, options), 3210);
+          return setTimeout(self._request(method, url, options), 3210);
         } else {
           if (!self.online) {
             self.online = true;
@@ -705,19 +710,18 @@
         // break if status != 200
         if (response.status !== 200 ) {
           if (response.status === 400) {
-            self.rs._emit('error', new RemoteStorage.Unauthorized());
+            self.rs._emit('error', new Authorize.Unauthorized());
             return Promise.resolve(args);
           } else {
             return Promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
           }
-          return;
         }
 
         var delta;
         try {
           delta = JSON.parse(response.responseText);
         } catch(error) {
-          RS.log('fetchDeltas can not parse response',error);
+          log('fetchDeltas can not parse response',error);
           return Promise.reject("can not parse response of fetchDelta : "+error.message);
         }
         // break if no entries found
@@ -752,7 +756,7 @@
         return Promise.resolve(args);
       }, function (err) {
         this.rs.log('fetchDeltas', err);
-        this.rs._emit('error', new RemoteStorage.SyncError('fetchDeltas failed.' + err));
+        this.rs._emit('error', new Sync.SyncError('fetchDeltas failed.' + err));
         return Promise.resolve(args);
       }.bind(this)).then(function () {
         if (self._revCache) {
@@ -910,7 +914,7 @@
     rs.sync.sync = function () {
       return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
         then(rs._dropboxOrigSync, function (err) {
-          rs._emit('error', new RemoteStorage.SyncError(err));
+          rs._emit('error', new Sync.SyncError(err));
           return Promise.reject(err);
         });
     }.bind(rs);
@@ -926,8 +930,8 @@
 
   function hookGetItemURL(rs) {
     if (rs._origBaseClientGetItemURL) { return; }
-    rs._origBaseClientGetItemURL = RS.BaseClient.prototype.getItemURL;
-    RS.BaseClient.prototype.getItemURL = function (path){
+    rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
+    BaseClient.prototype.getItemURL = function (path){
       var ret = rs.dropbox._itemRefs[path];
       return  ret ? ret : '';
     };
@@ -935,7 +939,7 @@
 
   function unHookGetItemURL(rs){
     if (! rs._origBaseClientGetItemURL) { return; }
-    RS.BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
+    BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
     delete rs._origBaseClientGetItemURL;
   }
 
@@ -974,20 +978,21 @@
     unHookGetItemURL(rs);
   }
 
-  RS.Dropbox._rs_init = function (rs) {
+  Dropbox._rs_init = function (rs) {
+    hasLocalStorage = util.localStorageAvailable();
     if ( rs.apiKeys.dropbox ) {
-      rs.dropbox = new RS.Dropbox(rs);
+      rs.dropbox = new Dropbox(rs);
     }
     if (rs.backend === 'dropbox') {
       hookIt(rs);
     }
   };
 
-  RS.Dropbox._rs_supported = function () {
+  Dropbox._rs_supported = function () {
     return true;
   };
 
-  RS.Dropbox._rs_cleanup = function (rs) {
+  Dropbox._rs_cleanup = function (rs) {
     unHookIt(rs);
     if (hasLocalStorage){
       localStorage.removeItem(SETTINGS_KEY);
@@ -995,4 +1000,6 @@
     rs.removeEventListener('error', onErrorCb);
     rs.setBackend(undefined);
   };
-})(this);
+
+
+  module.exports = Dropbox;

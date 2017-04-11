@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+define(['bluebird', './src/config', './src/inmemorystorage'], function (Promise, config, InMemoryStorage) {
   global.Promise = Promise;
 
   var suites = [];
@@ -11,52 +11,20 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
     desc: 'In-memory caching layer',
 
     setup: function (env, test) {
-      global.RemoteStorage = function () {};
-      global.RemoteStorage.log = function () {};
-      global.RemoteStorage.config = {
-        changeEvents: { local: true, window: false, remote: true, conflict: true }
-      };
-
-      require('src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      require('src/eventhandling.js');
-      if ( global.rs_eventhandling ) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      require('src/cachinglayer.js');
-      if (global.rs_cachinglayer) {
-        RemoteStorage.cachingLayer = global.rs_cachinglayer;
-      } else {
-        global.rs_cachinglayer = RemoteStorage.cachingLayer;
-      }
-
-      require('src/inmemorystorage.js');
-      if (global.rs_ims) {
-        RemoteStorage.InMemoryStorage = global.rs_ims;
-      } else {
-        global.rs_ims = RemoteStorage.InMemoryStorage;
-      }
+      config.changeEvents = { local: true, window: false, remote: true, conflict: true };
+      var RemoteStorage = function() {};
 
       env.rs = new RemoteStorage();
-      env.rs.local = new RemoteStorage.InMemoryStorage();
-      global.remoteStorage = env.rs;
+      env.rs.local = new InMemoryStorage();
       test.done();
     },
 
     beforeEach: function (env, test) {
-      env.ims = new RemoteStorage.InMemoryStorage();
+      env.ims = new InMemoryStorage();
       test.done();
     },
 
-    tests: [
+  tests: [
       {
         desc: "#get loads a node from local",
         run: function (env, test) {
@@ -267,7 +235,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
         desc: "#put fires a 'change' with origin=window for outgoing changes",
         timeout: 250,
         run: function (env, test) {
-          RemoteStorage.config.changeEvents.window = true;
+          config.changeEvents.window = true;
           env.ims.on('change', function (event) {
             test.assert(event, {
               path: '/foo/bla',

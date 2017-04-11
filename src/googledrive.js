@@ -1,6 +1,6 @@
-(function (global) {
+
   /**
-   * Class: RemoteStorage.GoogleDrive
+   * Class: GoogleDrive
    *
    * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
    *
@@ -20,7 +20,10 @@
    * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
    **/
 
-  var RS = RemoteStorage;
+  var Authorize = require('./authorize');
+  var WireClient = require('./wireclient');
+  var eventHandling = require('./eventhandling');
+  var util = require('./util');
 
   var BASE_URL = 'https://www.googleapis.com';
   var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -30,18 +33,18 @@
   var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
-  var isFolder = RemoteStorage.util.isFolder;
+  var isFolder = util.isFolder;
   var hasLocalStorage;
 
-  function buildQueryString(params) {
-    return Object.keys(params).map(function (key) {
-      return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
-    }).join('&');
-  }
+  // function buildQueryString(params) {
+  //   return Object.keys(params).map(function (key) {
+  //     return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+  //   }).join('&');
+  // }
 
-  function fileNameFromMeta(meta) {
-    return encodeURIComponent(meta.title) + (meta.mimeType === GD_DIR_MIME_TYPE ? '/' : '');
-  }
+  // function fileNameFromMeta(meta) {
+  //   return encodeURIComponent(meta.title) + (meta.mimeType === GD_DIR_MIME_TYPE ? '/' : '');
+  // }
 
   function metaTitleFromFileName(filename) {
     if (filename.substr(-1) === '/') {
@@ -83,16 +86,16 @@
     }
   };
 
-  RS.GoogleDrive = function (remoteStorage, clientId) {
+  var GoogleDrive = function (remoteStorage, clientId) {
 
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+    eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     this.rs = remoteStorage;
     this.clientId = clientId;
 
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
 
-    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+    hasLocalStorage = util.localStorageAvailable();
 
     if (hasLocalStorage){
       var settings;
@@ -106,7 +109,7 @@
 
   };
 
-  RS.GoogleDrive.prototype = {
+  GoogleDrive.prototype = {
     connected: false,
     online: true,
 
@@ -157,7 +160,7 @@
 
     connect: function () {
       this.rs.setBackend('googledrive');
-      RS.Authorize(this.rs, AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
+      Authorize(this.rs, AUTH_URL, AUTH_SCOPE, String(Authorize.getLocation()), this.clientId);
     },
 
     stopWaitingForToken: function () {
@@ -346,7 +349,7 @@
     _getFolder: function (path, options) {
       var self = this;
       return self._getFileId(path).then(function (id) {
-        var query, fields, data, i, etagWithoutQuotes, itemsMap;
+        var query, fields, data, etagWithoutQuotes, itemsMap;
         if (! id) {
           return Promise.resolve({statusCode: 404});
         }
@@ -447,7 +450,6 @@
           } else {
             return Promise.resolve();
           }
-          return;
         }
         return Promise.resolve(id);
       });
@@ -463,6 +465,29 @@
       });
     },
 
+    /**
+     * Method: info
+     *
+     * Fetches the user's info from dropbox and returns a promise for it.
+     *
+     * Returns:
+     *
+     *   A promise to the user's info
+     */
+    info: function () {
+      var url = BASE_URL + '/drive/v2/about';
+      // requesting user info(mainly for userAdress)
+      return this._request('GET', url, {}).then(function (resp){
+        try {
+          var info = JSON.parse(resp.responseText);
+          return Promise.resolve(info);
+        } catch (e) {
+          return Promise.reject(e);
+        }
+      });
+    },
+
+
     _request: function (method, url, options) {
       var self = this;
 
@@ -474,7 +499,7 @@
         isFolder: isFolder(url)
       });
 
-      return RS.WireClient.request.call(this, method, url, options).then(function(xhr) {
+      return WireClient.request.call(this, method, url, options).then(function(xhr) {
         // Google tokens expire from time to time...
         if (xhr && xhr.status === 401) {
           self.connect();
@@ -508,10 +533,10 @@
     }
   };
 
-  RS.GoogleDrive._rs_init = function (remoteStorage) {
+  GoogleDrive._rs_init = function (remoteStorage) {
     var config = remoteStorage.apiKeys.googledrive;
     if (config) {
-      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.clientId);
+      remoteStorage.googledrive = new GoogleDrive(remoteStorage, config.clientId);
       if (remoteStorage.backend === 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;
@@ -519,11 +544,11 @@
     }
   };
 
-  RS.GoogleDrive._rs_supported = function (rs) {
+  GoogleDrive._rs_supported = function (rs) {
     return true;
   };
 
-  RS.GoogleDrive._rs_cleanup = function (remoteStorage) {
+  GoogleDrive._rs_cleanup = function (remoteStorage) {
     remoteStorage.setBackend(undefined);
     if (remoteStorage._origRemote) {
       remoteStorage.remote = remoteStorage._origRemote;
@@ -531,4 +556,5 @@
     }
   };
 
-})(this);
+
+  module.exports = GoogleDrive;

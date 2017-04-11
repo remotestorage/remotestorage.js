@@ -1,7 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function (Promise, requirejs, backend, mocks, undefined) {
+define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eventhandling', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function (require, util, Dropbox, WireClient, eventHandling, Promise, backend, mocks) {
 
   global.Promise = Promise;
 
@@ -9,14 +10,12 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
   function setup(env, test) {
     global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
+      eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
     };
     RemoteStorage.log = function () {};
-    RemoteStorage.prototype = {
-      setBackend: function (b){
-        this.backend = b;
-      }
-    };
+    RemoteStorage.prototype.setBackend = function (b) {
+      this.backend = b;
+    }
 
     global.localStorage = {
       setItem: function() {},
@@ -25,41 +24,11 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
     global.RemoteStorage.Unauthorized = function () {};
 
-    require('./src/util');
-    if (global.rs_util) {
-      RemoteStorage.util = global.rs_util;
-    } else {
-      global.rs_util = RemoteStorage.util;
+    RemoteStorage.prototype.localStorageAvailable = function () {
+      return false;
     }
 
-    require('./src/baseclient');
-    require('./src/baseclient/types');
-    if (global.rs_baseclient_with_types) {
-      RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-    } else {
-      global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-    }
-
-    require('./src/eventhandling');
-    if (global.rs_eventhandling) {
-      RemoteStorage.eventHandling = global.rs_eventhandling;
-    } else {
-      global.rs_eventhandling = RemoteStorage.eventHandling;
-    }
-
-    require('./src/wireclient');
-    if (global.rs_wireclient) {
-      RemoteStorage.WireClient = global.rs_wireclient;
-    } else {
-      global.rs_wireclient = RemoteStorage.WireClient;
-    }
-
-    require('./src/dropbox');
-    if (global.rs_dropbox) {
-      RemoteStorage.Dropbox = global.rs_dropbox;
-    } else {
-      global.rs_dropbox = RemoteStorage.Dropbox;
-    }
+    global.Authorize = require('./src/authorize');
 
     test.done();
   }
@@ -95,11 +64,12 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     });
     env.rs = new RemoteStorage();
     env.rs.apiKeys = { dropbox: {appKey: 'testkey'} };
-    var oldLocalStorageAvailable = RemoteStorage.util.localStorageAvailable;
-    RemoteStorage.util.localStorageAvailable = function() { return true; };
-    env.client = new RemoteStorage.Dropbox(env.rs);
-    env.connectedClient = new RemoteStorage.Dropbox(env.rs);
-    RemoteStorage.util.localStorageAvailable = oldLocalStorageAvailable;
+
+    var oldLocalStorageAvailable = util.localStorageAvailable;
+    util.localStorageAvailable = function() { return true; };
+    env.client = new Dropbox(env.rs);
+    env.connectedClient = new Dropbox(env.rs);
+    util.localStorageAvailable = oldLocalStorageAvailable;
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({
@@ -817,7 +787,8 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "WireClient destroys the bearer token after Unauthorized Error",
         run: function (env, test){
-          env.rs._emit('error', new RemoteStorage.Unauthorized());
+          var e = new Authorize.Unauthorized();
+          env.rs._emit('error', e);
           setTimeout(function () {
             test.assert(env.connectedClient.token, null);
           }, 100);
@@ -828,7 +799,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
         timeout: 2000,
         run: function (env, test) {
-          RemoteStorage.WireClient.REQUEST_TIMEOUT = 1000;
+          WireClient.REQUEST_TIMEOUT = 1000;
           env.connectedClient.get('/foo').then(function () {
             test.result(false);
           }, function (error) {
@@ -947,10 +918,10 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
 
-          RemoteStorage.Dropbox._rs_init(rs);
+          Dropbox._rs_init(rs);
           test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
 
-          RemoteStorage.Dropbox._rs_cleanup(rs);
+          Dropbox._rs_cleanup(rs);
           test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
 
           test.done();
@@ -971,7 +942,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             }
           };
 
-          RemoteStorage.Dropbox._rs_init(env.rs);
+          Dropbox._rs_init(env.rs);
 
           env.rs.dropbox.fetchDelta = function() {
             fetchDeltaCalled = true;

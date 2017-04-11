@@ -1,8 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs'], function (Promise, requirejs) {
-  global.Promise = Promise;
+define(['bluebird', './src/config', './src/localstorage'], function (Promise, config, LocalStorage) {
 
   var suites = [];
 
@@ -48,45 +47,14 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
 
     setup: function(env, test) {
       global.RemoteStorage = function() {};
-      global.RemoteStorage.log = function() {};
-      global.RemoteStorage.config = {
-        changeEvents: { local: true, window: false, remote: true, conflict: true }
-      };
-
-      require('./src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      require('src/eventhandling.js');
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      require('src/cachinglayer.js');
-      if (global.rs_cachinglayer) {
-        RemoteStorage.cachingLayer = global.rs_cachinglayer;
-      } else {
-        global.rs_cachinglayer = RemoteStorage.cachingLayer;
-      }
-
-      require('src/localstorage.js');
-      if (global.rs_LocalStorage) {
-        RemoteStorage.LocalStorage = global.rs_LocalStorage;
-      } else {
-        global.rs_LocalStorage = RemoteStorage.LocalStorage;
-      }
+      config.changeEvents = { local: true, window: false, remote: true, conflict: true }
 
       test.done();
     },
 
     beforeEach: function(env, test) {
       global.localStorage = {};
-      env.ls = new RemoteStorage.LocalStorage();
+      env.ls = new LocalStorage();
       test.done();
     },
 
@@ -150,7 +118,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
         desc: "#put fires a 'change' with origin=window for outgoing changes",
         timeout: 250,
         run: function(env, test) {
-          RemoteStorage.config.changeEvents.window = true;
+          config.changeEvents.window = true;
           env.ls.on('change', function(event) {
             test.assert(event, {
               path: '/foo/bla',
@@ -242,7 +210,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
             throw new QuotaExceededError('DOM exception 22');
           }
 
-          test.assert(RemoteStorage.LocalStorage._rs_supported(), false);
+          test.assert(LocalStorage._rs_supported(), false);
         }
       },
 

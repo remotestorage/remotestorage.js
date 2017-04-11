@@ -1,5 +1,6 @@
-(function () {
-
+  var BaseClient = require('./baseclient');
+  var RemoteStorage = require('./remotestorage');
+  
   RemoteStorage.MODULES = {};
 
   /*
@@ -65,8 +66,8 @@
   RemoteStorage.prototype._loadModule = function (moduleName) {
     var builder = RemoteStorage.MODULES[moduleName];
     if (builder) {
-      var module = builder(new RemoteStorage.BaseClient(this, '/' + moduleName + '/'),
-                           new RemoteStorage.BaseClient(this, '/public/' + moduleName + '/'));
+      var module = builder(new BaseClient(this, '/' + moduleName + '/'),
+                           new BaseClient(this, '/public/' + moduleName + '/'));
       return module.exports;
     } else {
       throw "Unknown module: " + moduleName;
@@ -78,4 +79,3 @@
     RemoteStorage.defineModule.apply(RemoteStorage, arguments);
   };
 
-})();
