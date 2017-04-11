@@ -1,5 +1,7 @@
   const util = require('./util');
   const config = require('./config');
+  const log = require('./log');
+
 
   /**
    * Interface: cachinglayer
@@ -168,7 +170,7 @@
           }
           return nodes;
         } catch (e) {
-          log('[Cachinglayer] Error during PUT', nodes, i, e);
+          log('[Cachinglayer] Error during PUT', nodes, e);
           throw e;
         }
       }
