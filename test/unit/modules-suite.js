@@ -16,38 +16,53 @@ define(['./src/remotestorage', './src/modules', 'bluebird'], function(RemoteStor
       };
       RemoteStorage.BaseClient = function() {};
       test.done();
+      env.rs = new RemoteStorage();
     },
 
     tests: [
       {
-        desc: "defineModule creates a module",
+        desc: "addModule creates a module",
         run: function(env, test) {
-          RemoteStorage.defineModule('foo', function() {
+          env.rs.addModule({name: 'foo', builder: function() {
             return {
               exports: {
                 it: 'worked'
               }
             };
-          });
-          env.rs = new RemoteStorage();
+          }});
           test.assertAnd(env.rs.foo.it, 'worked');
           test.done();
         }
       },
 
       {
-        desc: "defineModule allows hyphens",
+        desc: "addModule allows hyphens",
         run: function(env, test) {
-          RemoteStorage.defineModule('foo-bar', function() {
+          env.rs.addModule({name: 'foo-bar', builder: function() {
             return {
               exports: {
                 it: 'worked'
               }
             };
-          });
+          }});
           test.assertAnd(env.rs.fooBar.it, 'worked');
           test.done();
         }
+      },
+      {
+        desc: "addModule called from rs constructor",
+        run: function(env, test) {
+          var rs = new RemoteStorage({modules: [{name: 'bar', builder: function(){
+            return {
+              exports: {
+                it: 'worked'
+              }
+            };
+          }}]});
+          test.assertAnd(rs.bar.it, 'worked');
+          test.done();
+        }
+
       }
     ]
   });
