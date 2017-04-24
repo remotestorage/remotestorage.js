@@ -167,6 +167,7 @@
     }.bind(this);
 
     this.on('ready', this.fireInitial.bind(this));
+    this.loadModules()
   };
 
 
@@ -180,6 +181,12 @@
 
  
   RemoteStorage.prototype = {
+
+    // load all modules passed as arguments
+    loadModules: function loadModules() {
+      config.modules.forEach(this.addModule.bind(this))
+    },
+
     authorize: function authorize(authURL, cordovaRedirectUri) {
       this.access.setStorageType(this.remote.storageType);
       var scope = this.access.scopeParameter;
@@ -720,7 +727,6 @@
 
 
   RemoteStorage.util = util;
-  // RemoteStorage.defineModule = modules.defineModule;
 
   /**
    * Property: connected

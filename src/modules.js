@@ -1,19 +1,20 @@
   var BaseClient = require('./baseclient');
   var RemoteStorage = require('./remotestorage');
   
-  RemoteStorage.MODULES = {};
+  RemoteStorage.prototype.MODULES = {};
 
   /*
-   * Method: RemoteStorage.defineModule
+   * Method: RemoteStorage.addModule
    *
-   * Method for defining a new remoteStorage data module
+   * Method for adding a remoteStorage data module
    *
    * Parameters:
-   *   moduleName - Name of the module
-   *   builder    - Builder function defining the module
+   *   module - module object needs following properies:
+	 *       name - Name of the module
+	 *       builder    - Builder function defining the module
    *
    * The module builder function should return an object containing another
-   * object called exports, which will be exported to any <RemoteStorage>
+   * object called exports, which will be exported to this <RemoteStorage>
    * instance under the module's name. So when defining a locations module,
    * like in the example below, it would be accessible via
    * `remoteStorage.locations`, which would in turn have a `features` and a
@@ -26,24 +27,24 @@
    *
    * Example:
    *   (start code)
-   *   RemoteStorage.defineModule('locations', function (privateClient, publicClient) {
+   *   RemoteStorage.addModule({name: 'locations', builder: function (privateClient, publicClient) {
    *     return {
    *       exports: {
    *         features: privateClient.scope('features/').defaultType('feature'),
    *         collections: privateClient.scope('collections/').defaultType('feature-collection')
    *       }
    *     };
-   *   });
+   *   }});
    * (end code)
   */
 
-  RemoteStorage.defineModule = function (moduleName, builder) {
-    RemoteStorage.MODULES[moduleName] = builder;
-
-    Object.defineProperty(RemoteStorage.prototype, moduleName, {
+  RemoteStorage.prototype.addModule = function (module) {
+  	let moduleName = module.name;
+  	let moduleBuilder = module.builder;
+    Object.defineProperty(this, moduleName, {
       configurable: true,
       get: function () {
-        var instance = this._loadModule(moduleName);
+        var instance = this._loadModule(moduleName, moduleBuilder);
         Object.defineProperty(this, moduleName, {
           value: instance
         });
@@ -55,7 +56,7 @@
       var camelizedName = moduleName.replace(/\-[a-z]/g, function (s) {
         return s[1].toUpperCase();
       });
-      Object.defineProperty(RemoteStorage.prototype, camelizedName, {
+      Object.defineProperty(this, camelizedName, {
         get: function () {
           return this[moduleName];
         }
@@ -63,19 +64,12 @@
     }
   };
 
-  RemoteStorage.prototype._loadModule = function (moduleName) {
-    var builder = RemoteStorage.MODULES[moduleName];
-    if (builder) {
-      var module = builder(new BaseClient(this, '/' + moduleName + '/'),
+  RemoteStorage.prototype._loadModule = function (moduleName, moduleBuilder) {
+    if (moduleBuilder) {
+      var module = moduleBuilder(new BaseClient(this, '/' + moduleName + '/'),
                            new BaseClient(this, '/public/' + moduleName + '/'));
       return module.exports;
     } else {
       throw "Unknown module: " + moduleName;
     }
   };
-
-  RemoteStorage.prototype.defineModule = function (moduleName) {
-    console.log("remoteStorage.defineModule is deprecated, use RemoteStorage.defineModule instead!");
-    RemoteStorage.defineModule.apply(RemoteStorage, arguments);
-  };
-
