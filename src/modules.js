@@ -1,8 +1,6 @@
   var BaseClient = require('./baseclient');
   var RemoteStorage = require('./remotestorage');
   
-  RemoteStorage.prototype.MODULES = {};
-
   /*
    * Method: RemoteStorage.addModule
    *
