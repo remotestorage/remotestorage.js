@@ -12,7 +12,8 @@ var config = {
   syncInterval: 10000,
   backgroundSyncInterval: 60000,
   isBackground: false,
-  cordovaRedirectUri: undefined
+  cordovaRedirectUri: undefined,
+  modules: []
 };
 
 module.exports = config;
