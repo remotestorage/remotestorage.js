@@ -34,7 +34,20 @@ define(['./src/remotestorage', './src/modules', 'bluebird'], function(RemoteStor
           test.done();
         }
       },
-
+      {
+        desc: "defineModule creates a module",
+        run: function(env, test) {
+          RemoteStorage.defineModule('foo', function() {
+            return {
+              exports: {
+                it: 'worked'
+              }
+            };
+          });
+          test.assertAnd(env.rs.foo.it, 'worked');
+          test.done();
+        }
+      },
       {
         desc: "addModule allows hyphens",
         run: function(env, test) {
@@ -49,6 +62,20 @@ define(['./src/remotestorage', './src/modules', 'bluebird'], function(RemoteStor
           test.done();
         }
       },
+      {
+        desc: "defineModule allows hyphens",
+        run: function(env, test) {
+          RemoteStorage.defineModule('foo-bar', function() {
+            return {
+              exports: {
+                it: 'worked'
+              }
+            };
+          });
+          test.assertAnd(env.rs.fooBar.it, 'worked');
+          test.done();
+        }
+      },      
       {
         desc: "addModule called from rs constructor",
         run: function(env, test) {

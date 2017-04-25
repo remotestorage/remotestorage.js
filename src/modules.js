@@ -8,8 +8,8 @@
    *
    * Parameters:
    *   module - module object needs following properies:
-	 *       name - Name of the module
-	 *       builder    - Builder function defining the module
+   *       name - Name of the module
+   *       builder    - Builder function defining the module
    *
    * The module builder function should return an object containing another
    * object called exports, which will be exported to this <RemoteStorage>
@@ -36,9 +36,32 @@
    * (end code)
   */
 
+  RemoteStorage.defineModule = function(moduleName, builder) {
+    Object.defineProperty(RemoteStorage.prototype, moduleName, {
+      configurable: true,
+      get: function() {
+        var instance = this._loadModule(moduleName, builder);
+        Object.defineProperty(this, moduleName, {
+          value: instance
+        });
+      }
+    });
+
+    if (moduleName.indexOf('-') !== -1) {
+      var camelizedName = moduleName.replace(/\-[a-z]/g, function (s) {
+        return s[1].toUpperCase();
+      });
+      Object.defineProperty(RemoteStorage.prototype, camelizedName, {
+        get: function () {
+          return this[moduleName];
+        }
+      });
+    }
+  }
+
   RemoteStorage.prototype.addModule = function (module) {
-  	let moduleName = module.name;
-  	let moduleBuilder = module.builder;
+    let moduleName = module.name;
+    let moduleBuilder = module.builder;
     Object.defineProperty(this, moduleName, {
       configurable: true,
       get: function () {
