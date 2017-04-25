@@ -60,8 +60,8 @@
   }
 
   RemoteStorage.prototype.addModule = function (module) {
-    let moduleName = module.name;
-    let moduleBuilder = module.builder;
+    var moduleName = module.name;
+    var moduleBuilder = module.builder;
     Object.defineProperty(this, moduleName, {
       configurable: true,
       get: function () {
