@@ -547,6 +547,27 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       },
 
       {
+        desc: "#get handles inexistent files",
+        run: function (env, test) {
+          env.connectedClient.get('/foo').
+            then(function (r) {
+              test.assert(r.statusCode, 404);
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 409;
+          req.responseText = JSON.stringify({
+            error: {
+              '.tag': 'path',
+              path: {
+                '.tag': 'not_found'
+              }
+            }
+          });
+          req._onload();
+        }
+      },
+
+      {
         desc: "#put causes the revision to propagate down in revCache",
         run: function (env, test) {
           env.connectedClient._revCache.set('/foo/', 'foo');
