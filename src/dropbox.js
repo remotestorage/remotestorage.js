@@ -639,8 +639,15 @@
     _request: function (method, url, options) {
       var self = this;
 
-      if (! options.headers) { options.headers = {}; }
+      if (!options.headers) {
+        options.headers = {};
+      }
       options.headers['Authorization'] = 'Bearer ' + this.token;
+
+      if (typeof options.body === 'object') {
+        options.body = JSON.stringify(options.body);
+        options.headers['Content-Type'] = 'application/json; charset=UTF-8';
+      }
 
       this._emit('wire-busy', {
         method: method,
