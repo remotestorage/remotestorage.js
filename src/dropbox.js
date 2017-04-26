@@ -70,6 +70,16 @@
     return pairs.join('&');
   };
 
+  var compareApiError = function (error, expect) {
+    if (!expect.length) {
+      return true;
+    }
+    if (typeof error !== 'object' || error['.tag'] !== expect[0]) {
+      return false;
+    }
+    return compareApiError(error[error['.tag']], expect.slice(1));
+  };
+
   /**
    * class: LowerCaseCache
    *
@@ -424,15 +434,24 @@
       return this._request('GET', url, params).then(function (resp) {
         var status = resp.status;
         var meta, body, mime, rev;
-        if (status !== 200) {
+        if (status !== 200 && status !== 409) {
           return Promise.resolve({statusCode: status});
         }
-
+        meta = resp.getResponseHeader('Dropbox-API-Result');
         body = resp.responseText;
+
+        if (status === 409) {
+          meta = body;
+        }
+
         try {
-          meta = JSON.parse( resp.getResponseHeader('Dropbox-API-Result') );
+          meta = JSON.parse(meta);
         } catch(e) {
           return Promise.reject(e);
+        }
+
+        if (compareApiError(meta.error, ['path', 'not_found'])) {
+          return Promise.resolve({statusCode: 404});
         }
 
         mime = resp.getResponseHeader('Content-Type');
