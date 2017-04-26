@@ -322,35 +322,63 @@
      */
     _getFolder: function (path, options) {
       // FIXME simplify promise handling
-      var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
+      var url = 'https://api.dropboxapi.com/2/files/list_folder';
       var revCache = this._revCache;
       var self = this;
 
-      return this._request('GET', url, {}).then(function (resp) {
-        var status = resp.status;
-        if (status === 304) {
-          return Promise.resolve({statusCode: status});
+      var processResponse = function (resp) {
+        var body, listing;
+
+        if (resp.status !== 200) {
+          return Promise.reject('Unexpected response status: ' + resp.status);
         }
-        var listing, body, mime, rev;
-        try{
+
+        try {
           body = JSON.parse(resp.responseText);
         } catch (e) {
           return Promise.reject(e);
         }
-        rev = self._revCache.get(path);
-        mime = 'application/json; charset=UTF-8';
-        if (body.contents) {
-          listing = body.contents.reduce(function (m, item) {
-            var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
-            if (item.is_dir){
-              m[itemName] = { ETag: revCache.get(path+itemName) };
-            } else {
-              m[itemName] = { ETag: item.rev };
-            }
-            return m;
-          }, {});
+
+        listing = body.entries.reduce(function (map, item) {
+          var isDir = item['.tag'] == 'folder';
+          var itemName = item.path_lower.split('/').slice(-1)[0] + (isDir ? '/' : '');
+          if (isDir){
+            map[itemName] = { ETag: revCache.get(path+itemName) };
+          } else {
+            map[itemName] = { ETag: item.rev };
+          }
+          return map;
+        }, {});
+
+        if (body.has_more) {
+          return loadNext(body.cursor).then(function (nextListing) {
+            return Object.assign(listing, nextListing);
+          });
         }
-        return Promise.resolve({statusCode: status, body: listing, contentType: mime, revision: rev});
+
+        return Promise.resolve(listing);
+      };
+
+      var loadNext = function (cursor) {
+        var url = 'https://api.dropboxapi.com/2/files/list_folder/continue';
+        var params = {
+          body: {cursor: cursor}
+        };
+
+        return self._request('POST', url, params).then(processResponse);
+      };
+
+      return this._request('POST', url, {
+        body: {
+          path: getDropboxPath(path)
+        }
+      }).then(processResponse).then(function (listing) {
+        return Promise.resolve({
+          statusCode: 200,
+          body: listing,
+          contentType: 'application/json; charset=UTF-8',
+          revision: revCache.get(path)
+        });
       });
     },
 
@@ -366,7 +394,7 @@
      */
     get: function (path, options) {
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
-      var url = 'https://api-content.dropbox.com/1/files/auto' + getDropboxPath(path);
+      var url = 'https://content.dropboxapi.com/2/files/download';
       var self = this;
 
       var savedRev = this._revCache.get(path);
@@ -381,9 +409,20 @@
       }
 
       //use _getFolder for folders
-      if (path.substr(-1) === '/') { return this._getFolder(path, options); }
+      if (path.substr(-1) === '/') {
+        return this._getFolder(path, options);
+      }
 
-      return this._request('GET', url, {}).then(function (resp) {
+      var params = {
+        headers: {
+          'Dropbox-API-Arg': JSON.stringify({path: getDropboxPath(path)})
+        }
+      };
+      if (options && options.ifNoneMatch) {
+        params.headers['If-None-Match'] = options.ifNoneMatch;
+      }
+
+      return this._request('GET', url, params).then(function (resp) {
         var status = resp.status;
         var meta, body, mime, rev;
         if (status !== 200) {
@@ -392,20 +431,18 @@
 
         body = resp.responseText;
         try {
-          meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
+          meta = JSON.parse( resp.getResponseHeader('Dropbox-API-Result') );
         } catch(e) {
           return Promise.reject(e);
         }
 
-        mime = meta.mime_type; //resp.getResponseHeader('Content-Type');
+        mime = resp.getResponseHeader('Content-Type');
         rev = meta.rev;
         self._revCache.set(path, rev);
-        self._shareIfNeeded(path); // The shared link expires every 4 hours
+        self._shareIfNeeded(path);
 
         // handling binary
-        if (!resp.getResponseHeader('Content-Type') ||
-            resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
-
+        if (!mime || mime.match(/charset=binary/)) {
           // TOFIX: would be better to make readBinaryData return a Promise - les
           return new Promise( (resolve, reject) => {
             WireClient.readBinaryData(resp.response, mime, function (result) {
@@ -421,16 +458,12 @@
         }
 
         // handling json (always try)
-        // comment it out as this is always true (false && false || true)
-        // and jshint is complaining
-        // if (mime && mime.search('application/json') >= 0 || true) {
         try {
           body = JSON.parse(body);
           mime = 'application/json; charset=UTF-8';
         } catch(e) {
           //Failed parsing Json, assume it is something else then
         }
-        // }
 
         return Promise.resolve({statusCode: status, body: body, contentType: mime, revision: rev});
       });
