@@ -560,12 +560,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
           var req = XMLHttpRequest.instances.shift();
           req.status = 409;
           req.responseText = JSON.stringify({
-            error: {
-              '.tag': 'path',
-              path: {
-                '.tag': 'not_found'
-              }
-            }
+            error_summary: 'path/not_found/...'
           });
           req._onload();
         }
