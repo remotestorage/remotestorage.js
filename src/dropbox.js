@@ -331,7 +331,6 @@
      *  revision - revision of the folder
      */
     _getFolder: function (path, options) {
-      // FIXME simplify promise handling
       var url = 'https://api.dropboxapi.com/2/files/list_folder';
       var revCache = this._revCache;
       var self = this;
