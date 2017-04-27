@@ -624,29 +624,43 @@
      *   A promise for the URL
      */
     share: function (path) {
-      var self = this;
-      var url = 'https://api.dropbox.com/1/media/auto' + getDropboxPath(path);
+      var url = 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings';
+      var options = {
+        body: {path: getDropboxPath(path)}
+      };
 
-      return this._request('POST', url, {}).then(function (response) {
-        if (response.status !== 200) {
-          return Promise.reject(new Error('Invalid Dropbox API response status when sharing "' + path + '":' + response.status));
+      return this._request('POST', url, options).then((response) => {
+        if (response.status !== 200 && response.status !== 409) {
+          return Promise.reject(new Error('Invalid response status:' + response.status));
         }
+
+        var body;
 
         try {
-          response = JSON.parse(response.responseText);
+          body = JSON.parse(response.responseText);
         } catch (e) {
-          return Promise.reject(new Error('Invalid Dropbox API response when sharing "' + path + '": ' + response.responseText));
+          return Promise.reject(new Error('Invalid response body: ' + response.responseText));
         }
 
-        self._itemRefs[path] = response.url;
+        if (response.status === 409) {
+          if (compareApiError(body.error, ['shared_link_already_exists'])) {
+            return this._getSharedLink(path);
+          }
+
+          return Promise.reject(new Error('API error: ' + body.error_summary));
+        }
+
+        return Promise.resolve(body.url);
+      }).then((link) => {
+        this._itemRefs[path] = link
 
         if (hasLocalStorage) {
-          localStorage.setItem(SETTINGS_KEY+':shares', JSON.stringify(self._itemRefs));
+          localStorage.setItem(SETTINGS_KEY+':shares', JSON.stringify(this._itemRefs));
         }
 
-        return Promise.resolve(url);
-      }, function (error) {
-        err.message = 'Sharing dropbox file or folder ("' + path + '") failed.' + err.message;
+        return Promise.resolve(link);
+      }, (error) => {
+        error.message = 'Sharing Dropbox file or folder ("' + path + '") failed: ' + error.message;
         return Promise.reject(error);
       });
     },
@@ -961,6 +975,56 @@
         }
 
         return Promise.resolve({ statusCode: resp.status });
+      });
+    },
+
+    /**
+     * Method: _getSharedLink
+     *
+     * Requests the link for an already-shared file or folder.
+     *
+     * Parameters:
+     *
+     *   path - path to the file or folder
+     *
+     * Returns:
+     *
+     *   the shared link
+     */
+    _getSharedLink: function (path) {
+      var url = 'https://api.dropbox.com/2/sharing/list_shared_links';
+      var options = {
+        body: {
+          path: getDropboxPath(path),
+          direct_only: true
+        }
+      };
+
+      return this._request('POST', url, options).then((response) => {
+        if (response.status !== 200 && response.status !== 409) {
+          return Promise.reject(new Error('Invalid response status: ' + response.status));
+        }
+
+        var body;
+
+        try {
+          body = JSON.parse(response.responseText);
+        } catch (e) {
+          return Promise.reject(new Error('Invalid response body: ' + response.responseText));
+        }
+
+        if (response.status === 409) {
+          return Promise.reject(new Error('API error: ' + response.error_summary));
+        }
+
+        if (!body.links.length) {
+          return Promise.reject(new Error('No links returned'));
+        }
+
+        return Promise.resolve(body.links[0].url);
+      }, (error) => {
+        error.message = 'Could not get link to a shared file or folder ("' + path + '"): ' + error.message;
+        return Promise.reject(error);
       });
     }
   };
