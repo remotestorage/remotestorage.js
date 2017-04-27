@@ -55,7 +55,7 @@
    * Map a local path to a path in DropBox.
    */
   var getDropboxPath = function (path) {
-    return WireClient.cleanPath(PATH_PREFIX + '/' + path);
+    return WireClient.cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
   };
 
   var encodeQuery = function (obj) {
@@ -215,7 +215,6 @@
     this.clientId = rs.apiKeys.dropbox.appKey;
     this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
-    this._metadataCache = {};
 
     hasLocalStorage = util.localStorageAvailable();
 
@@ -844,11 +843,6 @@
      *
      * Gets metadata for a path (can point to either a file or a folder).
      *
-     * Options:
-     *
-     *   list - if path points to a folder, specifies whether to list the
-     *          metadata of the folder's children. False by default.
-     *
      * Parameters:
      *
      *   path - the path to get metadata for
@@ -858,25 +852,37 @@
      *
      *   A promise for the metadata
      */
-    _getMetadata: function (path, options) {
-      var self = this;
-      var cached = this._metadataCache[path];
-      var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
-      url += '?list=' + ((options && options.list) ? 'true' : 'false');
-      if (cached && cached.hash) {
-        url += '&hash=' + encodeURIComponent(cached.hash);
-      }
-      return this._request('GET', url, {}).then(function (resp) {
-        if (resp.status === 304) {
-          return Promise.resolve(cached);
-        } else if (resp.status === 200) {
-          var response = JSON.parse(resp.responseText);
-          self._metadataCache[path] = response;
-          return Promise.resolve(response);
-        } else {
-          // The file doesn't exist
-          return Promise.resolve();
+    _getMetadata: function (path) {
+      var url = 'https://api.dropboxapi.com/2/files/get_metadata';
+      var body = {
+        path: getDropboxPath(path)
+      };
+
+      return this._request('POST', url, {body}).then((response) => {
+        if (response.status !== 200 && response.status !== 409) {
+          return Promise.reject(new Error('Invalid response status:' + response.status));
         }
+
+        var body;
+
+        try {
+          body = JSON.parse(response.responseText);
+        } catch (e) {
+          return Promise.reject(new Error('Invalid response body: ' + response.responseText));
+        }
+
+        if (response.status === 409) {
+          if (compareApiError(body.error, ['path', 'not_found'])) {
+            return Promise.resolve();
+          }
+
+          return Promise.reject(new Error('API error: ' + body.error_summary));
+        }
+
+        return Promise.resolve(body);
+      }).then(undefined, (error) => {
+        error.message = 'Could not load metadata for file or folder ("' + path + '"): ' + error.message;
+        return Promise.reject(error);
       });
     },
 
