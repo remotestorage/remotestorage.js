@@ -566,8 +566,6 @@
      * Calls <Dropbox.share> afterwards to fill _itemRefs.
      */
     'delete': function (path, options) {
-      var self = this;
-
       if (!this.connected) {
         throw new Error("not connected (path: " + path + ")");
       }
@@ -587,11 +585,11 @@
             });
           }
 
-          return self._deleteSimple(path);
+          return this._deleteSimple(path);
         });
       }
 
-      return self._deleteSimple(path);
+      return this._deleteSimple(path);
     },
 
     /**
@@ -953,9 +951,7 @@
     /**
      * Method: _deleteSimple
      *
-     * Deletes a file or a folder. If the folder contains more than 10'000 items
-     * (recursively) then the operation may not complete successfully. If that
-     * is the case, an Error gets thrown.
+     * Deletes a file or a folder.
      *
      * Parameters:
      *
@@ -966,23 +962,39 @@
      *   statusCode - HTTP status code
      */
     _deleteSimple: function (path) {
-      var self = this;
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(getDropboxPath(path));
+      var url = 'https://api.dropboxapi.com/2/files/delete';
+      var body = {path: getDropboxPath(path)};
 
-      return self._request('POST', url, {}).then(function (resp) {
-        if (resp.status === 406) {
-          // Too many files would be involved in the operation for it to
-          // complete successfully.
-          // TODO: Handle this somehow
-          return Promise.reject(new Error("Cannot delete '" + path + "': too many files involved"));
+      return this._request('POST', url, {body}).then((response) => {
+        if (response.status !== 200 && response.status !== 409) {
+          return Promise.resolve({statusCode: response.status});
         }
 
-        if (resp.status === 200 || resp.status === 404) {
-          self._revCache.delete(path);
-          delete self._itemRefs[path];
+        var body = response.responseText;
+
+        try {
+          body = JSON.parse(body);
+        } catch (e) {
+          return Promise.reject(new Error('Invalid response body: ' + body));
         }
 
-        return Promise.resolve({ statusCode: resp.status });
+        if (response.status === 409) {
+          if (compareApiError(body, ['path_lookup', 'not_found'])) {
+            return Promise.resolve({statusCode: 404});
+          }
+          return Promise.reject(new Error('API error: ' + body.error_summary));
+        }
+
+        return Promise.resolve({statusCode: 200});
+      }).then((result) => {
+        if (result.statusCode === 200 || result.statusCode === 404) {
+          this._revCache.delete(path);
+          delete this._itemRefs[path];
+        }
+        return Promise.resolve(result);
+      }, (error) => {
+        error.message = 'Could not delete Dropbox file or folder ("' + path + '"): ' + error.message;
+        return Promise.reject(error);
       });
     },
 

@@ -741,7 +741,9 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
           setTimeout(function () {
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar', true]);
+            req.responseText = '{}';
+            test.assertAnd(req._open, ['POST', 'https://api.dropboxapi.com/2/files/delete', true]);
+            test.assertAnd(JSON.parse(req._send).path, '/remotestorage/foo/bar');
             req._onload();
           }, 100);
         }
