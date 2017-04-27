@@ -40,12 +40,16 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       this._responseHeaders = {};
     };
     XMLHttpRequest.instances = [];
+    XMLHttpRequest.callbacks = [];
     XMLHttpRequest.prototype = {
       open: function () {
         this._open = Array.prototype.slice.call(arguments);
       },
       send: function () {
         this._send = Array.prototype.slice.call(arguments);
+
+        if (XMLHttpRequest.callbacks.length)
+          XMLHttpRequest.callbacks.shift()(this);
       },
       setRequestHeader: function (key, value) {
         this._headers[key] = value;
@@ -564,6 +568,50 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
             }
           });
           req._onload();
+        }
+      },
+
+      {
+        desc: "#get handles multi-page folders",
+        run: function (env, test) {
+          var makePayload = function (num, more) {
+            return JSON.stringify({
+              entries: [
+                {'.tag': 'file', path_lower: '/foo/file'+num, rev: 'rev'+num}
+              ],
+              has_more: more,
+              cursor: more ? 'cur'+num : undefined
+            });
+          }
+
+          XMLHttpRequest.callbacks.push(function (req) {
+            req.status = 200;
+            req.responseText = makePayload(1, true);
+            req._onload();
+          });
+
+          XMLHttpRequest.callbacks.push(function (req) {
+            req.status = 200;
+            req.responseText = makePayload(2, true);
+            req._onload();
+
+            test.assertAnd(JSON.parse(req._send).cursor, 'cur1');
+          });
+
+          XMLHttpRequest.callbacks.push(function (req) {
+            req.status = 200;
+            req.responseText = makePayload(3, false);
+            req._onload();
+
+            test.assertAnd(JSON.parse(req._send).cursor, 'cur2');
+          });
+
+          env.connectedClient.get('/foo/').
+            then(function (r) {
+              test.assertAnd((r.body.file1 || {}).ETag, 'rev1');
+              test.assertAnd((r.body.file2 || {}).ETag, 'rev2');
+              test.assert((r.body.file3 || {}).ETag, 'rev3');
+            });
         }
       },
 
