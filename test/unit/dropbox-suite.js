@@ -710,55 +710,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       },
 
       {
-        desc: "#put correctly handles a conflict after metadata check",
-        run: function (env, test) {
-          var waitlist = [];
-
-          // PUT
-          waitlist.push(function (req) {
-            req.status = 200;
-            req.responseText = JSON.stringify({
-              path: '/remotestorage/foo/bar_2'
-            });
-            setTimeout(function () {
-              req._onload();
-            }, 10);
-          });
-
-          // delete
-          waitlist.push(function (req) {
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar_2', true]);
-          });
-
-          // metadata
-          waitlist.push(function (req) {
-            req.status = 200;
-            req.responseText = JSON.stringify({
-              rev: 'foo'
-            });
-            setTimeout(function () {
-              req._onload();
-            }, 10);
-          });
-
-          env.connectedClient.put('/foo/bazz', 'data', 'text/plain').
-            then(function (r) {
-              test.assertAnd(r.statusCode, 412);
-              test.assert(r.revision, 'foo');
-            });
-
-          (function handleWaitlist () {
-            if (waitlist.length > 0) {
-              if (XMLHttpRequest.instances.length > 0) {
-                waitlist.shift()(XMLHttpRequest.instances.shift());
-              }
-              setTimeout(handleWaitlist, 5);
-            }
-          })();
-        }
-      },
-
-      {
         desc: "#put returns the erroneous status it received from DropBox",
         run: function (env, test) {
           env.connectedClient.put('/foo', 'data', 'text/plain').

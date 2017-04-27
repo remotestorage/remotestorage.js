@@ -904,46 +904,50 @@
      *   revision - revision of the newly-created file, if any
      */
     _uploadSimple: function (params) {
-      var self = this;
-      var url = 'https://api-content.dropbox.com/1/files_put/auto' + getDropboxPath(params.path) + '?';
+      var url = 'https://content.dropboxapi.com/2/files/upload';
+      var args = {
+        path: getDropboxPath(params.path),
+        mode: {'.tag': 'overwrite'},
+        mute: true
+      };
 
-      if (params && params.ifMatch) {
-        url += "parent_rev=" + encodeURIComponent(params.ifMatch);
+      if (params.ifMatch) {
+        args.mode = {'.tag': 'update', update: params.ifMatch};
       }
 
-      return self._request('PUT', url, {
+      return this._request('POST', url, {
         body: params.body,
         headers: {
-          'Content-Type': params.contentType
+          'Content-Type': 'application/octet-stream',
+          'Dropbox-API-Arg': JSON.stringify(args)
         }
-      }).then(function (resp) {
-        if (resp.status !== 200) {
-          return Promise.resolve({ statusCode: resp.status });
+      }).then((response) => {
+        if (response.status !== 200 && response.status !== 409) {
+          return Promise.resolve({statusCode: response.status});
         }
 
-        var response;
+        var body = response.responseText;
 
         try {
-          response = JSON.parse(resp.responseText);
+          body = JSON.parse(body);
         } catch (e) {
-          return Promise.reject(e);
+          return Promise.reject(new Error('Invalid API result: ' + body));
         }
 
-        // Conflict happened. Delete the copy created by dropbox
-        if (response.path !== getDropboxPath(params.path)) {
-          var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
-          self._request('POST', deleteUrl, {});
-
-          return self._getMetadata(params.path).then(function (metadata) {
-            return Promise.resolve({
-              statusCode: 412,
-              revision: metadata.rev
+        if (response.status === 409) {
+          if (/path\/conflict\//.test(body.error_summary)) {
+            return this._getMetadata(params.path).then(function (metadata) {
+              return Promise.resolve({
+                statusCode: 412,
+                revision: metadata.rev
+              });
             });
-          });
+          }
+          return Promise.reject(new Error('API error: ' + body.error_summary));
         }
 
-        self._revCache.propagateSet(params.path, response.rev);
-        return Promise.resolve({ statusCode: resp.status });
+        this._revCache.propagateSet(params.path, body.rev);
+        return Promise.resolve({ statusCode: response.status });
       });
     },
 
