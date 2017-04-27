@@ -70,14 +70,8 @@
     return pairs.join('&');
   };
 
-  var compareApiError = function (error, expect) {
-    if (!expect.length) {
-      return true;
-    }
-    if (typeof error !== 'object' || error['.tag'] !== expect[0]) {
-      return false;
-    }
-    return compareApiError(error[error['.tag']], expect.slice(1));
+  var compareApiError = function (response, expect) {
+    return new RegExp('^' + expect.join('\\/') + '(\\/|$)').test(response.error_summary);
   };
 
   /**
@@ -449,7 +443,7 @@
           return Promise.reject(e);
         }
 
-        if (compareApiError(meta.error, ['path', 'not_found'])) {
+        if (compareApiError(meta, ['path', 'not_found'])) {
           return Promise.resolve({statusCode: 404});
         }
 
@@ -641,7 +635,7 @@
         }
 
         if (response.status === 409) {
-          if (compareApiError(body.error, ['shared_link_already_exists'])) {
+          if (compareApiError(body, ['shared_link_already_exists'])) {
             return this._getSharedLink(path);
           }
 
@@ -872,7 +866,7 @@
         }
 
         if (response.status === 409) {
-          if (compareApiError(body.error, ['path', 'not_found'])) {
+          if (compareApiError(body, ['path', 'not_found'])) {
             return Promise.resolve();
           }
 
@@ -935,7 +929,7 @@
         }
 
         if (response.status === 409) {
-          if (/path\/conflict\//.test(body.error_summary)) {
+          if (compareApiError(body, ['path', 'conflict'])) {
             return this._getMetadata(params.path).then(function (metadata) {
               return Promise.resolve({
                 statusCode: 412,
