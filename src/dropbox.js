@@ -228,7 +228,7 @@
         this.configure(settings);
       }
       try {
-        this._itemRefs = JSON.parse(localStorage.getItem(SETTINGS_KEY+':shares'));
+        this._itemRefs = JSON.parse(localStorage.getItem(SETTINGS_KEY+':shares')) || {};
       } catch(e) {  }
     }
     if (this.connected) {
