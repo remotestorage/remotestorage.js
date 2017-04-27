@@ -664,18 +664,23 @@
      *
      * Returns:
      *
-     *   A promise to the user's info
+     *   email - the user's email address
      */
     info: function () {
-      var url = 'https://api.dropbox.com/1/account/info';
-      // requesting user info(mainly for userAdress)
-      return this._request('GET', url, {}).then(function (resp){
+      var url = 'https://api.dropboxapi.com/2/users/get_current_account';
+
+      return this._request('POST', url, {}).then(function (response) {
+        var info = response.responseText;
+
         try {
-          var info = JSON.parse(resp.responseText);
-          return Promise.resolve(info);
+          info = JSON.parse(info);
         } catch (e) {
-          return Promise.reject(e);
+          return Promise.reject(new Error('Could not query current account info: Invalid API response: ' + info));
         }
+
+        return Promise.resolve({
+          email: info.email
+        });
       });
     },
 

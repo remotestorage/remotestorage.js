@@ -279,25 +279,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              "referral_link": "https://db.tt/QjJhCJr1",
-              "display_name": "John Doe",
-              "uid": 123456,
-              "locale": "en",
-              "email_verified": true,
-              "team": null,
-              "quota_info": {
-                "datastores": 0,
-                "shared": 1415283650,
-                "quota": 6721372160,
-                "normal": 860651695
-              },
-              "is_paired": false,
-              "country": "DE",
-              "name_details": {
-                "familiar_name": "John",
-                "surname": "Doe",
-                "given_name": "John"
-              },
               "email": "john.doe@example.com"
             });
             req._onload();
