@@ -443,8 +443,11 @@
           return Promise.reject(e);
         }
 
-        if (compareApiError(meta, ['path', 'not_found'])) {
-          return Promise.resolve({statusCode: 404});
+        if (status === 409) {
+          if (compareApiError(meta, ['path', 'not_found'])) {
+            return Promise.resolve({statusCode: 404});
+          }
+          return Promise.reject(new Error('API error while downloading file ("' + path + '"): ' + meta.error_summary));
         }
 
         mime = resp.getResponseHeader('Content-Type');
