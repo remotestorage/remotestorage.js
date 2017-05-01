@@ -9,7 +9,7 @@
     "type": "git",
     "url": "git://github.com/remotestorage/remotestorage.js.git"
   },
-  "homepage": "http://remotestorage.io",
+  "homepage": "https://remotestorage.io",
   "devDependencies": {
     "babel-core": "^6.18.2",
     "babel-loader": "^6.2.8",
