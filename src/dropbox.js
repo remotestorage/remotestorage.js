@@ -319,7 +319,7 @@
       var processResponse = function (resp) {
         var body, listing;
 
-        if (resp.status !== 200) {
+        if (resp.status !== 200 && resp.status !== 409) {
           return Promise.reject('Unexpected response status: ' + resp.status);
         }
 
@@ -327,6 +327,15 @@
           body = JSON.parse(resp.responseText);
         } catch (e) {
           return Promise.reject(e);
+        }
+
+        if (resp.status === 409) {
+          if (path === '/' && compareApiError(body, ['path', 'not_found'])) {
+            // if the root folder is not found, handle it as an empty folder
+            return Promise.resolve({});
+          }
+
+          return Promise.reject(new Error('API returned an error: ' + body.error_summary));
         }
 
         listing = body.entries.reduce(function (map, item) {
