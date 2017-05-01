@@ -653,7 +653,9 @@
      *
      * Returns:
      *
-     *   email - the user's email address
+     *   A promise for the user info object:
+     *
+     *     email - the user's email address
      */
     info: function () {
       var url = 'https://api.dropboxapi.com/2/users/get_current_account';
@@ -884,8 +886,10 @@
      *
      * Returns:
      *
-     *   statusCode - HTTP status code
-     *   revision - revision of the newly-created file, if any
+     *   A promise for an object with the following structure:
+     *
+     *     statusCode - HTTP status code
+     *     revision - revision of the newly-created file, if any
      */
     _uploadSimple: function (params) {
       var url = 'https://content.dropboxapi.com/2/files/upload';
@@ -946,7 +950,9 @@
      *
      * Returns:
      *
-     *   statusCode - HTTP status code
+     *   A promise for an object with the following structure:
+     *
+     *     statusCode - HTTP status code
      */
     _deleteSimple: function (path) {
       var url = 'https://api.dropboxapi.com/2/files/delete';
@@ -996,7 +1002,7 @@
      *
      * Returns:
      *
-     *   the shared link
+     *   A promise for the shared link
      */
     _getSharedLink: function (path) {
       var url = 'https://api.dropbox.com/2/sharing/list_shared_links';
