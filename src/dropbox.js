@@ -421,7 +421,7 @@
         meta = resp.getResponseHeader('Dropbox-API-Result');
         body = resp.responseText;
 
-        if (status == 409) {
+        if (status === 409) {
           meta = body;
         }
 
