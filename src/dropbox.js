@@ -568,7 +568,7 @@
       }
 
       if (options && options.ifMatch) {
-        return this._getMetadata(path).then(function (metadata) {
+        return this._getMetadata(path).then((metadata) => {
           if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
             return Promise.resolve({
               statusCode: 412,
