@@ -58,18 +58,6 @@
     return WireClient.cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
   };
 
-  var encodeQuery = function (obj) {
-    var pairs = [];
-
-    for (var key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]));
-      }
-    }
-
-    return pairs.join('&');
-  };
-
   var compareApiError = function (response, expect) {
     return new RegExp('^' + expect.join('\\/') + '(\\/|$)').test(response.error_summary);
   };
@@ -762,79 +750,75 @@
      * has changed.
      */
     fetchDelta: function () {
-      // TODO: Handle `has_more`
-
       var args = Array.prototype.slice.call(arguments);
       var self = this;
-      var body = { path_prefix: PATH_PREFIX };
 
-      if (self._deltaCursor) {
-        body.cursor = self._deltaCursor;
-      }
+      var fetch = function (cursor) {
+        var url = 'https://api.dropboxapi.com/2/files/list_folder';
+        var body;
 
-      return self._request('POST', 'https://api.dropbox.com/1/delta', {
-        body: encodeQuery(body),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+        if (typeof cursor === 'string') {
+          url += '/continue';
+          body = { cursor };
+        } else {
+          body = {
+            path: PATH_PREFIX,
+            recursive: true,
+            include_deleted: true
+          };
         }
-      }).then(function (response) {
-        // break if status != 200
-        if (response.status !== 200 ) {
+
+        return self._request('POST', url, { body }).then(function (response) {
           if (response.status === 400) {
             self.rs._emit('error', new Authorize.Unauthorized());
             return Promise.resolve(args);
-          } else {
-            return Promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
           }
-        }
 
-        var delta;
-        try {
-          delta = JSON.parse(response.responseText);
-        } catch(error) {
-          log('fetchDeltas can not parse response',error);
-          return Promise.reject("can not parse response of fetchDelta : "+error.message);
-        }
-        // break if no entries found
-        if (!delta.entries) {
-          return Promise.reject('dropbox.fetchDeltas failed, no entries found');
-        }
+          if (response.status !== 200 && response.status !== 409) {
+            return Promise.reject(new Error('Invalid response status: ' + response.status));
+          }
 
-        // Dropbox sends the complete state
-        if (delta.reset) {
-          self._revCache = new LowerCaseCache('rev');
-        }
+          var body;
 
-        //saving the cursor for requesting further deltas in relation to the cursor position
-        if (delta.cursor) {
-          self._deltaCursor = delta.cursor;
-        }
+          try {
+            body = JSON.parse(response.responseText);
+          } catch (e) {
+            return Promise.reject(new Error('Invalid response body: ' + response.responseText));
+          }
 
-        //updating revCache
-        delta.entries.forEach(function (entry) {
-          var path = entry[0].substr(PATH_PREFIX.length);
-          var rev;
-          if (!entry[1]){
-            rev = null;
-          } else {
-            if (entry[1].is_dir) {
-              return;
+          if (response.status === 409) {
+            return Promise.reject(new Error('API returned an error: ' + body.error_summary));
+          }
+
+          body.entries.forEach(function (entry) {
+            var path = entry.path_lower.substr(PATH_PREFIX.length);
+
+            if (entry['.tag'] === 'deleted') {
+              // there's no way to know whether the entry was a file or a folder
+              self._revCache.set(path, null);
+              self._revCache.set(path + '/', null);
+            } else if (entry['.tag'] === 'file') {
+              self._revCache.set(path, entry.rev);
             }
-            rev = entry[1].rev;
+          });
+
+          if (body.has_more) {
+            return fetch(body.cursor);
           }
-          self._revCache.set(path, rev);
         });
-        return Promise.resolve(args);
-      }, function (err) {
-        this.rs.log('fetchDeltas', err);
-        this.rs._emit('error', new Sync.SyncError('fetchDeltas failed.' + err));
-        return Promise.resolve(args);
-      }.bind(this)).then(function () {
+      };
+
+      // Dropbox will always send the complete file list
+      self._revCache = new LowerCaseCache('rev');
+
+      return fetch().then(undefined, function (error) {
+        error.message = 'Dropbox: fetchDelta: ' + error.message;
+        return Promise.reject(error);
+      }).then(function () {
         if (self._revCache) {
-          var args = Array.prototype.slice.call(arguments);
           self._revCache._activatePropagation();
-          return Promise.resolve(args);
         }
+        return Promise.resolve(args);
       });
     },
 
