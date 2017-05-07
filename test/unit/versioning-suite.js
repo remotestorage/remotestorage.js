@@ -2,7 +2,8 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['bluebird', 'requirejs', 'test/helpers/mocks'], function (Promise, requirejs, mocks) {
+define(['./src/config', './src/eventhandling', './src/inmemorystorage', './src/sync', 'bluebird', 'require', 'test/helpers/mocks'], 
+       function (config, eventHandling, InMemoryStorage, Sync, Promise, require, mocks) {
   global.Promise = Promise;
   var suites = [];
 
@@ -21,47 +22,10 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks'], function (Promise, requi
 
     setup: function(env, test){
       global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'error');
+        eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'error');
       };
       global.RemoteStorage.log = function() {};
-      global.RemoteStorage.config = {
-        changeEvents: { local: true, window: false, remote: true, conflict: true }
-      };
-
-      require('./src/util');
-      if (global.rs_util){
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      require('./src/eventhandling');
-      if (global.rs_eventhandling){
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      require('./src/cachinglayer.js');
-      if (global.rs_cachinglayer) {
-        RemoteStorage.cachingLayer = global.rs_cachinglayer;
-      } else {
-        global.rs_cachinglayer = RemoteStorage.cachingLayer;
-      }
-
-      require('./src/inmemorystorage.js');
-      if (global.rs_ims) {
-        RemoteStorage.InMemoryStorage = global.rs_ims;
-      } else {
-        global.rs_ims = RemoteStorage.InMemoryStorage;
-      }
-
-      require('src/sync.js');
-      if (global.rs_sync) {
-        RemoteStorage.Sync = global.rs_sync;
-      } else {
-        global.rs_sync = RemoteStorage.Sync;
-      }
+      config.changeEvents = { local: true, window: false, remote: true, conflict: true };
 
       env.responses1 = {
         '/foo/': 'ALL',
@@ -391,11 +355,11 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks'], function (Promise, requi
 
     beforeEach: function(env, test){
       env.rs = new RemoteStorage();
-      env.rs.local = new RemoteStorage.InMemoryStorage();
+      env.rs.local = new InMemoryStorage();
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
-      env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
+      env.rs.sync = new Sync(env.rs, env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
       global.remoteStorage = env.rs;
       test.done();
     },

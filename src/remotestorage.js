@@ -1,107 +1,35 @@
-(function (global) {
-
+'use strict';
   var hasLocalStorage;
-
-  // wrapper to implement defer() functionality
-  Promise.defer = function () {
-    var resolve, reject;
-    var promise = new Promise(function() {
-      resolve = arguments[0];
-      reject = arguments[1];
-    });
-    return {
-        resolve: resolve,
-      reject: reject,
-      promise: promise
-    };
-  };
-
-  function logError(error) {
-    if (typeof(error) === 'string') {
-      console.error(error);
-    } else {
-      console.error(error.message, error.stack);
-    }
-  }
 
   function emitUnauthorized(r) {
     if (r.statusCode === 403  || r.statusCode === 401) {
-      this._emit('error', new RemoteStorage.Unauthorized());
+      this._emit('error', new Authorize.Unauthorized());
     }
     return Promise.resolve(r);
   }
 
-  function shareFirst(path) {
-    return ( this.backend === 'dropbox' &&
-             path.match(/^\/public\/.*[^\/]$/) );
-  }
+  const util = require('./util');
+  const Dropbox = require('./dropbox');
+  const GoogleDrive = require('./googledrive');
+  const Discover = require('./discover');
+  const BaseClient = require('./baseclient');
+  const config = require('./config');
+  const Authorize = require('./authorize');
+  const Sync = require('./sync');
+  const log = require('./log');
+  const Features = require('./features');
+  const globalContext = util.getGlobalContext();
+  const eventHandling = require('./eventhandling');
 
-  var SyncedGetPutDelete = {
-    get: function (path, maxAge) {
-      var self = this;
-      if (this.local) {
-        if (maxAge === undefined) {
-          if ((typeof this.remote === 'object') &&
-               this.remote.connected && this.remote.online) {
-            maxAge = 2*this.getSyncInterval();
-          } else {
-            RemoteStorage.log('Not setting default maxAge, because remote is offline or not connected');
-            maxAge = false;
-          }
-        }
-        var maxAgeInvalid = function (maxAge) {
-          return maxAge !== false && typeof(maxAge) !== 'number';
-        };
-
-        if (maxAgeInvalid(maxAge)) {
-          return Promise.reject('Argument \'maxAge\' must be false or a number');
-        }
-        return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
-      } else {
-        return this.remote.get(path);
-      }
-    },
-
-    put: function (path, body, contentType) {
-      if (shareFirst.bind(this)(path)) {
-        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
-      }
-      else if (this.local) {
-        return this.local.put(path, body, contentType);
-      } else {
-        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
-      }
-    },
-
-    'delete': function (path) {
-      if (this.local) {
-        return this.local.delete(path);
-      } else {
-        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
-      }
-    },
-
-    _wrapBusyDone: function (result) {
-      var self = this;
-      this._emit('wire-busy');
-      return result.then(function (r) {
-        self._emit('wire-done', { success: true });
-        return Promise.resolve(r);
-      }, function (err) {
-        self._emit('wire-done', { success: false });
-        return Promise.reject(err);
-      });
-    }
-  };
 
   /**
    * Class: RemoteStorage
    *
    * TODO needs proper introduction and links to relevant classes etc
    *
-   * Constructor for global remoteStorage object.
+   * Constructor for remoteStorage object.
    *
-   * This class primarily contains feature detection code and a global convenience API.
+   * This class primarily contains feature detection code and convenience API.
    *
    * Depending on which features are built in, it contains different attributes and
    * functions. See the individual features for more information.
@@ -182,11 +110,10 @@
 
     // Initial configuration property settings.
     if (typeof cfg === 'object') {
-      RemoteStorage.config.logging = !!cfg.logging;
-      RemoteStorage.config.cordovaRedirectUri = cfg.cordovaRedirectUri;
+      util.extend(config, cfg);
     }
 
-    RemoteStorage.eventHandling(
+    eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
             'error', 'features-loaded', 'connecting', 'authing',
             'sync-interval-change', 'wire-busy', 'wire-done',
@@ -208,7 +135,7 @@
 
     this.apiKeys = {};
 
-    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+    hasLocalStorage = util.localStorageAvailable();
 
     if (hasLocalStorage) {
       try {
@@ -222,7 +149,7 @@
     var origOn = this.on;
 
     this.on = function (eventName, handler) {
-      if (eventName === 'ready' && this.remote.connected && this._allLoaded) {
+      if (eventName === 'ready' && this.remote && this.remote.connected && this._allLoaded) {
         setTimeout(handler, 0);
       } else if (eventName === 'features-loaded' && this._allLoaded) {
         setTimeout(handler, 0);
@@ -230,6 +157,7 @@
       return origOn.call(this, eventName, handler);
     };
 
+    // load all features and emit `ready`
     this._init();
 
     this.fireInitial = function () {
@@ -239,62 +167,51 @@
     }.bind(this);
 
     this.on('ready', this.fireInitial.bind(this));
+    this.loadModules()
   };
 
-  RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
-  RemoteStorage.DiscoveryError = function (message) {
-    Error.apply(this, arguments);
-    this.message = message;
-  };
+  // TOFIX: Instead of doing this, would be better to only 
+  // export setAuthURL / getAuthURL from RemoteStorage prototype
+  RemoteStorage.Authorize = Authorize;
 
-  RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
+  RemoteStorage.SyncError = Sync.SyncError;
+  RemoteStorage.Unauthorized = Authorize.Unauthorized;
+  RemoteStorage.DiscoveryError = Discover.DiscoveryError;
 
-  RemoteStorage.Unauthorized = function () { Error.apply(this, arguments); };
-  RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
-
-  /**
-   * Method: RemoteStorage.log
-   *
-   * Log using console.log, when remoteStorage logging is enabled.
-   *
-   * You can enable logging with <enableLog>.
-   *
-   * (In node.js you can also enable logging during remoteStorage object
-   * creation. See: <RemoteStorage>).
-   */
-  RemoteStorage.log = function () {
-    if (RemoteStorage.config.logging) {
-      console.log.apply(console, arguments);
-    }
-  };
-
-  RemoteStorage.config = {
-    logging: false,
-    changeEvents: {
-      local:    true,
-      window:   false,
-      remote:   true,
-      conflict: true
-    },
-    discoveryTimeout: 10000,
-    cordovaRedirectUri: undefined
-  };
-
+ 
   RemoteStorage.prototype = {
 
-    /**
-     * Method: displayWidget
-     *
-     * Displays the widget at the top right of the page. Make sure to call this function
-     * once on every pageload (after the html 'body' tag), unless you use a custom widget.
-     *
-     * Parameters:
-     *
-     *   domID: identifier of the DOM element which should embody the widget (optional)
-     */
-     // (see src/widget.js for implementation)
+    // load all modules passed as arguments
+    loadModules: function loadModules() {
+      config.modules.forEach(this.addModule.bind(this))
+    },
 
+    authorize: function authorize(authURL, cordovaRedirectUri) {
+      this.access.setStorageType(this.remote.storageType);
+      var scope = this.access.scopeParameter;
+
+      var redirectUri = globalContext.cordova ?
+        cordovaRedirectUri :
+        String(Authorize.getLocation());
+
+      var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+
+      Authorize(this, authURL, scope, redirectUri, clientId);
+    },
+  
+
+    impliedauth: function (storageApi, redirectUri) {
+      storageApi = this.remote.storageApi;
+      redirectUri =  String(document.location);
+
+      log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
+      // Set a fixed access token, signalling to not send it as Bearer
+      this.remote.configure({
+        token: Authorize.IMPLIED_FAKE_TOKEN
+      });
+      document.location = redirectUri;
+    },
     /**
      * Property: remote
      *
@@ -374,12 +291,12 @@
         return;
       }
 
-      if (global.cordova) {
-        if (typeof RemoteStorage.config.cordovaRedirectUri !== 'string') {
+      if (globalContext.cordova) {
+        if (typeof config.cordovaRedirectUri !== 'string') {
           this._emit('error', new RemoteStorage.DiscoveryError("Please supply a custom HTTPS redirect URI for your Cordova app"));
           return;
         }
-        if (!global.cordova.InAppBrowser) {
+        if (!globalContext.cordova.InAppBrowser) {
           this._emit('error', new RemoteStorage.DiscoveryError("Please include the InAppBrowser Cordova plugin to enable OAuth"));
           return;
         }
@@ -392,9 +309,9 @@
 
       var discoveryTimeout = setTimeout(function () {
         this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
-      }.bind(this), RemoteStorage.config.discoveryTimeout);
+      }.bind(this), config.discoveryTimeout);
 
-      RemoteStorage.Discover(userAddress).then(function (info) {
+      Discover(userAddress).then(function (info) {
         // Info contains fields: href, storageApi, authURL (optional), properties
 
         clearTimeout(discoveryTimeout);
@@ -405,10 +322,10 @@
           if (info.authURL) {
             if (typeof token === 'undefined') {
               // Normal authorization step; the default way to connect
-              this.authorize(info.authURL, RemoteStorage.config.cordovaRedirectUri);
+              this.authorize(info.authURL, config.cordovaRedirectUri);
             } else if (typeof token === 'string') {
               // Token supplied directly by app/developer/user
-              RemoteStorage.log('Skipping authorization sequence and connecting with known token');
+              log('Skipping authorization sequence and connecting with known token');
               this.remote.configure({ token: token });
             } else {
               throw new Error("Supplied bearer token must be a string");
@@ -456,7 +373,7 @@
         i++;
         if (i >= n) {
           this._init();
-          RemoteStorage.log('Done cleaning up, emitting disconnected and disconnect events');
+          log('Done cleaning up, emitting disconnected and disconnect events');
           this._emit('disconnected');
         }
       }.bind(this);
@@ -514,7 +431,7 @@
      * Enable remoteStorage logging.
      */
     enableLog: function () {
-      RemoteStorage.config.logging = true;
+      config.logging = true;
     },
 
     /**
@@ -523,7 +440,7 @@
      * Disable remoteStorage logging
      */
     disableLog: function () {
-      RemoteStorage.config.logging = false;
+      config.logging = false;
     },
 
     /**
@@ -532,7 +449,7 @@
      * The same as <RemoteStorage.log>.
      */
     log: function () {
-      RemoteStorage.log.apply(RemoteStorage, arguments);
+      log.apply(RemoteStorage, arguments);
     },
 
     /**
@@ -553,10 +470,10 @@
         this.apiKeys[type] = keys;
         if (type === 'dropbox' && (typeof this.dropbox === 'undefined' ||
                                    this.dropbox.clientId !== keys.appKey)) {
-          RemoteStorage.Dropbox._rs_init(this);
+          Dropbox._rs_init(this);
         } else if (type === 'googledrive' && (typeof this.googledrive === 'undefined' ||
                                               this.googledrive.clientId !== keys.clientId)) {
-          RemoteStorage.GoogleDrive._rs_init(this);
+          GoogleDrive._rs_init(this);
         }
       } else {
         delete this.apiKeys[type];
@@ -579,229 +496,29 @@
       if (typeof uri !== 'string' || !uri.match(/http(s)?\:\/\//)) {
         throw new Error("Cordova redirect URI must be a URI string");
       }
-      RemoteStorage.config.cordovaRedirectUri = uri;
+      config.cordovaRedirectUri = uri;
     },
+
+
+    /* FEATURES INITIALIZATION */
+    _init: Features.loadFeatures,
+    features: Features.features,
+    loadFeature: Features.loadFeature,
+    featureSupported: Features.featureSupported,
+    featureDone: Features.featureDone,
+    featuresDone: Features.featuresDone,
+    featuresLoaded: Features.featuresLoaded,
+    featureInitialized: Features.featureInitialized,
+    featureFailed: Features.featureFailed,
+    hasFeature: Features.hasFeature,
+    _setCachingModule: Features._setCachingModule,
+    _collectCleanupFunctions: Features._collectCleanupFunctions,
+    _fireReady: Features._fireReady,
+    initFeature: Features.initFeature,
+
 
     /**
-     ** INITIALIZATION
-     **/
-
-    _init: function () {
-      var self = this,
-          readyFired = false;
-
-      function fireReady() {
-        try {
-          if (!readyFired) {
-            self._emit('ready');
-            readyFired = true;
-          }
-        } catch(e) {
-          console.error("'ready' failed: ", e, e.stack);
-          self._emit('error', e);
-        }
-      }
-
-      this._loadFeatures(function (features) {
-        this.log('[RemoteStorage] All features loaded');
-        this.local = features.local && new features.local();
-        // this.remote set by WireClient._rs_init as lazy property on
-        // RS.prototype
-
-        if (this.local && this.remote) {
-          this._setGPD(SyncedGetPutDelete, this);
-          this._bindChange(this.local);
-        } else if (this.remote) {
-          this._setGPD(this.remote, this.remote);
-        }
-
-        if (this.remote) {
-          this.remote.on('connected', function (){
-            fireReady();
-            self._emit('connected');
-          });
-          this.remote.on('not-connected', function (){
-            fireReady();
-            self._emit('not-connected');
-          });
-          if (this.remote.connected) {
-            fireReady();
-            self._emit('connected');
-          }
-
-          if (!this.hasFeature('Authorize')) {
-            this.remote.stopWaitingForToken();
-          }
-        }
-
-        this._collectCleanupFunctions();
-
-        try {
-          this._allLoaded = true;
-          this._emit('features-loaded');
-        } catch(exc) {
-          logError(exc);
-          this._emit('error', exc);
-        }
-        this._processPending();
-      }.bind(this));
-    },
-
-    _collectCleanupFunctions: function () {
-      this._cleanups = [];
-      for (var i=0; i < this.features.length; i++) {
-        var cleanup = this.features[i].cleanup;
-        if (typeof(cleanup) === 'function') {
-          this._cleanups.push(cleanup);
-        }
-      }
-    },
-
-    /**
-     ** FEATURE DETECTION
-     **/
-    _loadFeatures: function (callback) {
-      var featureList = [
-        'WireClient',
-        'I18n',
-        'Dropbox',
-        'GoogleDrive',
-        'Access',
-        'Caching',
-        'Discover',
-        'Authorize',
-        'Widget',
-        'IndexedDB',
-        'LocalStorage',
-        'InMemoryStorage',
-        'Sync',
-        'BaseClient',
-        'Env'
-      ];
-      var features = [];
-      var featuresDone = 0;
-      var self = this;
-
-      function featureDone() {
-        featuresDone++;
-        if (featuresDone === featureList.length) {
-          setTimeout(function () {
-            features.caching = !!RemoteStorage.Caching;
-            features.sync = !!RemoteStorage.Sync;
-            [
-              'IndexedDB',
-              'LocalStorage',
-              'InMemoryStorage'
-            ].some(function (cachingLayer) {
-              if (features.some(function (feature) { return feature.name === cachingLayer; })) {
-                features.local = RemoteStorage[cachingLayer];
-                return true;
-              }
-            });
-            self.features = features;
-            callback(features);
-          }, 0);
-        }
-      }
-
-      function featureInitialized(name) {
-        self.log("[RemoteStorage] [FEATURE "+name+"] initialized.");
-        features.push({
-          name : name,
-          init :  RemoteStorage[name]._rs_init,
-          supported : true,
-          cleanup : RemoteStorage[name]._rs_cleanup
-        });
-        featureDone();
-      }
-
-      function featureFailed(name, err) {
-        self.log("[RemoteStorage] [FEATURE "+name+"] initialization failed ( "+err+")");
-        featureDone();
-      }
-
-      function featureSupported(name, success) {
-        self.log("[RemoteStorage] [FEATURE "+name+"]" + success ? "":" not"+" supported");
-        if (!success) {
-          featureDone();
-        }
-      }
-
-      function initFeature(name) {
-        var initResult;
-        try {
-          initResult = RemoteStorage[name]._rs_init(self);
-        } catch(e) {
-          featureFailed(name, e);
-          return;
-        }
-        if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
-          initResult.then(
-            function (){ featureInitialized(name); },
-            function (err){ featureFailed(name, err); }
-          );
-        } else {
-          featureInitialized(name);
-        }
-      }
-
-      featureList.forEach(function (featureName) {
-        self.log("[RemoteStorage] [FEATURE " + featureName + "] initializing...");
-        var impl = RemoteStorage[featureName];
-        var supported;
-
-        if (impl) {
-          supported = !impl._rs_supported || impl._rs_supported();
-
-          if (typeof supported === 'object') {
-            supported.then(
-              function (){
-                featureSupported(featureName, true);
-                initFeature(featureName);
-              },
-              function (){
-                featureSupported(featureName, false);
-              }
-            );
-          } else if (typeof supported === 'boolean') {
-            featureSupported(featureName, supported);
-            if (supported) {
-              initFeature(featureName);
-            }
-          }
-        } else {
-          featureSupported(featureName, false);
-        }
-      });
-    },
-
-    /**
-     * Method: hasFeature
-     *
-     * Checks whether a feature is enabled or not within remoteStorage.
-     * Returns a boolean.
-     *
-     * Parameters:
-     *   name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
-     *
-     * Example:
-     *   (start code)
-     *   if (remoteStorage.hasFeature('LocalStorage')) {
-     *     console.log('LocalStorage is enabled!');
-     *   }
-     *   (end code)
-     *
-     */
-    hasFeature: function (feature) {
-      for (var i = this.features.length - 1; i >= 0; i--) {
-        if (this.features[i].name === feature) {
-          return this.features[i].supported;
-        }
-      }
-      return false;
-    },
-
-    /**
+     * TOFIX: needs some explanation on this -les
      ** GET/PUT/DELETE INTERFACE HELPERS
      **/
 
@@ -819,13 +536,17 @@
 
     _pendingGPD: function (methodName) {
       return function () {
-        var pending = Promise.defer();
-        this._pending.push({
-          method: methodName,
-          args: Array.prototype.slice.call(arguments),
-          promise: pending
-        });
-        return pending.promise;
+        var methodArguments = Array.prototype.slice.call(arguments);
+        return new Promise(function(resolve, reject) {
+          this._pending.push({
+            method: methodName,
+            args: methodArguments,
+            promise: {
+              resolve: resolve,
+              reject: reject
+            }
+          });
+        }.bind(this));
       }.bind(this);
     },
 
@@ -843,7 +564,6 @@
     /**
      ** CHANGE EVENT HANDLING
      **/
-
     _bindChange: function (object) {
       object.on('change', this._dispatchEvent.bind(this, 'change'));
     },
@@ -866,8 +586,147 @@
           });
         }
       });
+    },
+
+
+    scope: function (path) {
+      if (typeof(path) !== 'string') {
+        throw 'Argument \'path\' of baseClient.scope must be a string';
+      }
+
+      if (!this.access.checkPathPermission(path, 'r')) {
+        var escapedPath = path.replace(/(['\\])/g, '\\$1');
+        console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
+      }
+      return new BaseClient(this, path);
+    },
+
+
+
+
+    /**
+     * Method: getSyncInterval
+     *
+     * Get the value of the sync interval when application is in the foreground
+     *
+     * Returns a number of milliseconds
+     *
+    //  */
+    getSyncInterval: function () {
+      return config.syncInterval;
+    },
+
+    /**
+     * Method: setSyncInterval
+     *
+     * Set the value of the sync interval when application is in the foreground
+     *
+     * Parameters:
+     *   interval - sync interval in milliseconds
+     *
+     */
+    setSyncInterval: function (interval) {
+      if (!isValidInterval(interval)) {
+        throw interval + " is not a valid sync interval";
+      }
+      var oldValue = config.syncInterval;
+      config.syncInterval = parseInt(interval, 10);
+      this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+    },
+
+    /**
+     * Method: getBackgroundSyncInterval
+     *
+     * Get the value of the sync interval when application is in the background
+     *
+     * Returns a number of milliseconds
+     *
+     */
+    getBackgroundSyncInterval: function () {
+      return config.backgroundSyncInterval;
+    },
+
+    /**
+     * Method: setBackgroundSyncInterval
+     *
+     * Set the value of the sync interval when the application is in the background
+     *
+     * Parameters:
+     *   interval - sync interval in milliseconds
+     *
+     */
+    setBackgroundSyncInterval: function (interval) {
+      if(!isValidInterval(interval)) {
+        throw interval + " is not a valid sync interval";
+      }
+      var oldValue = config.backgroundSyncInterval;
+      config.backgroundSyncInterval = parseInt(interval, 10);
+      this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+    },
+
+    /**
+     * Method: getCurrentSyncInterval
+     *
+     * Get the value of the current sync interval
+     *
+     * Returns a number of milliseconds
+     *
+     */
+    getCurrentSyncInterval: function () {
+      return config.isBackground ? config.backgroundSyncInterval : config.syncInterval;
+    },
+
+
+
+    syncCycle: function () {
+      if (this.sync.stopped) {
+        return;
+      }
+
+      this.sync.on('done', function () {
+        log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
+        if (!this.sync.stopped) {
+          if (this._syncTimer) {
+            clearTimeout(this._syncTimer);
+          }
+          this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
+        }
+      }.bind(this));
+
+      this.sync.sync();
+    },
+
+    stopSync: function () {
+      if (this.sync) {
+        log('[Sync] Stopping sync');
+        this.sync.stopped = true;
+      } else {
+        // TODO When is this ever the case and what is syncStopped for then?
+        log('[Sync] Will instantiate sync stopped');
+        this.syncStopped = true;
+      }
+    },
+
+    startSync: function () {
+      if (!config.cache) { return; }
+      this.sync.stopped = false;
+      this.syncStopped = false;
+      this.sync.sync();
     }
+
   };
+
+
+    /**
+   * Check if interval is valid: numeric and between 1000ms and 3600000ms
+   *
+   */
+  function isValidInterval(interval) {
+    return (typeof interval === 'number' && interval > 1000 && interval < 3600000);
+  }
+
+
+  RemoteStorage.util = util;
 
   /**
    * Property: connected
@@ -884,7 +743,29 @@
    * Property: access
    *
    * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
-   *
+  */
+  var Access = require('./access');
+  Object.defineProperty(RemoteStorage.prototype, 'access', {
+    get: function() {
+      var access = new Access();
+      Object.defineProperty(this, 'access', {
+        value: access
+      });
+      return access;
+    },
+    configurable: true
+  });
+
+
+
+
+
+  // TODO clean up/harmonize how modules are loaded and/or document this architecture properly
+  //
+  // At this point the remoteStorage object has not been created yet.
+  // Only its prototype exists so far, so we define a self-constructing
+  // property on there:
+  /**
    *
    * Property: caching
    *
@@ -892,7 +773,22 @@
    *
    * Not available in no-cache builds.
    *
-   *
+   */
+
+  // TOFIX was in rs_init of Caching but don't want to require RemoteStorage from there.
+  var Caching = require('./caching');
+  Object.defineProperty(RemoteStorage.prototype, 'caching', {
+    configurable: true,
+    get: function () {
+      var caching = new Caching();
+      Object.defineProperty(this, 'caching', {
+        value: caching
+      });
+      return caching;
+    }
+  });
+
+   /*
    * Property: remote
    *
    * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
@@ -906,9 +802,6 @@
    * Not available in no-cache builds.
    */
 
-  global.RemoteStorage = RemoteStorage;
 
-  if ((typeof module === 'object') && (typeof module.exports !== 'undefined')){
-    module.exports = RemoteStorage;
-  }
-})(typeof(window) !== 'undefined' ? window : global);
+module.exports = RemoteStorage;
+require('./modules');

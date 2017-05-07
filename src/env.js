@@ -1,40 +1,40 @@
-(function (pMode) {
-
-  var mode = pMode,
+  var eventHandling = require('./eventhandling');
+  
+  var mode = typeof(window) !== 'undefined' ? 'browser' : 'node',
       env = {},
       isBackground = false;
 
 
-  RemoteStorage.Env = function () {
+  var Env = function () {
     return env;
   };
 
-  RemoteStorage.Env.isBrowser = function () {
+  Env.isBrowser = function () {
     return mode === "browser";
   };
 
-  RemoteStorage.Env.isNode = function () {
+  Env.isNode = function () {
     return mode === "node";
   };
 
-  RemoteStorage.Env.goBackground = function () {
+  Env.goBackground = function () {
     isBackground = true;
-    RemoteStorage.Env._emit("background");
+    Env._emit("background");
   };
 
-  RemoteStorage.Env.goForeground = function () {
+  Env.goForeground = function () {
     isBackground = false;
-    RemoteStorage.Env._emit("foreground");
+    Env._emit("foreground");
   };
 
-  RemoteStorage.Env._rs_init = function (remoteStorage) {
-    RemoteStorage.eventHandling(RemoteStorage.Env, "background", "foreground");
+  Env._rs_init = function (remoteStorage) {
+    eventHandling(Env, "background", "foreground");
 
     function visibility() {
       if (document[env.hiddenProperty]) {
-        RemoteStorage.Env.goBackground();
+        Env.goBackground();
       } else {
-        RemoteStorage.Env.goForeground();
+        Env.goForeground();
       }
     }
 
@@ -57,7 +57,8 @@
     }
   };
 
-  RemoteStorage.Env._rs_cleanup = function (remoteStorage) {
+  Env._rs_cleanup = function (remoteStorage) {
   };
 
-})(typeof(window) !== 'undefined' ? 'browser' : 'node');
+
+  module.exports = Env;

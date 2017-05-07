@@ -1,14 +1,17 @@
-(function (global) {
 
   function deprecate(thing, replacement) {
     console.log('WARNING: ' + thing + ' is deprecated. Use ' +
                 replacement + ' instead.');
   }
 
-  var RS = RemoteStorage;
+  var eventHandling = require('./eventhandling');
+  var util = require('./util');
+  var config = require('./config');
+  var uuid = require('uuid/v4');
+
 
   /**
-   * Class: RemoteStorage.BaseClient
+   * Class: BaseClient
    *
    * Provides a high-level interface to access data below a given root path.
    *
@@ -28,7 +31,7 @@
    * <remove> operates on either objects or files (but not folders, folders are
    * created and removed implictly).
    */
-  RS.BaseClient = function (storage, base) {
+  var BaseClient = function (storage, base) {
     if (base[base.length - 1] !== '/') {
       throw "Not a folder: " + base;
     }
@@ -108,7 +111,7 @@
      * (end code)
      *
      * Example of a conflict:
-     * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `RemoteStorage.config.changeEvents.window` to `true`,
+     * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `config.changeEvents.window` to `true`,
      * then you will receive:
      *
      * (start code)
@@ -151,12 +154,12 @@
      * the remote store in asynchronous synchronization (see example above).
      **/
 
-    RS.eventHandling(this, 'change');
+    eventHandling(this, 'change');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
   };
 
-  RS.BaseClient.prototype = {
+  BaseClient.prototype = {
 
     extend: function (object) {
       for (var key in object) {
@@ -171,7 +174,7 @@
      * Returns a new <BaseClient> operating on a subpath of the current <base> path.
      */
     scope: function (path) {
-      return new RS.BaseClient(this.storage, this.makePath(path));
+      return new BaseClient(this.storage, this.makePath(path));
     },
 
     // folder operations
@@ -576,7 +579,7 @@
     },
 
     _fireChange: function (event) {
-      if (RemoteStorage.config.changeEvents[event.origin]) {
+      if (config.changeEvents[event.origin]) {
         ['new', 'old', 'lastCommon'].forEach(function (fieldNamePrefix) {
           if ((!event[fieldNamePrefix+'ContentType'])
               || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType']))) {
@@ -592,7 +595,7 @@
       }
     },
 
-    _cleanPath: RemoteStorage.util.cleanPath,
+    _cleanPath: util.cleanPath,
 
     /**
      * Method: getItemURL
@@ -615,7 +618,7 @@
     },
 
     uuid: function () {
-      return Math.uuid();
+      return uuid();
     }
 
   };
@@ -645,18 +648,8 @@
    *   (end code)
    *
    */
-  RS.BaseClient._rs_init = function () {
-    RS.prototype.scope = function (path) {
-      if (typeof(path) !== 'string') {
-        throw 'Argument \'path\' of baseClient.scope must be a string';
-      }
-
-      if (!this.access.checkPathPermission(path, 'r')) {
-        var escapedPath = path.replace(/(['\\])/g, '\\$1');
-        console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
-      }
-      return new RS.BaseClient(this, path);
-    };
+  BaseClient._rs_init = function () {
+    
   };
 
   /* e.g.:
@@ -675,7 +668,11 @@
    * Method: declareType
    *
    * Declare a remoteStorage object type using a JSON schema. See
-   * <RemoteStorage.BaseClient.Types>
+   * <BaseClient.Types>
    **/
 
-})(typeof(window) !== 'undefined' ? window : global);
+module.exports = BaseClient;
+
+// needs to be after the export to change prototype
+// this should be different (we need to import `types` functionality, not modifing BaseClient.prototype from there)
+require('./types');

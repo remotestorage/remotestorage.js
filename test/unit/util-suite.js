@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+define(['bluebird', './src/util'], function (Promise, util) {
   global.Promise = Promise;
   var suites = [];
 
@@ -17,20 +17,8 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
 
   suites.push({
     name: 'util',
-    desc: 'RemoteStorage.util utility functions',
+    desc: 'util utility functions',
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
-      global.RemoteStorage.log = function() {};
-      global.RemoteStorage.config = {
-        changeEvents: { local: true, window: false, remote: true, conflict: true }
-      };
-
-      require('src/util.js');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
 
       test.done();
     },
@@ -39,14 +27,14 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "isFolder",
         run: function(env, test) {
-          test.assertAnd(RemoteStorage.util.isFolder('/'), true);
-          test.assertAnd(RemoteStorage.util.isFolder('/foo/'), true);
-          test.assertAnd(RemoteStorage.util.isFolder('/foo//'), true);
-          test.assertAnd(RemoteStorage.util.isFolder('/foo/b ar/'), true);
-          test.assertAnd(RemoteStorage.util.isFolder('/foo'), false);
-          test.assertAnd(RemoteStorage.util.isFolder('/%2F'), false);
-          test.assertAnd(RemoteStorage.util.isFolder('/foo/%2F'), false);
-          test.assertAnd(RemoteStorage.util.isFolder('/foo/ '), false);
+          test.assertAnd(util.isFolder('/'), true);
+          test.assertAnd(util.isFolder('/foo/'), true);
+          test.assertAnd(util.isFolder('/foo//'), true);
+          test.assertAnd(util.isFolder('/foo/b ar/'), true);
+          test.assertAnd(util.isFolder('/foo'), false);
+          test.assertAnd(util.isFolder('/%2F'), false);
+          test.assertAnd(util.isFolder('/foo/%2F'), false);
+          test.assertAnd(util.isFolder('/foo/ '), false);
           test.done();
         }
       },
@@ -54,14 +42,14 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "isDocument",
         run: function(env, test) {
-          test.assertAnd(RemoteStorage.util.isDocument('/'), false);
-          test.assertAnd(RemoteStorage.util.isDocument('/foo/'), false);
-          test.assertAnd(RemoteStorage.util.isDocument('/foo//'), false);
-          test.assertAnd(RemoteStorage.util.isDocument('/foo/b ar/'), false);
-          test.assertAnd(RemoteStorage.util.isDocument('/foo'), true);
-          test.assertAnd(RemoteStorage.util.isDocument('/%2F'), true);
-          test.assertAnd(RemoteStorage.util.isDocument('/foo/%2F'), true);
-          test.assertAnd(RemoteStorage.util.isDocument('/foo/ '), true);
+          test.assertAnd(util.isDocument('/'), false);
+          test.assertAnd(util.isDocument('/foo/'), false);
+          test.assertAnd(util.isDocument('/foo//'), false);
+          test.assertAnd(util.isDocument('/foo/b ar/'), false);
+          test.assertAnd(util.isDocument('/foo'), true);
+          test.assertAnd(util.isDocument('/%2F'), true);
+          test.assertAnd(util.isDocument('/foo/%2F'), true);
+          test.assertAnd(util.isDocument('/foo/ '), true);
           test.done();
         }
       },
@@ -69,8 +57,8 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "cleanPath encodes quotes",
         run: function(env, test) {
-          test.assertAnd(RemoteStorage.util.cleanPath("Capture d'écran"), 'Capture%20d%27%C3%A9cran');
-          test.assertAnd(RemoteStorage.util.cleanPath('So they said "hey"'), 'So%20they%20said%20%22hey%22');
+          test.assertAnd(util.cleanPath("Capture d'écran"), 'Capture%20d%27%C3%A9cran');
+          test.assertAnd(util.cleanPath('So they said "hey"'), 'So%20they%20said%20%22hey%22');
           test.done();
         }
       },
@@ -78,8 +66,8 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "equal",
         run: function(env, test) {
-          var deepClone = RemoteStorage.util.deepClone;
-          var equal = RemoteStorage.util.equal;
+          var deepClone = util.deepClone;
+          var equal = util.equal;
           var obj = { str: 'a', i: 0, b: true, obj: { str: 'a' } };
           var obj2 = deepClone(obj);
 
@@ -112,7 +100,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "deepClone",
         run: function(env, test) {
-          var deepClone = RemoteStorage.util.deepClone;
+          var deepClone = util.deepClone;
           var obj = { str: 'a', i: 0, b: true };
           var cloned = deepClone(obj);
 
@@ -127,7 +115,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "pathsFromRoot",
         run: function(env, test) {
-          var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
+          var pathsFromRoot = util.pathsFromRoot;
           var p1 = '/',
               p2 = '/a/b/c/d/e',
               p3 = '/a/b/c',
@@ -150,7 +138,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "md5sum",
         run: function (env, test) {
-          var md5sum = RemoteStorage.util.md5sum('this is a very happy string');
+          var md5sum = util.md5sum('this is a very happy string');
           test.assert(md5sum, '962e9575a9eba5bfedbad85cf125da20');
         }
       },
@@ -170,7 +158,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
             }
           };
 
-          test.assert(RemoteStorage.util.localStorageAvailable(), false);
+          test.assert(util.localStorageAvailable(), false);
         }
       }
 

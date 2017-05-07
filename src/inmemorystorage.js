@@ -1,20 +1,22 @@
-(function (global) {
+  var eventHandling = require('./eventhandling');
+  var log = require('./log');
+  var cachingLayer = require('./cachinglayer');
   /**
-   * Class: RemoteStorage.InMemoryStorage
+   * Class: InMemoryStorage
    *
    * In-memory caching adapter. Used when no IndexedDB or localStorage
    * available.
    **/
 
-  RemoteStorage.InMemoryStorage = function () {
-    RemoteStorage.cachingLayer(this);
-    RemoteStorage.log('[InMemoryStorage] Registering events');
-    RemoteStorage.eventHandling(this, 'change', 'local-events-done');
+  var InMemoryStorage = function () {
+    cachingLayer(this);
+    log('[InMemoryStorage] Registering events');
+    eventHandling(this, 'change', 'local-events-done');
 
     this._storage = {};
   };
 
-  RemoteStorage.InMemoryStorage.prototype = {
+  InMemoryStorage.prototype = {
 
     getNodes: function (paths) {
       var nodes = {};
@@ -47,12 +49,13 @@
 
   };
 
-  RemoteStorage.InMemoryStorage._rs_init = function () {};
+  InMemoryStorage._rs_init = function () {};
 
-  RemoteStorage.InMemoryStorage._rs_supported = function () {
+  InMemoryStorage._rs_supported = function () {
     // In-memory storage is always supported
     return true;
   };
 
-  RemoteStorage.InMemoryStorage._rs_cleanup = function () {};
-})(typeof(window) !== 'undefined' ? window : global);
+  InMemoryStorage._rs_cleanup = function () {};
+
+  module.exports = InMemoryStorage;

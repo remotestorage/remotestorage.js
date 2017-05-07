@@ -1,13 +1,14 @@
-(function(global) {
+  var tv4 = require('tv4');
+  var BaseClient = require('./baseclient');
 
   /**
-   * Class: RemoteStorage.BaseClient.Types
+   * Class: BaseClient.Types
    *
    * - Manages and validates types of remoteStorage objects, using JSON-LD and
    *   JSON Schema
    * - Adds schema declaration/validation methods to BaseClient instances.
    **/
-  RemoteStorage.BaseClient.Types = {
+  BaseClient.Types = {
     // <alias> -> <uri>
     uris: {},
     // <uri> -> <schema>
@@ -67,12 +68,12 @@
 
   SchemaNotFound.prototype = Error.prototype;
 
-  RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
+  BaseClient.Types.SchemaNotFound = SchemaNotFound;
 
   /**
-   * Class: RemoteStorage.BaseClient
+   * Class: BaseClient
    **/
-  RemoteStorage.BaseClient.prototype.extend({
+  BaseClient.prototype.extend({
     /**
      * Method: declareType
      *
@@ -114,7 +115,7 @@
         schema = uri;
         uri = this._defaultTypeURI(alias);
       }
-      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
+      BaseClient.Types.declare(this.moduleName, alias, uri, schema);
     },
 
     /**
@@ -129,7 +130,7 @@
      *   An object containing information about validation errors
      **/
     validate: function(object) {
-      var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
+      var schema = BaseClient.Types.getSchema(object['@context']);
       if (schema) {
         return tv4.validateResult(object, schema);
       } else {
@@ -142,16 +143,15 @@
     },
 
     _attachType: function(object, alias) {
-      object['@context'] = RemoteStorage.BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
+      object['@context'] = BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
     }
   });
 
   // Documented in baseclient.js
-  Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
+  Object.defineProperty(BaseClient.prototype, 'schemas', {
     configurable: true,
     get: function() {
-      return RemoteStorage.BaseClient.Types.inScope(this.moduleName);
+      return BaseClient.Types.inScope(this.moduleName);
     }
   });
 
-})(typeof(window) !== 'undefined' ? window : global);

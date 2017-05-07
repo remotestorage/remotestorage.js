@@ -1,5 +1,5 @@
   /**
-   * Class: RemoteStorage.Caching
+   * Class: Caching
    *
    * Holds/manages caching configuration.
    *
@@ -22,16 +22,16 @@
    *
    **/
 
-(function (global) {
-  var SETTINGS_KEY = "remotestorage:caching";
+  var util = require('./util');
+  var log = require('./log');
 
-  var containingFolder = RemoteStorage.util.containingFolder;
+  var containingFolder = util.containingFolder;
 
-  RemoteStorage.Caching = function () {
+  var Caching = function () {
     this.reset();
   };
 
-  RemoteStorage.Caching.prototype = {
+  Caching.prototype = {
     pendingActivations: [],
 
     /**
@@ -53,7 +53,7 @@
       if (typeof path !== 'string') {
         throw new Error('path should be a string');
       }
-      if (!RemoteStorage.util.isFolder(path)) {
+      if (!util.isFolder(path)) {
         throw new Error('path should be a folder');
       }
       if (this._remoteStorage && this._remoteStorage.access &&
@@ -114,7 +114,7 @@
      */
     onActivate: function (cb) {
       var i;
-      RemoteStorage.log('[Caching] Setting activate handler', cb, this.pendingActivations);
+      log('[Caching] Setting activate handler', cb, this.pendingActivations);
       this.activateHandler = cb;
       for (i=0; i<this.pendingActivations.length; i++) {
         cb(this.pendingActivations[i]);
@@ -152,24 +152,9 @@
     }
   };
 
-  // TODO clean up/harmonize how modules are loaded and/or document this architecture properly
-  //
-  // At this point the global remoteStorage object has not been created yet.
-  // Only its prototype exists so far, so we define a self-constructing
-  // property on there:
-  Object.defineProperty(RemoteStorage.prototype, 'caching', {
-    configurable: true,
-    get: function () {
-      var caching = new RemoteStorage.Caching();
-      Object.defineProperty(this, 'caching', {
-        value: caching
-      });
-      return caching;
-    }
-  });
 
-  RemoteStorage.Caching._rs_init = function (remoteStorage) {
+  Caching._rs_init = function (remoteStorage) {
     this._remoteStorage = remoteStorage;
   };
 
-})(typeof(window) !== 'undefined' ? window : global);
+module.exports = Caching;

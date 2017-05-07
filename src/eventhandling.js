@@ -1,4 +1,5 @@
-(function (global) {
+  var log = require('./log');
+  
   /**
    * Interface: eventhandling
    */
@@ -15,7 +16,7 @@
       if (typeof(handler) !== 'function') {
         throw new Error('Argument handler should be a function');
       }
-      RemoteStorage.log('[Eventhandling] Adding event listener', eventName, handler);
+      log('[Eventhandling] Adding event listener', eventName);
       this._validateEvent(eventName);
       this._handlers[eventName].push(handler);
     },
@@ -69,6 +70,14 @@
   methods.on = methods.addEventListener;
 
   /**
+   * Method: eventhandling.off
+   *
+   * Alias for <removeEventListener>
+   **/
+  methods.off = methods.removeEventListener;
+
+
+  /**
    * Function: eventHandling
    *
    * Mixes event handling functionality into an object.
@@ -95,7 +104,7 @@
    *   // myObject.on('something-else', function () {});
    *   (end code)
    */
-  RemoteStorage.eventHandling = function (object) {
+ module.exports = function (object) {
     var eventNames = Array.prototype.slice.call(arguments, 1);
     for (var key in methods) {
       object[key] = methods[key];
@@ -105,4 +114,3 @@
       object._addEvent(eventName);
     });
   };
-})(typeof(window) !== 'undefined' ? window : global);
