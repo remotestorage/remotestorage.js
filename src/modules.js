@@ -35,30 +35,7 @@
    *   }});
    * (end code)
   */
-
-  RemoteStorage.defineModule = function(moduleName, builder) {
-    Object.defineProperty(RemoteStorage.prototype, moduleName, {
-      configurable: true,
-      get: function() {
-        var instance = this._loadModule(moduleName, builder);
-        Object.defineProperty(this, moduleName, {
-          value: instance
-        });
-      }
-    });
-
-    if (moduleName.indexOf('-') !== -1) {
-      var camelizedName = moduleName.replace(/\-[a-z]/g, function (s) {
-        return s[1].toUpperCase();
-      });
-      Object.defineProperty(RemoteStorage.prototype, camelizedName, {
-        get: function () {
-          return this[moduleName];
-        }
-      });
-    }
-  }
-
+ 
   RemoteStorage.prototype.addModule = function (module) {
     var moduleName = module.name;
     var moduleBuilder = module.builder;
@@ -84,6 +61,30 @@
       });
     }
   };
+
+  RemoteStorage.defineModule = function(moduleName, builder) {
+    Object.defineProperty(RemoteStorage.prototype, moduleName, {
+      configurable: true,
+      get: function() {
+        var instance = this._loadModule(moduleName, builder);
+        Object.defineProperty(this, moduleName, {
+          value: instance
+        });
+      }
+    });
+
+    if (moduleName.indexOf('-') !== -1) {
+      var camelizedName = moduleName.replace(/\-[a-z]/g, function (s) {
+        return s[1].toUpperCase();
+      });
+      Object.defineProperty(RemoteStorage.prototype, camelizedName, {
+        get: function () {
+          return this[moduleName];
+        }
+      });
+    }
+  }
+
 
   RemoteStorage.prototype._loadModule = function (moduleName, moduleBuilder) {
     if (moduleBuilder) {
