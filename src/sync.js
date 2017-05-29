@@ -1060,17 +1060,15 @@
 
   Sync.SyncError = function(message) {
     this.name = 'SyncError';
-
     var msg = 'Sync failed: ';
     if (typeof(originalError) === 'object' && 'message' in originalError) {
       msg += originalError.message;
       this.stack = originalError.stack;
+      this.originalError = originalError;
     } else {
       msg += originalError;
     }
     this.message = msg;
-
-    this.originalError = originalError;
   };
   Sync.SyncError.prototype = Object.create(Error.prototype);
   Sync.SyncError.prototype.constructor = Sync.SyncError;
