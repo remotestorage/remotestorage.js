@@ -1058,7 +1058,7 @@
     delete remoteStorage.sync;
   };
 
-  Sync.SyncError = function(message) {
+  Sync.SyncError = function(originalError) {
     this.name = 'SyncError';
     var msg = 'Sync failed: ';
     if (typeof(originalError) === 'object' && 'message' in originalError) {
