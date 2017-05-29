@@ -178,7 +178,6 @@
   RemoteStorage.Unauthorized = Authorize.Unauthorized;
   RemoteStorage.DiscoveryError = Discover.DiscoveryError;
 
- 
   RemoteStorage.prototype = {
     authorize: function authorize(authURL, cordovaRedirectUri) {
       this.access.setStorageType(this.remote.storageType);
