@@ -4,7 +4,7 @@
   "version": "1.0.0-alpha1",
   "private": false,
   "license": "MIT",
-  "main": "./release/head/remotestorage.js",
+  "main": "./release/stable/remotestorage.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/remotestorage/remotestorage.js.git"

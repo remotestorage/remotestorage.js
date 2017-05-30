@@ -77,14 +77,13 @@ const Discover = function Discover(userAddress) {
   });
 };
 
-
-Discover.DiscoveryError = function (message) {
-  Error.apply(this, arguments);
+Discover.DiscoveryError = function(message) {
+  this.name = 'DiscoveryError';
   this.message = message;
+  this.stack = (new Error()).stack;
 };
-
 Discover.DiscoveryError.prototype = Object.create(Error.prototype);
-
+Discover.DiscoveryError.prototype.constructor = Discover.DiscoveryError;
 
 Discover._rs_init = function (remoteStorage) {
   hasLocalStorage = util.localStorageAvailable();
