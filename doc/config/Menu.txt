@@ -48,29 +48,29 @@ Format: 1.52
 
 Group: Public API  {
 
+   File: Access  (access.js)
+   File: BaseClient  (baseclient.js)
+   File: Caching  (caching.js)
+   File: I18n  (i18n.js)
    File: RemoteStorage  (remotestorage.js)
-   File: RemoteStorage.Access  (access.js)
-   File: RemoteStorage.BaseClient  (baseclient.js)
-   File: RemoteStorage.Caching  (caching.js)
    File: RemoteStorage.defineModule  (modules.js)
-   File: RemoteStorage.I18n  (i18n.js)
    }  # Group: Public API
 
 Group: Internals  {
 
    Group: Classes  {
 
-      File: BaseClient.Types  (no auto-title, baseclient/types.js)
+      File: BaseClient.Types  (types.js)
       File: Discover  (no auto-title, discover.js)
       File: Dropbox  (no auto-title, dropbox.js)
+      File: fixArrayBuffers  (util.js)
       File: GoogleDrive  (googledrive.js)
+      File: hasFeature  (features.js)
       File: IndexedDB  (no auto-title, indexeddb.js)
       File: InMemoryStorage  (inmemorystorage.js)
       File: LocalStorage  (localstorage.js)
-      File: Sync  (sync.js)
-      File: Util  (util.js)
-      File: Widget  (widget.js)
-      File: Widget.View  (view.js)
+      File: log  (log.js)
+      File: RemoteStorage.Sync  (sync.js)
       File: WireClient  (wireclient.js)
       }  # Group: Classes
 

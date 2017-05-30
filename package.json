@@ -1,7 +1,7 @@
 {
   "name": "remotestoragejs",
   "description": "JavaScript library for integrating remoteStorage",
-  "version": "1.0.0-alpha1",
+  "version": "1.0.0-alpha2",
   "private": false,
   "license": "MIT",
   "main": "./release/stable/remotestorage.js",
@@ -9,7 +9,7 @@
     "type": "git",
     "url": "git://github.com/remotestorage/remotestorage.js.git"
   },
-  "homepage": "http://remotestorage.io",
+  "homepage": "https://remotestorage.io",
   "devDependencies": {
     "babel-core": "^6.18.2",
     "babel-loader": "^6.2.8",

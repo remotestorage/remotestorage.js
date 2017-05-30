@@ -1,8 +1,16 @@
 var webpack = require('webpack');
 var isProd = (process.env.NODE_ENV === 'production');
 
+var PACKAGE = require('./package.json');
+var banner =  'remotestorage.js ' + PACKAGE.version +
+              ', ' + PACKAGE.homepage +
+              ', ' + PACKAGE.license + ' licensed';
+
 // minimize only in production
-var plugins = isProd ? [new webpack.optimize.UglifyJsPlugin({minimize: true})] : []
+var plugins = isProd ? [
+  new webpack.optimize.UglifyJsPlugin({minimize: true}),
+  new webpack.BannerPlugin(banner)
+] : []
 
 module.exports = {
   entry: ['./src/remotestorage.js'],

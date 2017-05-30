@@ -179,7 +179,6 @@
   RemoteStorage.Unauthorized = Authorize.Unauthorized;
   RemoteStorage.DiscoveryError = Discover.DiscoveryError;
 
- 
   RemoteStorage.prototype = {
 
     // load all modules passed as arguments

@@ -4,7 +4,7 @@
   var log = require('./log');
   var Authorize = require('./authorize');
   var config = require('./config');
-  
+
   var isFolder = util.isFolder;
   var isDocument = util.isDocument;
   var equal = util.equal;
@@ -1058,21 +1058,19 @@
     delete remoteStorage.sync;
   };
 
-  
-  var SyncError = function (originalError) {
+  Sync.SyncError = function(originalError) {
+    this.name = 'SyncError';
     var msg = 'Sync failed: ';
     if (typeof(originalError) === 'object' && 'message' in originalError) {
       msg += originalError.message;
+      this.stack = originalError.stack;
+      this.originalError = originalError;
     } else {
       msg += originalError;
     }
-    this.originalError = originalError;
     this.message = msg;
   };
-
-  SyncError.prototype = new Error();
-  SyncError.prototype.constructor = SyncError;
-
-  Sync.SyncError = SyncError;
+  Sync.SyncError.prototype = Object.create(Error.prototype);
+  Sync.SyncError.prototype.constructor = Sync.SyncError;
 
   module.exports = Sync;

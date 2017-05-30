@@ -1,6 +1,6 @@
 var log = require('./log');
 var util = require('./util');
-  
+
   function extractParams(url) {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
     var location = url || Authorize.getLocation().href,
@@ -82,10 +82,14 @@ var util = require('./util');
   };
 
   Authorize.IMPLIED_FAKE_TOKEN = false;
-  
-  Authorize.Unauthorized = function () { Error.apply(this, arguments); };
-  Authorize.Unauthorized.prototype = Object.create(Error.prototype);
 
+  Authorize.Unauthorized = function(message) {
+    this.name = 'Unauthorized';
+    this.message = message;
+    this.stack = (new Error()).stack;
+  };
+  Authorize.Unauthorized.prototype = Object.create(Error.prototype);
+  Authorize.Unauthorized.prototype.constructor = Authorize.Unauthorized;
 
   /**
    * Get current document location

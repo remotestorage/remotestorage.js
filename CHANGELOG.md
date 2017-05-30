@@ -3,6 +3,17 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 1.0.0 (June 2017)
+
+### Breaking changes
+
+* All builds, including AMD/CommonJS and no-cache, are now rolled into one UMD
+  build. (#951)
+* The connect widget is not part of the core library anymore, but has moved to
+  a seperate add-on library (#862)
+* Error events (e.g. unauthorized, sync error, etc.) are identified by name
+  instead of type now (#984)
+
 ## 0.14.0 (November 2016)
 
 ### Enhancements
