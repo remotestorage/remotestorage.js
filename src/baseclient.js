@@ -649,19 +649,7 @@
    *
    */
   BaseClient._rs_init = function () {
-    
   };
-
-  /* e.g.:
-  remoteStorage.defineModule('locations', function (priv, pub) {
-    return {
-      exports: {
-        features: priv.scope('features/').defaultType('feature'),
-        collections: priv.scope('collections/').defaultType('feature-collection');
-      }
-    };
-  });
-  */
 
   // Defined in baseclient/types.js
   /**

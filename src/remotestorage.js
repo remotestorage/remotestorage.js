@@ -225,9 +225,10 @@
     /**
      * Method: scope
      *
-     * Returns a BaseClient with a certain scope (base path). Please use this method
-     * only for debugging, and always use defineModule instead, to get access to a
-     * BaseClient from a module in an app.
+     * Returns a BaseClient with the specified scope (base path/directory).
+     *
+     * Please use this method only for debugging and development, and
+     * choose or create a data module for your app to use.
      *
      * Parameters:
      *
