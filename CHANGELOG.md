@@ -9,7 +9,7 @@ All releases can also be found and downloaded on the
 
 * All builds, including AMD/CommonJS and no-cache, are now rolled into one UMD
   build. (#951)
-* `RemoteStorage.declareModule` is no more, and both declaring modules and
+* `RemoteStorage.defineModule` is no more, and both declaring modules and
   loading them in apps can now be done with a new, improved API. (#974)
 * The connect widget is not part of the core library anymore, but has moved to
   a seperate add-on library (#862)
