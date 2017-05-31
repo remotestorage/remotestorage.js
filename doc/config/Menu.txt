@@ -53,7 +53,7 @@ Group: Public API  {
    File: Caching  (caching.js)
    File: I18n  (i18n.js)
    File: RemoteStorage  (remotestorage.js)
-   File: RemoteStorage.defineModule  (modules.js)
+   File: RemoteStorage.addModule  (modules.js)
    }  # Group: Public API
 
 Group: Internals  {
