@@ -638,11 +638,15 @@
           self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
           RS.log('safeNFS.getDir("' + fullPath + '") failed: ' + err.status );
           //var status = (err == 'Unauthorized' ? 401 : 404); // mrhTODO ideally safe-js would provide response code (possible enhancement)
+          if (err.status === undefined)
+              err.status = 401; // Force Unauthorised, to handle issue in safe-js: 
+          
           if (err.status == 401){
             // Modelled on how googledrive.js handles expired token
-            if (self.connected)
+            if (self.connected){
               self.connect();
               return;
+            }
           }
           return Promise.reject({statusCode: err.status});
         });
