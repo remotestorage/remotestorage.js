@@ -36,6 +36,10 @@
    *
    **/
 
+  // mrhTODOs:
+  // o review SAFE API app: init, auth,connect wrt to RS app and widget control flows
+  // o review storage of SAFE API appToken? (Maybe store authUri as token - but how to use it?)
+  
   ENABLE_ETAGS = true;   // false disables ifMatch / ifNoneMatch checks
 
   var RS = RemoteStorage;
@@ -81,9 +85,9 @@
 
   var onErrorCb;
 
-  RS.SafeNetwork = function (remoteStorage, clientId) {
+  RS.SafeNetwork = function (remoteStorage, config) {
     this.rs = remoteStorage;
-    this.clientId = clientId;
+    this.clientId = config.clientId;    // mrhTODO TRY REMOVING clientId not needed? (I think was used for Dropbox API key)
     this._fileInfoCache = new Cache(60 * 5); // mrhTODO: info expires after 5 minutes (is this a good idea?)
     this.connected = false;
     var self = this;
@@ -102,12 +106,12 @@
           userAddress: null,    // webfinger style address (username@server)
           href: null,           // server URL from webfinger
           storageApi: null,     // remoteStorage API dependencies in here (safenetwork.js), not server, so hardcode?
-          
-          options: null,        // http request headers - maybe Dropbox only?
-            
+                      
           // SAFE Launcher auth response:
-          token: null,
-          permissions: null,    // List of granted SAFE Network access permssions (e.g. 'SAFE_DRIVE_ACCESS')
+          appHandle:      null,                // safeApp.initialise() return (appToken)
+          token:          null,                    // safeApp.authorise() return (authUri)
+          permissions:    null, // Permissions used to request authorisation
+          options:        null,     // Options used to request authorisation
         });
       }
     };    
@@ -136,17 +140,17 @@
     isPathShared: true,         // App private storage mrhTODO shared or private? app able to control?
         
     configure: function (settings) {
-      // We only update this.userAddress if settings.userAddress is set to a string or to null:
+      // We only update these when set to a string or to null:
       if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
-      // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
       if (typeof settings.token !== 'undefined') { this.token = settings.token; }
 
       var writeSettingsToCache = function() {
         if (hasLocalStorage) {
           localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-            userAddress: this.userAddress,
-            token: this.token,
-            permissions: this.permissions,
+            userAddress:    this.userAddress,
+            appHandle:      this.appHandle,
+            token:          this.token,
+            permissions:    this.permissions,
           }));
         }
       };
@@ -266,6 +270,29 @@
       self.appKeys = appApiKeys.app;
 
       tokenKey = SETTINGS_KEY + ':token';
+
+      
+      window.safeApp.initialise(self.appKeys).then((appToken) => {
+        RS.log('SAFEApp instance initialised and token returned: ', appToken);
+        
+        window.safeApp.authorise(appToken, self.appKeys.permissions, self.appKeys.options).then((authUri) => {
+          RS.log('App was authorised and auth URI received: ', authUri);
+        
+        self.configure({ 
+          appHandle:      appToken,                 // safeApp.initialise() return (appToken)
+          token:          authUri,                  // safeApp.authorise() return (authUri)
+          permissions:    self.appKeys.permissions, // Permissions used to request authorisation
+          options:        self.appKeys.options,     // Options used to request authorisation
+        }, function (err){
+          self.reflectNetworkStatus(false);
+          RS.log('SafeNetwork Authorisation Failed');
+          RS.log(err);
+          });
+        });
+     });      
+
+      /* mrhTODO REMOVE this
+       * REST API:
       window.safeAuth.authorise(self.appKeys, tokenKey).then( function(response) {
         self.configure({ 
             token:          response.token,         // Auth token
@@ -276,7 +303,7 @@
         self.reflectNetworkStatus(false);
         RS.log('SafeNetwork Authorisation Failed');
         RS.log(err);
-      });
+      });*/
     },
 
     
@@ -781,7 +808,7 @@
 
     var config = remoteStorage.apiKeys.safenetwork;
     if (config) {
-      remoteStorage.safenetwork = new RS.SafeNetwork(remoteStorage, config.clientId);
+      remoteStorage.safenetwork = new RS.SafeNetwork(remoteStorage, config);
       if (remoteStorage.backend === 'safenetwork' && remoteStorage.remote !== remoteStorage.safenetwork) {
         remoteStorage._safenetworkOrigRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.safenetwork;
@@ -795,6 +822,7 @@
 
   // mrhTODO see dropbox version
   RS.SafeNetwork._rs_cleanup = function (remoteStorage) {
+    window.safeApp.free();
     remoteStorage.setBackend(undefined);
     if (remoteStorage._safenetworkOrigRemote) {
       remoteStorage.remote = remoteStorage._safenetworkOrigRemote;
