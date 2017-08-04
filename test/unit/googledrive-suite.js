@@ -136,8 +136,6 @@ define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive
       {
         desc: "#configure fetches the user info when no userAddress is given",
         run: function (env, test) {
-          env.rs.widget = { view: { setUserAddress: function() {} } };
-
           env.client.on('connected', function() {
             test.assert(env.client.userAddress, 'john.doe@gmail.com');
           });
@@ -197,8 +195,6 @@ define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive
       {
         desc: "#configure caches token and userAddress in localStorage",
         run: function (env, test) {
-          env.rs.widget = { view: { setUserAddress: function() {} } };
-
           var oldSetItem = global.localStorage.setItem;
           global.localStorage.setItem = function(key, value) {
             test.assertAnd(key, 'remotestorage:googledrive');
