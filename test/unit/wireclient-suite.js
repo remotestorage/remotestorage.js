@@ -1,8 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', './src/sync', './src/wireclient', './src/authorize', './src/eventhandling', 'test/behavior/backend', 'test/helpers/mocks'], 
-       function(Promise, Sync, WireClient, Authorize, eventHandling, backend, mocks, undefined) {
+define(['bluebird', './src/sync', './src/wireclient', './src/authorize', './src/eventhandling', './src/config', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function(Promise, Sync, WireClient, Authorize, eventHandling, config, backend, mocks, undefined) {
   global.Promise = Promise;
   var suites = [];
 
@@ -747,14 +747,17 @@ define(['bluebird', './src/sync', './src/wireclient', './src/authorize', './src/
       },
 
       {
-        desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
+        desc: "requests are aborted if they aren't responded after the configured timeout",
         timeout: 3000,
         run: function(env, test) {
-          WireClient.REQUEST_TIMEOUT = 1000;
+          const originalTimeout = config.requestTimeout;
+          config.requestTimeout = 1000;
+
           env.connectedClient.get('/foo').then(function() {
+            config.requestTimeout = originalTimeout;
             test.result(false);
           }, function (error) {
-            console.log('test got error: ', error);
+            config.requestTimeout = originalTimeout;
             test.assert('timeout', error);
           });
         }

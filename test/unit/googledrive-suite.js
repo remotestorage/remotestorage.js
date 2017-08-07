@@ -1,8 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive', 'test/behavior/backend', 'test/helpers/mocks'], 
-       function (Promise, util, require, eventHandling, GoogleDrive, backend, mocks) {
+define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive', './src/config', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function (Promise, util, require, eventHandling, GoogleDrive, config, backend, mocks) {
 
   global.Promise = Promise;
 
@@ -17,7 +17,7 @@ define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive
       eventHandling(this, 'error', 'network-offline', 'network-online');
     };
     RemoteStorage.prototype = {
-      setBackend: function (b){
+      setBackend: function (b) {
         this.backend = b;
       }
     };
@@ -538,6 +538,23 @@ define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive
             });
             reqMeta._onload();
           }, 10);
+        }
+      },
+
+      {
+        desc: "requests are aborted if they aren't responded after the configured timeout",
+        timeout: 2000,
+        run: function (env, test) {
+          const originalTimeout = config.requestTimeout;
+          config.requestTimeout = 1000;
+
+          env.connectedClient.get('/foo/bar').then(function () {
+            config.requestTimeout = originalTimeout;
+            test.result(false);
+          }, function (error) {
+            config.requestTimeout = originalTimeout;
+            test.assert('timeout', error);
+          });
         }
       }
 

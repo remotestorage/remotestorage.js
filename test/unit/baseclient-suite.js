@@ -25,7 +25,7 @@ define(['./src/config', './src/baseclient', 'bluebird', 'test/helpers/mocks', 't
         }
       };
 
-      config .changeEvents = { remote: true };
+      config.changeEvents = { remote: true };
 
       // require('../../lib/Math.uuid');
       // global.BaseClient = require('../../src/baseclient')
