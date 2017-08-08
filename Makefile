@@ -34,7 +34,7 @@ deps:
 
 test:
 	node_modules/jaribu/bin/jaribu
-	set -xe && find test/ -type f | grep 'suite\.js' | while read f; do \
+	set -xe && find test -type f | grep 'suite\.js' | while read f; do \
 		node_modules/jaribu/bin/jaribu "$$f"; \
 	done
 
