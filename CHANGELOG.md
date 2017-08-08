@@ -15,6 +15,9 @@ All releases can also be found and downloaded on the
   a seperate add-on library (#862)
 * Error events (e.g. unauthorized, sync error, etc.) are identified by name
   instead of type now (#984)
+* Network request timeouts are configured via the `setRequestTimeout` method
+  on the RemoteStorage instance instead of setting
+  `RemoteStorage.WireClient.REQUEST_TIMEOUT` (#983).
 
 ## 0.14.0 (November 2016)
 
