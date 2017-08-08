@@ -1,8 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eventhandling', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks'], 
-       function (require, util, Dropbox, WireClient, eventHandling, Promise, backend, mocks) {
+define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eventhandling', './src/config', 'bluebird', 'test/behavior/backend', 'test/helpers/mocks'], 
+       function (require, util, Dropbox, WireClient, eventHandling, config, Promise, backend, mocks) {
 
   global.Promise = Promise;
 
@@ -15,7 +15,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
     RemoteStorage.log = function () {};
     RemoteStorage.prototype.setBackend = function (b) {
       this.backend = b;
-    }
+    };
 
     global.localStorage = {
       setItem: function() {},
@@ -792,13 +792,17 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       },
 
       {
-        desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
+        desc: "requests are aborted if they aren't responded after the configured timeout",
         timeout: 2000,
         run: function (env, test) {
-          WireClient.REQUEST_TIMEOUT = 1000;
+          const originalTimeout = config.requestTimeout;
+          config.requestTimeout = 1000;
+
           env.connectedClient.get('/foo').then(function () {
+            config.requestTimeout = originalTimeout;
             test.result(false);
           }, function (error) {
+            config.requestTimeout = originalTimeout;
             test.assert('timeout', error);
           });
         }

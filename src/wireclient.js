@@ -4,6 +4,7 @@
   const util = require('./util');
   const eventHandling = require('./eventhandling');
   const Authorize = require('./authorize');
+  const config = require('./config');
 
   /**
    * Class: WireClient
@@ -220,9 +221,6 @@
       setTimeout(this._emit.bind(this), 0, 'connected');
     }
   };
-
-  // should we put this in config ?
-  WireClient.REQUEST_TIMEOUT = 30000;
 
   WireClient.prototype = {
     /**
@@ -527,7 +525,7 @@
       var timer = setTimeout(function () {
         timedOut = true;
         reject('timeout');
-      }, WireClient.REQUEST_TIMEOUT);
+      }, config.requestTimeout);
 
       var xhr = new XMLHttpRequest();
       xhr.open(method, url, true);

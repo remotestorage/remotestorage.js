@@ -13,6 +13,7 @@ var config = {
   backgroundSyncInterval: 60000,
   isBackground: false,
   cordovaRedirectUri: undefined,
+  requestTimeout: 30000,
   modules: []
 };
 

@@ -171,7 +171,7 @@
   };
 
 
-  // TOFIX: Instead of doing this, would be better to only 
+  // TOFIX: Instead of doing this, would be better to only
   // export setAuthURL / getAuthURL from RemoteStorage prototype
   RemoteStorage.Authorize = Authorize;
 
@@ -198,7 +198,6 @@
 
       Authorize(this, authURL, scope, redirectUri, clientId);
     },
-  
 
     impliedauth: function (storageApi, redirectUri) {
       storageApi = this.remote.storageApi;
@@ -676,7 +675,30 @@
       return config.isBackground ? config.backgroundSyncInterval : config.syncInterval;
     },
 
+    /**
+     * Method: setRequestTimeout
+     *
+     * Set the timeout for network requests
+     *
+     * Parameters:
+     *   timeout - timeout in milliseconds
+     *
+     */
+    setRequestTimeout: function (timeout) {
+      config.requestTimeout = parseInt(timeout, 10);
+    },
 
+    /**
+     * Method: getRequestTimeout
+     *
+     * Get the value of the current network request timeout
+     *
+     * Returns a number of milliseconds
+     *
+     */
+    getRequestTimeout: function () {
+      return config.requestTimeout;
+    },
 
     syncCycle: function () {
       if (this.sync.stopped) {

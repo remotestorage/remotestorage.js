@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird', 'require', 'tv4', './src/eventhandling'], 
+define(['bluebird', 'require', 'tv4', './src/eventhandling'],
        function (Promise, require, tv4, eventHandling) {
 
   var suites = [];
@@ -80,7 +80,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
       global.config = require('./src/config');
       global.log = require('./src/log');
       global.Dropbox = require('./src/dropbox');
-      
+
       global.RemoteStorage = require('./src/remotestorage');
 
 
@@ -91,7 +91,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
         }
         return  pending.promise;
       };
-      
+
       global.localStorage = {};
       global.RemoteStorage.prototype.remote = new FakeRemote();
       test.done();
@@ -297,7 +297,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
 
           var loadedHandler = function() {
             initsCalled++;
-            
+
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
               test.assertAnd(env.rs._cleanups.length, 4);
             } else {
@@ -312,7 +312,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
               test.done();
             }
           };
-          
+
           env.rs.on('features-loaded', loadedHandler);
           env.rs._init();
         }
@@ -487,6 +487,21 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
           }
         }
       },
+
+      {
+        desc: "Setting and getting the request timeout",
+        run: function(env, test) {
+          // check the default value
+          test.assertAnd(env.rs.getRequestTimeout(), 30000);
+
+          env.rs.setRequestTimeout(5000);
+          test.assertAnd(env.rs.getRequestTimeout(), 5000);
+
+          // setting back to default
+          env.rs.setRequestTimeout(30000);
+          test.assert(env.rs.getRequestTimeout(), 30000);
+        }
+      }
     ]
   });
 
@@ -551,7 +566,7 @@ define(['bluebird', 'require', 'tv4', './src/eventhandling'],
     name: "remoteStorage",
     desc: "the RemoteStorage instance - without a connected remote",
     setup: function(env, test) {
-     
+
       RemoteStorage.prototype.remote = new FakeRemote(false);
       test.assertType(RemoteStorage, 'function');
     },
