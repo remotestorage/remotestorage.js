@@ -35,7 +35,7 @@
    *   }});
    * (end code)
   */
- 
+
   RemoteStorage.prototype.addModule = function (module) {
     var moduleName = module.name;
     var moduleBuilder = module.builder;

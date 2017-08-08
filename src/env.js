@@ -1,5 +1,5 @@
   var eventHandling = require('./eventhandling');
-  
+
   var mode = typeof(window) !== 'undefined' ? 'browser' : 'node',
       env = {},
       isBackground = false;

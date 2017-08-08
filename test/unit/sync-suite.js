@@ -2,7 +2,7 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['bluebird', 'require', 'test/helpers/mocks'], 
+define(['bluebird', 'require', 'test/helpers/mocks'],
        function(Promise, require, mocks) {
   global.Promise = Promise;
 

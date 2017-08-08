@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/config', './src/baseclient', 'bluebird', 'test/helpers/mocks', 'tv4'], 
+define(['./src/config', './src/baseclient', 'bluebird', 'test/helpers/mocks', 'tv4'],
        function (config, BaseClient, Promise, mocks, tv4) {
 
   var suites = [];

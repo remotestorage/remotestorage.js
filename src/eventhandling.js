@@ -1,5 +1,5 @@
   var log = require('./log');
-  
+
   /**
    * Interface: eventhandling
    */

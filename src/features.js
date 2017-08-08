@@ -9,7 +9,7 @@ const Features = {
   features: [],
   featuresDone: 0,
   readyFired: false,
-  
+
   loadFeatures () {
     this.features = [];
     this.featuresDone = 0;
@@ -25,7 +25,7 @@ const Features = {
       'BaseClient': require('./baseclient'),
       'Env': require('./env')
     };
-    
+
     // enable caching releate module if needed
     if (config.cache) {
       util.extend( this.featureModules, {
@@ -185,7 +185,7 @@ const Features = {
 
   featuresLoaded () {
     log(`[REMOTESTORAGE] All features loaded !`);
-    
+
     this._setCachingModule();
     this.local = config.cache && this.features.local && new this.features.local();
 

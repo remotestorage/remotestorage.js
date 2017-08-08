@@ -12,7 +12,7 @@ define(['./src/i18n'], function(I18n) {
 
     setup: function(env, test) {
       global.RemoteStorage = {};
-     
+
       t = I18n.translate;
       test.done();
     },
