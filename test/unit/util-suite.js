@@ -1,8 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', './src/util'], function (Promise, util) {
-  global.Promise = Promise;
+define(['./src/util'], function (util) {
   var suites = [];
 
   function stringToArrayBuffer(str) {

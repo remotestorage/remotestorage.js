@@ -1,9 +1,9 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', './src/sync', './src/wireclient', './src/authorize', './src/eventhandling', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
-       function(Promise, Sync, WireClient, Authorize, eventHandling, config, backend, mocks, undefined) {
-  global.Promise = Promise;
+define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandling', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
+       function(Sync, WireClient, Authorize, eventHandling, config, backend, mocks, undefined) {
+
   var suites = [];
 
   function setup(env, test) {

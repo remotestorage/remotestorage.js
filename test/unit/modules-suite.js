@@ -1,8 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
-define(['./src/remotestorage', './src/modules', 'bluebird'], function(RemoteStorage, modules, Promise) {
-
+define(['./src/remotestorage', './src/modules'], function(RemoteStorage, modules) {
   var suites = [];
 
   suites.push({

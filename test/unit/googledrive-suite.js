@@ -1,10 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
-       function (Promise, util, require, eventHandling, GoogleDrive, config, backend, mocks) {
-
-  global.Promise = Promise;
+define(['util', 'require', './src/eventhandling', './src/googledrive', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
+       function (util, require, eventHandling, GoogleDrive, config, backend, mocks) {
 
   var suites = [];
 
@@ -250,9 +248,9 @@ define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive
           var req;
           env.connectedClient.get('/foo/bar').then(function () {
             test.result(false, 'get call should not return successful');
-          }, function (err) {
+          }).catch(function (err) {
             test.assertAnd(err, 'request failed or something: undefined');
-          }).finally(function () {
+          }).then(function () {
             test.assertType(req._send, 'object');
           });
           setTimeout(function () {
@@ -268,9 +266,9 @@ define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive
           var req;
           env.connectedClient.get('/foo/bar').then(function () {
             test.result(false, 'get call should not return successful');
-          }, function (err) {
+          }).catch(function (err) {
             test.assertAnd(err, 'request failed or something: undefined');
-          }).finally(function () {
+          }).then(function () {
             test.assert(req._headers['Authorization'], 'Bearer ' + env.token);
           });
           setTimeout(function () {
@@ -285,9 +283,9 @@ define(['bluebird', 'util', 'require', './src/eventhandling', './src/googledrive
         run: function (env, test) {
           env.connectedClient.get('/foo/bar').then(function () {
             test.result(false, 'get call should not return successful');
-          }, function (err) {
+          }).catch(function (err) {
             test.assertAnd(err, 'request failed or something: undefined');
-          }).finally(function () {
+          }).then(function () {
             test.done();
           });
           setTimeout(function () {
