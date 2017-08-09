@@ -264,7 +264,7 @@ define(['require', 'bluebird', 'fs'],
             test.assertType(err, 'object');
           });
           XMLHttpRequest.onOpen = function () {
-            var xhr = XMLHttpRequest.instances[0];
+            var xhr = XMLHttpRequest.instances[XMLHttpRequest.instances.length - 1];
             xhr.status = 200;
             xhr.readyState = 4;
             xhr.responseText = '';
@@ -280,7 +280,7 @@ define(['require', 'bluebird', 'fs'],
             test.assertType(err, 'object');
           });
           XMLHttpRequest.onOpen = function () {
-            var xhr = XMLHttpRequest.instances[0];
+            var xhr = XMLHttpRequest.instances[XMLHttpRequest.instances.length - 1];
             xhr.status = 404;
             xhr.readyState = 4;
             xhr.responseText = '';
