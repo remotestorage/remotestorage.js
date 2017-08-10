@@ -1,9 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require', 'bluebird', 'fs'],
-       function (require, Promise, fs) {
-
+define(['require', 'fs'], function (require, fs) {
   var suites = [];
 
   suites.push({

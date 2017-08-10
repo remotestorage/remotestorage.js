@@ -1,8 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', './src/indexeddb', './src/config'], function (Promise, IndexedDB, config) {
-
+define(['./src/indexeddb', './src/config'], function (IndexedDB, config) {
   var suites = [];
 
   suites.push({

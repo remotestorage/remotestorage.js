@@ -1,8 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', './src/config', './src/localstorage'], function (Promise, config, LocalStorage) {
-
+define(['./src/config', './src/localstorage'], function (config, LocalStorage) {
   var suites = [];
 
   var NODES_PREFIX = 'remotestorage:cache:nodes:';

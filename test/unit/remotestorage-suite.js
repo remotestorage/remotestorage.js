@@ -1,15 +1,11 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird', 'require', 'tv4', './src/eventhandling'],
-       function (Promise, require, tv4, eventHandling) {
-
+define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventHandling) {
   var suites = [];
 
   var consoleLog, fakeLogs;
-  global.Promise = Promise;
   global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
-  // global.eventHandling = require('./src/eventhandling');
 
   function FakeRemote(connected) {
     this.fakeRemote = true;

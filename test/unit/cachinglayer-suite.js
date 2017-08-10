@@ -1,8 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require', './src/util', './src/config', './src/inmemorystorage', 'bluebird'], function (require, util, config, InMemoryStorage, Promise) {
-  global.Promise = Promise;
+define(['require', './src/util', './src/config', './src/inmemorystorage'], function (require, util, config, InMemoryStorage) {
   var suites = [];
 
   function stringToArrayBuffer(str) {

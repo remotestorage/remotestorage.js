@@ -2,10 +2,7 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['bluebird', 'require', 'test/helpers/mocks'],
-       function(Promise, require, mocks) {
-  global.Promise = Promise;
-
+define(['require', 'test/helpers/mocks'], function(require, mocks) {
   var suites = [];
 
   function flatten(array){
@@ -27,7 +24,7 @@ define(['bluebird', 'require', 'test/helpers/mocks'],
       global.RemoteStorage = function(){
         eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
       };
-       global.RemoteStorage.log = function() {};
+      global.RemoteStorage.log = function() {};
       global.Authorize = require('./src/authorize');
       global.config = require('./src/config');
       global.eventHandling = require('./src/eventhandling');
