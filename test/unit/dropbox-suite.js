@@ -38,12 +38,16 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       this._responseHeaders = {};
     };
     XMLHttpRequest.instances = [];
+    XMLHttpRequest.callbacks = [];
     XMLHttpRequest.prototype = {
       open: function () {
         this._open = Array.prototype.slice.call(arguments);
       },
       send: function () {
         this._send = Array.prototype.slice.call(arguments);
+
+        if (XMLHttpRequest.callbacks.length)
+          XMLHttpRequest.callbacks.shift()(this);
       },
       setRequestHeader: function (key, value) {
         this._headers[key] = value;
@@ -182,8 +186,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
           setTimeout(function() {
             var req = XMLHttpRequest.instances.shift();
             req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-              mime_type: 'text/plain; charset=UTF-8',
+            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
               rev: 'rev'
             });
             req.status = 200;
@@ -204,8 +207,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
           setTimeout(function() {
             var req = XMLHttpRequest.instances.shift();
             req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-              mime_type: 'text/plain; charset=UTF-8',
+            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
               rev: 'rev'
             });
             req.status = 200;
@@ -226,8 +228,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
           setTimeout(function() {
             var req = XMLHttpRequest.instances.shift();
             req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-              mime_type: 'text/plain; charset=UTF-8',
+            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
               rev: 'rev'
             });
             req.status = 200;
@@ -278,25 +279,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              "referral_link": "https://db.tt/QjJhCJr1",
-              "display_name": "John Doe",
-              "uid": 123456,
-              "locale": "en",
-              "email_verified": true,
-              "team": null,
-              "quota_info": {
-                "datastores": 0,
-                "shared": 1415283650,
-                "quota": 6721372160,
-                "normal": 860651695
-              },
-              "is_paired": false,
-              "country": "DE",
-              "name_details": {
-                "familiar_name": "John",
-                "surname": "Doe",
-                "given_name": "John"
-              },
               "email": "john.doe@example.com"
             });
             req._onload();
@@ -409,10 +391,10 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
         desc: "#get opens a CORS request",
         run: function (env, test) {
           env.connectedClient.get('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          test.assertTypeAnd(request, 'object');
-          test.assert(request._open,
-                      ['GET', 'https://api-content.dropbox.com/1/files/auto/remotestorage/foo/bar', true]);
+          var req = XMLHttpRequest.instances.shift();
+          test.assertTypeAnd(req, 'object');
+          test.assert(req._open,
+                      ['GET', 'https://content.dropboxapi.com/2/files/download', true]);
         }
       },
 
@@ -422,15 +404,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
           env.connectedClient.get('/foo/bar');
           var req = XMLHttpRequest.instances.shift();
           test.assertType(req._send, 'object');
-        }
-      },
-
-      {
-        desc: "#get strips duplicate slashes from the path",
-        run: function (env, test) {
-          env.connectedClient.get('/foo//baz');
-          var request = XMLHttpRequest.instances.shift();
-          test.assert(request._open[1], 'https://api-content.dropbox.com/1/files/auto/remotestorage/foo/baz');
         }
       },
 
@@ -482,12 +455,8 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
           env.connectedClient.get('/').then(test.done, test.fail);
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-            mime_type: 'text/plain; charset=UTF-8',
-            rev: 'rev'
-          });
           req.status = 200;
-          req.responseText = '{"foo":"response-body"}';
+          req.responseText = '{"entries":[]}';
           req._onload();
         }
       },
@@ -503,8 +472,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-            mime_type: 'text/plain; charset=UTF-8',
+          req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
             rev: 'rev'
           });
           req.status = 200;
@@ -524,8 +492,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-            mime_type: 'text/plain; charset=UTF-8',
+          req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
             rev: 'rev'
           });
           req.status = 200;
@@ -554,6 +521,84 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
             });
           var req = XMLHttpRequest.instances.shift();
           req.status = 401;
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get handles inexistent files",
+        run: function (env, test) {
+          env.connectedClient.get('/foo').
+            then(function (r) {
+              test.assert(r.statusCode, 404);
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 409;
+          req.responseText = JSON.stringify({
+            error_summary: 'path/not_found/...'
+          });
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get handles multi-page folders",
+        run: function (env, test) {
+          var makePayload = function (num, more) {
+            return JSON.stringify({
+              entries: [
+                {'.tag': 'file', path_lower: '/foo/file'+num, rev: 'rev'+num}
+              ],
+              has_more: more,
+              cursor: more ? 'cur'+num : undefined
+            });
+          }
+
+          XMLHttpRequest.callbacks.push(function (req) {
+            req.status = 200;
+            req.responseText = makePayload(1, true);
+            req._onload();
+          });
+
+          XMLHttpRequest.callbacks.push(function (req) {
+            req.status = 200;
+            req.responseText = makePayload(2, true);
+            req._onload();
+
+            test.assertAnd(JSON.parse(req._send).cursor, 'cur1');
+          });
+
+          XMLHttpRequest.callbacks.push(function (req) {
+            req.status = 200;
+            req.responseText = makePayload(3, false);
+            req._onload();
+
+            test.assertAnd(JSON.parse(req._send).cursor, 'cur2');
+          });
+
+          env.connectedClient.get('/foo/').
+            then(function (r) {
+              test.assertAnd((r.body.file1 || {}).ETag, 'rev1');
+              test.assertAnd((r.body.file2 || {}).ETag, 'rev2');
+              test.assert((r.body.file3 || {}).ETag, 'rev3');
+            });
+        }
+      },
+
+      {
+        desc: "#get handles an inexistent root folder properly",
+        run: function (env, test) {
+          env.connectedClient.get('/').
+            then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assert(Object.keys(r.body).length, 0);
+            });
+
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 409;
+          req.responseText = JSON.stringify({
+            error_summary: 'path/not_found/..'
+          });
           req._onload();
         }
       },
@@ -653,55 +698,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       },
 
       {
-        desc: "#put correctly handles a conflict after metadata check",
-        run: function (env, test) {
-          var waitlist = [];
-
-          // PUT
-          waitlist.push(function (req) {
-            req.status = 200;
-            req.responseText = JSON.stringify({
-              path: '/remotestorage/foo/bar_2'
-            });
-            setTimeout(function () {
-              req._onload();
-            }, 10);
-          });
-
-          // delete
-          waitlist.push(function (req) {
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar_2', true]);
-          });
-
-          // metadata
-          waitlist.push(function (req) {
-            req.status = 200;
-            req.responseText = JSON.stringify({
-              rev: 'foo'
-            });
-            setTimeout(function () {
-              req._onload();
-            }, 10);
-          });
-
-          env.connectedClient.put('/foo/bazz', 'data', 'text/plain').
-            then(function (r) {
-              test.assertAnd(r.statusCode, 412);
-              test.assert(r.revision, 'foo');
-            });
-
-          (function handleWaitlist () {
-            if (waitlist.length > 0) {
-              if (XMLHttpRequest.instances.length > 0) {
-                waitlist.shift()(XMLHttpRequest.instances.shift());
-              }
-              setTimeout(handleWaitlist, 5);
-            }
-          })();
-        }
-      },
-
-      {
         desc: "#put returns the erroneous status it received from DropBox",
         run: function (env, test) {
           env.connectedClient.put('/foo', 'data', 'text/plain').
@@ -757,7 +753,9 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
           setTimeout(function () {
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar', true]);
+            req.responseText = '{}';
+            test.assertAnd(req._open, ['POST', 'https://api.dropboxapi.com/2/files/delete', true]);
+            test.assertAnd(JSON.parse(req._send).path, '/remotestorage/foo/bar');
             req._onload();
           }, 100);
         }
@@ -824,8 +822,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-            mime_type: 'application/octet-stream; charset=binary',
+          req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
             rev: 'rev'
           });
           req.status = 200;
@@ -844,7 +841,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+          req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
             rev: 'rev'
           });
           req.status = 200;
