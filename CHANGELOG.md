@@ -19,6 +19,10 @@ All releases can also be found and downloaded on the
   on the RemoteStorage instance instead of setting
   `RemoteStorage.WireClient.REQUEST_TIMEOUT` (#983).
 
+### Enhancements
+
+* Switch Dropbox adapter to use the Dropbox API v2 (#936)
+
 ## 0.14.0 (November 2016)
 
 ### Enhancements
