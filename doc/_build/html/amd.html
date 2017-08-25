@@ -1,0 +1,241 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Using the AMD build of remotestorage.js &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> remoteStorage.js
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0-alpha7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">remoteStorage.js</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Using the AMD build of remotestorage.js</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/amd.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="using-the-amd-build-of-remotestorage-js">
+<span id="using-the-amd-build-of-remotestorage-js"></span><h1>Using the AMD build of remotestorage.js<a class="headerlink" href="#using-the-amd-build-of-remotestorage-js" title="Permalink to this headline">¶</a></h1>
+<p>We provide a build of remotestorage.js that works with AMD. External dependencies must be provided for this build of the library to work.</p>
+</div>
+<div class="section" id="release">
+<span id="release"></span><h1>Release<a class="headerlink" href="#release" title="Permalink to this headline">¶</a></h1>
+<p>For every release we provide an AMD build, this file is located in:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">releases</span><span class="o">/&lt;</span><span class="n">version</span><span class="o">&gt;/</span><span class="n">remotestorage</span><span class="o">.</span><span class="n">amd</span><span class="o">.</span><span class="n">js</span>
+<span class="n">releases</span><span class="o">/&lt;</span><span class="n">version</span><span class="o">&gt;/</span><span class="n">remotestorage</span><span class="o">-</span><span class="n">nocache</span><span class="o">.</span><span class="n">amd</span><span class="o">.</span><span class="n">js</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal"><span class="pre">nocache</span></code> build does not include any of the syncing functionality. When a document is saved, or fetched, it is communicating directly with the back-end remotestorage server.</p>
+<p><strong>NOTE</strong> version <code class="docutils literal"><span class="pre">0.11.0</span></code> of remotestorage.js has a broken AMD build.</p>
+</div>
+<div class="section" id="dependencies">
+<span id="dependencies"></span><h1>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h1>
+<p>The AMD build of remotestorage.js depends on <a class="reference external" href="https://github.com/petkaantonov/bluebird">Bluebird</a> for Promise functionality, so you must include a reference to <code class="docutils literal"><span class="pre">bluebird</span></code> in your AMD init script.</p>
+<p><strong>NOTE</strong> For an up-to-date list of external dependencies, check the <code class="docutils literal"><span class="pre">define</span></code> statement in the top of the remotestorage AMD file.</p>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, RS Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.0-alpha7',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

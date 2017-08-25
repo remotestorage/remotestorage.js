@@ -1,0 +1,299 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Caching in remotestorage.js &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> remoteStorage.js
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0-alpha7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">remoteStorage.js</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Caching in remotestorage.js</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/caching.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="caching-in-remotestorage-js">
+<span id="caching-in-remotestorage-js"></span><h1>Caching in remotestorage.js<a class="headerlink" href="#caching-in-remotestorage-js" title="Permalink to this headline">¶</a></h1>
+<p>remotestorage.js gives you the option to synchronize some or all of the remote data your app has access to, to a local store. Usually this store is an indexedDB database.</p>
+<p>Enabling caching has several benefits and drawbacks:</p>
+<ul class="simple">
+<li>Speed of access: locally cached data is available to the app a lot faster.</li>
+<li>Offline mode: when data is cached, it can be read, written and removed while offline. Once the connection to the remotestorage provider is re-established, the pending changes will be synchronized.</li>
+<li>Initial synchronization time: the amount of data your app caches can have a significant impact on startup time of your app. If your app deals with large data items, you may want to consider synchronizing the big parts of the data only when the user wants to access them.</li>
+</ul>
+<p>Caching can be enabled on a per-path basis. When caching is enabled for a given folder, that causes all subdirectories to be cached as well.</p>
+<p>There are two ways to configure caching:</p>
+<ul class="simple">
+<li>globally through <code class="docutils literal"><span class="pre">remoteStorage.caching</span></code> - this would usually be done by an app.</li>
+<li>locally through <code class="docutils literal"><span class="pre">BaseClient#cache</span></code> - this would usually be done by a module.</li>
+</ul>
+<div class="section" id="configuring-caching-from-a-module">
+<span id="configuring-caching-from-a-module"></span><h2>Configuring caching from a module<a class="headerlink" href="#configuring-caching-from-a-module" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal"><span class="pre">BaseClient#cache</span></code> interface is only a convenience method that internally uses <code class="docutils literal"><span class="pre">remoteStorage.caching</span></code>.</p>
+<p>This example shows how to configure caching in a module:</p>
+<div class="highlight-javascript"><div class="highlight"><pre><span></span>RemoteStorage.defineModule(&#39;beers&#39;, function(privateClient, publicClient) {
+  var pilsener = privateClient.scope(&#39;pilsener/&#39;);
+
+  // to enable always caching all data (not only data that was changed), change
+  // the caching strategy from &#39;SEEN&#39; (the default) to &#39;ALL&#39;. These two are equivalent operations:
+  privateClient.cache(&#39;pilsener/&#39;, &#39;ALL&#39;);
+  // OR:
+  pilsener.cache(&#39;&#39;, ALL&#39;);
+
+  // to disable caching for a given path, pass &#39;FLUSH&#39; as the strategy:
+  privateClient.cache(&#39;pilsener/&#39;, &#39;FLUSH&#39;);
+  // OR:
+  pilsener.cache(&#39;&#39;, &#39;FLUSH&#39;);
+
+  return {
+    exports: {
+      pilsener: pilsener
+    }
+  };
+});
+</pre></div>
+</div>
+</div>
+<div class="section" id="configuring-caching-from-elsewhere">
+<span id="configuring-caching-from-elsewhere"></span><h2>Configuring caching from elsewhere<a class="headerlink" href="#configuring-caching-from-elsewhere" title="Permalink to this headline">¶</a></h2>
+<p>If you want to alter caching settings outside of a module's context, you can do so using the <code class="docutils literal"><span class="pre">remoteStorage.caching</span></code> interface.</p>
+<p>This example shows how to do that:</p>
+<div class="highlight-javascript"><div class="highlight"><pre><span></span><span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">caching</span><span class="p">.</span><span class="nx">enable</span><span class="p">(</span><span class="s1">&#39;/beers/pilsener/&#39;</span><span class="p">,</span> <span class="s1">&#39;ALL&#39;</span><span class="p">);</span>
+
+<span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">caching</span><span class="p">.</span><span class="nx">disable</span><span class="p">(</span><span class="s1">&#39;/beers/pilsener/&#39;</span><span class="p">,</span> <span class="s1">&#39;ALL&#39;</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="synchronizing-after-caching-settings-have-changed">
+<span id="synchronizing-after-caching-settings-have-changed"></span><h2>Synchronizing after caching settings have changed<a class="headerlink" href="#synchronizing-after-caching-settings-have-changed" title="Permalink to this headline">¶</a></h2>
+<p>Whenever you have changed the caching settings, you can either wait for the next automatic synchronization to happen, or trigger one yourself:</p>
+<div class="highlight-javascript"><div class="highlight"><pre><span></span><span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">sync</span><span class="p">().</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Synchronization finished.&quot;</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="internals">
+<span id="internals"></span><h2>Internals<a class="headerlink" href="#internals" title="Permalink to this headline">¶</a></h2>
+<p>This section is aimed at developers of remotestorage.js. The caching strategies are stored in <code class="docutils literal"><span class="pre">remoteStorage.caching._rootPaths</span></code>.
+For instance, on https://myfavoritedrinks.5apps.com/, it has value <code class="docutils literal"><span class="pre">{</span> <span class="pre">/myfavoritedrinks/:</span> <span class="pre">&quot;ALL&quot;</span> <span class="pre">}</span></code>.</p>
+<p>The rootPaths are not stored in localStorage. If you refresh the page, it is up to the app to set all caching strategies again
+during the pageload.</p>
+<p>The effect of the caching strategy is basically achieved through three paths:</p>
+<ol class="simple">
+<li>Setting caching strategy 'ALL' for a path, creates an empty node for that path, unless it already exists.</li>
+<li>The sync process will then to a 'GET', and create new nodes under any folder with an 'ALL' strategy, when that folder is fetched.</li>
+<li>The sync process will create a new task for any node under an 'ALL' strategy during gatherRefreshTasks, unless a task already
+exists for one of its ancestors.</li>
+</ol>
+<p>The result is all paths with an explicit 'ALL' strategy will get fetched, and if they are folders, then in the next round, all its children will also be fetched, etcetera.</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, RS Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.0-alpha7',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
