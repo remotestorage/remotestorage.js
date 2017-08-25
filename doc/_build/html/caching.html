@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Caching in remotestorage.js &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  <title>Caching &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
   
 
   
@@ -35,7 +35,9 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/> 
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/>
+        <link rel="next" title="Data format" href="data-format.html"/>
+        <link rel="prev" title="Defining modules" href="api.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -89,7 +91,22 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Defining modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html#using-a-module-in-your-app">Using a module in your app</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html#customization">Customization</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Caching</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#configuring-caching-from-a-module">Configuring caching from a module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuring-caching-from-elsewhere">Configuring caching from elsewhere</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#synchronizing-after-caching-settings-have-changed">Synchronizing after caching settings have changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#internals">Internals</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data-format.html">Data format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="discovery-bootstrap.html">Discovery bootstrap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html">Using the AMD build of remotestorage.js</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html#release">Release</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html#dependencies">Dependencies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
@@ -136,13 +153,13 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Caching in remotestorage.js</li>
+      <li>Caching</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/caching.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/caching.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -155,81 +172,103 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="caching-in-remotestorage-js">
-<span id="caching-in-remotestorage-js"></span><h1>Caching in remotestorage.js<a class="headerlink" href="#caching-in-remotestorage-js" title="Permalink to this headline">¶</a></h1>
-<p>remotestorage.js gives you the option to synchronize some or all of the remote data your app has access to, to a local store. Usually this store is an indexedDB database.</p>
-<p>Enabling caching has several benefits and drawbacks:</p>
-<ul class="simple">
-<li>Speed of access: locally cached data is available to the app a lot faster.</li>
-<li>Offline mode: when data is cached, it can be read, written and removed while offline. Once the connection to the remotestorage provider is re-established, the pending changes will be synchronized.</li>
-<li>Initial synchronization time: the amount of data your app caches can have a significant impact on startup time of your app. If your app deals with large data items, you may want to consider synchronizing the big parts of the data only when the user wants to access them.</li>
-</ul>
-<p>Caching can be enabled on a per-path basis. When caching is enabled for a given folder, that causes all subdirectories to be cached as well.</p>
-<p>There are two ways to configure caching:</p>
-<ul class="simple">
-<li>globally through <code class="docutils literal"><span class="pre">remoteStorage.caching</span></code> - this would usually be done by an app.</li>
-<li>locally through <code class="docutils literal"><span class="pre">BaseClient#cache</span></code> - this would usually be done by a module.</li>
-</ul>
+  <div class="section" id="caching">
+<h1>Caching<a class="headerlink" href="#caching" title="Permalink to this headline">¶</a></h1>
+<div class="admonition attention">
+<p class="first admonition-title">Attention</p>
+<p class="last">This document has not yet been updated for rs.js 1.0.0+. It likely contains
+outdated information and API calls.</p>
+</div>
+<p>remotestorage.js gives you the option to synchronize some or all of the
+remote data your app has access to, to a local store. Usually this store
+is an indexedDB database.</p>
+<p>Enabling caching has several benefits and drawbacks: * Speed of access:
+locally cached data is available to the app a lot faster. * Offline
+mode: when data is cached, it can be read, written and removed while
+offline. Once the connection to the remotestorage provider is
+re-established, the pending changes will be synchronized. * Initial
+synchronization time: the amount of data your app caches can have a
+significant impact on startup time of your app. If your app deals with
+large data items, you may want to consider synchronizing the big parts
+of the data only when the user wants to access them.</p>
+<p>Caching can be enabled on a per-path basis. When caching is enabled for
+a given folder, that causes all subdirectories to be cached as well.</p>
+<p>There are two ways to configure caching: * globally through
+<code class="docutils literal"><span class="pre">remoteStorage.caching</span></code> - this would usually be done by an app. *
+locally through <code class="docutils literal"><span class="pre">BaseClient#cache</span></code> - this would usually be done by a
+module.</p>
 <div class="section" id="configuring-caching-from-a-module">
-<span id="configuring-caching-from-a-module"></span><h2>Configuring caching from a module<a class="headerlink" href="#configuring-caching-from-a-module" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="docutils literal"><span class="pre">BaseClient#cache</span></code> interface is only a convenience method that internally uses <code class="docutils literal"><span class="pre">remoteStorage.caching</span></code>.</p>
+<h2>Configuring caching from a module<a class="headerlink" href="#configuring-caching-from-a-module" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal"><span class="pre">BaseClient#cache</span></code> interface is only a convenience method that
+internally uses <code class="docutils literal"><span class="pre">remoteStorage.caching</span></code>.</p>
 <p>This example shows how to configure caching in a module:</p>
-<div class="highlight-javascript"><div class="highlight"><pre><span></span>RemoteStorage.defineModule(&#39;beers&#39;, function(privateClient, publicClient) {
-  var pilsener = privateClient.scope(&#39;pilsener/&#39;);
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">RemoteStorage</span><span class="o">.</span><span class="n">defineModule</span><span class="p">(</span><span class="s1">&#39;beers&#39;</span><span class="p">,</span> <span class="n">function</span><span class="p">(</span><span class="n">privateClient</span><span class="p">,</span> <span class="n">publicClient</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">var</span> <span class="n">pilsener</span> <span class="o">=</span> <span class="n">privateClient</span><span class="o">.</span><span class="n">scope</span><span class="p">(</span><span class="s1">&#39;pilsener/&#39;</span><span class="p">);</span>
 
-  // to enable always caching all data (not only data that was changed), change
-  // the caching strategy from &#39;SEEN&#39; (the default) to &#39;ALL&#39;. These two are equivalent operations:
-  privateClient.cache(&#39;pilsener/&#39;, &#39;ALL&#39;);
-  // OR:
-  pilsener.cache(&#39;&#39;, ALL&#39;);
+  <span class="o">//</span> <span class="n">to</span> <span class="n">enable</span> <span class="n">always</span> <span class="n">caching</span> <span class="nb">all</span> <span class="n">data</span> <span class="p">(</span><span class="ow">not</span> <span class="n">only</span> <span class="n">data</span> <span class="n">that</span> <span class="n">was</span> <span class="n">changed</span><span class="p">),</span> <span class="n">change</span>
+  <span class="o">//</span> <span class="n">the</span> <span class="n">caching</span> <span class="n">strategy</span> <span class="kn">from</span> <span class="s1">&#39;SEEN&#39;</span> <span class="p">(</span><span class="n">the</span> <span class="n">default</span><span class="p">)</span> <span class="n">to</span> <span class="s1">&#39;ALL&#39;</span><span class="o">.</span> <span class="n">These</span> <span class="n">two</span> <span class="n">are</span> <span class="n">equivalent</span> <span class="n">operations</span><span class="p">:</span>
+  <span class="n">privateClient</span><span class="o">.</span><span class="n">cache</span><span class="p">(</span><span class="s1">&#39;pilsener/&#39;</span><span class="p">,</span> <span class="s1">&#39;ALL&#39;</span><span class="p">);</span>
+  <span class="o">//</span> <span class="n">OR</span><span class="p">:</span>
+  <span class="n">pilsener</span><span class="o">.</span><span class="n">cache</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ALL</span><span class="s1">&#39;);</span>
 
-  // to disable caching for a given path, pass &#39;FLUSH&#39; as the strategy:
-  privateClient.cache(&#39;pilsener/&#39;, &#39;FLUSH&#39;);
-  // OR:
-  pilsener.cache(&#39;&#39;, &#39;FLUSH&#39;);
+  <span class="o">//</span> <span class="n">to</span> <span class="n">disable</span> <span class="n">caching</span> <span class="k">for</span> <span class="n">a</span> <span class="n">given</span> <span class="n">path</span><span class="p">,</span> <span class="k">pass</span> <span class="s1">&#39;FLUSH&#39;</span> <span class="k">as</span> <span class="n">the</span> <span class="n">strategy</span><span class="p">:</span>
+  <span class="n">privateClient</span><span class="o">.</span><span class="n">cache</span><span class="p">(</span><span class="s1">&#39;pilsener/&#39;</span><span class="p">,</span> <span class="s1">&#39;FLUSH&#39;</span><span class="p">);</span>
+  <span class="o">//</span> <span class="n">OR</span><span class="p">:</span>
+  <span class="n">pilsener</span><span class="o">.</span><span class="n">cache</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;FLUSH&#39;</span><span class="p">);</span>
 
-  return {
-    exports: {
-      pilsener: pilsener
-    }
-  };
-});
+  <span class="k">return</span> <span class="p">{</span>
+    <span class="n">exports</span><span class="p">:</span> <span class="p">{</span>
+      <span class="n">pilsener</span><span class="p">:</span> <span class="n">pilsener</span>
+    <span class="p">}</span>
+  <span class="p">};</span>
+<span class="p">});</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="configuring-caching-from-elsewhere">
-<span id="configuring-caching-from-elsewhere"></span><h2>Configuring caching from elsewhere<a class="headerlink" href="#configuring-caching-from-elsewhere" title="Permalink to this headline">¶</a></h2>
-<p>If you want to alter caching settings outside of a module's context, you can do so using the <code class="docutils literal"><span class="pre">remoteStorage.caching</span></code> interface.</p>
+<h2>Configuring caching from elsewhere<a class="headerlink" href="#configuring-caching-from-elsewhere" title="Permalink to this headline">¶</a></h2>
+<p>If you want to alter caching settings outside of a module’s context, you
+can do so using the <code class="docutils literal"><span class="pre">remoteStorage.caching</span></code> interface.</p>
 <p>This example shows how to do that:</p>
-<div class="highlight-javascript"><div class="highlight"><pre><span></span><span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">caching</span><span class="p">.</span><span class="nx">enable</span><span class="p">(</span><span class="s1">&#39;/beers/pilsener/&#39;</span><span class="p">,</span> <span class="s1">&#39;ALL&#39;</span><span class="p">);</span>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">caching</span><span class="o">.</span><span class="n">enable</span><span class="p">(</span><span class="s1">&#39;/beers/pilsener/&#39;</span><span class="p">,</span> <span class="s1">&#39;ALL&#39;</span><span class="p">);</span>
 
-<span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">caching</span><span class="p">.</span><span class="nx">disable</span><span class="p">(</span><span class="s1">&#39;/beers/pilsener/&#39;</span><span class="p">,</span> <span class="s1">&#39;ALL&#39;</span><span class="p">);</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">caching</span><span class="o">.</span><span class="n">disable</span><span class="p">(</span><span class="s1">&#39;/beers/pilsener/&#39;</span><span class="p">,</span> <span class="s1">&#39;ALL&#39;</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="synchronizing-after-caching-settings-have-changed">
-<span id="synchronizing-after-caching-settings-have-changed"></span><h2>Synchronizing after caching settings have changed<a class="headerlink" href="#synchronizing-after-caching-settings-have-changed" title="Permalink to this headline">¶</a></h2>
-<p>Whenever you have changed the caching settings, you can either wait for the next automatic synchronization to happen, or trigger one yourself:</p>
-<div class="highlight-javascript"><div class="highlight"><pre><span></span><span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">sync</span><span class="p">().</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Synchronization finished.&quot;</span><span class="p">);</span>
+<h2>Synchronizing after caching settings have changed<a class="headerlink" href="#synchronizing-after-caching-settings-have-changed" title="Permalink to this headline">¶</a></h2>
+<p>Whenever you have changed the caching settings, you can either wait for
+the next automatic synchronization to happen, or trigger one yourself:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Synchronization finished.&quot;</span><span class="p">);</span>
 <span class="p">});</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="internals">
-<span id="internals"></span><h2>Internals<a class="headerlink" href="#internals" title="Permalink to this headline">¶</a></h2>
-<p>This section is aimed at developers of remotestorage.js. The caching strategies are stored in <code class="docutils literal"><span class="pre">remoteStorage.caching._rootPaths</span></code>.
-For instance, on https://myfavoritedrinks.5apps.com/, it has value <code class="docutils literal"><span class="pre">{</span> <span class="pre">/myfavoritedrinks/:</span> <span class="pre">&quot;ALL&quot;</span> <span class="pre">}</span></code>.</p>
-<p>The rootPaths are not stored in localStorage. If you refresh the page, it is up to the app to set all caching strategies again
-during the pageload.</p>
-<p>The effect of the caching strategy is basically achieved through three paths:</p>
-<ol class="simple">
-<li>Setting caching strategy 'ALL' for a path, creates an empty node for that path, unless it already exists.</li>
-<li>The sync process will then to a 'GET', and create new nodes under any folder with an 'ALL' strategy, when that folder is fetched.</li>
-<li>The sync process will create a new task for any node under an 'ALL' strategy during gatherRefreshTasks, unless a task already
-exists for one of its ancestors.</li>
+<h2>Internals<a class="headerlink" href="#internals" title="Permalink to this headline">¶</a></h2>
+<p>This section is aimed at developers of remotestorage.js. The caching
+strategies are stored in <code class="docutils literal"><span class="pre">remoteStorage.caching._rootPaths</span></code>. For
+instance, on <a class="reference external" href="https://myfavoritedrinks.5apps.com/">https://myfavoritedrinks.5apps.com/</a>, it has value
+<code class="docutils literal"><span class="pre">{</span> <span class="pre">/myfavoritedrinks/:</span> <span class="pre">&quot;ALL&quot;</span> <span class="pre">}</span></code>.</p>
+<p>The rootPaths are not stored in localStorage. If you refresh the page,
+it is up to the app to set all caching strategies again during the
+pageload.</p>
+<p>The effect of the caching strategy is basically achieved through three
+paths:</p>
+<ol class="arabic simple">
+<li>Setting caching strategy ‘ALL’ for a path, creates an empty node for
+that path, unless it already exists.</li>
+<li>The sync process will then to a ‘GET’, and create new nodes under any
+folder with an ‘ALL’ strategy, when that folder is fetched.</li>
+<li>The sync process will create a new task for any node under an ‘ALL’
+strategy during gatherRefreshTasks, unless a task already exists for
+one of its ancestors.</li>
 </ol>
-<p>The result is all paths with an explicit 'ALL' strategy will get fetched, and if they are folders, then in the next round, all its children will also be fetched, etcetera.</p>
+<p>The result is all paths with an explicit ‘ALL’ strategy will get
+fetched, and if they are folders, then in the next round, all its
+children will also be fetched, etcetera.</p>
 </div>
 </div>
 
@@ -240,6 +279,15 @@ exists for one of its ancestors.</li>
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="data-format.html" class="btn btn-neutral float-right" title="Data format" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="api.html" class="btn btn-neutral" title="Defining modules" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>

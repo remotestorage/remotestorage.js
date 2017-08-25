@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Using the AMD build of remotestorage.js &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  <title>AMD build &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
   
 
   
@@ -35,7 +35,9 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/> 
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/>
+        <link rel="next" title="Usage with node.js" href="nodejs.html"/>
+        <link rel="prev" title="Discovery bootstrap" href="discovery-bootstrap.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -89,7 +91,16 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Module API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="caching.html">Caching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data-format.html">Data format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="discovery-bootstrap.html">Discovery bootstrap</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">AMD build</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#release">Release</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
@@ -136,13 +147,13 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Using the AMD build of remotestorage.js</li>
+      <li>AMD build</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/amd.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/amd.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -155,24 +166,35 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="using-the-amd-build-of-remotestorage-js">
-<span id="using-the-amd-build-of-remotestorage-js"></span><h1>Using the AMD build of remotestorage.js<a class="headerlink" href="#using-the-amd-build-of-remotestorage-js" title="Permalink to this headline">¶</a></h1>
-<p>We provide a build of remotestorage.js that works with AMD. External dependencies must be provided for this build of the library to work.</p>
+  <div class="section" id="amd-build">
+<h1>AMD build<a class="headerlink" href="#amd-build" title="Permalink to this headline">¶</a></h1>
+<div class="admonition attention">
+<p class="first admonition-title">Attention</p>
+<p class="last">This document has not yet been updated for rs.js 1.0.0+. There is no
+seperate AMD build anymore.</p>
 </div>
+<p>We provide a build of remotestorage.js that works with AMD. External
+dependencies must be provided for this build of the library to work.</p>
 <div class="section" id="release">
-<span id="release"></span><h1>Release<a class="headerlink" href="#release" title="Permalink to this headline">¶</a></h1>
+<h2>Release<a class="headerlink" href="#release" title="Permalink to this headline">¶</a></h2>
 <p>For every release we provide an AMD build, this file is located in:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">releases</span><span class="o">/&lt;</span><span class="n">version</span><span class="o">&gt;/</span><span class="n">remotestorage</span><span class="o">.</span><span class="n">amd</span><span class="o">.</span><span class="n">js</span>
 <span class="n">releases</span><span class="o">/&lt;</span><span class="n">version</span><span class="o">&gt;/</span><span class="n">remotestorage</span><span class="o">-</span><span class="n">nocache</span><span class="o">.</span><span class="n">amd</span><span class="o">.</span><span class="n">js</span>
 </pre></div>
 </div>
-<p>The <code class="docutils literal"><span class="pre">nocache</span></code> build does not include any of the syncing functionality. When a document is saved, or fetched, it is communicating directly with the back-end remotestorage server.</p>
-<p><strong>NOTE</strong> version <code class="docutils literal"><span class="pre">0.11.0</span></code> of remotestorage.js has a broken AMD build.</p>
+<p>The <code class="docutils literal"><span class="pre">nocache</span></code> build does not include any of the syncing functionality.
+When a document is saved, or fetched, it is communicating directly with
+the back-end remotestorage server.</p>
 </div>
 <div class="section" id="dependencies">
-<span id="dependencies"></span><h1>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h1>
-<p>The AMD build of remotestorage.js depends on <a class="reference external" href="https://github.com/petkaantonov/bluebird">Bluebird</a> for Promise functionality, so you must include a reference to <code class="docutils literal"><span class="pre">bluebird</span></code> in your AMD init script.</p>
-<p><strong>NOTE</strong> For an up-to-date list of external dependencies, check the <code class="docutils literal"><span class="pre">define</span></code> statement in the top of the remotestorage AMD file.</p>
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<p>The AMD build of remotestorage.js depends on
+<a class="reference external" href="https://github.com/petkaantonov/bluebird">Bluebird</a> for Promise
+functionality, so you must include a reference to <code class="docutils literal"><span class="pre">bluebird</span></code> in your
+AMD init script.</p>
+<p><strong>NOTE</strong> For an up-to-date list of external dependencies, check the
+<code class="docutils literal"><span class="pre">define</span></code> statement in the top of the remotestorage AMD file.</p>
+</div>
 </div>
 
 
@@ -182,6 +204,15 @@
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="nodejs.html" class="btn btn-neutral float-right" title="Usage with node.js" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="discovery-bootstrap.html" class="btn btn-neutral" title="Discovery bootstrap" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>

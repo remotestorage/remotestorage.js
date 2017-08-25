@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Defining modules &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  <title>Module API &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
   
 
   
@@ -35,7 +35,9 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/> 
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/>
+        <link rel="next" title="Caching" href="caching.html"/>
+        <link rel="prev" title="Introduction" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -89,7 +91,19 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Module API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#defining-modules">Defining modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-a-module-in-your-app">Using a module in your app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#customization">Customization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="caching.html">Caching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data-format.html">Data format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="discovery-bootstrap.html">Discovery bootstrap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html">Using the AMD build of remotestorage.js</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html#release">Release</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html#dependencies">Dependencies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
@@ -136,13 +150,13 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Defining modules</li>
+      <li>Module API</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/api.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -155,67 +169,76 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="defining-modules">
-<span id="defining-modules"></span><h1>Defining modules<a class="headerlink" href="#defining-modules" title="Permalink to this headline">¶</a></h1>
-<p>Start by defining a module (check out the repo to reuse an existing one):</p>
-<div class="highlight-js"><div class="highlight"><pre><span></span>    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">defineModule</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">privClient</span><span class="p">,</span> <span class="nx">pubCient</span><span class="p">)</span> <span class="p">{</span>
-      <span class="c1">//basics:</span>
-      <span class="nx">privClient</span><span class="p">.</span><span class="nx">cache</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">strategy</span><span class="p">);</span> <span class="c1">//*** new behavior in 0.10 ***//</span>
-      <span class="nx">privClient</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">((</span><span class="nx">evt</span><span class="p">)</span> <span class="p">{});</span> <span class="c1">//*** new behavior in 0.10 ***//</span>
-      <span class="k">return</span> <span class="p">{</span>
-        <span class="nx">exports</span><span class="o">:</span> <span class="p">{</span>
-          <span class="nx">storeData</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-            <span class="nx">privClient</span><span class="p">.</span><span class="nx">storeObject</span><span class="p">(</span><span class="nx">ldType</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">obj</span><span class="p">);</span>
-            <span class="nx">privClient</span><span class="p">.</span><span class="nx">storeFile</span><span class="p">(</span><span class="nx">mimeType</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">arrBuffOrStr</span><span class="p">);</span>
-            <span class="nx">privClient</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="nx">path</span><span class="p">);</span>
-          <span class="p">},</span>
-          <span class="nx">getData</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-            <span class="nx">privClient</span><span class="p">.</span><span class="nx">getListing</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">maxAge</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">itemsMap</span><span class="p">)</span> <span class="p">{</span> <span class="c1">//*** new parameter maxAge in 0.10 ***//</span>
-              <span class="c1">//itemsMap === { &#39;a/&#39;: {ETag: &#39;123&#39;}}</span>
-            <span class="p">});</span>
-            <span class="nx">privClient</span><span class="p">.</span><span class="nx">getObject</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">maxAge</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span> <span class="p">{</span> <span class="c1">//*** new parameter maxAge in 0.10 ***//</span>
-              <span class="c1">//obj == { &#39;@context&#39;: &#39;...&#39;, firstName: &#39;...&#39; }</span>
-            <span class="p">});</span>
-            <span class="nx">privClient</span><span class="p">.</span><span class="nx">getFile</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">maxAge</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span> <span class="p">{</span> <span class="c1">//*** new parameter maxAge in 0.10 ***//</span>
-              <span class="c1">//obj = { data: arrBuffOrStr, mimeType: &#39;application/json&#39;}</span>
-            <span class="p">});</span>
-            <span class="kd">var</span> <span class="nx">url</span> <span class="o">=</span> <span class="nx">pubClient</span><span class="p">.</span><span class="nx">getItemURL</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-          <span class="p">},</span>
-          <span class="nx">advanced</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-            <span class="nx">privClient</span><span class="p">.</span><span class="nx">scope</span><span class="p">(</span><span class="s1">&#39;prefix/&#39;</span><span class="p">)</span>
-            <span class="nx">privClient</span><span class="p">.</span><span class="nx">getAll</span><span class="p">(</span><span class="s1">&#39;path/&#39;</span><span class="p">)</span>
-          <span class="p">}</span>
-        <span class="p">}</span>
-      <span class="p">};</span>
-    <span class="p">});</span>
+  <div class="section" id="module-api">
+<h1>Module API<a class="headerlink" href="#module-api" title="Permalink to this headline">¶</a></h1>
+<div class="admonition attention">
+<p class="first admonition-title">Attention</p>
+<p class="last">This document has not yet been updated for rs.js 1.0.0+. It likely contains
+outdated information and API calls.</p>
+</div>
+<div class="section" id="defining-modules">
+<h2>Defining modules<a class="headerlink" href="#defining-modules" title="Permalink to this headline">¶</a></h2>
+<p>Start by defining a module (check out the repo to reuse an existing
+one):</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">defineModule</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">function</span><span class="p">(</span><span class="n">privClient</span><span class="p">,</span> <span class="n">pubCient</span><span class="p">)</span> <span class="p">{</span>
+  <span class="o">//</span><span class="n">basics</span><span class="p">:</span>
+  <span class="n">privClient</span><span class="o">.</span><span class="n">cache</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">strategy</span><span class="p">);</span> <span class="o">//***</span> <span class="n">new</span> <span class="n">behavior</span> <span class="ow">in</span> <span class="mf">0.10</span> <span class="o">***//</span>
+  <span class="n">privClient</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="n">function</span><span class="p">((</span><span class="n">evt</span><span class="p">)</span> <span class="p">{});</span> <span class="o">//***</span> <span class="n">new</span> <span class="n">behavior</span> <span class="ow">in</span> <span class="mf">0.10</span> <span class="o">***//</span>
+  <span class="k">return</span> <span class="p">{</span>
+    <span class="n">exports</span><span class="p">:</span> <span class="p">{</span>
+      <span class="n">storeData</span><span class="p">:</span> <span class="n">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">privClient</span><span class="o">.</span><span class="n">storeObject</span><span class="p">(</span><span class="n">ldType</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">obj</span><span class="p">);</span>
+        <span class="n">privClient</span><span class="o">.</span><span class="n">storeFile</span><span class="p">(</span><span class="n">mimeType</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">arrBuffOrStr</span><span class="p">);</span>
+        <span class="n">privClient</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+      <span class="p">},</span>
+      <span class="n">getData</span><span class="p">:</span> <span class="n">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">privClient</span><span class="o">.</span><span class="n">getListing</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">maxAge</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span><span class="p">(</span><span class="n">itemsMap</span><span class="p">)</span> <span class="p">{</span> <span class="o">//***</span> <span class="n">new</span> <span class="n">parameter</span> <span class="n">maxAge</span> <span class="ow">in</span> <span class="mf">0.10</span> <span class="o">***//</span>
+          <span class="o">//</span><span class="n">itemsMap</span> <span class="o">===</span> <span class="p">{</span> <span class="s1">&#39;a/&#39;</span><span class="p">:</span> <span class="p">{</span><span class="n">ETag</span><span class="p">:</span> <span class="s1">&#39;123&#39;</span><span class="p">}}</span>
+        <span class="p">});</span>
+        <span class="n">privClient</span><span class="o">.</span><span class="n">getObject</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">maxAge</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="p">{</span> <span class="o">//***</span> <span class="n">new</span> <span class="n">parameter</span> <span class="n">maxAge</span> <span class="ow">in</span> <span class="mf">0.10</span> <span class="o">***//</span>
+          <span class="o">//</span><span class="n">obj</span> <span class="o">==</span> <span class="p">{</span> <span class="s1">&#39;@context&#39;</span><span class="p">:</span> <span class="s1">&#39;...&#39;</span><span class="p">,</span> <span class="n">firstName</span><span class="p">:</span> <span class="s1">&#39;...&#39;</span> <span class="p">}</span>
+        <span class="p">});</span>
+        <span class="n">privClient</span><span class="o">.</span><span class="n">getFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">maxAge</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="p">{</span> <span class="o">//***</span> <span class="n">new</span> <span class="n">parameter</span> <span class="n">maxAge</span> <span class="ow">in</span> <span class="mf">0.10</span> <span class="o">***//</span>
+          <span class="o">//</span><span class="n">obj</span> <span class="o">=</span> <span class="p">{</span> <span class="n">data</span><span class="p">:</span> <span class="n">arrBuffOrStr</span><span class="p">,</span> <span class="n">mimeType</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="p">});</span>
+        <span class="n">var</span> <span class="n">url</span> <span class="o">=</span> <span class="n">pubClient</span><span class="o">.</span><span class="n">getItemURL</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+      <span class="p">},</span>
+      <span class="n">advanced</span><span class="p">:</span> <span class="n">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">privClient</span><span class="o">.</span><span class="n">scope</span><span class="p">(</span><span class="s1">&#39;prefix/&#39;</span><span class="p">)</span>
+        <span class="n">privClient</span><span class="o">.</span><span class="n">getAll</span><span class="p">(</span><span class="s1">&#39;path/&#39;</span><span class="p">)</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">};</span>
+<span class="p">});</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="using-a-module-in-your-app">
-<span id="using-a-module-in-your-app"></span><h1>Using a module in your app<a class="headerlink" href="#using-a-module-in-your-app" title="Permalink to this headline">¶</a></h1>
-<div class="highlight-js"><div class="highlight"><pre><span></span>    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">displayWidget</span><span class="p">();</span>
-    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">access</span><span class="p">.</span><span class="nx">claim</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;rw&#39;</span><span class="p">);</span>
-    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">name</span><span class="p">.</span><span class="nx">func1</span><span class="p">()...</span>
-    <span class="nx">remoteStorage</span><span class="p">[</span><span class="nx">name</span><span class="p">].</span><span class="nx">func1</span><span class="p">()...</span>
+<h2>Using a module in your app<a class="headerlink" href="#using-a-module-in-your-app" title="Permalink to this headline">¶</a></h2>
+<div class="code js highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">displayWidget</span><span class="p">();</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">access</span><span class="o">.</span><span class="n">claim</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;rw&#39;</span><span class="p">);</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">func1</span><span class="p">()</span><span class="o">...</span>
+<span class="n">remoteStorage</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">func1</span><span class="p">()</span><span class="o">...</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="customization">
-<span id="customization"></span><h1>Customization<a class="headerlink" href="#customization" title="Permalink to this headline">¶</a></h1>
-<div class="highlight-js"><div class="highlight"><pre><span></span>    <span class="nx">RemoteStorage</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">changeEvents</span> <span class="o">=</span> <span class="p">{</span>
-      <span class="nx">local</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span> <span class="c1">// for better page load performance</span>
-      <span class="nb">window</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span> <span class="c1">// for better write performance</span>
-      <span class="nx">remote</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-      <span class="nx">conflict</span><span class="o">:</span> <span class="kc">true</span>
-    <span class="p">};</span>
-    <span class="nx">RemoteStorage</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">logging</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
-    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;ready&#39;</span><span class="p">,</span> <span class="p">...)</span>
-    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">setApiKeys</span><span class="p">(</span><span class="nx">backend</span><span class="p">,</span> <span class="nx">keys</span><span class="p">);</span>
-    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s1">&#39;user@host&#39;</span><span class="p">[,</span> <span class="nx">backend</span><span class="p">]);</span> <span class="c1">// triggers WebFinger+OAuth</span>
-    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">remote</span><span class="p">.</span><span class="nx">configure</span><span class="p">({</span><span class="nx">token</span><span class="o">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">});</span> <span class="c1">// directly, no OAuth</span>
-    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">disconnect</span><span class="p">();</span>
-    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">connected</span>
+<h2>Customization<a class="headerlink" href="#customization" title="Permalink to this headline">¶</a></h2>
+<div class="code js highlight-default"><div class="highlight"><pre><span></span><span class="n">RemoteStorage</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">changeEvents</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="n">local</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span> <span class="o">//</span> <span class="k">for</span> <span class="n">better</span> <span class="n">page</span> <span class="n">load</span> <span class="n">performance</span>
+  <span class="n">window</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span> <span class="o">//</span> <span class="k">for</span> <span class="n">better</span> <span class="n">write</span> <span class="n">performance</span>
+  <span class="n">remote</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+  <span class="n">conflict</span><span class="p">:</span> <span class="n">true</span>
+<span class="p">};</span>
+<span class="n">RemoteStorage</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">logging</span> <span class="o">=</span> <span class="n">false</span><span class="p">;</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;ready&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">setApiKeys</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">keys</span><span class="p">);</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;user@host&#39;</span><span class="p">[,</span> <span class="n">backend</span><span class="p">]);</span> <span class="o">//</span> <span class="n">triggers</span> <span class="n">WebFinger</span><span class="o">+</span><span class="n">OAuth</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">remote</span><span class="o">.</span><span class="n">configure</span><span class="p">({</span><span class="n">token</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">});</span> <span class="o">//</span> <span class="n">directly</span><span class="p">,</span> <span class="n">no</span> <span class="n">OAuth</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">disconnect</span><span class="p">();</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">connected</span>
 </pre></div>
+</div>
 </div>
 </div>
 
@@ -226,6 +249,15 @@
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="caching.html" class="btn btn-neutral float-right" title="Caching" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>
