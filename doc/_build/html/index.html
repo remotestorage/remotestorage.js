@@ -36,7 +36,7 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="#"/>
-        <link rel="next" title="Usage with node.js" href="nodejs.html"/> 
+        <link rel="next" title="Module API" href="api.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -91,6 +91,11 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Module API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="caching.html">Caching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data-format.html">Data format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="discovery-bootstrap.html">Discovery bootstrap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html">AMD build</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
@@ -161,6 +166,33 @@
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Module API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#defining-modules">Defining modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#using-a-module-in-your-app">Using a module in your app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#customization">Customization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="caching.html">Caching</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="caching.html#configuring-caching-from-a-module">Configuring caching from a module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="caching.html#configuring-caching-from-elsewhere">Configuring caching from elsewhere</a></li>
+<li class="toctree-l2"><a class="reference internal" href="caching.html#synchronizing-after-caching-settings-have-changed">Synchronizing after caching settings have changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="caching.html#internals">Internals</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data-format.html">Data format</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data-format.html#storing-up-to-4-revisions-of-each-node">Storing up to 4 revisions of each node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data-format.html#automerge">autoMerge</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data-format.html#caching-strategies">Caching strategies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data-format.html#keep-revert-conflict-resolution">“keep/revert” conflict resolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data-format.html#implications-for-module-design">Implications for module design</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="discovery-bootstrap.html">Discovery bootstrap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html">AMD build</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="amd.html#release">Release</a></li>
+<li class="toctree-l2"><a class="reference internal" href="amd.html#dependencies">Dependencies</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="nodejs.html#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nodejs.html#initialization">Initialization</a></li>
@@ -171,7 +203,8 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="contributing/release_checklist.html">Release Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing/code-overview.html">Code overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing/release-checklist.html">Release Checklist</a></li>
 </ul>
 </li>
 </ul>
@@ -188,7 +221,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="nodejs.html" class="btn btn-neutral float-right" title="Usage with node.js" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="api.html" class="btn btn-neutral float-right" title="Module API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>

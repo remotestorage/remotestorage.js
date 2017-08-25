@@ -2,7 +2,8 @@ Usage with node.js
 ==================
 
 .. ATTENTION::
-   This document has not yet been updated for rs.js 1.0.0+
+   This document has not yet been updated for rs.js 1.0.0+. It likely contains
+   outdated information and API calls.
 
 Although remoteStorage.js was initially written for being used within a
 browser, we do support using it within a node.js environment as well. However,

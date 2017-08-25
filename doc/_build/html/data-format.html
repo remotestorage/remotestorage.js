@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Storing up to 4 revisions of each node &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  <title>Data format &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
   
 
   
@@ -35,7 +35,9 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/> 
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/>
+        <link rel="next" title="Discovery bootstrap" href="discovery-bootstrap.html"/>
+        <link rel="prev" title="Caching" href="caching.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -89,7 +91,23 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Defining modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html#using-a-module-in-your-app">Using a module in your app</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html#customization">Customization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="caching.html">Caching</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Data format</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#storing-up-to-4-revisions-of-each-node">Storing up to 4 revisions of each node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#automerge">autoMerge</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#caching-strategies">Caching strategies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#keep-revert-conflict-resolution">“keep/revert” conflict resolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#implications-for-module-design">Implications for module design</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="discovery-bootstrap.html">Discovery bootstrap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html">Using the AMD build of remotestorage.js</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html#release">Release</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html#dependencies">Dependencies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
@@ -136,13 +154,13 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Storing up to 4 revisions of each node</li>
+      <li>Data format</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/data-format.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/data-format.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -155,24 +173,31 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="storing-up-to-4-revisions-of-each-node">
-<span id="storing-up-to-4-revisions-of-each-node"></span><h1>Storing up to 4 revisions of each node<a class="headerlink" href="#storing-up-to-4-revisions-of-each-node" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="data-format">
+<h1>Data format<a class="headerlink" href="#data-format" title="Permalink to this headline">¶</a></h1>
+<div class="admonition attention">
+<p class="first admonition-title">Attention</p>
+<p class="last">This document has not yet been updated for rs.js 1.0.0+. It likely contains
+outdated information and API calls.</p>
+</div>
+<div class="section" id="storing-up-to-4-revisions-of-each-node">
+<h2>Storing up to 4 revisions of each node<a class="headerlink" href="#storing-up-to-4-revisions-of-each-node" title="Permalink to this headline">¶</a></h2>
 <p>Each cache node will represent the versioning state of either one
 document or one folder. The versioning state is represented by one or
-more of the <code class="docutils literal"><span class="pre">common</span></code>, <code class="docutils literal"><span class="pre">local</span></code>, <code class="docutils literal"><span class="pre">remote</span></code>, and <code class="docutils literal"><span class="pre">push</span></code> revisions. Local
-changes are stored in <code class="docutils literal"><span class="pre">local</span></code>, and in <code class="docutils literal"><span class="pre">push</span></code> while an outgoing request
-is active. Remote changes that have either not been fetched yet (see
-<a class="reference external" href="caching.md">caching.md</a>), or have
-not been merged with local changes yet, are stored in <code class="docutils literal"><span class="pre">remote</span></code>.</p>
+more of the <code class="docutils literal"><span class="pre">common</span></code>, <code class="docutils literal"><span class="pre">local</span></code>, <code class="docutils literal"><span class="pre">remote</span></code>, and <code class="docutils literal"><span class="pre">push</span></code> revisions.
+Local changes are stored in <code class="docutils literal"><span class="pre">local</span></code>, and in <code class="docutils literal"><span class="pre">push</span></code> while an outgoing
+request is active. Remote changes that have either not been fetched yet
+(see <a class="reference external" href="caching.md">caching.md</a>), or have not been merged with local
+changes yet, are stored in <code class="docutils literal"><span class="pre">remote</span></code>.</p>
 </div>
 <div class="section" id="automerge">
-<span id="automerge"></span><h1>autoMerge<a class="headerlink" href="#automerge" title="Permalink to this headline">¶</a></h1>
-<p>The <code class="docutils literal"><span class="pre">sync.autoMerge</span></code> function will try to merge local and remote changes
-into the common revision of a node. It may emit change events with a
-'conflict' origin to indicate that an unpushed local change was
+<h2>autoMerge<a class="headerlink" href="#automerge" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal"><span class="pre">sync.autoMerge</span></code> function will try to merge local and remote
+changes into the common revision of a node. It may emit change events
+with a ‘conflict’ origin to indicate that an unpushed local change was
 overruled by a remote change.</p>
 <p>When consulting the base client about the current value of a node, you
-will get either its 'local' revision if it exists, or its 'common'
+will get either its ‘local’ revision if it exists, or its ‘common’
 revision otherwise. The following are versioning tree diagrams of how
 local and remote revisions of a node can interact:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">//</span><span class="ow">in</span> <span class="n">sync</span><span class="p">:</span>
@@ -219,32 +244,31 @@ unmerged deletion)</li>
 </li>
 </ul>
 <p>NB: The meaning of the timestamp was changed in
-https://github.com/remotestorage/remotestorage.js/pull/757#issuecomment-55276241</p>
+<a class="reference external" href="https://github.com/remotestorage/remotestorage.js/pull/757#issuecomment-55276241">https://github.com/remotestorage/remotestorage.js/pull/757#issuecomment-55276241</a></p>
 </div>
 <div class="section" id="caching-strategies">
-<span id="caching-strategies"></span><h1>Caching strategies<a class="headerlink" href="#caching-strategies" title="Permalink to this headline">¶</a></h1>
-<p>For each subtree, you can set the caching strategy to 'ALL',
-'SEEN' (default), and 'FLUSH'.</p>
+<h2>Caching strategies<a class="headerlink" href="#caching-strategies" title="Permalink to this headline">¶</a></h2>
+<p>For each subtree, you can set the caching strategy to ‘ALL’, ‘SEEN’
+(default), and ‘FLUSH’.</p>
 <ul class="simple">
-<li>'ALL' means that once all outgoing changes have been pushed, sync
-will start retrieving nodes to cache pro-actively. If a local
-copy exists of everything, it will check on each sync whether
-the ETag of the root folder changed, and retrieve remote changes
-if they exist.</li>
-<li>'SEEN' does this only for documents and folders that have been either
+<li>‘ALL’ means that once all outgoing changes have been pushed, sync
+will start retrieving nodes to cache pro-actively. If a local copy
+exists of everything, it will check on each sync whether the ETag of
+the root folder changed, and retrieve remote changes if they exist.</li>
+<li>‘SEEN’ does this only for documents and folders that have been either
 read from or written to at least once since connecting to the current
-remote backend, plus their parent/ancestor folders up to the root
-(to make tree-based sync possible).</li>
-<li>'FLUSH' will only cache outgoing changes, and forget them as soon as
+remote backend, plus their parent/ancestor folders up to the root (to
+make tree-based sync possible).</li>
+<li>‘FLUSH’ will only cache outgoing changes, and forget them as soon as
 they have been saved to remote successfully.</li>
 </ul>
 </div>
 <div class="section" id="keep-revert-conflict-resolution">
-<span id="keep-revert-conflict-resolution"></span><h1>&quot;keep/revert&quot; conflict resolution<a class="headerlink" href="#keep-revert-conflict-resolution" title="Permalink to this headline">¶</a></h1>
+<h2>“keep/revert” conflict resolution<a class="headerlink" href="#keep-revert-conflict-resolution" title="Permalink to this headline">¶</a></h2>
 <p>Remotestorage implements a hub-and-spokes versioning system, with one
 central remoteStorage server (the hub) and any number of clients (the
 spokes). The clients will typically be unhosted web apps based on this
-JS lib (remotestorage.js), but they don't have to be; they can also be
+JS lib (remotestorage.js), but they don’t have to be; they can also be
 based on other client implementations, they can be hosted web apps,
 desktop apps, native smartphone apps, etcetera. New versions of subtrees
 always start at one of these clients. They are then sent to the server,
@@ -254,12 +278,12 @@ headers in response to PUT requests. Remotestorage.js is a library that
 attempts to make it easy to build remoteStorage clients, by hiding both
 the push/pull synchronization and the version merging from the client
 developer. Versioning conflicts between the local client and the remote
-server are initially resolved as a 'remote wins', to which the client
+server are initially resolved as a ‘remote wins’, to which the client
 code may respond with an explicit revert (putting the old, local version
 back), any type of custom merge (putting the result of the merge in
-place), or by doing nothing (&quot;keep&quot;), and leaving the remote result in
-place. This system is called &quot;keep/revert&quot;, since the library takes a
-pro-active action ('remote wins'), which the app can then either keep,
+place), or by doing nothing (“keep”), and leaving the remote result in
+place. This system is called “keep/revert”, since the library takes a
+pro-active action (‘remote wins’), which the app can then either keep,
 or revert.</p>
 <p>Sync is tree-based: syncing a node is equivalent to syncing all its
 children. There are two parts at play, that interact: transporting the
@@ -271,13 +295,13 @@ history, both locally and remotely. If at some point in time it either
 does not exist neither locally nor remotely, or its body and
 content-type are the same byte-for-byte on both sides, then the two
 stores are in agreement. If the document exists in only one of the
-stores, or the document's body or its content-type differs between the
+stores, or the document’s body or its content-type differs between the
 two stores, then the document is in conflict.</p>
 <p>The library is always aware of the latest local version, but it may or
 may not be aware of the latest remote version, and therefore of whether
 a conflict or agreement exists for the document. Likewise, the server is
 not necessarily aware of the latest local version, if there are changes
-that haven't been pushed out yet; nor does it care, though, since the
+that haven’t been pushed out yet; nor does it care, though, since the
 server does not get involved in conflict resolution. It only serializes
 conditional updates from all clients into one canonical versioning
 history.</p>
@@ -300,12 +324,12 @@ store (whether client to server or server to client). Note that in the
 case of a successful conditional push request, this will already have
 happened.</p>
 <p>Conflicts that are discovered by a document fetch, fire their
-'keep/revert' event immediately. Conflicts that are discovered through a
+‘keep/revert’ event immediately. Conflicts that are discovered through a
 parent folder fetch, or through a conditional push, fire their
-'keep/revert' event after the new remote version is fetched.</p>
-<p>The library's conflict resolution strategy is 'remote wins'. This means
+‘keep/revert’ event after the new remote version is fetched.</p>
+<p>The library’s conflict resolution strategy is ‘remote wins’. This means
 that the module will receive them in the form of change events with
-origin 'conflict'. When receiving such a change event, the module can
+origin ‘conflict’. When receiving such a change event, the module can
 still decide to revert it explicitly.</p>
 <p>As noted before, merging a subtree is done by merging each document that
 exists within that subtree, in either or both stores. When the library
@@ -314,8 +338,8 @@ then may or may not result in a conflict. When a folder listing comes
 in, which has changed since the last time it was retrieved, four types
 of information may be discovered:</p>
 <ul class="simple">
-<li>which of the documents directly within the folder changed their remote
-revision since the last check (new ETag on a document item)</li>
+<li>which of the documents directly within the folder changed their
+remote revision since the last check (new ETag on a document item)</li>
 <li>in which previously empty subtrees at least one document was created
 (new folder item)</li>
 <li>in which subtrees all previously existing documents were deleted
@@ -331,42 +355,43 @@ was changed on both sides, either in the same way, or in different ways.</p>
 need to worry about them.</p>
 </div>
 <div class="section" id="implications-for-module-design">
-<span id="implications-for-module-design"></span><h1>Implications for module design<a class="headerlink" href="#implications-for-module-design" title="Permalink to this headline">¶</a></h1>
+<h2>Implications for module design<a class="headerlink" href="#implications-for-module-design" title="Permalink to this headline">¶</a></h2>
 <p>There are a number of important implications for module design:</p>
 <ul class="simple">
-<li>First of all, this sync process follows the 'asynchronous
-synchronization' design principle
-(https://github.com/offlinefirst/research/issues/9). Don't wait for it
-to finish. The module should work with the local copy of the data, and
-handle incoming updates through evented programming. The only
-exception to this is where a body of data is too big to cache locally,
-and the module needs to expose on-demand access of remote data to the
-app. In all other cases, the module should expose the local version as
-'the truth'.</li>
-<li>Even then, IndexedDB is not fast enough to access from a button click.
-Make sure to put an in-memory caching layer in the module, and return
-control to the app immediately. An example of this approach is the
-SyncedMap data structure used in
-https://github.com/michielbdejong/meute.</li>
+<li>First of all, this sync process follows the ‘asynchronous
+synchronization’ design principle
+(<a class="reference external" href="https://github.com/offlinefirst/research/issues/9">https://github.com/offlinefirst/research/issues/9</a>). Don’t wait for
+it to finish. The module should work with the local copy of the data,
+and handle incoming updates through evented programming. The only
+exception to this is where a body of data is too big to cache
+locally, and the module needs to expose on-demand access of remote
+data to the app. In all other cases, the module should expose the
+local version as ‘the truth’.</li>
+<li>Even then, IndexedDB is not fast enough to access from a button
+click. Make sure to put an in-memory caching layer in the module, and
+return control to the app immediately. An example of this approach is
+the SyncedMap data structure used in
+<a class="reference external" href="https://github.com/michielbdejong/meute">https://github.com/michielbdejong/meute</a>.</li>
 <li>Use folders and subfolders. This allows the tree-based sync algorithm
 to shine and efficiently detect changes in any of potentially
 thousands of documents by checking the ETag from one single HTTP
 request to the root folder of the tree.</li>
-<li>Use meaningful collections. Multiple clients can each edit a different
-document without ever entering in conflict with each other. But
-editing the same document is interpreted as a conflict. For instance,
-when two calendar apps both schedule an event on a certain date, this
-would be a conflict if the module stores one document per day.
-However, if the module stores one document per event, and instead uses
-one /folder/ for each day, then the two events can co-exist on the
-same day without generating a conflict. Documents are a unit of
-conflict, but folders are not. Another example is storing todo-list
-items with long UUID hashes instead of their list index numbers as
-document names. Editing item &quot;5&quot; would conflict with inserting a new
-item &quot;5&quot;. But if both items have a long unique name, then they don't
-clash with each other. So make sure to choose unique item names for
-items that should not conflict.</li>
+<li>Use meaningful collections. Multiple clients can each edit a
+different document without ever entering in conflict with each other.
+But editing the same document is interpreted as a conflict. For
+instance, when two calendar apps both schedule an event on a certain
+date, this would be a conflict if the module stores one document per
+day. However, if the module stores one document per event, and
+instead uses one /folder/ for each day, then the two events can
+co-exist on the same day without generating a conflict. Documents are
+a unit of conflict, but folders are not. Another example is storing
+todo-list items with long UUID hashes instead of their list index
+numbers as document names. Editing item “5” would conflict with
+inserting a new item “5”. But if both items have a long unique name,
+then they don’t clash with each other. So make sure to choose unique
+item names for items that should not conflict.</li>
 </ul>
+</div>
 </div>
 
 
@@ -376,6 +401,15 @@ items that should not conflict.</li>
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="discovery-bootstrap.html" class="btn btn-neutral float-right" title="Discovery bootstrap" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="caching.html" class="btn btn-neutral" title="Caching" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>

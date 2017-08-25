@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>&lt;no title&gt; &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  <title>Discovery bootstrap &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
   
 
   
@@ -35,7 +35,9 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/> 
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/>
+        <link rel="next" title="Using the AMD build of remotestorage.js" href="amd.html"/>
+        <link rel="prev" title="Data format" href="data-format.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -89,7 +91,16 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Defining modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html#using-a-module-in-your-app">Using a module in your app</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html#customization">Customization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="caching.html">Caching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data-format.html">Data format</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Discovery bootstrap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html">Using the AMD build of remotestorage.js</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html#release">Release</a></li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html#dependencies">Dependencies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
@@ -136,13 +147,13 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>&lt;no title&gt;</li>
+      <li>Discovery bootstrap</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/discovery-bootstrap.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/discovery-bootstrap.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -155,23 +166,32 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <p>When the library loads, it checks the fragment of the URL to see if
-an <code class="docutils literal"><span class="pre">access_token</span></code> or <code class="docutils literal"><span class="pre">remotestorage</span></code> parameter exist there. In the
-first case, the access token is given to the remote using <code class="docutils literal"><span class="pre">remoteStorage.remote.configure</span></code>.
-In the second case, webfinger discovery is triggered for the user
-address given (see storage-first section of the remoteStorage spec)</p>
+  <div class="section" id="discovery-bootstrap">
+<h1>Discovery bootstrap<a class="headerlink" href="#discovery-bootstrap" title="Permalink to this headline">¶</a></h1>
+<div class="admonition attention">
+<p class="first admonition-title">Attention</p>
+<p class="last">This document has not yet been updated for rs.js 1.0.0+. It likely contains
+outdated information and API calls.</p>
+</div>
+<p>When the library loads, it checks the fragment of the URL to see if an
+<code class="docutils literal"><span class="pre">access_token</span></code> or <code class="docutils literal"><span class="pre">remotestorage</span></code> parameter exist there. In the
+first case, the access token is given to the remote using
+<code class="docutils literal"><span class="pre">remoteStorage.remote.configure</span></code>. In the second case, webfinger
+discovery is triggered for the user address given (see storage-first
+section of the remoteStorage spec)</p>
 <p>The user can also set the user address through the widget, or the app
 can call <code class="docutils literal"><span class="pre">remoteStorage.remote.configure</span></code> to set the user address.</p>
-<p>When a user address is set, but no other remote parameters are known yet,
-WebFinger discovery will be triggered. From there, the library gets
+<p>When a user address is set, but no other remote parameters are known
+yet, WebFinger discovery will be triggered. From there, the library gets
 the storage base URL, the storage API, and the OAuth dialog URL.</p>
 <p>If no OAuth URL is given, Implied Auth is triggered:
-https://github.com/remotestorage/remotestorage.js/issues/782</p>
+<a class="reference external" href="https://github.com/remotestorage/remotestorage.js/issues/782">https://github.com/remotestorage/remotestorage.js/issues/782</a></p>
 <p>If an OAuth URL is known, but no token yet, the OAuth dance will be
 triggered by setting the <code class="docutils literal"><span class="pre">location.href</span></code> of the window. When the dance
 comes back, the library will detect the <code class="docutils literal"><span class="pre">access_token</span></code> from the window
 location during the page load, and from that point onwards, the remote
 is connected.</p>
+</div>
 
 
            </div>
@@ -180,6 +200,15 @@ is connected.</p>
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="amd.html" class="btn btn-neutral float-right" title="Using the AMD build of remotestorage.js" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="data-format.html" class="btn btn-neutral" title="Data format" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>
