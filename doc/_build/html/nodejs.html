@@ -1,0 +1,492 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Usage with node.js &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/>
+        <link rel="next" title="Contributing" href="contributing.html"/>
+        <link rel="prev" title="Introduction" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> remoteStorage.js
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0-alpha7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage with node.js</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#base-library">Base library</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#initialization">Initialization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#create">create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#global">global</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#on-ready">on ready</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#configuring-a-remote">Configuring a remote</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#on-connected">on connected</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module">Module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#include">include</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#claim-access">claim access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#on-change">on change</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#using-our-module">Using our module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#complete-script">Complete script</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">remoteStorage.js</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Usage with node.js</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/nodejs.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="usage-with-node-js">
+<h1>Usage with node.js<a class="headerlink" href="#usage-with-node-js" title="Permalink to this headline">¶</a></h1>
+<div class="admonition attention">
+<p class="first admonition-title">Attention</p>
+<p class="last">This document has not yet been updated for rs.js 1.0.0+</p>
+</div>
+<p>Although remoteStorage.js was initially written for being used within a
+browser, we do support using it within a node.js environment as well. However,
+some things, which work in browsers, might not work without additional
+libraries and customizations.</p>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="base-library">
+<h3>Base library<a class="headerlink" href="#base-library" title="Permalink to this headline">¶</a></h3>
+<p>remoteStorage.js is available from npm:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ npm install remotestoragejs
+</pre></div>
+</div>
+</div>
+<div class="section" id="modules">
+<h3>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h3>
+<p>Currently the remotestorage.js modules are not packaged as part of the
+<code class="docutils literal"><span class="pre">remotestoragejs</span></code> npm module. So you will need to download (or create) your
+own module to use. You can visit our <a class="reference external" href="https://github.com/RemoteStorage/modules">modules repository</a> to see existing
+modules, feel free to submit a pull request if you’ve written your own.</p>
+<p>For this example, let’s use the <a class="reference external" href="https://github.com/remotestorage/modules/blob/master/src/feeds.js">feeds module</a>.</p>
+<p>Download a copy of this module and place it in your project somewhere, let’s
+say <code class="docutils literal"><span class="pre">src/remotestorage-feeds.js</span></code> for the purpose of this document.</p>
+</div>
+</div>
+<div class="section" id="initialization">
+<h2>Initialization<a class="headerlink" href="#initialization" title="Permalink to this headline">¶</a></h2>
+<p>The initialization process for creating an instance of RemoteStorage is as
+follows.</p>
+<div class="section" id="create">
+<h3>create<a class="headerlink" href="#create" title="Permalink to this headline">¶</a></h3>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">var</span> <span class="n">RemoteStorage</span> <span class="o">=</span> <span class="n">require</span><span class="p">(</span><span class="s1">&#39;remotestoragejs&#39;</span><span class="p">);</span>
+<span class="n">var</span> <span class="n">remoteStorage</span> <span class="o">=</span> <span class="n">new</span> <span class="n">RemoteStorage</span><span class="p">({</span>
+    <span class="n">logging</span><span class="p">:</span> <span class="n">true</span>  <span class="o">//</span> <span class="n">optinally</span> <span class="n">enable</span> <span class="n">debug</span> <span class="n">logs</span> <span class="p">(</span><span class="n">defaults</span> <span class="n">to</span> <span class="n">false</span><span class="p">)</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="global">
+<h3>global<a class="headerlink" href="#global" title="Permalink to this headline">¶</a></h3>
+<p>At this time, there are still some browser-specific requirements within the
+library that require us (for the time-being) to place our newly created
+remoteStorage object into nodes global scope. This is so our modules can access
+the object as they currently expect to do (we hope to address this issue soon).</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="k">global</span><span class="o">.</span><span class="n">remoteStorage</span> <span class="o">=</span> <span class="n">remoteStorage</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="on-ready">
+<h3>on ready<a class="headerlink" href="#on-ready" title="Permalink to this headline">¶</a></h3>
+<p>Now we can hook up to the <code class="docutils literal"><span class="pre">'ready'</span></code> event which will be called once our
+library has initialized.</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;ready&#39;</span><span class="p">,</span> <span class="n">beginApp</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>We will make the function <code class="docutils literal"><span class="pre">beginApp()</span></code> shortly.</p>
+</div>
+</div>
+<div class="section" id="configuring-a-remote">
+<h2>Configuring a remote<a class="headerlink" href="#configuring-a-remote" title="Permalink to this headline">¶</a></h2>
+<p>In order to use a remote, you will need a Webfinger <a class="footnote-reference" href="#f1" id="id1">[1]</a> user address and an
+OAuth <a class="footnote-reference" href="#f2" id="id2">[2]</a> bearer token for the desired category. You will need to provide
+these two values on your own outside of the program script, for example in an
+already authorized web-app which uses the module you’d like to use here. Within
+the web-app you should be able to inspect the <code class="docutils literal"><span class="pre">remoteStorage.remote.token</span></code>.</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">var</span> <span class="n">userAddress</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span> <span class="o">//</span> <span class="n">fill</span> <span class="n">me</span> <span class="ow">in</span>
+<span class="n">var</span> <span class="n">token</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span> <span class="o">//</span> <span class="n">fill</span> <span class="n">me</span> <span class="ow">in</span>
+
+<span class="n">RemoteStorage</span><span class="o">.</span><span class="n">Discover</span><span class="p">(</span><span class="n">userAddress</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span> <span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- configuring remote&#39;</span><span class="p">,</span> <span class="n">userAddress</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">href</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">storageType</span><span class="p">);</span>
+    <span class="n">remoteStorage</span><span class="o">.</span><span class="n">remote</span><span class="o">.</span><span class="n">configure</span><span class="p">({</span>
+        <span class="n">userAddress</span><span class="p">:</span> <span class="n">userAddress</span><span class="p">,</span>
+        <span class="n">href</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">href</span><span class="p">,</span>
+        <span class="n">storageApi</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">storageType</span><span class="p">,</span>
+        <span class="n">properties</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">properties</span><span class="p">,</span>
+        <span class="n">token</span><span class="p">:</span> <span class="n">token</span>
+    <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+<div class="section" id="on-connected">
+<h3>on connected<a class="headerlink" href="#on-connected" title="Permalink to this headline">¶</a></h3>
+<p>Although you can start using remoteStorage as soon as the ready event files,
+these events tell us whether/when we’ve connected to the remote storage target.
+When we’ve connected, all changes we make will be automatically synced with our
+remote.</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;connected&#39;</span><span class="p">,</span> <span class="n">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- connected to remote (syncing will take place)&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;not-connected&#39;</span><span class="p">,</span> <span class="n">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- not connected to remote (changes are local-only)&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="module">
+<h2>Module<a class="headerlink" href="#module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="include">
+<h3>include<a class="headerlink" href="#include" title="Permalink to this headline">¶</a></h3>
+<p>Now let’s include our <code class="docutils literal"><span class="pre">feeds</span></code> module. If the file was placed in our project as
+<code class="docutils literal"><span class="pre">src/remotestorage-feeds.js</span></code>, then this is how we’d include it.</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">require</span><span class="p">(</span><span class="s1">&#39;./src/remotestorage-feeds.js&#39;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Currently the modules attach themselves to the global <code class="docutils literal"><span class="pre">remotesStorage</span></code> object
+directly, which is why we needed to make it global earlier.</p>
+</div>
+<div class="section" id="claim-access">
+<h3>claim access<a class="headerlink" href="#claim-access" title="Permalink to this headline">¶</a></h3>
+<p>We’ll need to claim access to our module in order to use it:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">access</span><span class="o">.</span><span class="n">claim</span><span class="p">(</span><span class="s1">&#39;feeds&#39;</span><span class="p">,</span> <span class="s1">&#39;rw&#39;</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="on-change">
+<h3>on change<a class="headerlink" href="#on-change" title="Permalink to this headline">¶</a></h3>
+<p>To become alerted to our modules change event’s (which occurs when our module
+data has been updated either locally or remotely), we do the following.</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">rssAtom</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="n">function</span> <span class="p">(</span><span class="n">event</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- received change event: &#39;</span><span class="p">,</span> <span class="n">event</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="using-our-module">
+<h2>Using our module<a class="headerlink" href="#using-our-module" title="Permalink to this headline">¶</a></h2>
+<p>Now that all of the initialization is in place, let’s create the function which
+will be called when <code class="docutils literal"><span class="pre">remoteStorage</span></code> fires the <code class="docutils literal"><span class="pre">'ready'</span></code> event.</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">function</span> <span class="n">beginApp</span> <span class="p">{</span>
+    <span class="o">//</span> <span class="n">create</span> <span class="n">a</span> <span class="n">feed</span> <span class="n">record</span>
+    <span class="n">remoteStorage</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">rssAtom</span><span class="o">.</span><span class="n">create</span><span class="p">({</span>
+        <span class="n">url</span><span class="p">:</span> <span class="s1">&#39;testurl&#39;</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="s1">&#39;this is a test&#39;</span>
+    <span class="p">})</span>
+    <span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span> <span class="p">(</span><span class="n">feed</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- feed created &#39;</span><span class="p">,</span> <span class="n">feed</span><span class="p">);</span>
+
+        <span class="o">//</span> <span class="n">retrieve</span> <span class="nb">all</span> <span class="n">feeds</span>
+        <span class="n">remoteStorage</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">rssAtom</span><span class="o">.</span><span class="n">getAll</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span> <span class="p">(</span><span class="n">feeds</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- all feeds&#39;</span><span class="p">,</span> <span class="n">feeds</span><span class="p">);</span>
+        <span class="p">},</span> <span class="n">function</span> <span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;*** error fetching all feeds&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">);</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="complete-script">
+<h2>Complete script<a class="headerlink" href="#complete-script" title="Permalink to this headline">¶</a></h2>
+<p>Here’s our final script.</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">initialize</span> <span class="n">remoteStorage</span>
+<span class="n">var</span> <span class="n">RemoteStorage</span> <span class="o">=</span> <span class="n">require</span><span class="p">(</span><span class="s1">&#39;remotestoragejs&#39;</span><span class="p">);</span>
+<span class="n">var</span> <span class="n">remoteStorage</span> <span class="o">=</span> <span class="n">new</span> <span class="n">RemoteStorage</span><span class="p">({</span>
+    <span class="n">logging</span><span class="p">:</span> <span class="n">true</span>  <span class="o">//</span> <span class="n">optinally</span> <span class="n">enable</span> <span class="n">debug</span> <span class="n">logs</span> <span class="p">(</span><span class="n">defaults</span> <span class="n">to</span> <span class="n">false</span><span class="p">)</span>
+<span class="p">});</span>
+<span class="k">global</span><span class="o">.</span><span class="n">remoteStorage</span> <span class="o">=</span> <span class="n">remoteStorage</span><span class="p">;</span>
+
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;ready&#39;</span><span class="p">,</span> <span class="n">beginApp</span><span class="p">);</span>
+
+<span class="o">//</span> <span class="n">configure</span> <span class="n">remote</span>
+<span class="n">var</span> <span class="n">userAddress</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span> <span class="o">//</span> <span class="n">fill</span> <span class="n">me</span> <span class="ow">in</span>
+<span class="n">var</span> <span class="n">token</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span> <span class="o">//</span> <span class="n">fill</span> <span class="n">me</span> <span class="ow">in</span>
+
+<span class="n">RemoteStorage</span><span class="o">.</span><span class="n">Discover</span><span class="p">(</span><span class="n">userAddress</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span> <span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- configuring remote&#39;</span><span class="p">,</span> <span class="n">userAddress</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">href</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">storageType</span><span class="p">);</span>
+    <span class="n">remoteStorage</span><span class="o">.</span><span class="n">remote</span><span class="o">.</span><span class="n">configure</span><span class="p">({</span>
+        <span class="n">userAddress</span><span class="p">:</span> <span class="n">userAddress</span><span class="p">,</span>
+        <span class="n">href</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">href</span><span class="p">,</span>
+        <span class="n">storageAPI</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">storageType</span><span class="p">,</span>
+        <span class="n">properties</span><span class="p">:</span> <span class="n">properties</span><span class="p">,</span>
+        <span class="n">token</span><span class="p">:</span> <span class="n">token</span>
+    <span class="p">});</span>
+<span class="p">});</span>
+
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;connected&#39;</span><span class="p">,</span> <span class="n">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- connected to remote (syncing will take place)&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;not-connected&#39;</span><span class="p">,</span> <span class="n">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- not connected to remote (changes are local-only)&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="o">//</span> <span class="n">initialize</span> <span class="n">module</span>
+<span class="n">require</span><span class="p">(</span><span class="s1">&#39;./src/remotestorage-feeds.js&#39;</span><span class="p">);</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">access</span><span class="o">.</span><span class="n">claim</span><span class="p">(</span><span class="s1">&#39;feeds&#39;</span><span class="p">,</span> <span class="s1">&#39;rw&#39;</span><span class="p">);</span>
+
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">rssAtom</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="n">function</span> <span class="p">(</span><span class="n">event</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- received change event: &#39;</span><span class="p">,</span> <span class="n">event</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="n">function</span> <span class="n">beginApp</span><span class="p">()</span> <span class="p">{</span>
+    <span class="o">//</span> <span class="n">create</span> <span class="n">a</span> <span class="n">feed</span> <span class="n">record</span>
+    <span class="n">remoteStorage</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">rssAtom</span><span class="o">.</span><span class="n">create</span><span class="p">({</span>
+        <span class="n">url</span><span class="p">:</span> <span class="s1">&#39;testurl&#39;</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="s1">&#39;this is a test&#39;</span>
+    <span class="p">})</span>
+    <span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span> <span class="p">(</span><span class="n">feed</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- feed created &#39;</span><span class="p">,</span> <span class="n">feed</span><span class="p">);</span>
+        <span class="o">//</span> <span class="n">retrieve</span> <span class="nb">all</span> <span class="n">feeds</span>
+        <span class="n">remoteStorage</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">rssAtom</span><span class="o">.</span><span class="n">getAll</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">function</span> <span class="p">(</span><span class="n">feeds</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;- all feeds&#39;</span><span class="p">,</span> <span class="n">feeds</span><span class="p">);</span>
+        <span class="p">},</span> <span class="n">function</span> <span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;*** error fetching all feeds&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">);</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p class="rubric">Footnotes</p>
+<table class="docutils footnote" frame="void" id="f1" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>See <span class="target" id="index-0"></span><a class="rfc reference external" href="https://tools.ietf.org/html/rfc7033.html"><strong>RFC 7033</strong></a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="f2" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td>See <span class="target" id="index-1"></span><a class="rfc reference external" href="https://tools.ietf.org/html/rfc6749.html"><strong>RFC 6749</strong></a></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="contributing.html" class="btn btn-neutral float-right" title="Contributing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, RS Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.0-alpha7',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,285 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Defining modules &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> remoteStorage.js
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0-alpha7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">remoteStorage.js</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Defining modules</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/api.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="defining-modules">
+<span id="defining-modules"></span><h1>Defining modules<a class="headerlink" href="#defining-modules" title="Permalink to this headline">¶</a></h1>
+<p>Start by defining a module (check out the repo to reuse an existing one):</p>
+<div class="highlight-js"><div class="highlight"><pre><span></span>    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">defineModule</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">privClient</span><span class="p">,</span> <span class="nx">pubCient</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">//basics:</span>
+      <span class="nx">privClient</span><span class="p">.</span><span class="nx">cache</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">strategy</span><span class="p">);</span> <span class="c1">//*** new behavior in 0.10 ***//</span>
+      <span class="nx">privClient</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">((</span><span class="nx">evt</span><span class="p">)</span> <span class="p">{});</span> <span class="c1">//*** new behavior in 0.10 ***//</span>
+      <span class="k">return</span> <span class="p">{</span>
+        <span class="nx">exports</span><span class="o">:</span> <span class="p">{</span>
+          <span class="nx">storeData</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+            <span class="nx">privClient</span><span class="p">.</span><span class="nx">storeObject</span><span class="p">(</span><span class="nx">ldType</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">obj</span><span class="p">);</span>
+            <span class="nx">privClient</span><span class="p">.</span><span class="nx">storeFile</span><span class="p">(</span><span class="nx">mimeType</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">arrBuffOrStr</span><span class="p">);</span>
+            <span class="nx">privClient</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="nx">path</span><span class="p">);</span>
+          <span class="p">},</span>
+          <span class="nx">getData</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+            <span class="nx">privClient</span><span class="p">.</span><span class="nx">getListing</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">maxAge</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">itemsMap</span><span class="p">)</span> <span class="p">{</span> <span class="c1">//*** new parameter maxAge in 0.10 ***//</span>
+              <span class="c1">//itemsMap === { &#39;a/&#39;: {ETag: &#39;123&#39;}}</span>
+            <span class="p">});</span>
+            <span class="nx">privClient</span><span class="p">.</span><span class="nx">getObject</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">maxAge</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span> <span class="p">{</span> <span class="c1">//*** new parameter maxAge in 0.10 ***//</span>
+              <span class="c1">//obj == { &#39;@context&#39;: &#39;...&#39;, firstName: &#39;...&#39; }</span>
+            <span class="p">});</span>
+            <span class="nx">privClient</span><span class="p">.</span><span class="nx">getFile</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">maxAge</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span> <span class="p">{</span> <span class="c1">//*** new parameter maxAge in 0.10 ***//</span>
+              <span class="c1">//obj = { data: arrBuffOrStr, mimeType: &#39;application/json&#39;}</span>
+            <span class="p">});</span>
+            <span class="kd">var</span> <span class="nx">url</span> <span class="o">=</span> <span class="nx">pubClient</span><span class="p">.</span><span class="nx">getItemURL</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
+          <span class="p">},</span>
+          <span class="nx">advanced</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+            <span class="nx">privClient</span><span class="p">.</span><span class="nx">scope</span><span class="p">(</span><span class="s1">&#39;prefix/&#39;</span><span class="p">)</span>
+            <span class="nx">privClient</span><span class="p">.</span><span class="nx">getAll</span><span class="p">(</span><span class="s1">&#39;path/&#39;</span><span class="p">)</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">};</span>
+    <span class="p">});</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="using-a-module-in-your-app">
+<span id="using-a-module-in-your-app"></span><h1>Using a module in your app<a class="headerlink" href="#using-a-module-in-your-app" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-js"><div class="highlight"><pre><span></span>    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">displayWidget</span><span class="p">();</span>
+    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">access</span><span class="p">.</span><span class="nx">claim</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;rw&#39;</span><span class="p">);</span>
+    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">name</span><span class="p">.</span><span class="nx">func1</span><span class="p">()...</span>
+    <span class="nx">remoteStorage</span><span class="p">[</span><span class="nx">name</span><span class="p">].</span><span class="nx">func1</span><span class="p">()...</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="customization">
+<span id="customization"></span><h1>Customization<a class="headerlink" href="#customization" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-js"><div class="highlight"><pre><span></span>    <span class="nx">RemoteStorage</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">changeEvents</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="nx">local</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span> <span class="c1">// for better page load performance</span>
+      <span class="nb">window</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span> <span class="c1">// for better write performance</span>
+      <span class="nx">remote</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="nx">conflict</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="p">};</span>
+    <span class="nx">RemoteStorage</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">logging</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;ready&#39;</span><span class="p">,</span> <span class="p">...)</span>
+    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">setApiKeys</span><span class="p">(</span><span class="nx">backend</span><span class="p">,</span> <span class="nx">keys</span><span class="p">);</span>
+    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s1">&#39;user@host&#39;</span><span class="p">[,</span> <span class="nx">backend</span><span class="p">]);</span> <span class="c1">// triggers WebFinger+OAuth</span>
+    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">remote</span><span class="p">.</span><span class="nx">configure</span><span class="p">({</span><span class="nx">token</span><span class="o">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">});</span> <span class="c1">// directly, no OAuth</span>
+    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">disconnect</span><span class="p">();</span>
+    <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">connected</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, RS Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.0-alpha7',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
