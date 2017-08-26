@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>AMD build &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  <title>Why use this? &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
   
 
   
@@ -36,8 +36,8 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="index.html"/>
-        <link rel="next" title="Usage with node.js" href="nodejs.html"/>
-        <link rel="prev" title="Discovery bootstrap" href="discovery-bootstrap.html"/> 
+        <link rel="next" title="Data modules" href="data-modules.html"/>
+        <link rel="prev" title="remoteStorage.js" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -92,17 +92,19 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="why.html">Why use this?</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Why use this?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#offline-first-design">Offline-first design</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#zero-backend">Zero backend</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-sharing">Data sharing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reliability">Reliability</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="data-modules.html">Data modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">Module API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="caching.html">Caching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data-format.html">Data format</a></li>
 <li class="toctree-l1"><a class="reference internal" href="discovery-bootstrap.html">Discovery bootstrap</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">AMD build</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#release">Release</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="amd.html">AMD build</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nodejs.html">Usage with node.js</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
@@ -149,13 +151,13 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>AMD build</li>
+      <li>Why use this?</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/amd.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/why.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -168,34 +170,61 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="amd-build">
-<h1>AMD build<a class="headerlink" href="#amd-build" title="Permalink to this headline">¶</a></h1>
-<div class="admonition attention">
-<p class="first admonition-title">Attention</p>
-<p class="last">This document has not yet been updated for rs.js 1.0.0+. There is no
-seperate AMD build anymore.</p>
+  <div class="section" id="why-use-this">
+<h1>Why use this?<a class="headerlink" href="#why-use-this" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="offline-first-design">
+<h2>Offline-first design<a class="headerlink" href="#offline-first-design" title="Permalink to this headline">¶</a></h2>
+<p>rs.js is offline-first by design, meaning data is stored locally first <a class="footnote-reference" href="#f1" id="id1">[1]</a>,
+and synced to and from a remote storage account second. This makes it a robust
+sync solution for mobile applications, where slow and spotty network
+connections are a normal situation.</p>
+<p>It’s also useful, when a backend goes down, as users can just keep using their
+app and have their data automatically synced whenever the server is back
+online.</p>
 </div>
-<p>We provide a build of remotestorage.js that works with AMD. External
-dependencies must be provided for this build of the library to work.</p>
-<div class="section" id="release">
-<h2>Release<a class="headerlink" href="#release" title="Permalink to this headline">¶</a></h2>
-<p>For every release we provide an AMD build, this file is located in:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">releases</span><span class="o">/&lt;</span><span class="n">version</span><span class="o">&gt;/</span><span class="n">remotestorage</span><span class="o">.</span><span class="n">amd</span><span class="o">.</span><span class="n">js</span>
-<span class="n">releases</span><span class="o">/&lt;</span><span class="n">version</span><span class="o">&gt;/</span><span class="n">remotestorage</span><span class="o">-</span><span class="n">nocache</span><span class="o">.</span><span class="n">amd</span><span class="o">.</span><span class="n">js</span>
-</pre></div>
+<div class="section" id="zero-backend">
+<h2>Zero backend<a class="headerlink" href="#zero-backend" title="Permalink to this headline">¶</a></h2>
+<p>rs.js is built for creating fully <a class="reference external" href="https://remotestorage.io/#explainer-unhosted">unhosted</a> apps. Meaning users are able to
+connect their own storage account to apps on their devices, without app
+developers having to store or even see their user’s data. Thus, developers
+don’t have to integrate, manage, maintain and secure a storage server or cloud.</p>
+<p>A nice side effect of this design is that your app can scale to millions of
+users with literally <em>zero</em> cost for storage.</p>
+<p>Also, in case you decide to abandon your app <a class="footnote-reference" href="#f2" id="id2">[2]</a>, users can continue to use
+it across devices until they switch to a new one on their own time. You may
+even reverse your decision at some point and still have a lot of your users
+right there.</p>
 </div>
-<p>The <code class="docutils literal"><span class="pre">nocache</span></code> build does not include any of the syncing functionality.
-When a document is saved, or fetched, it is communicating directly with
-the back-end remotestorage server.</p>
+<div class="section" id="data-sharing">
+<h2>Data sharing<a class="headerlink" href="#data-sharing" title="Permalink to this headline">¶</a></h2>
+<p>Different apps can access the same data, so you can build an app that uses and
+manipulates existing data, without building import/export features or having
+users start over from scratch.</p>
+<p>Even better, you can get advanced capabilities for free by using shared,
+open-source <a class="reference internal" href="data-modules.html"><span class="doc">data modules</span></a>, which you can cooperate on
+with other developers.</p>
+<p>For example: if you want to enable users to share files from their storage
+account in your app, you can just integrate the <a class="reference external" href="https://github.com/skddc/remotestorage-module-shares">shares module</a> within a
+matter of minutes, giving you client-side thumbnail generation and other
+features in the process.</p>
 </div>
-<div class="section" id="dependencies">
-<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
-<p>The AMD build of remotestorage.js depends on
-<a class="reference external" href="https://github.com/petkaantonov/bluebird">Bluebird</a> for Promise
-functionality, so you must include a reference to <code class="docutils literal"><span class="pre">bluebird</span></code> in your
-AMD init script.</p>
-<p><strong>NOTE</strong> For an up-to-date list of external dependencies, check the
-<code class="docutils literal"><span class="pre">define</span></code> statement in the top of the remotestorage AMD file.</p>
+<div class="section" id="reliability">
+<h2>Reliability<a class="headerlink" href="#reliability" title="Permalink to this headline">¶</a></h2>
+<p>…</p>
+<p class="rubric">Footnotes</p>
+<table class="docutils footnote" frame="void" id="f1" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>Except for apps and use cases that don’t require caching, like e.g.
+with <a class="reference external" href="https://sharesome.5apps.com/">Sharesome</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="f2" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td>Let’s just be honest: nothing lasts forever.</td></tr>
+</tbody>
+</table>
 </div>
 </div>
 
@@ -209,10 +238,10 @@ AMD init script.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="nodejs.html" class="btn btn-neutral float-right" title="Usage with node.js" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="data-modules.html" class="btn btn-neutral float-right" title="Data modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="discovery-bootstrap.html" class="btn btn-neutral" title="Discovery bootstrap" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral" title="remoteStorage.js" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
