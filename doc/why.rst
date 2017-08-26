@@ -18,7 +18,7 @@ Zero backend
 
 rs.js is built for creating fully `unhosted`_ apps. Meaning users are able to
 connect their own storage account to apps on their devices, without app
-developers having to store or even see their user's data. Thus, developers
+developers having to store or even see their users' data. Thus, developers
 don't have to integrate, manage, maintain and secure a storage server or cloud.
 
 A nice side effect of this design is that your app can scale to millions of
