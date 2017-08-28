@@ -452,17 +452,12 @@
     },
 
     /**
-     * Method: setApiKeys (experimental)
+     * Set the OAuth key/ID for either GoogleDrive or Dropbox backend support.
+     * Use the method twice to set both.
      *
-     * Set API keys for (currently) GoogleDrive and/or Dropbox backend support.
-     * See also the 'backends' example in the starter-kit. Note that support for
-     * both these backends is still experimental.
-     *
-     * Parameters:
-     *   type - string, either 'googledrive' or 'dropbox'
-     *   keys - object, with one string field; 'clientId' for GoogleDrive, or
-     *          'appKey' for Dropbox.
-     *
+     * @param {string} type - Either 'googledrive' or 'dropbox'
+     * @param {object} keys - Must contain property 'clientId' for GoogleDrive, or
+     *                         'appKey' for Dropbox
      */
     setApiKeys: function (type, keys) {
       if (keys) {

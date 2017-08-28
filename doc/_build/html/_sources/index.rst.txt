@@ -23,6 +23,7 @@ across devices and applications.
    amd
    nodejs
    contributing
+   js-api
 
 ..
    Indices and tables

@@ -10,6 +10,11 @@
     "url": "git://github.com/remotestorage/remotestorage.js.git"
   },
   "homepage": "https://remotestorage.io",
+  "scripts": {
+    "test": "make test",
+    "build": "NODE_ENV=production webpack -p",
+    "dev": "webpack -w"
+  },
   "devDependencies": {
     "babel-core": "^6.18.2",
     "babel-loader": "^6.2.8",
@@ -18,11 +23,6 @@
     "uglify-js": "^2.6.1",
     "uuid": "^3.0.1",
     "webpack": "^1.13.2"
-  },
-  "scripts": {
-    "test": "make test",
-    "build": "NODE_ENV=production webpack -p",
-    "dev": "webpack -w"
   },
   "dependencies": {
     "tv4": "^1.2.7",
