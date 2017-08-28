@@ -29,10 +29,14 @@
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = []
+extensions = ['sphinx_js']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+
+# Used to extract JSDoc function/class docs from source
+js_source_path = '../src'
+primary_domain = 'js'
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -165,13 +169,3 @@ texinfo_documents = [
      author, 'remoteStoragejs', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-# -- Support Markdown docs ------------------------------------------------
-
-from recommonmark.parser import CommonMarkParser
-
-source_parsers = {
-    '.md': CommonMarkParser,
-}
-
-source_suffix = ['.rst', '.md']

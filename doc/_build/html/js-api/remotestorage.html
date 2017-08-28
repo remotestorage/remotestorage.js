@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Code overview &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  <title>remoteStorage &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
   
 
   
@@ -36,9 +36,8 @@
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="../index.html"/>
-        <link rel="up" title="Contributing" href="../contributing.html"/>
-        <link rel="next" title="Release Checklist" href="release-checklist.html"/>
-        <link rel="prev" title="Contributing" href="../contributing.html"/> 
+        <link rel="up" title="JavaScript API" href="../js-api.html"/>
+        <link rel="prev" title="JavaScript API" href="../js-api.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -101,12 +100,15 @@
 <li class="toctree-l1"><a class="reference internal" href="../discovery-bootstrap.html">Discovery bootstrap</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../amd.html">AMD build</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../nodejs.html">Usage with node.js</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../contributing.html">Contributing</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Code overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-checklist.html">Release Checklist</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../js-api.html">JavaScript API</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">remoteStorage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#initialization">Initialization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#prototype-methods">Prototype methods</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../js-api.html">JavaScript API</a></li>
+</ul>
+</li>
 </ul>
 
             
@@ -151,15 +153,15 @@
     
       <li><a href="../index.html">Docs</a> &raquo;</li>
         
-          <li><a href="../contributing.html">Contributing</a> &raquo;</li>
+          <li><a href="../js-api.html">JavaScript API</a> &raquo;</li>
         
-      <li>Code overview</li>
+      <li>remoteStorage</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/contributing/code-overview.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/js-api/remotestorage.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -172,29 +174,36 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="code-overview">
-<h1>Code overview<a class="headerlink" href="#code-overview" title="Permalink to this headline">¶</a></h1>
-<p>The code of remotestorage.js consists of files in the <code class="docutils literal"><span class="pre">src/</span></code> folder of
-this repo. It is built with webpack in the <code class="docutils literal"><span class="pre">build/</span></code> folder of this
-repo. The tests are in the <code class="docutils literal"><span class="pre">test/</span></code> folder.</p>
-<p>The structure of the code is based around feature loading. Most files in
-<code class="docutils literal"><span class="pre">src/</span></code> correspond to a feature, e.g. <code class="docutils literal"><span class="pre">RemoteStorage.Discover</span></code> or
-<code class="docutils literal"><span class="pre">RemoteStorage.Caching</span></code>.</p>
-<p>The feature loading happens synchronously during the page load in
-<code class="docutils literal"><span class="pre">src/remotestorage.js</span></code> (just including the script in your app will
-lead to executing the code that loads the features).</p>
-<p>Most feature load under their own name, but for <code class="docutils literal"><span class="pre">remoteStorage.local</span></code>
-a choice is made between <code class="docutils literal"><span class="pre">RemoteStorage.IndexedDB</span></code>,
-<code class="docutils literal"><span class="pre">RemoteStorage.LocalStorage</span></code> and <code class="docutils literal"><span class="pre">RemoteStorage.InMemoryCaching</span></code>.</p>
-<p>For <code class="docutils literal"><span class="pre">remoteStorage.local</span></code> we then also have a <a class="reference external" href="https://github.com/remotestorage/remotestorage.js/issues/777#issuecomment-57392440">special
-mixin</a>
-called <code class="docutils literal"><span class="pre">src/cachinglayer.js</span></code>, which mixes in some common functions
-into the object.</p>
-<p>The <code class="docutils literal"><span class="pre">remoteStorage.remote</span></code> feature is not loaded immediately, but only
-when <code class="docutils literal"><span class="pre">RemoteStorage.Discover</span></code> calls <code class="docutils literal"><span class="pre">remoteStorage.setBackend</span></code>, and
-then a choice is made between <code class="docutils literal"><span class="pre">RemoteStorage.WireClient</span></code>,
-<code class="docutils literal"><span class="pre">RemoteStorage.GoogleDrive</span></code>, <code class="docutils literal"><span class="pre">RemoteStorage.Dropbox</span></code>, etcetera (we
-aim to add more backends in the future).</p>
+  <div class="section" id="remotestorage">
+<h1>remoteStorage<a class="headerlink" href="#remotestorage" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="initialization">
+<h2>Initialization<a class="headerlink" href="#initialization" title="Permalink to this headline">¶</a></h2>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">const</span> <span class="n">remoteStorage</span> <span class="o">=</span> <span class="n">new</span> <span class="n">RemoteStorage</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prototype-methods">
+<h2>Prototype methods<a class="headerlink" href="#prototype-methods" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="setApiKeys">
+<code class="descname">setApiKeys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#setApiKeys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the OAuth key/ID for either GoogleDrive or Dropbox backend support.
+Use the method twice to set both.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>type</strong> (<em>string</em>) – Either ‘googledrive’ or ‘dropbox’</li>
+<li><strong>keys</strong> (<em>object</em>) – Must contain property ‘clientId’ for GoogleDrive, or ‘appKey’ for Dropbox</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
 </div>
 
 
@@ -207,10 +216,8 @@ aim to add more backends in the future).</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="release-checklist.html" class="btn btn-neutral float-right" title="Release Checklist" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-      
-        <a href="../contributing.html" class="btn btn-neutral" title="Contributing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="../js-api.html" class="btn btn-neutral" title="JavaScript API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
