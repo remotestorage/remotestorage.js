@@ -24,86 +24,14 @@ function emitUnauthorized(r) {
 }
 
 /**
- * @class RemoteStorage
- *
  * Constructor for the remoteStorage object.
  *
  * This class primarily contains feature detection code and convenience API.
  *
- * Depending on which features are built in, it contains different attributes and
- * functions. See the individual features for more information.
- *
- *     var remoteStorage = new RemoteStorage({
- *       logging: true,  // defaults to false
- *       cordovaRedirectUri: 'https://app.mygreatapp.com' // defaults to undefined
- *     });
+ * Depending on which features are built in, it contains different attributes
+ * and functions. See the individual features for more information.
  */
 var RemoteStorage = function (cfg) {
-  /**
-   * Event: ready
-   *
-   * Fired when ready
-   **/
-  /**
-   * Event: not-connected
-   *
-   * Fired when ready, but no storage connected ("anonymous mode")
-   **/
-  /**
-   * Event: connected
-   *
-   * Fired when a remote storage has been connected
-   **/
-  /**
-   * Event: disconnected
-   *
-   * Fired after disconnect
-   **/
-  /**
-   * Event: error
-   *
-   * Fired when an error occurs
-   *
-   * Arguments:
-   * the error
-   **/
-  /**
-   * Event: features-loaded
-   *
-   * Fired when all features are loaded
-   **/
-  /**
-   * Event: connecting
-   *
-   * Fired before webfinger lookup
-   **/
-  /**
-   * Event: authing
-   *
-   * Fired before redirecting to the authing server
-   **/
-  /**
-   * Event: wire-busy
-   *
-   * Fired when a wire request starts
-   **/
-  /**
-   * Event: wire-done
-   *
-   * Fired when a wire request completes
-   **/
-  /**
-   * Event: network-offline
-   *
-   * Fired once when a wire request fails for the first time, and
-   * `remote.online` is set to false
-   **/
-  /**
-   * Event: network-online
-   *
-   * Fired once when a wire request succeeds for the first time after a
-   * failed one, and `remote.online` is set back to true
-   **/
 
   // Initial configuration property settings.
   if (typeof cfg === 'object') {
@@ -215,7 +143,7 @@ RemoteStorage.prototype = {
    * @private
    */
   loadModules: function loadModules() {
-    config.modules.forEach(this.addModule.bind(this))
+    config.modules.forEach(this.addModule.bind(this));
   },
 
   /**
@@ -281,8 +209,6 @@ RemoteStorage.prototype = {
    */
 
   /**
-   * connect
-   *
    * Connect to a remoteStorage server.
    *
    * Discovers the WebFinger profile of the given user address and initiates
@@ -369,9 +295,8 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * disconnect
+   * "Disconnect" from remote server to terminate current session.
    *
-   * "Disconnect" from remotestorage server to terminate current session.
    * This method clears all stored settings and deletes the entire local
    * cache.
    */
@@ -432,8 +357,6 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * onChange
-   *
    * Add a "change" event handler to the given path. Whenever a "change"
    * happens (as determined by the backend, such as e.g.
    * <RemoteStorage.IndexedDB>) and the affected path is equal to or below the
@@ -453,7 +376,7 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * enableLog
+   * TODO: do we still need this, now that we always instantiate the prototype?
    *
    * Enable remoteStorage logging.
    */
@@ -462,7 +385,7 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * disableLog
+   * TODO: do we still need this, now that we always instantiate the prototype?
    *
    * Disable remoteStorage logging
    */
@@ -660,8 +583,6 @@ RemoteStorage.prototype = {
 
 
   /**
-   * getSyncInterval
-   *
    * Get the value of the sync interval when application is in the foreground
    *
    * @returns {number} A number of milliseconds
@@ -671,8 +592,6 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * setSyncInterval
-   *
    * Set the value of the sync interval when application is in the foreground
    *
    * @param {number} interval - Sync interval in milliseconds
@@ -687,8 +606,6 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * getBackgroundSyncInterval
-   *
    * Get the value of the sync interval when application is in the background
    *
    * @returns {number} A number of milliseconds
@@ -698,8 +615,6 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * setBackgroundSyncInterval
-   *
    * Set the value of the sync interval when the application is in the
    * background
    *
@@ -715,9 +630,8 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * getCurrentSyncInterval
-   *
-   * Get the value of the current sync interval
+   * Get the value of the current sync interval. Can be background or
+   * foreground, custom or default.
    *
    * @returns {number} A number of milliseconds
    */
@@ -726,19 +640,6 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * setRequestTimeout
-   *
-   * Set the timeout for network requests
-   *
-   * @param timeout - Timeout in milliseconds
-   */
-  setRequestTimeout: function (timeout) {
-    config.requestTimeout = parseInt(timeout, 10);
-  },
-
-  /**
-   * getRequestTimeout
-   *
    * Get the value of the current network request timeout
    *
    * @returns {number} A number of milliseconds
@@ -748,7 +649,18 @@ RemoteStorage.prototype = {
   },
 
   /**
+   * Set the timeout for network requests.
+   *
+   * @param timeout - Timeout in milliseconds
+   */
+  setRequestTimeout: function (timeout) {
+    config.requestTimeout = parseInt(timeout, 10);
+  },
+
+  /**
    * TODO: document
+   *
+   * @private
    */
   syncCycle: function () {
     if (this.sync.stopped) {
@@ -770,6 +682,8 @@ RemoteStorage.prototype = {
 
   /**
    * TODO: document
+   *
+   * @private
    */
   stopSync: function () {
     if (this.sync) {
@@ -809,7 +723,7 @@ function isValidInterval(interval) {
 RemoteStorage.util = util;
 
 /**
- * Property: connected
+ * @property connected
  *
  * Boolean property indicating if remoteStorage is currently connected.
  */
@@ -820,7 +734,7 @@ Object.defineProperty(RemoteStorage.prototype, 'connected', {
 });
 
 /**
- * Property: access
+ * @property access
  *
  * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
 */
@@ -835,7 +749,6 @@ Object.defineProperty(RemoteStorage.prototype, 'access', {
   },
   configurable: true
 });
-
 
 // TODO Clean up/harmonize how modules are loaded and/or document this architecture properly
 //
@@ -863,18 +776,19 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
 });
 
 /*
-* Property: remote
-*
-* Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
-*
-*
-* Property: local
-*
-* Access to the local caching backend used. Usually either a
-* <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
-*
-* Not available in no-cache builds.
-*/
+ * @property remote
+ *
+ * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
+ */
+
+/*
+ * @property local
+ *
+ * Access to the local caching backend used. Usually either a
+ * <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
+ *
+ * Not available, when caching is turned off.
+ */
 
 module.exports = RemoteStorage;
 require('./modules');

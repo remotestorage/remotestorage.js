@@ -7,6 +7,6 @@ available to developers using remoteStorage.js in their apps and programs.
 .. toctree::
    :caption: Contents
    :maxdepth: 2
-   :glob:
 
-   js-api/*
+   js-api/remotestorage
+   js-api/base-client

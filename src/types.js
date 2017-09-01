@@ -9,13 +9,28 @@
    * - Adds schema declaration/validation methods to BaseClient instances.
    **/
   BaseClient.Types = {
-    // <alias> -> <uri>
+    /**
+     * <alias> -> <uri>
+     */
     uris: {},
-    // <uri> -> <schema>
+
+    /**
+     * Contains schema objects of all types known to the BaseClient instance
+     *
+     * <uri> -> <schema>
+     */
     schemas: {},
-    // <uri> -> <alias>
+
+    /**
+     * <uri> -> <alias>
+     */
     aliases: {},
 
+    /**
+     * TODO: document
+     *
+     * @private
+     */
     declare: function(moduleName, alias, uri, schema) {
       var fullAlias = moduleName + '/' + alias;
 
