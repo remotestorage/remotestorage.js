@@ -1,7 +1,5 @@
 'use strict';
 
-var hasLocalStorage;
-
 function emitUnauthorized(r) {
   if (r.statusCode === 403  || r.statusCode === 401) {
     this._emit('error', new Authorize.Unauthorized());
@@ -136,7 +134,7 @@ var RemoteStorage = function (cfg) {
 
   this.apiKeys = {};
 
-  hasLocalStorage = util.localStorageAvailable();
+  var hasLocalStorage = util.localStorageAvailable();
 
   if (hasLocalStorage) {
     try {
@@ -513,7 +511,7 @@ RemoteStorage.prototype = {
 
 
   /**
-   * TOFIX: needs some explanation on this -les
+   * TODO: needs some explanation on this -les
    ** GET/PUT/DELETE INTERFACE HELPERS
    **/
 
