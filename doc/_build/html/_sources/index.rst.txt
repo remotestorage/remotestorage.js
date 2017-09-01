@@ -12,7 +12,7 @@ across devices and applications.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
 
    why
    data-modules
@@ -25,10 +25,10 @@ across devices and applications.
    contributing
    js-api
 
-..
-   Indices and tables
-   ==================
-..
-   * :ref:`genindex`
-   * :ref:`modindex`
-   * :ref:`search`
+
+Indices and tables
+------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

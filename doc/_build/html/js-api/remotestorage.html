@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>remoteStorage &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  <title>RemoteStorage &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
   
 
   
@@ -37,6 +37,7 @@
         <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="../index.html"/>
         <link rel="up" title="JavaScript API" href="../js-api.html"/>
+        <link rel="next" title="BaseClient" href="base-client.html"/>
         <link rel="prev" title="JavaScript API" href="../js-api.html"/> 
 
   
@@ -90,7 +91,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../why.html">Why use this?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data-modules.html">Data modules</a></li>
@@ -102,11 +103,16 @@
 <li class="toctree-l1"><a class="reference internal" href="../nodejs.html">Usage with node.js</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../js-api.html">JavaScript API</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">remoteStorage</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#initialization">Initialization</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#prototype-methods">Prototype methods</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">RemoteStorage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#constructor">Constructor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#events">Events</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#list-of-events">List of events</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#prototype-functions">Prototype functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="base-client.html">BaseClient</a></li>
 </ul>
 </li>
 </ul>
@@ -155,7 +161,7 @@
         
           <li><a href="../js-api.html">JavaScript API</a> &raquo;</li>
         
-      <li>remoteStorage</li>
+      <li>RemoteStorage</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -175,15 +181,291 @@
            <div itemprop="articleBody">
             
   <div class="section" id="remotestorage">
-<h1>remoteStorage<a class="headerlink" href="#remotestorage" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="initialization">
-<h2>Initialization<a class="headerlink" href="#initialization" title="Permalink to this headline">¶</a></h2>
-<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">const</span> <span class="n">remoteStorage</span> <span class="o">=</span> <span class="n">new</span> <span class="n">RemoteStorage</span><span class="p">();</span>
+<h1>RemoteStorage<a class="headerlink" href="#remotestorage" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="constructor">
+<h2>Constructor<a class="headerlink" href="#constructor" title="Permalink to this headline">¶</a></h2>
+<p>Create a <code class="docutils literal"><span class="pre">remoteStorage</span></code> instance like so:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">var</span> <span class="n">remoteStorage</span> <span class="o">=</span> <span class="n">new</span> <span class="n">RemoteStorage</span><span class="p">();</span>
 </pre></div>
 </div>
+<p>The constructor can optionally be called with a configuration object, for
+example:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">var</span> <span class="n">remoteStorage</span> <span class="o">=</span> <span class="n">new</span> <span class="n">RemoteStorage</span><span class="p">({</span>
+  <span class="n">logging</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>  <span class="o">//</span> <span class="n">defaults</span> <span class="n">to</span> <span class="n">false</span>
+  <span class="n">cordovaRedirectUri</span><span class="p">:</span> <span class="s1">&#39;https://app.wow-much-app.com&#39;</span> <span class="o">//</span> <span class="n">defaults</span> <span class="n">to</span> <span class="n">undefined</span>
+<span class="p">});</span>
+</pre></div>
 </div>
-<div class="section" id="prototype-methods">
-<h2>Prototype methods<a class="headerlink" href="#prototype-methods" title="Permalink to this headline">¶</a></h2>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">In the current version, it is only possible to use a single RemoteStorage
+instance. You cannot connect to two different remotes yet.  We intend to
+support this soon (see <a class="reference external" href="https://github.com/remotestorage/remotestorage.js/issues/991">issue #991</a>).</p>
+</div>
+</div>
+<div class="section" id="events">
+<h2>Events<a class="headerlink" href="#events" title="Permalink to this headline">¶</a></h2>
+<p>You can handle events from your <code class="docutils literal"><span class="pre">remoteStorage</span></code> instance by using the
+<code class="docutils literal"><span class="pre">.on()</span></code> function. For example:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span>remoteStorage.on(&#39;connected&#39;, function() {
+  // Storage account has been connected, let’s roll!
+});
+</pre></div>
+</div>
+<div class="section" id="list-of-events">
+<h3>List of events<a class="headerlink" href="#list-of-events" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="ready">
+<h4><code class="docutils literal"><span class="pre">ready</span></code><a class="headerlink" href="#ready" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted when all features are loaded and the RS instance is ready</div></blockquote>
+</div>
+<div class="section" id="not-connected">
+<h4><code class="docutils literal"><span class="pre">not-connected</span></code><a class="headerlink" href="#not-connected" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted when ready, but no storage connected (“anonymous mode”)</div></blockquote>
+</div>
+<div class="section" id="connected">
+<h4><code class="docutils literal"><span class="pre">connected</span></code><a class="headerlink" href="#connected" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted when a remote storage has been connected</div></blockquote>
+</div>
+<div class="section" id="disconnected">
+<h4><code class="docutils literal"><span class="pre">disconnected</span></code><a class="headerlink" href="#disconnected" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted after disconnect</div></blockquote>
+</div>
+<div class="section" id="error">
+<h4><code class="docutils literal"><span class="pre">error</span></code><a class="headerlink" href="#error" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div><p>Emitted when an error occurs</p>
+<p>Arguments: Error object</p>
+</div></blockquote>
+</div>
+<div class="section" id="features-loaded">
+<h4><code class="docutils literal"><span class="pre">features-loaded</span></code><a class="headerlink" href="#features-loaded" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted when all features are loaded</div></blockquote>
+</div>
+<div class="section" id="connecting">
+<h4><code class="docutils literal"><span class="pre">connecting</span></code><a class="headerlink" href="#connecting" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted before webfinger lookup</div></blockquote>
+</div>
+<div class="section" id="authing">
+<h4><code class="docutils literal"><span class="pre">authing</span></code><a class="headerlink" href="#authing" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted before redirecting to the authing server</div></blockquote>
+</div>
+<div class="section" id="wire-busy">
+<h4><code class="docutils literal"><span class="pre">wire-busy</span></code><a class="headerlink" href="#wire-busy" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted when a wire request starts</div></blockquote>
+</div>
+<div class="section" id="wire-done">
+<h4><code class="docutils literal"><span class="pre">wire-done</span></code><a class="headerlink" href="#wire-done" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted when a wire request completes</div></blockquote>
+</div>
+<div class="section" id="network-offline">
+<h4><code class="docutils literal"><span class="pre">network-offline</span></code><a class="headerlink" href="#network-offline" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted once when a wire request fails for the first time, and
+<code class="docutils literal"><span class="pre">remote.online</span></code> is set to false</div></blockquote>
+</div>
+<div class="section" id="network-online">
+<h4><code class="docutils literal"><span class="pre">network-online</span></code><a class="headerlink" href="#network-online" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>Emitted once when a wire request succeeds for the first time after a failed
+one, and <code class="docutils literal"><span class="pre">remote.online</span></code> is set back to true</div></blockquote>
+</div>
+</div>
+</div>
+<div class="section" id="prototype-functions">
+<h2>Prototype functions<a class="headerlink" href="#prototype-functions" title="Permalink to this headline">¶</a></h2>
+<p>The following functions can be called on your <code class="docutils literal"><span class="pre">remoteStorage</span></code> instance:</p>
+<dl class="function">
+<dt id="authorize">
+<code class="descname">authorize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#authorize" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO: document</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>authUrl</strong> (<em>string</em>) – </li>
+<li><strong>cordovaRedirectUri</strong> (<em>string</em>) – </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="connect">
+<code class="descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to a remoteStorage server.</p>
+<p>Discovers the WebFinger profile of the given user address and initiates
+the OAuth dance.</p>
+<p>This method must be called <em>after</em> all required access has been claimed.
+When using the connect widget, it will call this method itself.</p>
+<p>Special cases:</p>
+<ol class="arabic simple">
+<li>If a bearer token is supplied as second argument, the OAuth dance
+will be skipped and the supplied token be used instead. This is
+useful outside of browser environments, where the token has been
+acquired in a different way.</li>
+<li>If the Webfinger profile for the given user address doesn’t contain
+an auth URL, the library will assume that client and server have
+established authorization among themselves, which will omit bearer
+tokens in all requests later on. This is useful for example when using
+Kerberos and similar protocols.</li>
+</ol>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>userAddress</strong> (<em>string</em>) – The user address (<a class="reference external" href="mailto:user&#37;&#52;&#48;host">user<span>&#64;</span>host</a>) to connect to.</li>
+<li><strong>token</strong> (<em>string</em>) – (optional) A bearer token acquired beforehand</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="disconnect">
+<code class="descname">disconnect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#disconnect" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Disconnect” from remote server to terminate current session.</p>
+<p>This method clears all stored settings and deletes the entire local
+cache.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="enableLog">
+<code class="descname">enableLog</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#enableLog" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO: do we still need this, now that we always instantiate the prototype?</p>
+<p>Enable remoteStorage logging.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="disableLog">
+<code class="descname">disableLog</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#disableLog" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO: do we still need this, now that we always instantiate the prototype?</p>
+<p>Disable remoteStorage logging</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="getSyncInterval">
+<code class="descname">getSyncInterval</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#getSyncInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the value of the sync interval when application is in the foreground</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>number</strong> – A number of milliseconds</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="setSyncInterval">
+<code class="descname">setSyncInterval</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#setSyncInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the value of the sync interval when application is in the foreground</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>interval</strong> (<em>number</em>) – Sync interval in milliseconds</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="getBackgroundSyncInterval">
+<code class="descname">getBackgroundSyncInterval</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#getBackgroundSyncInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the value of the sync interval when application is in the background</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>number</strong> – A number of milliseconds</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="setBackgroundSyncInterval">
+<code class="descname">setBackgroundSyncInterval</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#setBackgroundSyncInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the value of the sync interval when the application is in the
+background</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>interval</strong> – Sync interval in milliseconds</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="getCurrentSyncInterval">
+<code class="descname">getCurrentSyncInterval</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#getCurrentSyncInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the value of the current sync interval. Can be background or
+foreground, custom or default.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>number</strong> – A number of milliseconds</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="getRequestTimeout">
+<code class="descname">getRequestTimeout</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#getRequestTimeout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the value of the current network request timeout</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>number</strong> – A number of milliseconds</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="setRequestTimeout">
+<code class="descname">setRequestTimeout</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#setRequestTimeout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the timeout for network requests.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>timeout</strong> – Timeout in milliseconds</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="function">
 <dt id="scope">
 <code class="descname">scope</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#scope" title="Permalink to this definition">¶</a></dt>
@@ -236,6 +518,76 @@ Use the method twice to set both.</p>
 </div>
 </dd></dl>
 
+<dl class="function">
+<dt id="setCordovaRedirectUri">
+<code class="descname">setCordovaRedirectUri</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#setCordovaRedirectUri" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set redirect URI to be used for the OAuth redirect within the
+in-app-browser window in Cordova apps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>uri</strong> (<em>string</em>) – A valid HTTP(S) URI</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="startSync">
+<code class="descname">startSync</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#startSync" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO: document</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onChange">
+<code class="descname">onChange</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#onChange" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a “change” event handler to the given path. Whenever a “change”
+happens (as determined by the backend, such as e.g.
+&lt;RemoteStorage.IndexedDB&gt;) and the affected path is equal to or below the
+given ‘path’, the given handler is called.</p>
+<p>You should usually not use this method directly, but instead use the
+“change” events provided by &lt;RemoteStorage.BaseClient&gt;.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> – Absolute path to attach handler to</li>
+<li><strong>handler</strong> – Handler function</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="onChange">
+<code class="descname">onChange</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#onChange" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a “change” event handler to the given path. Whenever a “change”
+happens (as determined by the backend, such as e.g.
+&lt;RemoteStorage.IndexedDB&gt;) and the affected path is equal to or below the
+given ‘path’, the given handler is called.</p>
+<p>You should usually not use this method directly, but instead use the
+“change” events provided by &lt;RemoteStorage.BaseClient&gt;.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> – Absolute path to attach handler to</li>
+<li><strong>handler</strong> – Handler function</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 </div>
 
@@ -248,6 +600,8 @@ Use the method twice to set both.</p>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="base-client.html" class="btn btn-neutral float-right" title="BaseClient" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="../js-api.html" class="btn btn-neutral" title="JavaScript API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

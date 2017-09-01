@@ -1,0 +1,306 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>BaseClient &mdash; remoteStorage.js 1.0.0-alpha7 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="remoteStorage.js 1.0.0-alpha7 documentation" href="../index.html"/>
+        <link rel="up" title="JavaScript API" href="../js-api.html"/>
+        <link rel="prev" title="RemoteStorage" href="remotestorage.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> remoteStorage.js
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0-alpha7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../why.html">Why use this?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data-modules.html">Data modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Module API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../caching.html">Caching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data-format.html">Data format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../discovery-bootstrap.html">Discovery bootstrap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../amd.html">AMD build</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nodejs.html">Usage with node.js</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../js-api.html">JavaScript API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="remotestorage.html">RemoteStorage</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">BaseClient</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#object-operations">Object operations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">remoteStorage.js</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../js-api.html">JavaScript API</a> &raquo;</li>
+        
+      <li>BaseClient</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/js-api/base-client.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="baseclient">
+<h1>BaseClient<a class="headerlink" href="#baseclient" title="Permalink to this headline">¶</a></h1>
+<p>A BaseClient deals with three types of data: folders, objects and files.</p>
+<p>&lt;getListing&gt; returns a mapping of all items within a folder. Items that
+end with a forward slash (“/”) are child folders. For instance:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s1">&#39;folder/&#39;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+  <span class="s1">&#39;document.txt&#39;</span><span class="p">:</span> <span class="n">true</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><a class="reference external" href="/js-api/base-client.html#getObject">getObject</a> and &lt;storeObject&gt; operate on
+JSON objects. Each object has a type.</p>
+<p>&lt;getFile&gt; and &lt;storeFile&gt; operates on files. Each file has a MIME type.</p>
+<p>&lt;remove&gt; operates on either objects or files (but not folders, folders are
+created and removed implictly).</p>
+<div class="section" id="object-operations">
+<h2>Object operations<a class="headerlink" href="#object-operations" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="getObject">
+<code class="descname">getObject</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#getObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a JSON object from the given path.</p>
+<ul class="simple">
+<li>If the <code class="docutils literal"><span class="pre">maxAge</span></code> requirement is set, and the last sync request for this
+path is further in the past than the maximum age given, the object will
+first be checked for changes on the remote, and then the promise will be
+fulfilled with the up-to-date object.</li>
+<li>If the <code class="docutils literal"><span class="pre">maxAge</span></code> requirement cannot be met because of network problems,
+the promise will be rejected.</li>
+<li>If the <code class="docutils literal"><span class="pre">maxAge</span></code> requirement is set to <code class="docutils literal"><span class="pre">false</span></code>, the promise will always
+be fulfilled with data from the local store.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> (<em>string</em>) – Relative path from the module root (without leading slash).</li>
+<li><strong>maxAge</strong> (<em>number</em>) – Either <code class="docutils literal"><span class="pre">false</span></code> or the maximum age of cached object in milliseconds. Defaults to <code class="docutils literal"><span class="pre">false</span></code> in anonymous mode and to <code class="docutils literal"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">syncInterval</span></code> in connected mode.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A promise for the object</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">client</span><span class="o">.</span><span class="n">getObject</span><span class="p">(</span><span class="s1">&#39;/path/to/object&#39;</span><span class="p">,</span> <span class="n">false</span><span class="p">)</span><span class="o">.</span>
+  <span class="n">then</span><span class="p">(</span><span class="n">function</span> <span class="p">(</span><span class="nb">object</span><span class="p">)</span> <span class="p">{</span>
+    <span class="o">//</span> <span class="nb">object</span> <span class="ow">is</span> <span class="n">either</span> <span class="n">an</span> <span class="nb">object</span> <span class="ow">or</span> <span class="n">null</span>
+  <span class="p">});</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="remotestorage.html" class="btn btn-neutral" title="RemoteStorage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, RS Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.0.0-alpha7',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
