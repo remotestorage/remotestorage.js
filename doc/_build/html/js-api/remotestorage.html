@@ -185,6 +185,34 @@
 <div class="section" id="prototype-methods">
 <h2>Prototype methods<a class="headerlink" href="#prototype-methods" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
+<dt id="scope">
+<code class="descname">scope</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method enables you to quickly instantiate a BaseClient, which you can
+use to directly read and manipulate data in the connected storage account.</p>
+<p>Please use this method only for debugging and development, and choose or
+create a <a class="reference internal" href="../data-modules.html"><span class="doc">data module</span></a> for your app to use.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first simple">
+<li><strong>scope</strong> (<em>string</em>) – The base directory of the BaseClient that will be returned (with a leading and a trailing slash)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>BaseClient</strong> – A client with the specified scope (category/base directory)</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">scope</span><span class="p">(</span><span class="s1">&#39;/pictures/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">getListing</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">);</span>
+<span class="n">remoteStorage</span><span class="o">.</span><span class="n">scope</span><span class="p">(</span><span class="s1">&#39;/public/pictures/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">getListing</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">);</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
 <dt id="setApiKeys">
 <code class="descname">setApiKeys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#setApiKeys" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the OAuth key/ID for either GoogleDrive or Dropbox backend support.
@@ -203,7 +231,6 @@ Use the method twice to set both.</p>
 </table>
 <p>Example:</p>
 <div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">remoteStorage</span><span class="o">.</span><span class="n">setApiKeys</span><span class="p">(</span><span class="s1">&#39;dropbox&#39;</span><span class="p">,</span> <span class="p">{</span> <span class="n">appKey</span><span class="p">:</span> <span class="s1">&#39;your-app-key&#39;</span> <span class="p">});</span>
-
 <span class="n">remoteStorage</span><span class="o">.</span><span class="n">setApiKeys</span><span class="p">(</span><span class="s1">&#39;googledrive&#39;</span><span class="p">,</span> <span class="p">{</span> <span class="n">clientId</span><span class="p">:</span> <span class="s1">&#39;your-client-id&#39;</span> <span class="p">});}</span>
 </pre></div>
 </div>
