@@ -682,8 +682,16 @@ RemoteStorage.prototype = {
 
   /**
    * TODO: document
-   *
-   * @private
+   */
+  startSync: function () {
+    if (!config.cache) { return; }
+    this.sync.stopped = false;
+    this.syncStopped = false;
+    this.sync.sync();
+  },
+
+  /**
+   * TODO: document
    */
   stopSync: function () {
     if (this.sync) {
@@ -694,16 +702,6 @@ RemoteStorage.prototype = {
       log('[Sync] Will instantiate sync stopped');
       this.syncStopped = true;
     }
-  },
-
-  /**
-   * TODO: document
-   */
-  startSync: function () {
-    if (!config.cache) { return; }
-    this.sync.stopped = false;
-    this.syncStopped = false;
-    this.sync.sync();
   }
 
 };

@@ -160,7 +160,7 @@ The following functions can be called on your ``remoteStorage`` instance:
 .. autofunction:: RemoteStorage#startSync
   :short-name:
 
-.. autofunction:: RemoteStorage#onChange
+.. autofunction:: RemoteStorage#stopSync
   :short-name:
 
 .. autofunction:: RemoteStorage#onChange
