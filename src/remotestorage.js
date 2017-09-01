@@ -1,12 +1,5 @@
 'use strict';
 
-function emitUnauthorized(r) {
-  if (r.statusCode === 403  || r.statusCode === 401) {
-    this._emit('error', new Authorize.Unauthorized());
-  }
-  return Promise.resolve(r);
-}
-
 const util = require('./util');
 const Dropbox = require('./dropbox');
 const GoogleDrive = require('./googledrive');
@@ -20,25 +13,30 @@ const Features = require('./features');
 const globalContext = util.getGlobalContext();
 const eventHandling = require('./eventhandling');
 
+var hasLocalStorage;
+
+// TODO document and/or refactor (seems weird)
+function emitUnauthorized(r) {
+  if (r.statusCode === 403  || r.statusCode === 401) {
+    this._emit('error', new Authorize.Unauthorized());
+  }
+  return Promise.resolve(r);
+}
 
 /**
- * Class: RemoteStorage
+ * @class RemoteStorage
  *
- * TODO needs proper introduction and links to relevant classes etc
- *
- * Constructor for remoteStorage object.
+ * Constructor for the remoteStorage object.
  *
  * This class primarily contains feature detection code and convenience API.
  *
  * Depending on which features are built in, it contains different attributes and
  * functions. See the individual features for more information.
  *
- *  (start code)
- *  var remoteStorage = new RemoteStorage({
- *    logging: true,  // defaults to false
- *    cordovaRedirectUri: 'https://app.mygreatapp.com' // defaults to undefined
- *  });
- *  (end code)
+ *     var remoteStorage = new RemoteStorage({
+ *       logging: true,  // defaults to false
+ *       cordovaRedirectUri: 'https://app.mygreatapp.com' // defaults to undefined
+ *     });
  */
 var RemoteStorage = function (cfg) {
   /**
@@ -119,22 +117,46 @@ var RemoteStorage = function (cfg) {
           'network-offline', 'network-online'
   );
 
-  // pending get/put/delete calls.
+  /**
+   * Pending get/put/delete calls
+   *
+   * @private
+   */
   this._pending = [];
 
+  /**
+   * TODO: document
+   *
+   * @private
+   */
   this._setGPD({
     get: this._pendingGPD('get'),
     put: this._pendingGPD('put'),
     delete: this._pendingGPD('delete')
   });
 
+  /**
+   * TODO: document
+   *
+   * @private
+   */
   this._cleanups = [];
 
+  /**
+   * TODO: document
+   *
+   * @private
+   */
   this._pathHandlers = { change: {} };
 
+  /**
+   * Holds OAuth app keys for Dropbox, Google Drive
+   *
+   * @private
+   */
   this.apiKeys = {};
 
-  var hasLocalStorage = util.localStorageAvailable();
+  hasLocalStorage = util.localStorageAvailable();
 
   if (hasLocalStorage) {
     try {
@@ -147,6 +169,11 @@ var RemoteStorage = function (cfg) {
 
   var origOn = this.on;
 
+  /**
+   * TODO: document
+   *
+   * @private
+   */
   this.on = function (eventName, handler) {
     if (eventName === 'ready' && this.remote && this.remote.connected && this._allLoaded) {
       setTimeout(handler, 0);
@@ -159,6 +186,9 @@ var RemoteStorage = function (cfg) {
   // load all features and emit `ready`
   this._init();
 
+  /**
+   * TODO: document
+   */
   this.fireInitial = function () {
     if (this.local) {
       setTimeout(this.local.fireInitial.bind(this.local), 0);
@@ -169,8 +199,7 @@ var RemoteStorage = function (cfg) {
   this.loadModules()
 };
 
-
-// TOFIX: Instead of doing this, would be better to only
+// FIXME: Instead of doing this, would be better to only
 // export setAuthURL / getAuthURL from RemoteStorage prototype
 RemoteStorage.Authorize = Authorize;
 
@@ -180,24 +209,37 @@ RemoteStorage.DiscoveryError = Discover.DiscoveryError;
 
 RemoteStorage.prototype = {
 
-  // load all modules passed as arguments
+  /**
+   * Load all modules passed as arguments
+   *
+   * @private
+   */
   loadModules: function loadModules() {
     config.modules.forEach(this.addModule.bind(this))
   },
 
+  /**
+   * TODO: document
+   *
+   * @param {string} authUrl
+   * @param {string} cordovaRedirectUri
+   */
   authorize: function authorize(authURL, cordovaRedirectUri) {
     this.access.setStorageType(this.remote.storageType);
     var scope = this.access.scopeParameter;
 
-    var redirectUri = globalContext.cordova ?
-      cordovaRedirectUri :
-      String(Authorize.getLocation());
+    var redirectUri = globalContext.cordova ? cordovaRedirectUri : String(Authorize.getLocation());
 
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
     Authorize(this, authURL, scope, redirectUri, clientId);
   },
 
+  /**
+   * TODO: document
+   *
+   * @private
+   */
   impliedauth: function (storageApi, redirectUri) {
     storageApi = this.remote.storageApi;
     redirectUri =  String(document.location);
@@ -209,7 +251,10 @@ RemoteStorage.prototype = {
     });
     document.location = redirectUri;
   },
+
   /**
+   * TODO: where is this defined?
+   *
    * Property: remote
    *
    * Properties:
@@ -221,27 +266,9 @@ RemoteStorage.prototype = {
    */
 
   /**
-   * Method: scope
+   * startSync
    *
-   * Returns a BaseClient with the specified scope (base path/directory).
-   *
-   * Please use this method only for debugging and development, and
-   * choose or create a data module for your app to use.
-   *
-   * Parameters:
-   *
-   *   scope - A string, with a leading and a trailing slash, specifying the
-   *           base path of the BaseClient that will be returned.
-   *
-   * Code example:
-   *
-   * (start code)
-   * remoteStorage.scope('/pictures/').getListing('');
-   * remoteStorage.scope('/public/pictures/').getListing('');
-   */
-
-  /**
-   * Method: startSync
+   * TODO: move to sync.js
    *
    * Start synchronization with remote storage, downloading and uploading any
    * changes within the cached paths.
@@ -252,16 +279,11 @@ RemoteStorage.prototype = {
    * sync button for example. This might feel safer to them sometimes, esp.
    * when shifting between offline and online a lot.
    */
-   // (see src/sync.js for implementation)
 
   /**
-   * Method: connect
+   * connect
    *
    * Connect to a remoteStorage server.
-   *
-   * Parameters:
-   *   userAddress        - The user address (user@host) to connect to.
-   *   token              - (optional) A bearer token acquired beforehand
    *
    * Discovers the WebFinger profile of the given user address and initiates
    * the OAuth dance.
@@ -281,6 +303,9 @@ RemoteStorage.prototype = {
    *    established authorization among themselves, which will omit bearer
    *    tokens in all requests later on. This is useful for example when using
    *    Kerberos and similar protocols.
+   *
+   * @param {string} userAddress - The user address (user@host) to connect to.
+   * @param {string} token       - (optional) A bearer token acquired beforehand
    */
   connect: function (userAddress, token) {
     this.setBackend('remotestorage');
@@ -344,7 +369,7 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * Method: disconnect
+   * disconnect
    *
    * "Disconnect" from remotestorage server to terminate current session.
    * This method clears all stored settings and deletes the entire local
@@ -390,6 +415,11 @@ RemoteStorage.prototype = {
     }
   },
 
+  /**
+   * TODO: document
+   *
+   * @private
+   */
   setBackend: function (what) {
     this.backend = what;
     if (hasLocalStorage) {
@@ -402,19 +432,18 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * Method: onChange
+   * onChange
    *
    * Add a "change" event handler to the given path. Whenever a "change"
    * happens (as determined by the backend, such as e.g.
-   * <RemoteStorage.IndexedDB>) and the affected path is equal to or below
-   * the given 'path', the given handler is called.
+   * <RemoteStorage.IndexedDB>) and the affected path is equal to or below the
+   * given 'path', the given handler is called.
    *
    * You should usually not use this method directly, but instead use the
    * "change" events provided by <RemoteStorage.BaseClient>.
    *
-   * Parameters:
-   *   path    - Absolute path to attach handler to.
-   *   handler - Handler function.
+   * @param path    - Absolute path to attach handler to
+   * @param handler - Handler function
    */
   onChange: function (path, handler) {
     if (! this._pathHandlers.change[path]) {
@@ -424,7 +453,7 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * Method: enableLog
+   * enableLog
    *
    * Enable remoteStorage logging.
    */
@@ -433,7 +462,7 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * Method: disableLog
+   * disableLog
    *
    * Disable remoteStorage logging
    */
@@ -442,7 +471,7 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * Method: log
+   * log
    *
    * The same as <RemoteStorage.log>.
    */
@@ -455,8 +484,8 @@ RemoteStorage.prototype = {
    * Use the method twice to set both.
    *
    * @param {string} type - Either 'googledrive' or 'dropbox'
-   * @param {object} keys - Must contain property 'clientId' for GoogleDrive, or
-   *                         'appKey' for Dropbox
+   * @param {object} keys - Must contain property 'clientId' for GoogleDrive,
+   *                        or 'appKey' for Dropbox
    */
   setApiKeys: function (type, keys) {
     if (keys) {
@@ -477,13 +506,10 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * Method: setCordovaRedirectUri
-   *
    * Set redirect URI to be used for the OAuth redirect within the
    * in-app-browser window in Cordova apps.
    *
-   * Parameters:
-   *   uri - string, valid HTTP(S) URI
+   * @param {string} uri - A valid HTTP(S) URI
    */
   setCordovaRedirectUri: function (uri) {
     if (typeof uri !== 'string' || !uri.match(/http(s)?\:\/\//)) {
@@ -493,7 +519,10 @@ RemoteStorage.prototype = {
   },
 
 
-  /* FEATURES INITIALIZATION */
+  //
+  // FEATURES INITIALIZATION
+  //
+
   _init: Features.loadFeatures,
   features: Features.features,
   loadFeature: Features.loadFeature,
@@ -509,12 +538,15 @@ RemoteStorage.prototype = {
   _fireReady: Features._fireReady,
   initFeature: Features.initFeature,
 
+  //
+  // GET/PUT/DELETE INTERFACE HELPERS
+  //
 
   /**
-   * TODO: needs some explanation on this -les
-   ** GET/PUT/DELETE INTERFACE HELPERS
-   **/
-
+   * TODO: document
+   *
+   * @private
+   */
   _setGPD: function (impl, context) {
     function wrap(func) {
       return function () {
@@ -527,6 +559,11 @@ RemoteStorage.prototype = {
     this.delete = wrap(impl.delete);
   },
 
+  /**
+   * TODO: document
+   *
+   * @private
+   */
   _pendingGPD: function (methodName) {
     return function () {
       var methodArguments = Array.prototype.slice.call(arguments);
@@ -543,6 +580,11 @@ RemoteStorage.prototype = {
     }.bind(this);
   },
 
+  /**
+   * TODO: document
+   *
+   * @private
+   */
   _processPending: function () {
     this._pending.forEach(function (pending) {
       try {
@@ -554,13 +596,24 @@ RemoteStorage.prototype = {
     this._pending = [];
   },
 
+  //
+  // CHANGE EVENT HANDLING
+  //
+
   /**
-   ** CHANGE EVENT HANDLING
-   **/
+   * TODO: document
+   *
+   * @private
+   */
   _bindChange: function (object) {
     object.on('change', this._dispatchEvent.bind(this, 'change'));
   },
 
+  /**
+   * TODO: document
+   *
+   * @private
+   */
   _dispatchEvent: function (eventName, event) {
     var self = this;
     Object.keys(this._pathHandlers[eventName]).forEach(function (path) {
@@ -581,7 +634,18 @@ RemoteStorage.prototype = {
     });
   },
 
-
+  /**
+   * This method enables you to quickly instantiate a BaseClient, which you can
+   * use to directly read and manipulate data in the connected storage account.
+   *
+   * Please use this method only for debugging and development, and choose or
+   * create a :doc:`data module </data-modules>` for your app to use.
+   *
+   * @param {string} scope - The base directory of the BaseClient that will be
+   *                         returned (with a leading and a trailing slash)
+   *
+   * @returns {BaseClient} A client with the specified scope (category/base directory)
+   */
   scope: function (path) {
     if (typeof(path) !== 'string') {
       throw 'Argument \'path\' of baseClient.scope must be a string';
@@ -595,28 +659,23 @@ RemoteStorage.prototype = {
   },
 
 
-
-
   /**
-   * Method: getSyncInterval
+   * getSyncInterval
    *
    * Get the value of the sync interval when application is in the foreground
    *
-   * Returns a number of milliseconds
-   *
-  //  */
+   * @returns {number} A number of milliseconds
+   */
   getSyncInterval: function () {
     return config.syncInterval;
   },
 
   /**
-   * Method: setSyncInterval
+   * setSyncInterval
    *
    * Set the value of the sync interval when application is in the foreground
    *
-   * Parameters:
-   *   interval - sync interval in milliseconds
-   *
+   * @param {number} interval - Sync interval in milliseconds
    */
   setSyncInterval: function (interval) {
     if (!isValidInterval(interval)) {
@@ -628,25 +687,23 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * Method: getBackgroundSyncInterval
+   * getBackgroundSyncInterval
    *
    * Get the value of the sync interval when application is in the background
    *
-   * Returns a number of milliseconds
-   *
+   * @returns {number} A number of milliseconds
    */
   getBackgroundSyncInterval: function () {
     return config.backgroundSyncInterval;
   },
 
   /**
-   * Method: setBackgroundSyncInterval
+   * setBackgroundSyncInterval
    *
-   * Set the value of the sync interval when the application is in the background
+   * Set the value of the sync interval when the application is in the
+   * background
    *
-   * Parameters:
-   *   interval - sync interval in milliseconds
-   *
+   * @param interval - Sync interval in milliseconds
    */
   setBackgroundSyncInterval: function (interval) {
     if(!isValidInterval(interval)) {
@@ -658,42 +715,41 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * Method: getCurrentSyncInterval
+   * getCurrentSyncInterval
    *
    * Get the value of the current sync interval
    *
-   * Returns a number of milliseconds
-   *
+   * @returns {number} A number of milliseconds
    */
   getCurrentSyncInterval: function () {
     return config.isBackground ? config.backgroundSyncInterval : config.syncInterval;
   },
 
   /**
-   * Method: setRequestTimeout
+   * setRequestTimeout
    *
    * Set the timeout for network requests
    *
-   * Parameters:
-   *   timeout - timeout in milliseconds
-   *
+   * @param timeout - Timeout in milliseconds
    */
   setRequestTimeout: function (timeout) {
     config.requestTimeout = parseInt(timeout, 10);
   },
 
   /**
-   * Method: getRequestTimeout
+   * getRequestTimeout
    *
    * Get the value of the current network request timeout
    *
-   * Returns a number of milliseconds
-   *
+   * @returns {number} A number of milliseconds
    */
   getRequestTimeout: function () {
     return config.requestTimeout;
   },
 
+  /**
+   * TODO: document
+   */
   syncCycle: function () {
     if (this.sync.stopped) {
       return;
@@ -713,6 +769,9 @@ RemoteStorage.prototype = {
     this.sync.sync();
   },
 
+  /**
+   * TODO: document
+   */
   stopSync: function () {
     clearTimeout(this._syncTimer);
     this._syncTimer = undefined;
@@ -727,6 +786,9 @@ RemoteStorage.prototype = {
     }
   },
 
+  /**
+   * TODO: document
+   */
   startSync: function () {
     if (!config.cache) { return; }
     this.sync.stopped = false;
@@ -747,7 +809,6 @@ function isValidInterval(interval) {
           interval > 1000 &&
           interval < 3600000);
 }
-
 
 RemoteStorage.util = util;
 
@@ -818,7 +879,6 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
 *
 * Not available in no-cache builds.
 */
-
 
 module.exports = RemoteStorage;
 require('./modules');
