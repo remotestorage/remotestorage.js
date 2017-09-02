@@ -104,7 +104,12 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../js-api.html">JavaScript API</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="remotestorage.html">RemoteStorage</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">BaseClient</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#object-operations">Object operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-read-write-operations">Data read/write operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#caching-logic-for-read-operations">Caching logic for read operations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#list-of-functions">List of functions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#other-functions">Other functions</a></li>
 </ul>
 </li>
 </ul>
@@ -176,58 +181,222 @@
             
   <div class="section" id="baseclient">
 <h1>BaseClient<a class="headerlink" href="#baseclient" title="Permalink to this headline">¶</a></h1>
-<p>A BaseClient deals with three types of data: folders, objects and files.</p>
-<p>&lt;getListing&gt; returns a mapping of all items within a folder. Items that
-end with a forward slash (“/”) are child folders. For instance:</p>
+<div class="section" id="data-read-write-operations">
+<h2>Data read/write operations<a class="headerlink" href="#data-read-write-operations" title="Permalink to this headline">¶</a></h2>
+<p>A <code class="docutils literal"><span class="pre">BaseClient</span></code> deals with three types of data: folders, objects and files:</p>
+<ul class="simple">
+<li><a class="reference internal" href="#getListing" title="getListing"><code class="xref js js-func docutils literal"><span class="pre">getListing()</span></code></a> returns a mapping of all items within a folder.</li>
+<li><a class="reference internal" href="#getObject" title="getObject"><code class="xref js js-func docutils literal"><span class="pre">getObject()</span></code></a> and <code class="xref js js-func docutils literal"><span class="pre">storeObject()</span></code> operate on JSON objects. Each object
+has a type.</li>
+<li><a class="reference internal" href="#getFile" title="getFile"><code class="xref js js-func docutils literal"><span class="pre">getFile()</span></code></a> and <code class="xref js js-func docutils literal"><span class="pre">storeFile()</span></code> operates on files. Each file has a MIME
+type.</li>
+<li><a class="reference internal" href="#getAll" title="getAll"><code class="xref js js-func docutils literal"><span class="pre">getAll()</span></code></a> returns all objects or files for the given folder path.</li>
+<li><code class="xref js js-func docutils literal"><span class="pre">remove()</span></code> operates on either objects or files (but not folders; folders
+are created and removed implictly).</li>
+</ul>
+<div class="section" id="caching-logic-for-read-operations">
+<span id="max-age"></span><h3>Caching logic for read operations<a class="headerlink" href="#caching-logic-for-read-operations" title="Permalink to this headline">¶</a></h3>
+<p>All functions requesting/reading data will immediately return data from the
+local store, <em>as long as it is reasonably up-to-date</em>. The default maximum age
+of requested data is two times the periodic sync interval (10 seconds by
+default).</p>
+<p>However, you can adjust this behavior by using the <cite>maxAge</cite> argument with any
+of these functions, thereby changing the maximum age or removing the
+requirement entirely:</p>
+<ul class="simple">
+<li>If the <code class="docutils literal"><span class="pre">maxAge</span></code> requirement is set, and the last sync request for the path
+is further in the past than the maximum age given, the folder will first be
+checked for changes on the remote, and then the promise will be fulfilled
+with the up-to-date folder listing.</li>
+<li>If the <code class="docutils literal"><span class="pre">maxAge</span></code> requirement cannot be met because of network problems,
+the promise will be rejected.</li>
+<li>If the <code class="docutils literal"><span class="pre">maxAge</span></code> requirement is set to <code class="docutils literal"><span class="pre">false</span></code>, or the library is in
+offline mode (TODO link this), or no remote storage is connected (a.k.a.
+“anonymous mode”), the promise will always be fulfilled with data from the
+local store.</li>
+</ul>
+<div class="admonition hint">
+<p class="first admonition-title">Hint</p>
+<p class="last">If caching for the folder is turned off, none of this applies and data will
+always be requested from the remote store directly.</p>
+</div>
+</div>
+<div class="section" id="list-of-functions">
+<h3>List of functions<a class="headerlink" href="#list-of-functions" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="getListing">
+<code class="descname">getListing</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#getListing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a list of child nodes below a given path.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> (<em>string</em>) – The path to query. It MUST end with a forward slash.</li>
+<li><strong>maxAge</strong> (<em>number</em>) – (optional) Either <code class="docutils literal"><span class="pre">false</span></code> or the maximum age of cached listing in milliseconds. See <a class="reference internal" href="#max-age"><span class="std std-ref">Caching logic for read operations</span></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A promise for an object representing child nodes</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Example usage:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">client</span><span class="o">.</span><span class="n">getListing</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">listing</span> <span class="o">=&gt;</span> <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">listing</span><span class="p">));</span>
+</pre></div>
+</div>
+<p>The folder listing is returned as a JSON object, with the root keys
+representing the pathnames of child nodes. Keys ending in a forward slash
+represent <em>folder nodes</em> (subdirectories), while all other keys represent
+<em>data nodes</em> (files/objects).</p>
+<p>Data node information contains the item’s ETag, content type and -length.</p>
+<p>Example of a listing object:</p>
 <div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
-  <span class="s1">&#39;folder/&#39;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
-  <span class="s1">&#39;document.txt&#39;</span><span class="p">:</span> <span class="n">true</span>
+  <span class="s2">&quot;@context&quot;</span><span class="p">:</span> <span class="s2">&quot;http://remotestorage.io/spec/folder-description&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;thumbnails/&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+    <span class="s2">&quot;screenshot-20170902-1913.png&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;ETag&quot;</span><span class="p">:</span> <span class="s2">&quot;6749fcb9eef3f9e46bb537ed020aeece&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Content-Length&quot;</span><span class="p">:</span> <span class="mi">53698</span><span class="p">,</span>
+      <span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;image/png;charset=binary&quot;</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;screenshot-20170823-0142.png&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;ETag&quot;</span><span class="p">:</span> <span class="s2">&quot;92ab84792ef3f9e46bb537edac9bc3a1&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Content-Length&quot;</span><span class="p">:</span> <span class="mi">412401</span><span class="p">,</span>
+      <span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;image/png;charset=binary&quot;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p><a class="reference external" href="/js-api/base-client.html#getObject">getObject</a> and &lt;storeObject&gt; operate on
-JSON objects. Each object has a type.</p>
-<p>&lt;getFile&gt; and &lt;storeFile&gt; operates on files. Each file has a MIME type.</p>
-<p>&lt;remove&gt; operates on either objects or files (but not folders, folders are
-created and removed implictly).</p>
-<div class="section" id="object-operations">
-<h2>Object operations<a class="headerlink" href="#object-operations" title="Permalink to this headline">¶</a></h2>
+</dd></dl>
+
 <dl class="function">
 <dt id="getObject">
 <code class="descname">getObject</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#getObject" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get a JSON object from the given path.</p>
-<ul class="simple">
-<li>If the <code class="docutils literal"><span class="pre">maxAge</span></code> requirement is set, and the last sync request for this
-path is further in the past than the maximum age given, the object will
-first be checked for changes on the remote, and then the promise will be
-fulfilled with the up-to-date object.</li>
-<li>If the <code class="docutils literal"><span class="pre">maxAge</span></code> requirement cannot be met because of network problems,
-the promise will be rejected.</li>
-<li>If the <code class="docutils literal"><span class="pre">maxAge</span></code> requirement is set to <code class="docutils literal"><span class="pre">false</span></code>, the promise will always
-be fulfilled with data from the local store.</li>
-</ul>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first simple">
 <li><strong>path</strong> (<em>string</em>) – Relative path from the module root (without leading slash).</li>
-<li><strong>maxAge</strong> (<em>number</em>) – Either <code class="docutils literal"><span class="pre">false</span></code> or the maximum age of cached object in milliseconds. Defaults to <code class="docutils literal"><span class="pre">false</span></code> in anonymous mode and to <code class="docutils literal"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">syncInterval</span></code> in connected mode.</li>
+<li><strong>maxAge</strong> (<em>number</em>) – (optional) Either <code class="docutils literal"><span class="pre">false</span></code> or the maximum age of cached object in milliseconds. See <a class="reference internal" href="#max-age"><span class="std std-ref">Caching logic for read operations</span></a>.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A promise for the object</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A promise, which resolves with the requested object (or <code class="docutils literal"><span class="pre">null</span></code> if non-existent)</p>
 </td>
 </tr>
 </tbody>
 </table>
 <p>Example:</p>
-<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">client</span><span class="o">.</span><span class="n">getObject</span><span class="p">(</span><span class="s1">&#39;/path/to/object&#39;</span><span class="p">,</span> <span class="n">false</span><span class="p">)</span><span class="o">.</span>
-  <span class="n">then</span><span class="p">(</span><span class="n">function</span> <span class="p">(</span><span class="nb">object</span><span class="p">)</span> <span class="p">{</span>
-    <span class="o">//</span> <span class="nb">object</span> <span class="ow">is</span> <span class="n">either</span> <span class="n">an</span> <span class="nb">object</span> <span class="ow">or</span> <span class="n">null</span>
-  <span class="p">});</span>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">client</span><span class="o">.</span><span class="n">getObject</span><span class="p">(</span><span class="s1">&#39;/path/to/object&#39;</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">obj</span> <span class="o">=&gt;</span> <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">obj</span><span class="p">));</span>
 </pre></div>
 </div>
+</dd></dl>
+
+<dl class="function">
+<dt id="getAll">
+<code class="descname">getAll</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#getAll" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all objects directly below a given path.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> (<em>string</em>) – Path to the folder. Must end in a forward slash.</li>
+<li><strong>maxAge</strong> (<em>number</em>) – (optional) Either <code class="docutils literal"><span class="pre">false</span></code> or the maximum age of cached objects in milliseconds. See <a class="reference internal" href="#max-age"><span class="std std-ref">Caching logic for read operations</span></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A promise for an object</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Example response object:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">TODO</span>
+</pre></div>
+</div>
+<p>For items that are not JSON-stringified objects (e.g. stored using
+<cite>storeFile</cite> instead of <cite>storeObject</cite>), the object’s value is filled in
+with <cite>true</cite>.</p>
+<p>Example usage:</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">client</span><span class="o">.</span><span class="n">getAll</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">objects</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">var</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">objects</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">objects</span><span class="p">[</span><span class="n">path</span><span class="p">]);</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="getFile">
+<code class="descname">getFile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#getFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the file at the given path. A file is raw data, as opposed to
+a JSON object (use <a class="reference internal" href="#getObject" title="getObject"><code class="xref js js-func docutils literal"><span class="pre">getObject()</span></code></a> for that).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> (<em>string</em>) – Relative path from the module root (without leading slash).</li>
+<li><strong>maxAge</strong> (<em>number</em>) – (optional) Either <code class="docutils literal"><span class="pre">false</span></code> or the maximum age of the cached file in milliseconds. See <a class="reference internal" href="#max-age"><span class="std std-ref">Caching logic for read operations</span></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A promise for an object</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>The response object contains two properties:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="83%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">mimeType</span></code></td>
+<td>String representing the MIME Type of the document.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">data</span></code></td>
+<td>Raw data of the document (either a string or an ArrayBuffer)</td>
+</tr>
+</tbody>
+</table>
+<p>Example usage (displaying an image):</p>
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">client</span><span class="o">.</span><span class="n">getFile</span><span class="p">(</span><span class="s1">&#39;path/to/some/image&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">file</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="n">var</span> <span class="n">blob</span> <span class="o">=</span> <span class="n">new</span> <span class="n">Blob</span><span class="p">([</span><span class="n">file</span><span class="o">.</span><span class="n">data</span><span class="p">],</span> <span class="p">{</span> <span class="nb">type</span><span class="p">:</span> <span class="n">file</span><span class="o">.</span><span class="n">mimeType</span> <span class="p">});</span>
+  <span class="n">var</span> <span class="n">targetElement</span> <span class="o">=</span> <span class="n">document</span><span class="o">.</span><span class="n">findElementById</span><span class="p">(</span><span class="s1">&#39;my-image-element&#39;</span><span class="p">);</span>
+  <span class="n">targetElement</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">window</span><span class="o">.</span><span class="n">URL</span><span class="o">.</span><span class="n">createObjectURL</span><span class="p">(</span><span class="n">blob</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="other-functions">
+<h2>Other functions<a class="headerlink" href="#other-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="scope">
+<code class="descname">scope</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate a new client, scoped to a subpath of the current client’s
+path.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>BaseClient</strong> – A new client operating on a subpath of the current base path.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
