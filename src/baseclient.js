@@ -146,57 +146,24 @@ BaseClient.prototype = {
   },
 
   /**
-   * scope
+   * Instantiate a new client, scoped to a subpath of the current client's
+   * path.
    *
-   * @returns {BaseClient} - A new client operating on a subpath of the current
-   *                         base path.
+   * @returns {BaseClient} A new client operating on a subpath of the current
+   *                       base path.
    */
   scope: function (path) {
     return new BaseClient(this.storage, this.makePath(path));
   },
 
-  //
-  // Folder operations
-  //
-
   /**
-   * getListing
-   *
    * Get a list of child nodes below a given path.
    *
-   * The callback semantics of getListing are identical to those of getObject.
+   * @param {string} path - The path to query. It MUST end with a forward slash.
+   * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
+   *                          cached listing in milliseconds. See :ref:`max-age`.
    *
-   * Parameters:
-   *   path   - The path to query. It MUST end with a forward slash.
-   *   maxAge - Either false or the maximum age of cached listing in
-   *            milliseconds. Defaults to false in anonymous mode and to
-   *            2*syncInterval in connected mode.
-   *
-   * Returns:
-   *
-   *   A promise for an object, representing child nodes. If the maxAge
-   *   requirement cannot be met because of network problems, this promise
-   *   will be rejected. If the maxAge requirement is set to false or the
-   *   library is in offline state, the promise will always be fulfilled with
-   *   data from the local store.
-   *
-   *   Keys ending in a forward slash represent *folder nodes*, while all
-   *   other keys represent *data nodes*.
-   *
-   *   For spec versions <= 01, the data node information will contain only
-   *   the item's ETag. For later spec versions, it will also contain the
-   *   content type and -length of the item.
-   *
-   * Example:
-   *   (start code)
-   *   client.getListing('', false).then(function (listing) {
-   *     // listing is for instance:
-   *     // {
-   *     //   'folder/': true,
-   *     //   'document.txt': true
-   *     // }
-   *   });
-   *   (end code)
+   * @returns A promise for an object representing child nodes
    */
   getListing: function (path, maxAge) {
     if (typeof(path) !== 'string') {
@@ -212,34 +179,13 @@ BaseClient.prototype = {
   },
 
   /**
-   * getAll
-   *
    * Get all objects directly below a given path.
    *
-   * Parameters:
-   *   path   - Path to the folder.
-   *   maxAge - Either false or the maximum age of cached objects in
-   *            milliseconds. Defaults to false in anonymous mode and to
-   *            2*syncInterval in connected mode.
+   * @param {string} path - Path to the folder. Must end in a forward slash.
+   * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
+   *                          cached objects in milliseconds. See :ref:`max-age`.
    *
-   * Returns:
-   *   A promise for an object in the form { path : object, ... }. If the
-   *   maxAge requirement cannot be met because of network problems, this
-   *   promise will be rejected. If the maxAge requirement is set to false,
-   *   the promise will always be fulfilled with data from the local store.
-   *
-   *   For items that are not JSON-stringified objects (e.g. stored using
-   *   `storeFile` instead of `storeObject`), the object's value is filled in
-   *   with `true`.
-   *
-   * Example:
-   *   (start code)
-   *   client.getAll('', false).then(function (objects) {
-   *     for (var key in objects) {
-   *       console.log('- ' + key + ': ', objects[key]);
-   *     }
-   *   });
-   *   (end code)
+   * @returns A promise for an object
    */
   getAll: function (path, maxAge) {
     if (typeof(path) !== 'string') {
@@ -279,42 +225,16 @@ BaseClient.prototype = {
     }.bind(this));
   },
 
-  // file operations
-
   /**
-   * Method: getFile
-   *
    * Get the file at the given path. A file is raw data, as opposed to
-   * a JSON object (use <getObject> for that).
+   * a JSON object (use :func:`getObject` for that).
    *
-   * Except for the return value structure, getFile works exactly like
-   * getObject.
+   * @param {string} path - Relative path from the module root (without leading
+   *                        slash).
+   * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
+   *                          the cached file in milliseconds. See :ref:`max-age`.
    *
-   * Parameters:
-   *   path   - See getObject.
-   *   maxAge - Either false or the maximum age of cached file in
-   *            milliseconds. Defaults to false in anonymous mode and to
-   *            2*syncInterval in connected mode.
-   *
-   * Returns:
-   *   A promise for an object:
-   *
-   *   mimeType - String representing the MIME Type of the document.
-   *   data     - Raw data of the document (either a string or an ArrayBuffer)
-   *
-   *   If the maxAge requirement cannot be met because of network problems, this
-   *   promise will be rejected. If the maxAge requirement is set to false, the
-   *   promise will always be fulfilled with data from the local store.
-   *
-   * Example:
-   *   (start code)
-   *   // Display an image:
-   *   client.getFile('path/to/some/image', false).then(function (file) {
-   *     var blob = new Blob([file.data], { type: file.mimeType });
-   *     var targetElement = document.findElementById('my-image-element');
-   *     targetElement.src = window.URL.createObjectURL(blob);
-   *   });
-   *   (end code)
+   * @returns A promise for an object
    */
   getFile: function (path, maxAge) {
     if (typeof(path) !== 'string') {
@@ -389,25 +309,13 @@ BaseClient.prototype = {
   /**
    * Get a JSON object from the given path.
    *
-   * * If the ``maxAge`` requirement is set, and the last sync request for this
-   *   path is further in the past than the maximum age given, the object will
-   *   first be checked for changes on the remote, and then the promise will be
-   *   fulfilled with the up-to-date object.
-   *
-   * * If the ``maxAge`` requirement cannot be met because of network problems,
-   *   the promise will be rejected.
-   *
-   * * If the ``maxAge`` requirement is set to ``false``, the promise will always
-   *   be fulfilled with data from the local store.
-   *
    * @param {string} path - Relative path from the module root (without leading
    *                        slash).
-   * @param {number} maxAge - Either ``false`` or the maximum age of cached
-   *                          object in milliseconds. Defaults to ``false`` in
-   *                          anonymous mode and to ``2 * syncInterval`` in
-   *                          connected mode.
+   * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
+   *                          cached object in milliseconds. See :ref:`max-age`.
    *
-   * @returns A promise for the object
+   * @returns A promise, which resolves with the requested object (or ``null``
+   *          if non-existent)
    */
   getObject: function (path, maxAge) {
     if (typeof(path) !== 'string') {
@@ -499,10 +407,6 @@ BaseClient.prototype = {
       }
     }.bind(this));
   },
-
-  //
-  // Generic operations
-  //
 
   /**
    * remove
