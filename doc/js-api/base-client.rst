@@ -1,6 +1,12 @@
 BaseClient
 ==========
 
+TODO explain:
+
+* usually used in modules, given as argument to the builder function (public
+  plus private)
+* can also be created on the fly using remoteStorage#scope
+
 Data read/write operations
 --------------------------
 
