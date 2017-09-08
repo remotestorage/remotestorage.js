@@ -1,3 +1,8 @@
+.. image:: rs-icon.svg
+   :height: 80px
+   :width: 80px
+   :align: right
+
 remoteStorage.js
 ================
 
