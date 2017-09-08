@@ -23,8 +23,7 @@ example:
 .. NOTE::
    In the current version, it is only possible to use a single RemoteStorage
    instance. You cannot connect to two different remotes yet.  We intend to
-   support this soon (see `issue #991
-   <https://github.com/remotestorage/remotestorage.js/issues/991>`_).
+   support this soon (see issue :issue:`991`)
 
 Events
 ------

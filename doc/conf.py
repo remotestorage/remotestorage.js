@@ -29,7 +29,7 @@
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx_js']
+extensions = ['sphinx_js', 'sphinx_issues']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -37,6 +37,9 @@ templates_path = ['_templates']
 # Used to extract JSDoc function/class docs from source
 js_source_path = '../src'
 primary_domain = 'js'
+
+# GitHub issues config
+issues_github_path = 'remotestorage/remotestorage.js'
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
