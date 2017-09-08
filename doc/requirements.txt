@@ -1,1 +1,2 @@
 sphinx-js
+sphinx-issues
