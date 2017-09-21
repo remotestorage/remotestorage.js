@@ -13,8 +13,6 @@ Release Checklist
 * Bump version in `bower.json`
 * Build everything: `make all`
 * Manually test all browsers you have access to, including mobile devices and private browsing mode
-* Copy build files into `/release/head/`
-* Copy build files into `/release/stable/`
 * Commit changes to Git and `git push origin master`
 * Tag version in Git: `git tag x.x.x` and push to GitHub master: `git push origin master --tags`
 * Publish release on GitHub
