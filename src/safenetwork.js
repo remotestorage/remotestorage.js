@@ -32,7 +32,9 @@
    */
 
   // mrhTODOs:
-  // o NEXT: port the file/directory methods to use SAFE DOM API (safeNfs)
+  // DONE: port the file/directory methods to use SAFE DOM API (safeNfs)
+  // mrhTODO NEXT: go through fixing up all mrhTODOs!
+  // mrhTODO figure out when/how to free fileHandle / self.fileHandle / self.openFileHandle
   //
   // o limitation: safeNfs API has a limit of 1000 items (files) per container.
   // Directories are inferred
@@ -132,9 +134,6 @@
 
   RS.SafeNetwork = function (remoteStorage, config) {
     this.rs = remoteStorage;
-    this.clientId = config.clientId;    // mrhTODO TRY REMOVING clientId not
-                                        // needed? (I think was used for Dropbox
-                                        // API key)
     this._fileInfoCache = new Cache(60 * 5); // mrhTODO: info expires after 5
                                               // minutes (is this a good idea?)
     this.connected = false;
@@ -196,6 +195,7 @@
                                 // initially maps to _public)
     nfsRoot:  null,             // Handle for nfs emulation
 
+
     // Return a Promise which resolves to the mdHandle of the public container,
     // or null
     // App must already be authorised (see safeAuthorise())
@@ -239,26 +239,17 @@
       return result;
     },
 
-    // Mutable Data interface to SafeNetwork (safenetworkAuthorise() first)
-    OLDinitMdHandle: function () {
-      window.safeApp.canAccessContainer(this.appHandle, '_public', ['Insert', 'Update', 'Delete'])
-      .then((r) => {
-        if (r) {
-        RS.log('The app has permissions for `_public` container');
-        window.safeApp.getContainer(this.appHandle, '_public')
-         .then((mdHandle) => {
-           this.mdRoot = mdHandle;
-           window.safeMutableData.emulateAs(this.mdRoot, 'NFS')
-             .then((nfsHandle) => {
-               this.nfsRoot = nfsHandle;
-             }, (err) => { // mrhTODO how to handle in UI?
-               RS.log('SafeNetwork failed to access container');
-               RS.log(err);
-             });
-           });
-        }
-      });
+    // Release all handles from the SAFE API
+    freeSafeAPI: function (){
+      // mrhTODO - confirm that freeing the appHandle frees all other handles
+      if (this.appHandle) {
+        window.safeApp.free(this.appHandle);
+        this.appHandle = null;
+        this.mdRoot = null;
+        this.nfsRoot = null;
+      }
     },
+
 
     configure: function (settings) {
       // We only update these when set to a string or to null:
@@ -1258,7 +1249,7 @@
   // mrhTODO see dropbox version - probably need to modify this in line with
   // that (check with RS team)
   // differences are:
-  // 1) config.clientId not present
+  // 1) config.clientId not present - removed this from this file
   // 2) it uses hookIt() (and in _rs_cleanup() unHookIt()) instead of inline
   // assignements
   // which causes dropbox version to also call hookSync() and hookGetItemURL()
@@ -1291,7 +1282,9 @@
 // mrhTODOx make safeNfs changes - should probably call method to free SAFE DOM
 // objects?
   RS.SafeNetwork._rs_cleanup = function (remoteStorage) {
-    window.safeApp.free();
+    if (remoteStorage.safenetwork)
+      remoteStorage.safenetwork.freeSafeAPI();
+
     remoteStorage.setBackend(undefined);
     if (remoteStorage._safenetworkOrigRemote) {
       remoteStorage.remote = remoteStorage._safenetworkOrigRemote;
