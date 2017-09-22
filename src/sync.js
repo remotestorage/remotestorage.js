@@ -405,7 +405,7 @@
     },
 
     autoMergeDocument: function (node) {
-      hasNoRemoteChanges = function (node) {
+      var hasNoRemoteChanges = function (node) {
         if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
           return false;
         }
@@ -413,7 +413,7 @@
                (node.remote.body === node.common.body &&
                 node.remote.contentType === node.common.contentType);
       };
-      mergeMutualDeletion = function (node) {
+      var mergeMutualDeletion = function (node) {
         if (node.remote && node.remote.body === false
             && node.local && node.local.body === false) {
            delete node.local;
@@ -618,7 +618,7 @@
       return this.local.getNodes(paths).then(function (nodes) {
         var subPaths = {};
 
-        collectSubPaths = function (folder, path) {
+        var collectSubPaths = function (folder, path) {
           if (folder && folder.itemsMap) {
             for (var itemName in folder.itemsMap) {
               subPaths[path+itemName] = true;
