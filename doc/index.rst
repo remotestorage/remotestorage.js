@@ -21,14 +21,14 @@ across devices and applications.
 
    why
    data-modules
-   api
+   js-api
    caching
    data-format
+   api
    discovery-bootstrap
    amd
    nodejs
    contributing
-   js-api
 
 
 Indices and tables
