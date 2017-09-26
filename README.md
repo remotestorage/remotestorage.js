@@ -10,6 +10,23 @@ remoteStorage.js is a JavaScript library for storing user data locally in the
 browser, as well as connecting to [remoteStorage](http://remotestorage.io)
 servers and syncing data across devices and applications.
 
+### PLEASE NOTE
+
+You're currently looking at the `stable` branch of this repo/library,
+containing version `0.14.x`. We've been working on version `1.0.0` for over a
+year now, and you can find the (fairly stable) alpha versions of that in the
+`master` branch (and/or Git tags). The new version works with all modern module
+systems and splits out the connect widget to its own library, while enhancing
+APIs to empower developers to easily integrate everything in their own UI.
+Furthermore, we're moving all data modules to their own repos and npm modules.
+And we're also in the process of writing and launching completely new docs for
+version 1.0 (`docs/sphinx` branch).
+
+Please feel free to drop by `#remotestorage` on Freenode IRC or [post on the
+forums](https://community.remotestorage.io) anytime, if you have any questions
+or would like assistance with integrating rs.js 1.0 in your app/project. Any
+help and contributions are also greatly appreciated, of course!
+
 ### Where to get help?
 
 * See [remotestorage.io](http://remotestorage.io/) for general information about remoteStorage
