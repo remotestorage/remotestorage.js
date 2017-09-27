@@ -134,8 +134,8 @@
 
   RS.SafeNetwork = function (remoteStorage, config) {
     this.rs = remoteStorage;
-    this._fileInfoCache = new Cache(60 * 5); // mrhTODO: info expires after 5
-                                              // minutes (is this a good idea?)
+    this._fileInfoCache = new Cache(60 * 5 * 1000); // mrhTODO: info expires after 5
+                                                    // minutes (is this a good idea?)
     this.connected = false;
     var self = this;
 
@@ -217,6 +217,8 @@
                window.safeMutableData.emulateAs(self.mdRoot, 'NFS')
                  .then((nfsHandle) => {
                    self.nfsRoot = nfsHandle;
+                   RS.log("_getMdHandle() mdRoot:  " + self.mdRoot);
+                   RS.log("_getMdHandle() nfsRoot: " + self.nfsRoot);
                    resolve(mdHandle); // Return mdHandle only if we have the
                                       // nfsHandle
                  }, (err) => { // mrhTODO how to handle in UI?
@@ -715,29 +717,44 @@
           return {statusCode: 412, revision: etagWithoutQuotes};
         }
 
-        // Only act on file (directories are inferred, don't exist as objects so
+        // Only act on files (directories are inferred, don't exist as objects so
         // no need to delete)
         if ( fullPath.substr(-1) === '/') {
           self._fileInfoCache.delete(fullPath);     // Directory - invalidate
                                                     // any cached eTag
         }
         else {
-          return window.safeNfs.update(self.nfsRoot, fullPath, body, fileInfo.version).then(function (success){
-            // mrhTODOx update file metadata (contentType) - how?
+          // Store content as new immutable data. fileHandle is a raw pointer to the data
+          // on network
+          return window.safeNfs.create(self.nfsRoot, body).then(function (fileHandle) {
+            // mrhTODOx set file metadata (contentType) - how?
 
-            self.reflectNetworkStatus(true);   // mrhTODO - should be true,
-                                                // unless 401 - Unauthorized
+            // Add the file (fileHandle) to the directory (inserts file pointer
+            // into container)
+            return window.safeNfs.update(self.nfsRoot, fileHandle, fullPath, fileInfo.version + 1).then(function (fileHandle) {
+              // self._shareIfNeeded(fullPath); // mrhTODO what's this?
 
-            if (success) {
+              var response = { statusCode: ( fileHandle ? 200 : 400  ) }; // mrhTODO currently just a response that resolves to truthy (may be exteneded to return status?)
+              self.reflectNetworkStatus(true);
+
+              // mrhTODO Not sure if eTags can still be simulated:
+              // mrhTODO would it be better to not delte, but set the fileHandle
+              // in the fileInfo?
               self._fileInfoCache.delete(fullPath);     // Invalidate any cached
                                                         // eTag
-              return Promise.resolve({statusCode: 200});
-            } else {
-              return Promise.reject('safeNfs.update("' + fullPath + '") failed: ' + success );
-            }
+
+              return resolve(response);
+            }, function (err){
+              self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
+              RS.log('REJECTING!!! safeNfs.update("' + fullPath + '") failed: ' + err.message)
+              return reject(err);
+            });
           }, function (err){
-            RS.log('REJECTING!!! safeNfs.update("' + fullPath + '") failed: ' + err.message)
-            return Promise.reject(err);
+            self.reflectNetworkStatus(false);                // mrhTODO - should
+                                                              // go offline for
+                                                              // Unauth or Timeout
+            RS.log('REJECTING!!! safeNfs.create("' + fullPath + '") failed: ' + err.message)
+            return reject(err);
           });
         }
       }, function (err){
@@ -1237,7 +1254,7 @@
           });
 
         }, function (err){
-          RS.log('safeMutableData.getVersion() FAILED: ' + err)
+          RS.log('_getFileInfo(' + fullPath + ') > safeMutableData.getVersion() FAILED: ' + err)
           return reject(err);
         });
       });
