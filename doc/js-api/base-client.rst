@@ -152,6 +152,41 @@ List of functions
        targetElement.src = window.URL.createObjectURL(blob);
      });
 
+.. autofunction:: BaseClient#storeFile
+  :short-name:
+
+  Example (UTF-8 data):
+
+  .. code:: javascript
+
+     client.storeFile('text/html', 'index.html', '<h1>Hello World!</h1>')
+           .then(() => { console.log("Upload done") });
+
+  Example (Binary data):
+
+  .. code:: javascript
+
+     var input = document.querySelector('form#upload input[type=file]');
+     var file = input.files[0];
+     var fileReader = new FileReader();
+
+     fileReader.onload = function () {
+       client.storeFile(file.type, file.name, fileReader.result)
+             .then(() => { console.log("Upload done") });
+     };
+
+     fileReader.readAsArrayBuffer(file);
+
+.. autofunction:: BaseClient#remove
+  :short-name:
+
+  Example:
+
+  .. code:: javascript
+
+     client.remove('path/to/object')
+           .then(() => console.log('item successfully deleted'));
+
 Other functions
 ---------------
 
