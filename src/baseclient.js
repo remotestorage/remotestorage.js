@@ -250,38 +250,13 @@ BaseClient.prototype = {
   },
 
   /**
-   * storeFile
-   *
    * Store raw data at a given path.
    *
-   * Parameters:
-   *   mimeType - MIME media type of the data being stored
-   *   path     - path relative to the module root. MAY NOT end in a forward slash.
-   *   data     - string, ArrayBuffer or ArrayBufferView of raw data to store
+   * @param {string} mimeType - MIME media type of the data being stored
+   * @param {string} path     - Path relative to the module root
+   * @param {string|ArrayBuffer|ArrayBufferView} data - Raw data to store
    *
-   * The given mimeType will later be returned, when retrieving the data
-   * using <getFile>.
-   *
-   * Example (UTF-8 data):
-   *   (start code)
-   *   client.storeFile('text/html', 'index.html', '<h1>Hello World!</h1>');
-   *   (end code)
-   *
-   * Example (Binary data):
-   *   (start code)
-   *   // MARKUP:
-   *   <input type="file" id="file-input">
-   *   // CODE:
-   *   var input = document.getElementById('file-input');
-   *   var file = input.files[0];
-   *   var fileReader = new FileReader();
-   *
-   *   fileReader.onload = function () {
-   *     client.storeFile(file.type, file.name, fileReader.result);
-   *   };
-   *
-   *   fileReader.readAsArrayBuffer(file);
-   *   (end code)
+   * @returns Promise
    */
   storeFile: function (mimeType, path, body) {
     if (typeof(mimeType) !== 'string') {
@@ -409,12 +384,10 @@ BaseClient.prototype = {
   },
 
   /**
-   * remove
-   *
    * Remove node at given path from storage. Triggers synchronization.
    *
    * @param {string} path - Path relative to the module root.
-   * @returns TODO
+   * @returns Promise
    */
   remove: function (path) {
     if (typeof(path) !== 'string') {
