@@ -445,6 +445,40 @@ define(['./src/config', './src/baseclient', 'test/helpers/mocks', 'tv4'],
       },
 
       {
+        desc: "_attachType attaches default context to objects",
+        run: function(env, test) {
+          var obj = {
+            some: 'value'
+          };
+          env.storage = new RemoteStorage();
+          env.client = new BaseClient(env.storage, '/contacts/');
+          env.client._attachType(obj, 'contact');
+          test.assertAnd(obj, {
+            some: 'value',
+            '@context': 'http://remotestorage.io/spec/modules/contacts/contact'
+          });
+          test.done();
+        }
+      },
+
+      {
+        desc: "_attachType encodes special characters in type names for @context URI",
+        run: function(env, test) {
+          var obj = {
+            some: 'value'
+          };
+          env.storage = new RemoteStorage();
+          env.client = new BaseClient(env.storage, '/foo/');
+          env.client._attachType(obj, 'ba/F');
+          test.assertAnd(obj, {
+            some: 'value',
+            '@context': 'http://remotestorage.io/spec/modules/foo/ba%2FF'
+          });
+          test.done();
+        }
+      },
+
+      {
         desc: "values in change events are JSON-parsed when possible",
         run: function(env, test) {
           var storage = new RemoteStorage();

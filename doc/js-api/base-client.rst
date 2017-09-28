@@ -107,6 +107,24 @@ List of functions
      client.getObject('/path/to/object')
            .then(obj => console.log(obj));
 
+.. autofunction:: BaseClient#storeObject
+  :short-name:
+
+  Example:
+
+  .. code:: javascript
+
+     var bookmark = {
+       url: 'http://unhosted.org',
+       description: 'Unhosted Adventures',
+       tags: ['unhosted', 'remotestorage', 'no-backend']
+     }
+     var path = MD5Hash(bookmark.url);
+
+     client.storeObject('bookmark', path, bookmark)
+           .then(() => console.log('bookmark saved'))
+           .catch((err) => console.log(err));
+
 .. autofunction:: BaseClient#getAll
   :short-name:
 
@@ -187,8 +205,67 @@ List of functions
      client.remove('path/to/object')
            .then(() => console.log('item successfully deleted'));
 
+Events
+------
+
+TODO
+
+Data types
+----------
+
+.. autofunction:: BaseClient#declareType
+  :short-name:
+
+  Example:
+
+  .. code:: javascript
+
+     client.declareType('todo-item', {
+       "type": "object",
+       "properties": {
+         "id": {
+           "type": "string"
+         },
+         "title": {
+           "type": "string"
+         },
+         "finished": {
+           "type": "boolean"
+           "default": false
+         },
+         "createdAt": {
+           "type": "date"
+         }
+       },
+       "required": ["id", "title"]
+     })
+
+  Visit `<http://json-schema.org>`_ for details on how
+  to use JSON Schema.
+
+.. autofunction:: BaseClient#validate
+  :short-name:
+
+  Example: TODO
+
+Caching
+-------
+
+.. autofunction:: BaseClient#cache
+  :short-name:
+
+  Example: TODO
+
+.. autofunction:: BaseClient#flush
+  :short-name:
+
+  Example: TODO
+
 Other functions
 ---------------
+
+.. autofunction:: BaseClient#getItemURL
+  :short-name:
 
 .. autofunction:: BaseClient#scope
   :short-name:
