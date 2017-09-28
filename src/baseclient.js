@@ -1,17 +1,19 @@
+var eventHandling = require('./eventhandling');
+var util = require('./util');
+var config = require('./config');
+var uuid = require('uuid/v4');
+var tv4 = require('tv4');
+var Types = require('./types');
+
 /**
- * TODO: document (and maybe move to utils)
- *
+ * TODO: document (and maybe move to utils),
+ * or remove deprecations here altogether
  * @private
  */
 function deprecate(thing, replacement) {
   console.log('WARNING: ' + thing + ' is deprecated. Use ' +
               replacement + ' instead.');
 }
-
-var eventHandling = require('./eventhandling');
-var util = require('./util');
-var config = require('./config');
-var uuid = require('uuid/v4');
 
 /**
  * Provides a high-level interface to access data below a given root path.
@@ -136,14 +138,9 @@ var BaseClient = function (storage, base) {
   storage.onChange(this.base, this._fireChange.bind(this));
 };
 
-BaseClient.prototype = {
+BaseClient.Types = Types;
 
-  extend: function (object) {
-    for (var key in object) {
-      this[key] = object[key];
-    }
-    return this;
-  },
+BaseClient.prototype = {
 
   /**
    * Instantiate a new client, scoped to a subpath of the current client's
@@ -256,7 +253,7 @@ BaseClient.prototype = {
    * @param {string} path     - Path relative to the module root
    * @param {string|ArrayBuffer|ArrayBufferView} data - Raw data to store
    *
-   * @returns Promise
+   * @returns {Promise}
    */
   storeFile: function (mimeType, path, body) {
     if (typeof(mimeType) !== 'string') {
@@ -312,45 +309,17 @@ BaseClient.prototype = {
   },
 
   /**
-   * Method: storeObject
-   *
    * Store object at given path. Triggers synchronization.
    *
-   * Parameters:
+   * TODO see ``declareType()`` and :doc:`data types </data-modules/types>` for explanation of types
    *
-   *   type     - unique type of this object within this module. See description below.
-   *   path     - path relative to the module root.
-   *   object   - an object to be saved to the given node. It must be serializable as JSON.
+   * @param {string} type   - Unique type of this object within this module.
+   * @param {string} path   - Path relative to the module root.
+   * @param {object} object - A JavaScript object to be stored at the given
+   *                          path. Must be serializable as JSON.
    *
-   * Returns:
-   *   A promise to store the object. The promise fails with a ValidationError, when validations fail.
-   *
-   *
-   * What about the type?:
-   *
-   *   A great thing about having data on the web, is to be able to link to
-   *   it and rearrange it to fit the current circumstances. To facilitate
-   *   that, eventually you need to know how the data at hand is structured.
-   *   For documents on the web, this is usually done via a MIME type. The
-   *   MIME type of JSON objects however, is always application/json.
-   *   To add that extra layer of "knowing what this object is", remoteStorage
-   *   aims to use <JSON-LD at http://json-ld.org/>.
-   *   A first step in that direction, is to add a *@context attribute* to all
-   *   JSON data put into remoteStorage.
-   *   Now that is what the *type* is for.
-   *
-   *   Within remoteStorage.js, @context values are built using three components:
-   *     http://remotestorage.io/spec/modules/ - A prefix to guarantee uniqueness
-   *     the module name     - module names should be unique as well
-   *     the type given here - naming this particular kind of object within this module
-   *
-   *   In retrospect that means, that whenever you introduce a new "type" in calls to
-   *   storeObject, you should make sure that once your code is in the wild, future
-   *   versions of the code are compatible with the same JSON structure.
-   *
-   * How to define types?:
-   *
-   *   See <declareType> for examples.
+   * @returns {Promise} - Resolves with revision on success. Rejects with
+   *                      a ValidationError, if validations fail.
    */
   storeObject: function (typeAlias, path, object) {
     if (typeof(typeAlias) !== 'string') {
@@ -401,7 +370,31 @@ BaseClient.prototype = {
   },
 
   /**
+   * Retrieve full URL of a document. Useful for example for sharing the public
+   * URL of an item in the ``/public`` folder.
+   *
+   * @param {string} path - Path relative to the module root.
+   * @returns {string} - The full URL of the item, including the storage origin
+   */
+  getItemURL: function (path) {
+    if (typeof(path) !== 'string') {
+      throw 'Argument \'path\' of baseClient.getItemURL must be a string';
+    }
+    if (this.storage.connected) {
+      path = this._cleanPath( this.makePath(path) );
+      return this.storage.remote.href + path;
+    } else {
+      return undefined;
+    }
+  },
+
+  /**
+   * Set caching strategy for a given path and its children
+   *
    * TODO: document
+   *
+   * @param {string} path
+   * @param {string} strategy
    */
   cache: function (path, strategy) {
     if (typeof(path) !== 'string') {
@@ -427,9 +420,72 @@ BaseClient.prototype = {
   },
 
   /**
-   * TODO: document
+   * Declare a remoteStorage object type using a JSON schema.
+   *
+   * See :doc:`data types </data-modules/types>` for more info.
+   *
+   * @param {string} alias  - A type alias/shortname
+   * @param {uri}    uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
+   * @param {object} schema - A JSON Schema object describing the object type
+   **/
+  declareType: function(alias, uri, schema) {
+    if (! schema) {
+      schema = uri;
+      uri = this._defaultTypeURI(alias);
+    }
+    BaseClient.Types.declare(this.moduleName, alias, uri, schema);
+  },
+
+  /**
+   * Validate an object against the associated schema.
+   *
+   * @param {object} object - JS object to validate. Must have a ``@context`` property.
+   *
+   * @returns {object} - An object containing information about validation errors
+   **/
+  validate: function(object) {
+    var schema = BaseClient.Types.getSchema(object['@context']);
+    if (schema) {
+      return tv4.validateResult(object, schema);
+    } else {
+      throw new SchemaNotFound(object['@context']);
+    }
+  },
+
+  /**
+   * TODO document
    *
    * @private
+   */
+  schemas: {
+    configurable: true,
+    get: function() {
+      return BaseClient.Types.inScope(this.moduleName);
+    }
+  },
+
+  /**
+   * The default JSON-LD @context URL for RS types/objects/documents
+   *
+   * @private
+   */
+  _defaultTypeURI: function(alias) {
+    return 'http://remotestorage.io/spec/modules/' + encodeURIComponent(this.moduleName) + '/' + encodeURIComponent(alias);
+  },
+
+  /**
+   * Attaches the JSON-LD @content to an object
+   *
+   * @private
+   */
+  _attachType: function(object, alias) {
+    object['@context'] = BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
+  },
+
+  /**
+   * TODO: document
+   *
+   * @param {string} path
    */
   flush: function (path) {
     return this.storage.local.flush(path);
@@ -473,25 +529,6 @@ BaseClient.prototype = {
    */
   _cleanPath: util.cleanPath,
 
-  /**
-   * getItemURL
-   *
-   * Retrieve full URL of item
-   *
-   * @param {string} path - Path relative to the module root.
-   */
-  getItemURL: function (path) {
-    if (typeof(path) !== 'string') {
-      throw 'Argument \'path\' of baseClient.getItemURL must be a string';
-    }
-    if (this.storage.connected) {
-      path = this._cleanPath( this.makePath(path) );
-      return this.storage.remote.href + path;
-    } else {
-      return undefined;
-    }
-  },
-
   uuid: function () {
     return uuid();
   }
@@ -500,8 +537,3 @@ BaseClient.prototype = {
 BaseClient._rs_init = function () {};
 
 module.exports = BaseClient;
-
-// needs to be after the export to change prototype
-// this should be different (we need to import `types` functionality, not
-// modifing BaseClient.prototype from there)
-require('./types');
