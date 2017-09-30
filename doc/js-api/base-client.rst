@@ -7,6 +7,8 @@ TODO explain:
   plus private)
 * can also be created on the fly using remoteStorage#scope
 
+.. contents::
+
 Data read/write operations
 --------------------------
 
@@ -205,10 +207,121 @@ List of functions
      client.remove('path/to/object')
            .then(() => console.log('item successfully deleted'));
 
-Events
-------
+Change events
+-------------
 
-TODO
+``BaseClient`` offers a single event, named ``change``, which you can add a
+handler for using the ``.on()`` function (same as in ``RemoteStorage``):
+
+.. code:: javascript
+
+   client.on('change', function (evt) {
+     console.log('data was added, updated, or removed:', evt)
+   });
+
+Using this event, you can stay informed about data changes, both remote (from
+other devices or browsers), as well as locally (e.g. other browser tabs).
+
+In order to determine where a change originated from, look at the ``origin``
+property of the incoming event. Possible values are ``window``, ``local``,
+``remote``, and ``conflict``, explained in detail below.
+
+Example:
+
+.. code:: javascript
+
+   {
+     path: path, // Absolute path of the changed node, from the storage root
+     relativePath: relativePath, // Path of the changed node, relative to this baseclient's scope root
+     origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
+     oldValue: oldBody, // Old body of the changed node (local version in conflicts; undefined if creation)
+     newValue: newBody, // New body of the changed node (remote version in conflicts; undefined if deletion)
+     lastCommonValue: lastCommonValue, // Most recent known common ancestor body of 'yours' and 'theirs' in case of conflict
+     oldContentType: oldContentType, // Old contentType of the changed node ('yours' for conflicts; undefined if creation)
+     newContentType: newContentType, // New contentType of the changed node ('theirs' for conflicts; undefined if deletion)
+     lastCommonContentType: lastCommonContentType // Most recent known common ancestor contentType of 'yours' and 'theirs' in case of conflict
+   }
+
+``remote``
+^^^^^^^^^^
+
+Events with origin ``remote`` are fired when remote changes are discovered
+during sync (TODO: depends on caching strategy?)
+
+
+``conflict``
+^^^^^^^^^^^^
+
+Events with origin ``conflict`` are fired when a conflict occurs while pushing
+out your local changes to the remote store.
+
+Say you changed 'color.txt' from 'white' to 'blue'; if you have set
+``config.changeEvents.window`` to ``true``, then you will receive:
+
+.. code:: javascript
+
+   {
+      path: '/public/design/color.txt',
+      relativePath: 'color.txt',
+      origin: 'window',
+      oldValue: 'white',
+      newValue: 'blue',
+      oldContentType: 'text/plain',
+      newContentType: 'text/plain'
+    }
+
+But when this change is pushed out by asynchronous synchronization, this change
+may rejected by the server, if the remote version has in the meantime changed
+from 'white' to  for instance 'red'; this will then lead to a change event with
+origin 'conflict' (usually a few seconds after the event with origin 'window',
+if you have those activated). Note that since you already changed it from
+'white' to 'blue' in the local version a few seconds ago, ``oldValue`` is now
+your local value of 'blue':
+
+.. code:: javascript
+
+   {
+      path: '/public/design/color.txt',
+      relativePath: 'color.txt',
+      origin: 'conflict',
+      oldValue: 'blue',
+      newValue: 'red',
+      lastCommonValue: 'white',
+      oldContentType: 'text/plain,
+      newContentType: 'text/plain'
+      lastCommonContentType: 'text/plain'
+    }
+
+``window``
+^^^^^^^^^^
+
+Events with origin `window` are fired whenever you change a value by calling a
+method on the ``BaseClient``; these are disabled by default.
+
+TODO: how to enable them?
+
+``local``
+^^^^^^^^^
+
+Events with origin ``local`` are fired conveniently during the page load, so
+that you can fill your views when the page loads.
+
+(You may also use for example :func:`getAll` instead, and choose to deactivate
+these).
+
+Example:
+
+.. code:: javascript
+
+   {
+     path: '/public/design/color.txt',
+     relativePath: 'color.txt',
+     origin: 'local',
+     oldValue: undefined,
+     newValue: 'white',
+     oldContentType: undefined,
+     newContentType: 'text/plain'
+   }
 
 Data types
 ----------
