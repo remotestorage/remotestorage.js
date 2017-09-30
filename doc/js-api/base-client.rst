@@ -287,8 +287,8 @@ your local value of 'blue':
       oldValue: 'blue',
       newValue: 'red',
       lastCommonValue: 'white',
-      oldContentType: 'text/plain,
-      newContentType: 'text/plain'
+      oldContentType: 'text/plain',
+      newContentType: 'text/plain',
       lastCommonContentType: 'text/plain'
     }
 
