@@ -6,6 +6,8 @@ to remoteStorage.js development.
 
 .. toctree::
    :maxdepth: 2
-   :glob:
 
-   contributing/*
+   contributing/code-overview.rst
+   contributing/docs.rst
+   contributing/github-flow.rst
+   contributing/release-checklist.rst
