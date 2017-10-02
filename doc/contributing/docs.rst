@@ -36,8 +36,8 @@ when they are rendered as HTML, you will have to set up local builds first.
 How to build the docs on your machine
 -------------------------------------
 
-Set up
-^^^^^^
+Setup
+^^^^^
 
 1. `Install Python and PIP <https://pip.pypa.io/en/stable/installing/>`_
    (likely already installed)
@@ -49,6 +49,10 @@ Set up
 3. Install required extensions (from repository root)::
 
    $ pip install -r doc/requirements.txt
+
+4. Install JSDoc globally via npm::
+
+   $ npm install -g jsdoc
 
 Build
 ^^^^^
