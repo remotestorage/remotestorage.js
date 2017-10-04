@@ -23,6 +23,10 @@ All releases can also be found and downloaded on the
 
 * Switch Dropbox adapter to use the Dropbox API v2 (#936)
 
+### Bugfixes
+
+* Remove all scheduled sync calls after disconnect (#994)
+
 ## 0.14.0 (November 2016)
 
 ### Enhancements
