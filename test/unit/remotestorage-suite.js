@@ -497,6 +497,26 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
           env.rs.setRequestTimeout(30000);
           test.assert(env.rs.getRequestTimeout(), 30000);
         }
+      },
+
+      {
+        desc: "#stopSync clears any scheduled sync calls",
+        run: function (env, test) {
+          // This timeout should not be called because it gets cancelled by stopSync()
+          env.rs._syncTimer = setTimeout(function() {
+            test.result(false, "This should not have been called after stopSync");
+          }, 10);
+
+          // This timeout ends the test successfully when the previous timeout
+          // doesn't get called
+          setTimeout(function() {
+            test.result(true);
+          }, 20);
+
+          env.rs.stopSync();
+
+          test.assertAnd(env.rs._syncTimer, undefined);
+        }
       }
     ]
   });
