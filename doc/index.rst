@@ -22,14 +22,8 @@ across devices and applications.
    why
    data-modules
    js-api
-   caching
-   data-format
-   api
-   discovery-bootstrap
-   amd
-   nodejs
    contributing
-
+   legacy
 
 Indices and tables
 ------------------

@@ -1,6 +1,10 @@
 Release Checklist
 =================
 
+.. WARNING::
+  This is partly outdated and needs adjustment for version 1.0 and the new
+  build/release process.
+
 * Create changelog since last release
 
     * Collect and summarize changes using `git log <LAST RELEASE TAG>..HEAD`
