@@ -1,29 +1,32 @@
 Code overview
 =============
 
-The code of remotestorage.js consists of files in the ``src/`` folder of
-this repo. It is built with webpack in the ``build/`` folder of this
-repo. The tests are in the ``test/`` folder.
+The code of remoteStorage.js consists of files in the ``src/`` folder of this
+repo. These are built into a single file in the ``release/`` folder using
+`webpack <http://webpack.github.io/>`_. Unit tests live in the ``test/`` folder
+and are based on `Jaribu <https://github.com/silverbucket/jaribu>`_.
 
 The structure of the code is based around feature loading. Most files in
-``src/`` correspond to a feature, e.g. ``RemoteStorage.Discover`` or
-``RemoteStorage.Caching``.
+``src/`` correspond to a feature, e.g. ``discover.js`` to
+``RemoteStorage.Discover`` or ``caching.js`` to ``RemoteStorage.Caching``.
 
 The feature loading happens synchronously during the page load in
-``src/remotestorage.js`` (just including the script in your app will
-lead to executing the code that loads the features).
+``src/remotestorage.js`` (just including this script in your app will lead to
+executing the code that loads the features).
 
-Most feature load under their own name, but for ``remoteStorage.local``
-a choice is made between ``RemoteStorage.IndexedDB``,
-``RemoteStorage.LocalStorage`` and ``RemoteStorage.InMemoryCaching``.
+Most features load under their own name, but for ``remoteStorage.local`` a
+choice is made between ``RemoteStorage.IndexedDB``,
+``RemoteStorage.LocalStorage`` and ``RemoteStorage.InMemoryCaching``, depending
+on what the environment (browser, node.js, Electron, WebView, or other)
+supports.
 
-For ``remoteStorage.local`` we then also have a `special
-mixin <https://github.com/remotestorage/remotestorage.js/issues/777#issuecomment-57392440>`__
-called ``src/cachinglayer.js``, which mixes in some common functions
-into the object.
+For ``remoteStorage.local`` we then also have a `special mixin
+<https://github.com/remotestorage/remotestorage.js/issues/777#issuecomment-57392440>`__
+called ``src/cachinglayer.js``, which mixes in some common functions into the
+object.
 
-The ``remoteStorage.remote`` feature is not loaded immediately, but only
-when ``RemoteStorage.Discover`` calls ``remoteStorage.setBackend``, and
-then a choice is made between ``RemoteStorage.WireClient``,
-``RemoteStorage.GoogleDrive``, ``RemoteStorage.Dropbox``, etcetera (we
-aim to add more backends in the future).
+The ``remoteStorage.remote`` feature is not loaded immediately, but only when
+``RemoteStorage.Discover`` calls ``remoteStorage.setBackend()``, at which point a
+choice is made between ``RemoteStorage.WireClient``,
+``RemoteStorage.GoogleDrive``, ``RemoteStorage.Dropbox`` (or any other future
+backend) to become the ``remote``.
