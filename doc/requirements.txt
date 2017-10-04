@@ -1,2 +1,3 @@
 sphinx-js
 sphinx-issues
+sphinx-autobuild
