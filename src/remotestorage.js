@@ -710,6 +710,7 @@
         if (!this.sync.stopped) {
           if (this._syncTimer) {
             clearTimeout(this._syncTimer);
+            this._syncTimer = undefined;
           }
           this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
         }
@@ -719,6 +720,9 @@
     },
 
     stopSync: function () {
+      clearTimeout(this._syncTimer);
+      this._syncTimer = undefined;
+
       if (this.sync) {
         log('[Sync] Stopping sync');
         this.sync.stopped = true;
