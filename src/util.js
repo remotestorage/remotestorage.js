@@ -208,11 +208,6 @@
       return true;
     },
 
-    equalObj (obj1, obj2) {
-      console.warn('DEPRECATION WARNING: util.equalObj has been replaced by util.equal.');
-      return util.equal(obj1, obj2);
-    },
-
     deepClone (obj) {
       var clone;
       if (obj === undefined) {
