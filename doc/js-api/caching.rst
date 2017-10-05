@@ -1,6 +1,9 @@
 Caching
 =======
 
+This gets initialized as `remoteStorage.caching`, unless the
+remoteStorage instance is created with the option `caching: false`.
+
 Caching strategies
 ------------------
 
@@ -21,6 +24,24 @@ For each subtree, you can set the caching strategy to 'ALL', 'SEEN'
 List of functions
 -------------------
 
+.. autofunction:: Caching#enable
+  :short-name:
+
+  Example:
+
+  .. code:: javascript
+
+     remoteStorage.caching.enable('/bookmarks/');
+
+.. autofunction:: Caching#disable
+  :short-name:
+
+  Example:
+
+  .. code:: javascript
+
+     remoteStorage.caching.disable('/bookmarks/');
+
 .. autofunction:: Caching#set
   :short-name:
 
@@ -28,19 +49,13 @@ List of functions
 
   .. code:: javascript
 
-     remoteStorage.caching.set('/bookmarks/archive')
-
-.. autofunction:: Caching#enable
-  :short-name:
-
-.. autofunction:: Caching#disable
-  :short-name:
-
-.. autofunction:: Caching#onActivate
-  :short-name:
-
-.. autofunction:: Caching#checkPath
-  :short-name:
+     remoteStorage.caching.set('/bookmarks/archive/', 'SEEN');
 
 .. autofunction:: Caching#reset
   :short-name:
+
+  Example:
+
+  .. code:: javascript
+
+     remoteStorage.caching.reset();

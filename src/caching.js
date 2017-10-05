@@ -112,6 +112,7 @@
      * with a caching strategy set.
      *
      * @param {string} path - Path to retrieve setting for
+     * @returns {string} caching strategy for the path
      **/
     checkPath: function (path) {
       if (this._rootPaths[path] !== undefined) {
