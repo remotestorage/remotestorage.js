@@ -1,8 +1,8 @@
 Caching
 =======
 
-This gets initialized as `remoteStorage.caching`, unless the
-remoteStorage instance is created with the option `caching: false`.
+This gets initialized as ``remoteStorage.caching``, unless the
+remoteStorage instance is created with the option ``caching: false``.
 
 Caching strategies
 ------------------

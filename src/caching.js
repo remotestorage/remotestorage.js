@@ -37,7 +37,7 @@
     /**
      * Configure caching for a given path explicitly.
      *
-     * Not needed when using <enable>/<disable>.
+     * Not needed when using ``enable``/``disable``.
      *
      * @param {string} path - Path to cache
      * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
