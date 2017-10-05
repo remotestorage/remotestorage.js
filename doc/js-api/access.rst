@@ -17,8 +17,6 @@ List of functions
      remoteStorage.access.claim('contacts', 'r');
      remoteStorage.access.claim('pictures', 'rw');
 
-  Root access:
-
   Claiming root access, meaning complete access to all files and folders
   of a storage, can be done using an asterisk for the scope:
 
