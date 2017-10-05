@@ -18,7 +18,7 @@ For each subtree, you can set the caching strategy to 'ALL', 'SEEN'
 * 'FLUSH' will only cache outgoing changes, and forget them as soon as
   they have been saved to remote successfully.
 
-Prototype functions
+List of functions
 -------------------
 
 .. autofunction:: Caching#set
