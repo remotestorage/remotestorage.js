@@ -10,4 +10,5 @@ available to developers using remoteStorage.js in their apps and programs.
 
    js-api/remotestorage
    js-api/base-client
+   js-api/access
    js-api/caching
