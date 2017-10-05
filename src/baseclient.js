@@ -6,16 +6,6 @@ var tv4 = require('tv4');
 var Types = require('./types');
 
 /**
- * TODO: document (and maybe move to utils),
- * or remove deprecations here altogether
- * @private
- */
-function deprecate(thing, replacement) {
-  console.log('WARNING: ' + thing + ' is deprecated. Use ' +
-              replacement + ' instead.');
-}
-
-/**
  * Provides a high-level interface to access data below a given root path.
  */
 var BaseClient = function (storage, base) {
@@ -317,17 +307,14 @@ BaseClient.prototype = {
    * @param {string} strategy
    */
   cache: function (path, strategy) {
-    if (typeof(path) !== 'string') {
+    if (typeof path  !== 'string') {
       throw 'Argument \'path\' of baseClient.cache must be a string';
     }
-    if (strategy === false) {
-      deprecate('caching strategy <false>', '<"FLUSH">');
-      strategy = 'FLUSH';
-    } else if (strategy === undefined) {
+
+    if (strategy === undefined) {
       strategy = 'ALL';
-    } else if (typeof(strategy) !== 'string') {
-      deprecate('that caching strategy', '<"ALL">');
-      strategy = 'ALL';
+    } else if (typeof strategy  !== 'string') {
+      throw 'Argument \'strategy\' of baseClient.cache must be a string or undefined';
     }
     if (strategy !== 'FLUSH' &&
         strategy !== 'SEEN' &&
