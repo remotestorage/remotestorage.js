@@ -1,5 +1,5 @@
   /**
-   * Class: Caching
+   * @class Caching
    *
    * Holds/manages caching configuration.
    *
@@ -35,19 +35,13 @@
     pendingActivations: [],
 
     /**
-     * Method: set
-     *
      * Configure caching for a given path explicitly.
      *
      * Not needed when using <enable>/<disable>.
      *
-     * Parameters:
-     *   path     - Path to cache
-     *   strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
+     * @param {string} path - Path to cache
+     * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
      *
-     * Example:
-     *   (start code)
-     *   remoteStorage.caching.set('/bookmarks/archive')
      */
     set: function (path, strategy) {
       if (typeof path !== 'string') {
@@ -76,41 +70,32 @@
     },
 
     /**
-     * Method: enable
-     *
      * Enable caching for a given path.
      *
      * Uses caching strategy 'ALL'.
      *
-     * Parameters:
-     *   path - Path to enable caching for
+     * @param {string} path - Path to enable caching for
      */
     enable: function (path) {
       this.set(path, 'ALL');
     },
 
     /**
-     * Method: disable
-     *
      * Disable caching for a given path.
      *
      * Uses caching strategy 'FLUSH' (meaning items are only cached until
      * successfully pushed to the remote).
      *
-     * Parameters:
-     *   path - Path to disable caching for
+     * @param {string} path - Path to disable caching for
      */
     disable: function (path) {
       this.set(path, 'FLUSH');
     },
 
     /**
-     * Method: onActivate
-     *
      * Set a callback for when caching is activated for a path.
      *
-     * Parameters:
-     *   callback - Callback function
+     * @param {function} callback - Callback function
      */
     onActivate: function (cb) {
       var i;
@@ -123,13 +108,10 @@
     },
 
     /**
-     * Method: checkPath
-     *
      * Retrieve caching setting for a given path, or its next parent
      * with a caching strategy set.
      *
-     * Parameters:
-     *   path - Path to retrieve setting for
+     * @param {string} path - Path to retrieve setting for
      **/
     checkPath: function (path) {
       if (this._rootPaths[path] !== undefined) {
@@ -142,8 +124,6 @@
     },
 
     /**
-     * Method: reset
-     *
      * Reset the state of caching by deleting all caching information.
      **/
     reset: function () {
@@ -153,6 +133,11 @@
   };
 
 
+  /**
+   * Setup function that is called on initialization.
+   *
+   * @private
+   **/
   Caching._rs_init = function (remoteStorage) {
     this._remoteStorage = remoteStorage;
   };
