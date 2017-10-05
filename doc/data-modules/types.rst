@@ -3,7 +3,7 @@ Data types
 
 .. ATTENTION::
    This is 5 years old and needs a better explanation of JSON-LD. Also, we need
-   to intruduce ``@type`` alongside the existing ``@context`` property, which
+   to introduce ``@type`` alongside the existing ``@context`` property, which
    we're currently (mis)using for specific data types. And we should also think
    about not scoping types in module names.
 
