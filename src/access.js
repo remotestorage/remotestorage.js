@@ -1,5 +1,3 @@
-  // var SETTINGS_KEY = "remotestorage:access";
-
   /**
    * @class Access
    *

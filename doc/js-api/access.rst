@@ -2,7 +2,7 @@ Access
 ======
 
 This class is for requesting and managing access to modules/folders on
-the remote.
+the remote. It gets initialized as ``remoteStorage.access``.
 
 List of functions
 -----------------
@@ -24,17 +24,3 @@ List of functions
 
      remoteStorage.access.claim('*', 'rw');
 
-.. autofunction:: Access#get
-  :short-name:
-
-.. autofunction:: Access#remove
-  :short-name:
-
-.. autofunction:: Access#checkPermission
-  :short-name:
-
-.. autofunction:: Access#checkPathPermission
-  :short-name:
-
-.. autofunction:: Access#reset
-  :short-name:
