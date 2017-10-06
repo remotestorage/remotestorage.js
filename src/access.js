@@ -1,7 +1,5 @@
-  // var SETTINGS_KEY = "remotestorage:access";
-
   /**
-   * Class: Access
+   * @class Access
    *
    * Keeps track of claimed access and scopes.
    */
@@ -12,27 +10,10 @@
   Access.prototype = {
 
     /**
-     * Method: claim
-     *
      * Claim access on a given scope with given mode.
      *
-     * Parameters:
-     *   scope - An access scope, such as "contacts" or "calendar"
-     *   mode  - Access mode. Either "r" for read-only or "rw" for read/write
-     *
-     * Example:
-     *   (start code)
-     *   remoteStorage.access.claim('contacts', 'r');
-     *   remoteStorage.access.claim('pictures', 'rw');
-     *   (end code)
-     *
-     * Root access:
-     *   Claiming root access, meaning complete access to all files and folders
-     *   of a storage, can be done using an asterisk:
-     *
-     *   (start code)
-     *   remoteStorage.access.claim('*', 'rw');
-     *   (end code)
+     * @param {string} scope - An access scope, such as "contacts" or "calendar"
+     * @param {string} mode - Access mode. Either "r" for read-only or "rw" for read/write
      */
     claim: function(scope, mode) {
       if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
@@ -45,10 +26,21 @@
       this.scopeModeMap[scope] = mode;
     },
 
+    /**
+     * Get the access mode for a given scope.
+     *
+     * @param {string} scope - Access scope
+     * @returns {string} Access mode
+     */
     get: function(scope) {
       return this.scopeModeMap[scope];
     },
 
+    /**
+     * Remove access for the given scope.
+     *
+     * @param {string} scope - Access scope
+     */
     remove: function(scope) {
       var savedMap = {};
       var name;
@@ -64,6 +56,10 @@
 
     /**
      * Verify permission for a given scope.
+     *
+     * @param {string} scope - Access scope
+     * @param {string} mode - Access mode
+     * @returns {boolean} true if the requested access mode is active, false otherwise
      */
     checkPermission: function(scope, mode) {
       var actualMode = this.get(scope);
@@ -72,6 +68,10 @@
 
     /**
      * Verify permission for a given path.
+     *
+     * @param {string} path - Path
+     * @param {string} mode - Access mode
+     * @returns {boolean} true if the requested access mode is active, false otherwise
      */
     checkPathPermission: function(path, mode) {
       if (this.checkPermission('*', mode)) {
@@ -80,6 +80,10 @@
       return !!this.checkPermission(this._getModuleName(path), mode);
     },
 
+
+    /**
+     * Reset all access permissions.
+     */
     reset: function() {
       this.rootPaths = [];
       this.scopeModeMap = {};
@@ -87,6 +91,8 @@
 
     /**
      * Return the module name for a given path.
+     *
+     * @private
      */
     _getModuleName: function(path) {
       if (path[0] !== '/') {
@@ -96,6 +102,14 @@
       return moduleMatch ? moduleMatch[1] : '*';
     },
 
+
+    /**
+     * TODO: document
+     *
+     * @param {string} newScope
+     *
+     * @private
+     */
     _adjustRootPaths: function(newScope) {
       if ('*' in this.scopeModeMap || newScope === '*') {
         this.rootPaths = ['/'];
@@ -105,6 +119,14 @@
       }
     },
 
+    /**
+     * TODO: document
+     *
+     * @param {string} scope
+     * @returns {string}
+     *
+     * @private
+     */
     _scopeNameForParameter: function(scope) {
       if (scope.name === '*' && this.storageType) {
         if (this.storageType === '2012.04') {
@@ -116,6 +138,11 @@
       return scope.name;
     },
 
+    /**
+     * Set the storage type of the remote.
+     *
+     * @param {string} type - Storage type
+     */
     setStorageType: function(type) {
       this.storageType = type;
     }
