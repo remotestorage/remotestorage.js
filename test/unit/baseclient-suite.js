@@ -328,10 +328,10 @@ define(['./src/config', './src/baseclient', 'test/helpers/mocks', 'tv4'],
       },
 
       {
-        desc: "#cache with 'false' flag disables caching for a given path",
+        desc: "#cache with 'FLUSH' flag disables caching for a given path",
         run: function(env, test) {
           env.client.cache('bar/');
-          env.client.cache('bar/', false);
+          env.client.cache('bar/', 'FLUSH');
           test.assert(env.storage.caching._rootPaths['/foo/bar/'], 'FLUSH');
         }
       },
