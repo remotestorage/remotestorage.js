@@ -189,7 +189,6 @@
     },
 
     put: function (path, body, contentType, options) {
-      var self = this;
       const fullPath = googleDrivePath(path);
 
       function putDone(response) {
@@ -203,29 +202,28 @@
           return Promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
         }
       }
-      return self._getFileId(fullPath).then(function (id) {
+      return this._getFileId(fullPath).then((id) => {
         if (id) {
           if (options && (options.ifNoneMatch === '*')) {
             return putDone({ status: 412 });
           }
-          return self._updateFile(id, fullPath, body, contentType, options).then(putDone);
+          return this._updateFile(id, fullPath, body, contentType, options).then(putDone);
         } else {
-          return self._createFile(fullPath, body, contentType, options).then(putDone);
+          return this._createFile(fullPath, body, contentType, options).then(putDone);
         }
       });
     },
 
     'delete': function (path, options) {
-      var self = this;
       const fullPath = googleDrivePath(path);
 
-      return self._getFileId(fullPath).then(function (id) {
+      return this._getFileId(fullPath).then((id) => {
         if (!id) {
           // File doesn't exist. Ignore.
           return Promise.resolve({statusCode: 200});
         }
 
-        return self._getMeta(id).then(function (meta) {
+        return this._getMeta(id).then((meta) => {
           var etagWithoutQuotes;
           if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
             etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
@@ -234,7 +232,7 @@
             return {statusCode: 412, revision: etagWithoutQuotes};
           }
 
-          return self._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
+          return this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}).then((response) => {
             if (response.status === 200 || response.status === 204) {
               return {statusCode: 200};
             } else {
@@ -268,7 +266,6 @@
     },
 
     _updateFile: function (id, path, body, contentType, options) {
-      var self = this;
       var metadata = {
         mimeType: contentType
       };
@@ -280,14 +277,14 @@
         headers['If-Match'] = '"' + options.ifMatch + '"';
       }
 
-      return self._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
+      return this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
         body: JSON.stringify(metadata),
         headers: headers
-      }).then(function (response) {
+      }).then((response) => {
         if (response.status === 412) {
           return (response);
         } else {
-          return self._request('PUT', response.getResponseHeader('Location'), {
+          return this._request('PUT', response.getResponseHeader('Location'), {
             body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
           });
         }
@@ -295,8 +292,7 @@
     },
 
     _createFile: function (path, body, contentType, options) {
-      var self = this;
-      return self._getParentId(path).then(function (parentId) {
+      return this._getParentId(path).then((parentId) => {
         var fileName = baseName(path);
         var metadata = {
           title: metaTitleFromFileName(fileName),
@@ -306,13 +302,13 @@
             id: parentId
           }]
         };
-        return self._request('POST', BASE_URL + '/upload/drive/v2/files?uploadType=resumable', {
+        return this._request('POST', BASE_URL + '/upload/drive/v2/files?uploadType=resumable', {
           body: JSON.stringify(metadata),
           headers: {
             'Content-Type': 'application/json; charset=UTF-8'
           }
-        }).then(function (response) {
-          return self._request('POST', response.getResponseHeader('Location'), {
+        }).then((response) => {
+          return this._request('POST', response.getResponseHeader('Location'), {
             body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
           });
         });
@@ -320,9 +316,8 @@
     },
 
     _getFile: function (path, options) {
-      var self = this;
-      return self._getFileId(path).then(function (id) {
-        return self._getMeta(id).then(function (meta) {
+      return this._getFileId(path).then((id) => {
+        return this._getMeta(id).then((meta) => {
           var etagWithoutQuotes;
           if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
             etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
@@ -348,7 +343,7 @@
           if (meta.mimeType.match(/charset=binary/)) {
             options2.responseType = 'blob';
           }
-          return self._request('GET', meta.downloadUrl, options2).then(function (response) {
+          return this._request('GET', meta.downloadUrl, options2).then((response) => {
             var body = response.response;
             if (meta.mimeType.match(/^application\/json/)) {
               try {
@@ -362,8 +357,7 @@
     },
 
     _getFolder: function (path, options) {
-      var self = this;
-      return self._getFileId(path).then(function (id) {
+      return this._getFileId(path).then((id) => {
         var query, fields, data, etagWithoutQuotes, itemsMap;
         if (! id) {
           return Promise.resolve({statusCode: 404});
@@ -371,12 +365,12 @@
 
         query = '\'' + id + '\' in parents';
         fields = 'items(downloadUrl,etag,fileSize,id,mimeType,title)';
-        return self._request('GET', BASE_URL + '/drive/v2/files?'
+        return this._request('GET', BASE_URL + '/drive/v2/files?'
             + 'q=' + encodeURIComponent(query)
             + '&fields=' + encodeURIComponent(fields)
             + '&maxResults=1000',
             {})
-        .then(function (response) {
+        .then((response) => {
           if (response.status !== 200) {
             return Promise.reject('request failed or something: ' + response.status);
           }
@@ -391,12 +385,12 @@
           for (var i = 0, len = data.items.length; i < len; i++) {
             etagWithoutQuotes = data.items[i].etag.substring(1, data.items[i].etag.length-1);
             if (data.items[i].mimeType === GD_DIR_MIME_TYPE) {
-              self._fileIdCache.set(path + data.items[i].title + '/', data.items[i].id);
+              this._fileIdCache.set(path + data.items[i].title + '/', data.items[i].id);
               itemsMap[data.items[i].title + '/'] = {
                 ETag: etagWithoutQuotes
               };
             } else {
-              self._fileIdCache.set(path + data.items[i].title, data.items[i].id);
+              this._fileIdCache.set(path + data.items[i].title, data.items[i].id);
               itemsMap[data.items[i].title] = {
                 ETag: etagWithoutQuotes,
                 'Content-Type': data.items[i].mimeType,
@@ -412,20 +406,19 @@
 
     _getParentId: function (path) {
       var foldername = parentPath(path);
-      var self = this;
-      return self._getFileId(foldername).then(function (parentId) {
+
+      return this._getFileId(foldername).then((parentId) => {
         if (parentId) {
           return Promise.resolve(parentId);
         } else {
-          return self._createFolder(foldername);
+          return this._createFolder(foldername);
         }
       });
     },
 
     _createFolder: function (path) {
-      var self = this;
-      return self._getParentId(path).then(function (parentId) {
-        return self._request('POST', BASE_URL + '/drive/v2/files', {
+      return this._getParentId(path).then((parentId) => {
+        return this._request('POST', BASE_URL + '/drive/v2/files', {
           body: JSON.stringify({
             title: metaTitleFromFileName(baseName(path)),
             mimeType: GD_DIR_MIME_TYPE,
@@ -436,7 +429,7 @@
           headers: {
             'Content-Type': 'application/json; charset=UTF-8'
           }
-        }).then(function (response) {
+        }).then((response) => {
           var meta = JSON.parse(response.responseText);
           return Promise.resolve(meta.id);
         });
@@ -444,8 +437,8 @@
     },
 
     _getFileId: function (path) {
-      var self = this;
       var id;
+
       if (path === '/') {
         // "root" is a special alias for the fileId of the root folder
         return Promise.resolve('root');
@@ -455,12 +448,12 @@
       }
       // id is not cached (or file doesn't exist).
       // load parent folder listing to propagate / update id cache.
-      return self._getFolder(parentPath(path)).then(function () {
-        id = self._fileIdCache.get(path);
+      return this._getFolder(parentPath(path)).then(() => {
+        id = this._fileIdCache.get(path);
         if (!id) {
           if (path.substr(-1) === '/') {
-            return self._createFolder(path).then(function () {
-              return self._getFileId(path);
+            return this._createFolder(path).then(() => {
+              return this._getFileId(path);
             });
           } else {
             return Promise.resolve();
@@ -481,27 +474,25 @@
     },
 
     _request: function (method, url, options) {
-      var self = this;
-
       if (! options.headers) { options.headers = {}; }
-      options.headers['Authorization'] = 'Bearer ' + self.token;
+      options.headers['Authorization'] = 'Bearer ' + this.token;
 
       this._emit('wire-busy', {
         method: method,
         isFolder: isFolder(url)
       });
 
-      return WireClient.request.call(this, method, url, options).then(function(xhr) {
+      return WireClient.request.call(this, method, url, options).then((xhr) => {
         // Google tokens expire from time to time...
         if (xhr && xhr.status === 401) {
-          self.connect();
+          this.connect();
           return;
         } else {
-          if (!self.online) {
-            self.online = true;
-            self.rs._emit('network-online');
+          if (!this.online) {
+            this.online = true;
+            this.rs._emit('network-online');
           }
-          self._emit('wire-done', {
+          this._emit('wire-done', {
             method: method,
             isFolder: isFolder(url),
             success: true
@@ -509,12 +500,12 @@
 
           return Promise.resolve(xhr);
         }
-      }, function(error) {
-        if (self.online) {
-          self.online = false;
-          self.rs._emit('network-offline');
+      }, (error) => {
+        if (this.online) {
+          this.online = false;
+          this.rs._emit('network-offline');
         }
-        self._emit('wire-done', {
+        this._emit('wire-done', {
           method: method,
           isFolder: isFolder(url),
           success: false
