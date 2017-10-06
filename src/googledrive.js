@@ -29,11 +29,13 @@
   var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
   var AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
   var SETTINGS_KEY = 'remotestorage:googledrive';
+  var PATH_PREFIX = '/remoteStorage';
 
   var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
   var isFolder = util.isFolder;
+  var cleanPath = util.cleanPath;
   var hasLocalStorage;
 
   // function buildQueryString(params) {
@@ -64,6 +66,16 @@
     } else {
       return parts[parts.length-1];
     }
+  }
+
+  /**
+   * Prepend the path with the remoteStorage base directory.
+   *
+   * @param {string} path - Path
+   * @returns {string} - Actual path on Google Drive
+   */
+  function googleDrivePath (path) {
+    return cleanPath(`${PATH_PREFIX}/${path}`);
   }
 
   var Cache = function (maxAge) {
@@ -170,14 +182,16 @@
 
     get: function (path, options) {
       if (path.substr(-1) === '/') {
-        return this._getFolder(path, options);
+        return this._getFolder(googleDrivePath(path), options);
       } else {
-        return this._getFile(path, options);
+        return this._getFile(googleDrivePath(path), options);
       }
     },
 
     put: function (path, body, contentType, options) {
       var self = this;
+      const fullPath = googleDrivePath(path);
+
       function putDone(response) {
         if (response.status >= 200 && response.status < 300) {
           var meta = JSON.parse(response.responseText);
@@ -189,21 +203,23 @@
           return Promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
         }
       }
-      return self._getFileId(path).then(function (id) {
+      return self._getFileId(fullPath).then(function (id) {
         if (id) {
           if (options && (options.ifNoneMatch === '*')) {
             return putDone({ status: 412 });
           }
-          return self._updateFile(id, path, body, contentType, options).then(putDone);
+          return self._updateFile(id, fullPath, body, contentType, options).then(putDone);
         } else {
-          return self._createFile(path, body, contentType, options).then(putDone);
+          return self._createFile(fullPath, body, contentType, options).then(putDone);
         }
       });
     },
 
     'delete': function (path, options) {
       var self = this;
-      return self._getFileId(path).then(function (id) {
+      const fullPath = googleDrivePath(path);
+
+      return self._getFileId(fullPath).then(function (id) {
         if (!id) {
           // File doesn't exist. Ignore.
           return Promise.resolve({statusCode: 200});
