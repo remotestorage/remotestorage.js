@@ -28,7 +28,7 @@ var BASE_URL = 'https://www.googleapis.com';
 var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
 var AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
 var SETTINGS_KEY = 'remotestorage:googledrive';
-var PATH_PREFIX = '/remoteStorage';
+var PATH_PREFIX = '/remotestorage';
 
 var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
 var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';

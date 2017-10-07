@@ -300,7 +300,7 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
       {
         desc: "#get to folder result calls the files.list API function",
         run: function (env, test) {
-          env.connectedClient._fileIdCache.set('/remoteStorage/foo/', 'abcd');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo/', 'abcd');
           env.connectedClient.get('/foo/')
           .then(function (r) {
             test.assertAnd(r.statusCode, 200);
@@ -351,7 +351,7 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
       {
         desc: "#get responds with 304 if the file has not changed",
         run: function (env, test) {
-          env.connectedClient._fileIdCache.set('/remoteStorage/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.get('/foo', { ifNoneMatch: 'foo' }).
             then(function (r) {
               test.assert (r.statusCode, 304);
@@ -436,7 +436,7 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
         desc: "#get with success emits network-online if remote.online was false",
         run: function(env, test) {
           env.connectedClient.online = false;
-          env.connectedClient._fileIdCache.set('/remoteStorage/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.get('/foo').then(function() {
             test.assertAnd(env.networkOnline.numCalled, 1);
             test.done();
@@ -456,7 +456,7 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
         desc: "#get with success does not emit network-online if remote.online was true",
         run: function(env, test) {
           env.connectedClient.online = true;
-          env.connectedClient._fileIdCache.set('/remoteStorage/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.get('/foo').then(function() {
             test.assertAnd(env.networkOnline.numCalled, 0);
             test.done();
@@ -475,7 +475,7 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
       {
         desc: "#get emits wire-busy and wire-done on success",
         run: function(env, test) {
-          env.connectedClient._fileIdCache.set('/remoteStorage/foo/', 'abcd');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo/', 'abcd');
           env.connectedClient.get('/foo/').then(function() {
             test.assertAnd(env.busy.numCalled, 1);
             test.assertAnd(env.done.numCalled, 1);
@@ -511,7 +511,7 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
       {
         desc: "#put responds with 412 if ifNoneMatch condition fails",
         run: function (env, test) {
-          env.connectedClient._fileIdCache.set('/remoteStorage/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.put('/foo', 'data', 'text/plain', { ifNoneMatch: '*' }).
             then(function (r) {
               test.assert(r.statusCode, 412);
@@ -522,7 +522,7 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
       {
         desc: "#delete responds with 412 if ifMatch condition fails",
         run: function (env, test) {
-          env.connectedClient._fileIdCache.set('/remoteStorage/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.delete('/foo', { ifMatch: 'foo_id' }).
             then(function (r) {
               test.assert(r.statusCode, 412);
