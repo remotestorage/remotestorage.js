@@ -188,16 +188,11 @@
     this.connected = false;
 
     /**
-     * Event: change
-     *   Never fired for some reason
-     *   # TODO create issue and fix or remove
-     *
      * Event: connected
      *   Fired when the wireclient connect method realizes that it is in
      *   possession of a token and href
      **/
-    eventHandling(this, 'change', 'connected', 'not-connected',
-                           'wire-busy', 'wire-done');
+    eventHandling(this, 'connected', 'not-connected', 'wire-busy', 'wire-done');
 
     onErrorCb = function (error){
       if (error instanceof Authorize.Unauthorized) {
