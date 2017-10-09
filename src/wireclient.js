@@ -505,9 +505,6 @@
     }
   };
 
-  // Shared cleanPath used by Dropbox
-  WireClient.cleanPath = cleanPath;
-
   // Shared isArrayBufferView used by WireClient and Dropbox
   WireClient.isArrayBufferView = isArrayBufferView;
 
