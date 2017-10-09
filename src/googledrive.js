@@ -116,8 +116,8 @@ Cache.prototype = {
 };
 
 const GoogleDrive = function (remoteStorage, clientId) {
-
-  eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
+  
+  eventHandling(this, 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
   this.rs = remoteStorage;
   this.clientId = clientId;
