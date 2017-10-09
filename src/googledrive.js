@@ -19,23 +19,24 @@
  * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
  **/
 
-var Authorize = require('./authorize');
-var WireClient = require('./wireclient');
-var eventHandling = require('./eventhandling');
-var util = require('./util');
+const Authorize = require('./authorize');
+const WireClient = require('./wireclient');
+const eventHandling = require('./eventhandling');
+const util = require('./util');
 
-var BASE_URL = 'https://www.googleapis.com';
-var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
-var AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
-var SETTINGS_KEY = 'remotestorage:googledrive';
-var PATH_PREFIX = '/remotestorage';
+const BASE_URL = 'https://www.googleapis.com';
+const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
+const AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
+const SETTINGS_KEY = 'remotestorage:googledrive';
+const PATH_PREFIX = '/remotestorage';
 
-var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
-var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
+const GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
+const RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
-var isFolder = util.isFolder;
-var cleanPath = util.cleanPath;
-var hasLocalStorage;
+const isFolder = util.isFolder;
+const cleanPath = util.cleanPath;
+
+let hasLocalStorage;
 
 function metaTitleFromFileName (filename) {
   if (filename.substr(-1) === '/') {
@@ -49,7 +50,7 @@ function parentPath (path) {
 }
 
 function baseName (path) {
-  var parts = path.split('/');
+  const parts = path.split('/');
   if (path.substr(-1) === '/') {
     return parts[parts.length-2]+'/';
   } else {
@@ -67,15 +68,15 @@ function googleDrivePath (path) {
   return cleanPath(`${PATH_PREFIX}/${path}`);
 }
 
-var Cache = function (maxAge) {
+const Cache = function (maxAge) {
   this.maxAge = maxAge;
   this._items = {};
 };
 
 Cache.prototype = {
   get: function (key) {
-    var item = this._items[key];
-    var now = new Date().getTime();
+    const item = this._items[key];
+    const now = new Date().getTime();
     return (item && item.t >= (now - this.maxAge)) ? item.v : undefined;
   },
 
@@ -87,7 +88,7 @@ Cache.prototype = {
   }
 };
 
-var GoogleDrive = function (remoteStorage, clientId) {
+const GoogleDrive = function (remoteStorage, clientId) {
 
   eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
@@ -99,7 +100,7 @@ var GoogleDrive = function (remoteStorage, clientId) {
   hasLocalStorage = util.localStorageAvailable();
 
   if (hasLocalStorage){
-    var settings;
+    let settings;
     try {
       settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
     } catch(e){}
@@ -120,7 +121,7 @@ GoogleDrive.prototype = {
     // Same for this.token. If only one of these two is set, we leave the other one at its existing value
     if (typeof settings.token !== 'undefined') { this.token = settings.token; }
 
-    var writeSettingsToCache = function() {
+    const writeSettingsToCache = function() {
       if (hasLocalStorage) {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify({
           userAddress: this.userAddress,
@@ -129,7 +130,7 @@ GoogleDrive.prototype = {
       }
     };
 
-    var handleError = function() {
+    const handleError = function() {
       this.connected = false;
       delete this.token;
       if (hasLocalStorage) {
@@ -182,8 +183,8 @@ GoogleDrive.prototype = {
 
     function putDone(response) {
       if (response.status >= 200 && response.status < 300) {
-        var meta = JSON.parse(response.responseText);
-        var etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+        const meta = JSON.parse(response.responseText);
+        const etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
         return Promise.resolve({statusCode: 200, contentType: meta.mimeType, revision: etagWithoutQuotes});
       } else if (response.status === 412) {
         return Promise.resolve({statusCode: 412, revision: 'conflict'});
@@ -191,6 +192,7 @@ GoogleDrive.prototype = {
         return Promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
       }
     }
+
     return this._getFileId(fullPath).then((id) => {
       if (id) {
         if (options && (options.ifNoneMatch === '*')) {
@@ -213,7 +215,7 @@ GoogleDrive.prototype = {
       }
 
       return this._getMeta(id).then((meta) => {
-        var etagWithoutQuotes;
+        let etagWithoutQuotes;
         if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
           etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
         }
@@ -242,11 +244,11 @@ GoogleDrive.prototype = {
    *   A promise to the user's info
    */
   info: function () {
-    var url = BASE_URL + '/drive/v2/about?fields=user';
+    const url = BASE_URL + '/drive/v2/about?fields=user';
     // requesting user info(mainly for userAdress)
     return this._request('GET', url, {}).then(function (resp){
       try {
-        var info = JSON.parse(resp.responseText);
+        const info = JSON.parse(resp.responseText);
         return Promise.resolve(info);
       } catch (e) {
         return Promise.reject(e);
@@ -255,10 +257,10 @@ GoogleDrive.prototype = {
   },
 
   _updateFile: function (id, path, body, contentType, options) {
-    var metadata = {
+    const metadata = {
       mimeType: contentType
     };
-    var headers = {
+    const headers = {
       'Content-Type': 'application/json; charset=UTF-8'
     };
 
@@ -282,8 +284,8 @@ GoogleDrive.prototype = {
 
   _createFile: function (path, body, contentType, options) {
     return this._getParentId(path).then((parentId) => {
-      var fileName = baseName(path);
-      var metadata = {
+      const fileName = baseName(path);
+      const metadata = {
         title: metaTitleFromFileName(fileName),
         mimeType: contentType,
         parents: [{
@@ -307,7 +309,7 @@ GoogleDrive.prototype = {
   _getFile: function (path, options) {
     return this._getFileId(path).then((id) => {
       return this._getMeta(id).then((meta) => {
-        var etagWithoutQuotes;
+        let etagWithoutQuotes;
         if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
           etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
         }
@@ -316,7 +318,7 @@ GoogleDrive.prototype = {
           return Promise.resolve({statusCode: 304});
         }
 
-        var options2 = {};
+        const options2 = {};
         if (!meta.downloadUrl) {
           if (meta.exportLinks && meta.exportLinks['text/html']) {
             // Documents that were generated inside GoogleDocs have no
@@ -333,7 +335,7 @@ GoogleDrive.prototype = {
           options2.responseType = 'blob';
         }
         return this._request('GET', meta.downloadUrl, options2).then((response) => {
-          var body = response.response;
+          let body = response.response;
           if (meta.mimeType.match(/^application\/json/)) {
             try {
               body = JSON.parse(body);
@@ -347,7 +349,7 @@ GoogleDrive.prototype = {
 
   _getFolder: function (path, options) {
     return this._getFileId(path).then((id) => {
-      var query, fields, data, etagWithoutQuotes, itemsMap;
+      let query, fields, data, etagWithoutQuotes, itemsMap;
       if (! id) {
         return Promise.resolve({statusCode: 404});
       }
@@ -371,22 +373,23 @@ GoogleDrive.prototype = {
         }
 
         itemsMap = {};
-        for (var i = 0, len = data.items.length; i < len; i++) {
-          etagWithoutQuotes = data.items[i].etag.substring(1, data.items[i].etag.length-1);
-          if (data.items[i].mimeType === GD_DIR_MIME_TYPE) {
-            this._fileIdCache.set(path + data.items[i].title + '/', data.items[i].id);
-            itemsMap[data.items[i].title + '/'] = {
+        for (const item of data.items) {
+          etagWithoutQuotes = item.etag.substring(1, item.etag.length-1);
+          if (item.mimeType === GD_DIR_MIME_TYPE) {
+            this._fileIdCache.set(path + item.title + '/', item.id);
+            itemsMap[item.title + '/'] = {
               ETag: etagWithoutQuotes
             };
           } else {
-            this._fileIdCache.set(path + data.items[i].title, data.items[i].id);
-            itemsMap[data.items[i].title] = {
+            this._fileIdCache.set(path + item.title, item.id);
+            itemsMap[item.title] = {
               ETag: etagWithoutQuotes,
-              'Content-Type': data.items[i].mimeType,
-              'Content-Length': data.items[i].fileSize
+              'Content-Type': item.mimeType,
+              'Content-Length': item.fileSize
             };
           }
         }
+
         // FIXME: add revision of folder!
         return Promise.resolve({statusCode: 200, body: itemsMap, contentType: RS_DIR_MIME_TYPE, revision: undefined});
       });
@@ -394,7 +397,7 @@ GoogleDrive.prototype = {
   },
 
   _getParentId: function (path) {
-    var foldername = parentPath(path);
+    const foldername = parentPath(path);
 
     return this._getFileId(foldername).then((parentId) => {
       if (parentId) {
@@ -419,14 +422,14 @@ GoogleDrive.prototype = {
           'Content-Type': 'application/json; charset=UTF-8'
         }
       }).then((response) => {
-        var meta = JSON.parse(response.responseText);
+        const meta = JSON.parse(response.responseText);
         return Promise.resolve(meta.id);
       });
     });
   },
 
   _getFileId: function (path) {
-    var id;
+    let id;
 
     if (path === '/') {
       // "root" is a special alias for the fileId of the root folder
@@ -506,7 +509,7 @@ GoogleDrive.prototype = {
 };
 
 GoogleDrive._rs_init = function (remoteStorage) {
-  var config = remoteStorage.apiKeys.googledrive;
+  const config = remoteStorage.apiKeys.googledrive;
   if (config) {
     remoteStorage.googledrive = new GoogleDrive(remoteStorage, config.clientId);
     if (remoteStorage.backend === 'googledrive') {
