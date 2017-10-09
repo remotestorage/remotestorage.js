@@ -497,7 +497,6 @@
     // For reference see WireClient#get (wireclient.js)
     get: function (path, options) {
       result = this._get(path, options);
-      RS.log('get result: ' + result)
       return this._wrapBusyDone.call(this, result, "get", path);
     },
 
@@ -726,12 +725,14 @@
         else {
           // Store content as new immutable data. fileHandle is a raw pointer to the data
           // on network
-          return window.safeNfs.create(self.nfsRoot, body).then(function (fileHandle) {
+          return window.safeNfs.create(self.nfsRoot, body).then((fileHandle) => {
             // mrhTODOx set file metadata (contentType) - how?
 
             // Add the file (fileHandle) to the directory (inserts file pointer
             // into container)
-            return window.safeNfs.update(self.nfsRoot, fileHandle, fullPath, fileInfo.version + 1).then(function (fileHandle) {
+            return window.safeNfs.update(self.nfsRoot, fileHandle, fullPath, fileInfo.containerVersion + 1).then((fileHandle) => {
+              self._updateFileInfo(fileHandle, fullPath);
+
               // self._shareIfNeeded(fullPath); // mrhTODO what's this?
 
               var response = { statusCode: ( fileHandle ? 200 : 400  ) }; // mrhTODO currently just a response that resolves to truthy (may be exteneded to return status?)
@@ -743,18 +744,18 @@
               self._fileInfoCache.delete(fullPath);     // Invalidate any cached
                                                         // eTag
 
-              return resolve(response);
+              return Promise.resolve(response);
             }, function (err){
               self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
               RS.log('REJECTING!!! safeNfs.update("' + fullPath + '") failed: ' + err.message)
-              return reject(err);
+              return Promise.reject(err);
             });
           }, function (err){
             self.reflectNetworkStatus(false);                // mrhTODO - should
                                                               // go offline for
                                                               // Unauth or Timeout
             RS.log('REJECTING!!! safeNfs.create("' + fullPath + '") failed: ' + err.message)
-            return reject(err);
+            return Promise.reject(err);
           });
         }
       }, function (err){
@@ -790,8 +791,8 @@
             // mrhTODO Not sure if eTags can still be simulated:
             // mrhTODO would it be better to not delte, but set the fileHandle
             // in the fileInfo?
-            self._fileInfoCache.delete(fullPath);     // Invalidate any cached
-                                                      // eTag
+            // self._fileInfoCache.delete(fullPath);     // Invalidate any cached eTag
+            self._updateFileInfo(fileHandle, fullPath);
 
             return resolve(response);
           }, function (err){
@@ -826,7 +827,7 @@
       // Check if file exists by obtaining directory listing if not already cached
       return self._getFileInfo(fullPath).then(function (fileInfo) {
         if (!fileInfo){
-          Promise.resolve({statusCode: 404});   // File does not exist (mrhTODO should this reject?)
+          return Promise.resolve({statusCode: 404});   // File does not exist (mrhTODO should this reject?)
         }
 
         var etagWithoutQuotes = fileInfo.ETag; // mrhTODO don't need this I
@@ -903,6 +904,67 @@
       });
     },
 
+
+    /* _makeFileInfo - use fileHandle to insert metadata into given fileInfo
+
+    returns a Promise which resolves to a fileInfo object
+    */
+    _makeFileInfo: function (fileHandle, fileInfo, fullPath){
+      return new Promise((resolve,reject) => {
+
+// mrhTODO does this need to be return? With/without I still get 'resolve is not defined' error on updateFile
+        return window.safeNfsFile.metadata(fileHandle)
+        .then((fileMetadata) => {
+            fileInfo.created = fileMetadata.created;
+            fileInfo.modified = fileMetadata.modified;
+            fileInfo.version = fileMetadata.version;
+            fileInfo.dataMapName = fileMetadata.dataMapName; // mrhTODO Debug only!
+
+            // Overwrite ETag using the file version (rather than the enry version)
+            fileInfo.ETag = fullPath + '-v' + fileMetadata.version;
+            resolve(fileInfo);
+          }, function (err){
+            RS.log('_makeFileInfo(' + fullPath + ') > safeNfsFile.metadata() FAILED: ' + err)
+            reject(err);
+          });
+        });
+    },
+
+    /* _makeFileInfo - use fileHandle to update cached fileInfo with metadata
+
+    returns a Promise which resolves to an updated fileInfo
+    */
+    _updateFileInfo: function(fileHandle, fullPath){
+      return new Promise((resolve, reject) => {
+        return this._getFileInfo(fullPath)
+        .then((fileInfo) => {
+          if (fileInfo)//mrhTODOcurrent - break in here and see if it seems ok when I save a note
+            resolve(fileInfo) ;
+          else
+            reject('_updateFileInfo( ' + fullPath + ') - unable to update - no existing fileInfo');
+        });
+      });
+    },
+/*
+    SYNC_makeFileInfo: async function (fileHandle, fileInfo, fullPath){
+      return new Promise((resolve,reject) => {
+
+        try { // The await gives error 'Unexpected identifier'
+          fileMetadata = await window.safeNfsFile.metadata(fileHandle)
+          fileInfo.created = fileMetadata.created;
+          fileInfo.modified = fileMetadata.modified;
+          fileInfo.version = fileMetadata.version;
+          fileInfo.dataMapName = fileMetadata.dataMapName; // mrhTODO Debug only!
+
+          // Overwrite ETag using the file version (rather than the enry version)
+          fileInfo.ETag = fullPath + '-v' + fileMetadata.version;
+          resolve(fileInfo);
+        } catch (err){
+          RS.log('_makeFileInfo(' + fullPath + ') > safeNfsFile.metadata() FAILED: ' + err)
+          reject(err);
+        }
+    },
+*/
     // _getFolder - obtain folder listing and create parent folder(s) if absent
     //
     // For reference see WireClient#get (wireclient.js) summarised as follows:
@@ -912,35 +974,133 @@
     // "Content-Type:" and "Content-Length:"
     // - NOTE: googledrive.js only provides ETag, safenetwork.js provides ETag,
     // Content-Length but not Content-Type
-    // - NOTE: safenetwork.js ETag values are faked (ie not provided by
-    // launcher) but functionally adequate
+    // - NOTE: safenetwork.js ETag values are faked but adequate
 
-    _getFolder: function (fullPath, options) {
+  _getFolder: function (fullPath, options) {
       RS.log('SafeNetwork._getFolder(' + fullPath + ', ...)' );
       var self = this;
+      var listing = {};
+
+      return new Promise((resolve,reject) => {
+        // Create listing by enumerating container keys beginning with fullPath
+        const directoryEntries = [];
+        return window.safeMutableData.getEntries(self.mdRoot)
+        .then((entriesHandle) => window.safeMutableDataEntries.forEach(entriesHandle, (k, v) => {
+          // Skip deleted entries
+          if (v.buf.length == 0){
+//mrhTODOsoon try without this...
+            return true;  // Next
+          }
+          RS.log('Key: ', k.toString());
+          RS.log('Value: ', v.buf.toString('base64') );
+          RS.log('entryVersion: ', v.version);
+
+          var dirPath = fullPath;
+          if (dirPath.slice(-1) != '/')
+            dirPath += '/'; // Ensure a trailing slash
+
+          key = k.toString();
+          // If the folder matches the start of the key, the key is within the folder
+          if (key.length > dirPath.length && key.substr(0,dirPath.length) == dirPath) {
+            var remainder = key.slice(dirPath.length);
+            var itemName = remainder // File name will be up to but excluding first '/'
+            var firstSlash = remainder.indexOf('/');
+            if (firstSlash != -1) {
+              itemName = remainder.slice(0,firstSlash); // Directory name with trailing '/'
+            }
+
+            // Add file/directory info to cache and for return as listing
+            var fullItemPath = dirPath + itemName;
+            // First part of fileInfo
+            var fileInfo = {
+              name:       itemName,           // File or directory name
+              fullPath:   fullItemPath,   // Full path including name
+              entryVersion:    v.version, // mrhTODO for debug
+            }
+
+            if (firstSlash == -1) { // File not folder
+              // Files have metadata but directories DON'T (simulated above)
+              var metadata; // mrhTODO ??? - obtain this?
+              metadata = { mimetype: 'application/json; charset=UTF-8' };  // mrhTODO fake it until implemented - should never be used
+// mrhTODOx add in get file size - or maybe leave this unset, and set it
+// when getting the file?
+              fileInfo['Content-Length'] = 123456; // mrhTODO: item.size,
+              fileInfo['Content-Type'] = metadata.mimetype;  // metadata.mimetype currently faked (see above) mrhTODO see next
+//mrhTODO ???BUG: with or without 'return window...' here JSON.stringify( listing ) is always{}
+            }
+            directoryEntries.push(fileInfo);
+          }
+        }))
+        .then(() => Promise.all(directoryEntries.map((fileInfo) => {
+          RS.log('directoryEntries.map() with ' + JSON.stringify(fileInfo))
+
+          if (fileInfo.fullPath.slice(-1) == '/'){
+            // Directory entry:
+            RS.log('Listing: ', fileInfo.name);
+            listing[fileInfo.name] = fileInfo;
+          }
+          else {  // File entry:
+            return window.safeNfs.fetch(self.nfsRoot, fileInfo.fullPath)
+            .then((fileHandle) => self._makeFileInfo(fileHandle, fileInfo, fileInfo.fullPath)
+            .then((fileInfo) => {
+
+              RS.log('file created: ' + fileInfo.created);
+              RS.log('file modified: ' + fileInfo.modified);
+              RS.log('file version: ' + fileInfo.version);
+              RS.log('file dataMapName: ' + fileInfo.dataMapName);
+
+              // File entry:
+              self._fileInfoCache.set(fileInfo.fullPath, fileInfo);
+              RS.log('..._fileInfoCache.set(file: ' + fileInfo.fullPath  + ')' );
+              RS.log('Listing: ', fileInfo.name);
+              listing[fileInfo.name] = fileInfo;
+            }));
+          }
+        })).then(_ => {
+          RS.log('Iteration finished');
+          RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: listing contains ' + JSON.stringify( listing ) );
+          var folderMetadata = { contentType: RS_DIR_MIME_TYPE};        // mrhTODOx - check what is expected and whether we can provide something
+          return resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE /*, mrhTODOx revision: folderETagWithoutQuotes*/ });
+        }));
+      }).catch((err) => {
+        self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
+        RS.log('safeNfs.getEntries("' + fullPath + '") failed: ' + err.status );
+        // var status = (err == 'Unauthorized' ? 401 : 404); // mrhTODO
+        // ideally safe-js would provide response code (possible enhancement)
+        if (err.status === undefined)
+            err.status = 401; // Force Unauthorised, to handle issue in safe-js:
+
+        if (err.status == 401){
+          // Modelled on how googledrive.js handles expired token
+          if (self.connected){
+            self.connect();
+            return resolve({statusCode: 401}); // mrhTODO should this reject
+          }
+        }
+        return reject({statusCode: err.status});
+      });
+    },
+
+    FAKE_LISTING_getFolder: function (fullPath, options) {
+      RS.log('SafeNetwork._getFolder(' + fullPath + ', ...)' );
+      var self = this;
+      var listing = {};
 
       let result = new Promise((resolve,reject) => {
         // mrhTODO folders are implied, so this comment needs altering if I keep this call:
         // Check if folder exists. Create parent folder if parent doesn't exist
-        return self._getFileInfo(fullPath).then(function (fileInfo) {
-          var query, fields, data, i, etagWithoutQuotes, itemsMap;
-          if (!fileInfo) {
-            return resolve({statusCode: 404}); // mrhTODO should this reject?
-          }
+//        return self._getFileInfo(fullPath).then(function (fileInfo) {
 
-          // Just list as a test / mrhTODO remove:
-          // window.safeMutableData.getEntries(self.mdRoot)
-          // .then((entriesHandle) => window.safeMutableDataEntries.forEach(entriesHandle, (k, v) => {
-          //     RS.log('Key: ', k.toString());
-          //     RS.log('Value: ', v.buf.toString('base64') );
-          //     RS.log('Version: ', v.version);
-          //   }).then(_ => RS.log('Iteration finished'))
-          // );
+//          var query, fields, data, i, etagWithoutQuotes, itemsMap;
+//          if (!fileInfo) {
+//            return resolve({statusCode: 404}); // mrhTODO should this reject?
+//          }
 
-          window.safeMutableData.getVersion(self.mdRoot).then((rootVersion) => {
+//mrhTODOsoon should this be 'return window...', or 'result=window...' (also below) or???
+//          window.safeMutableData.getVersion(self.mdRoot).then((rootVersion) => {
 
-            var folderETagWithoutQuotes = fullPath + '-v' + rootVersion;
-            RS.log('..folder eTag: ' + folderETagWithoutQuotes);
+//            var folderETagWithoutQuotes = fullPath + '-v' + rootVersion;
+//            RS.log('..folder ETag: ' + folderETagWithoutQuotes);
 
     // mrhTODOx: folderMetadata (also file metadata - see below)
             var folderMetadata = {};
@@ -952,75 +1112,99 @@
              *
              * if ( body.info.metadata ){ folderMetadata = body.info.metadata; }
              */
-            folderMetadata.ETag = folderETagWithoutQuotes;
-            RS.log('..folder metadata: ' + JSON.stringify(folderMetadata));
+//            folderMetadata.ETag = folderETagWithoutQuotes;
+//            RS.log('..folder metadata: ' + JSON.stringify(folderMetadata));
 
             // Create listing by enumerating container keys beginning with
             // fullPath
-            var listing = {};
             window.safeMutableData.getEntries(self.mdRoot)
             .then((entriesHandle) => window.safeMutableDataEntries.forEach(entriesHandle, (k, v) => {
 
-      if (k.toString() == '/remotestorage/myfavoritedrinks/whiskey'){
-        RS.log('THE ONE!');
-      }
-      // Skip deleted entries
-      if (v.buf.length == 0){
-        return true;  // Nexxt
-      }
-                RS.log('Key: ', k.toString());
-                RS.log('Value: ', v.buf.toString('base64') );
-                RS.log('Version: ', v.version);
-                RS.log('containerVersion: ', rootVersion);
-                var dirPath = fullPath;
-                if (dirPath.slice(-1) != '/')
-                  dirPath += '/';
+              // Skip deleted entries
+              if (v.buf.length == 0){
+  //mrhTODOsoon try without this...
+                return true;  // Next
+              }
+              RS.log('Key: ', k.toString());
+              RS.log('Value: ', v.buf.toString('base64') );
+              RS.log('entryVersion: ', v.version);
+  //            RS.log('containerVersion: ', rootVersion);
+              var dirPath = fullPath;
+              if (dirPath.slice(-1) != '/')
+                dirPath += '/'; // Ensure a trailing slash
 
-                key = k.toString();
-                if (key.length > dirPath.length && key.substr(0,dirPath.length) == dirPath) {
-                  var remainder = key.slice(dirPath.length);
-                  var name = remainder // File name will be up to but excluding first '/'
+              key = k.toString();
+              // If the folder matches the start of the key, the key is within the folder
+              if (key.length > dirPath.length && key.substr(0,dirPath.length) == dirPath) {
+                var remainder = key.slice(dirPath.length);
+                var name = remainder // File name will be up to but excluding first '/'
 
-                  var firstSlash = remainder.indexOf('/');
-                  if (firstSlash != -1) {
-                    name = remainder.slice(0,firstSlash); // Directory name with trailing '/'
-                  }
+                var firstSlash = remainder.indexOf('/');
+                if (firstSlash != -1) {
+                  name = remainder.slice(0,firstSlash); // Directory name with trailing '/'
+                }
 
-                  // Add file/directory info to cache and for return as listing
-                  var fullItemPath = dirPath + name;
+                // Add file/directory info to cache and for return as listing
+                var fullItemPath = dirPath + name;
+                // mrhTODO: Until SAFE API supports eTags make them manually:
+                // mrhTODO: any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3
+//??? mrhTODOsoon: folder ETag: can we use entryVersion here rather than file version? (v.version is the entry not the file at that entry)
+//???only for files                var eTagWithoutQuotes = fullItemPath + '-v' + v.version; /* mrhTODO ??? + '-' + intem.createdOn + '-' + item.modifiedOn + '-' + item.size */
 
-                  // mrhTODO: Until SAFE API supports eTags make them manually:
-                  // mrhTODO: any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3
-                  var eTagWithoutQuotes = fullItemPath + '-v' + v.version; /* mrhTODO ??? + '-' + intem.createdOn + '-' + item.modifiedOn + '-' + item.size */
+                // Add file info to cache
+                var fileInfo = {
+                  fullPath:   fullItemPath, // Used by _fileInfoCache() but nothing
+                  entryVersion:    v.version,
+//                  containerVersion: rootVersion,
 
-                  // Add file info to cache
-                  var fileInfo = {
-                    fullPath:   fullItemPath, // Used by _fileInfoCache() but nothing
-                    version:    v.version,
-                    containerVersion: rootVersion,
+                  // Remaining members must pass RS.js test: sync.js#corruptServerItemsMap()
+//                  ETag:       eTagWithoutQuotes,
+                };
 
-                    // Remaining members must pass RS.js test: sync.js#corruptServerItemsMap()
-                    ETag:       eTagWithoutQuotes,
-                  };
+                if (firstSlash == -1) { // File not folder
+                  // Files have metadata but directories DON'T (simulated above)
+                  var metadata; // mrhTODO ??? - obtain this?
+                  metadata = { mimetype: 'application/json; charset=UTF-8' };  // mrhTODO fake it until implemented - should never be used
+  // mrhTODOx add in get file size - or maybe leave this unset, and set it
+  // when getting the file?
+                  fileInfo['Content-Length'] = 123456; // mrhTODO: item.size,
+                  fileInfo['Content-Type'] = metadata.mimetype;  // metadata.mimetype currently faked (see above) mrhTODO see next
+//mrhTODO ???BUG: with or without 'return window...' here JSON.stringify( listing ) is always{}
 
-                  if (firstSlash == -1) {
-                    // Files only (not directories) have metadata:
-                    var metadata; // mrhTODO ??? - obtain this?
-                    metadata = { mimetype: 'application/json; charset=UTF-8' };  // mrhTODO fake it until implemented - should never be used
-    // mrhTODOx add in get file size - or maybe leave this unset, and set it
-    // when getting the file?
-                    fileInfo['Content-Length'] = 123456; // mrhTODO: item.size,
-                    fileInfo['Content-Type'] = metadata.mimetype;  // metadata.mimetype currently faked (see above) mrhTODO see next
-                  }
+//mrhTODOsoon trying without this async code - perhaps it messes with the iterations?
+if ( name == 'page__Start'){
+  //fileInfo.created = fileMetadata.created;
+  //fileInfo.modified = fileMetadata.modified;
+  fileInfo.version = 1;
+  //fileInfo.dataMapName = fileMetadata.dataMapName; // mrhTODO Debug only!
+  fileInfo.ETag = fullPath + '-v' + fileInfo.version;
 
-                  self._fileInfoCache.set(fullItemPath, fileInfo);
-                  RS.log('..._fileInfoCache.set(file: ' + fullItemPath  + ')' );
+/*                  window.safeNfs.fetch(self.nfsRoot, fullItemPath)
+                  .then((fileHandle) => self._makeFileInfo(fileHandle, fileInfo, fullItemPath)
+                  .then((fileInfo) => {
+                    RS.log('file created: ' + fileInfo.created);
+                    RS.log('file modified: ' + fileInfo.modified);
+*/
+                    RS.log('file version: ' + fileInfo.version);
+//                    RS.log('file dataMapName: ' + fileInfo.dataMapName);
+
+                    self._fileInfoCache.set(fullItemPath, fileInfo);
+                    RS.log('..._fileInfoCache.set(file: ' + fullItemPath  + ')' );
+                    RS.log('Listing: ', name);
+                    listing[name] = fileInfo;
+//                  }));
+}
+                }
+                else {  // Directory entry info:
+/*???mrhTODOsoon                  self._fileInfoCache.set(fullItemPath, fileInfo);
+                  RS.log('..._fileInfoCache.set(directory: ' + fullItemPath  + ')' );*/
                   RS.log('Listing: ', name);
                   listing[name] = fileInfo;
                 }
+              }
             }).then(_ => {
-              RS.log('Iteration finished')
-              RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
+              RS.log('Iteration finished');
+              RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: listing contains ' + JSON.stringify( listing ) );
               return resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE/*, mrhTODOx revision: folderETagWithoutQuotes*/ });
             }, function (err){
               self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
@@ -1043,19 +1227,170 @@
             // mrhTODOx DELETE (moved above)
             // RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
             // return resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE/*, mrhTODOx revision: folderETagWithoutQuotes*/ });
-          }, function (err){
+/*          }, function (err){
             RS.log('safeMutableData.getVersion("' + fullPath + '") failed: ' + err)
             return reject(err);
           });
         }, function (err){
           RS.log('_getFileInfo("' + fullPath + '") failed: ' + err)
           return reject(err);
-        });
+        });*/
 
       });
 
       return result;
     },
+
+    /* Copy kept until working so I can review the commented out code and integrate it back*/
+    FULLBLOWN_NOT_NOTWORKING_getFolder: function (fullPath, options) {
+        RS.log('SafeNetwork._getFolder(' + fullPath + ', ...)' );
+        var self = this;
+        var listing = {};
+
+        let result = new Promise((resolve,reject) => {
+          // mrhTODO folders are implied, so this comment needs altering if I keep this call:
+          // Check if folder exists. Create parent folder if parent doesn't exist
+      //        return self._getFileInfo(fullPath).then(function (fileInfo) {
+
+      //          var query, fields, data, i, etagWithoutQuotes, itemsMap;
+      //          if (!fileInfo) {
+      //            return resolve({statusCode: 404}); // mrhTODO should this reject?
+      //          }
+
+      //mrhTODOsoon should this be 'return window...', or 'result=window...' (also below) or???
+      //          window.safeMutableData.getVersion(self.mdRoot).then((rootVersion) => {
+
+      //            var folderETagWithoutQuotes = fullPath + '-v' + rootVersion;
+      //            RS.log('..folder ETag: ' + folderETagWithoutQuotes);
+
+      // mrhTODOx: folderMetadata (also file metadata - see below)
+              var folderMetadata = {};
+              /*
+               * mrhTODO: SAFE containers (top level) may have useful metadata,
+               * but folders are inferred and not objects, so except for the top
+               * level there's nothing to insert here and for now I'm going to
+               * ignore it.
+               *
+               * if ( body.info.metadata ){ folderMetadata = body.info.metadata; }
+               */
+      //            folderMetadata.ETag = folderETagWithoutQuotes;
+      //            RS.log('..folder metadata: ' + JSON.stringify(folderMetadata));
+
+              // Create listing by enumerating container keys beginning with
+              // fullPath
+              return window.safeMutableData.getEntries(self.mdRoot)
+              .then((entriesHandle) => window.safeMutableDataEntries.forEach(entriesHandle, (k, v) => {
+
+                // Skip deleted entries
+                if (v.buf.length == 0){
+      //mrhTODOsoon try without this...
+                  return true;  // Next
+                }
+                RS.log('Key: ', k.toString());
+                RS.log('Value: ', v.buf.toString('base64') );
+                RS.log('entryVersion: ', v.version);
+      //            RS.log('containerVersion: ', rootVersion);
+                var dirPath = fullPath;
+                if (dirPath.slice(-1) != '/')
+                  dirPath += '/'; // Ensure a trailing slash
+
+                key = k.toString();
+                // If the folder matches the start of the key, the key is within the folder
+                if (key.length > dirPath.length && key.substr(0,dirPath.length) == dirPath) {
+                  var remainder = key.slice(dirPath.length);
+                  var name = remainder // File name will be up to but excluding first '/'
+
+                  var firstSlash = remainder.indexOf('/');
+                  if (firstSlash != -1) {
+                    name = remainder.slice(0,firstSlash); // Directory name with trailing '/'
+                  }
+
+                  // Add file/directory info to cache and for return as listing
+                  var fullItemPath = dirPath + name;
+                  // mrhTODO: Until SAFE API supports eTags make them manually:
+                  // mrhTODO: any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3
+      //??? mrhTODOsoon: folder ETag: can we use entryVersion here rather than file version? (v.version is the entry not the file at that entry)
+      //???only for files                var eTagWithoutQuotes = fullItemPath + '-v' + v.version; /* mrhTODO ??? + '-' + intem.createdOn + '-' + item.modifiedOn + '-' + item.size */
+
+                  // Add file info to cache
+                  var fileInfo = {
+                    fullPath:   fullItemPath, // Used by _fileInfoCache() but nothing
+                    entryVersion:    v.version,
+      //                  containerVersion: rootVersion,
+
+                    // Remaining members must pass RS.js test: sync.js#corruptServerItemsMap()
+      //                  ETag:       eTagWithoutQuotes,
+                  };
+
+                  if (firstSlash == -1) { // File not folder
+                    // Files have metadata but directories DON'T (simulated above)
+                    var metadata; // mrhTODO ??? - obtain this?
+                    metadata = { mimetype: 'application/json; charset=UTF-8' };  // mrhTODO fake it until implemented - should never be used
+      // mrhTODOx add in get file size - or maybe leave this unset, and set it
+      // when getting the file?
+                    fileInfo['Content-Length'] = 123456; // mrhTODO: item.size,
+                    fileInfo['Content-Type'] = metadata.mimetype;  // metadata.mimetype currently faked (see above) mrhTODO see next
+      //mrhTODO ???BUG: with or without 'return window...' here JSON.stringify( listing ) is always{}
+
+                    return window.safeNfs.fetch(self.nfsRoot, fullItemPath)
+                    .then((fileHandle) => self._makeFileInfo(fileHandle, fileInfo, fullItemPath)
+                    .then((fileInfo) => {
+                      RS.log('file created: ' + fileInfo.created);
+                      RS.log('file modified: ' + fileInfo.modified);
+                      RS.log('file version: ' + fileInfo.version);
+                      RS.log('file dataMapName: ' + fileInfo.dataMapName);
+
+                      self._fileInfoCache.set(fullItemPath, fileInfo);
+                      RS.log('..._fileInfoCache.set(file: ' + fullItemPath  + ')' );
+                      RS.log('Listing: ', name);
+                      listing[name] = fileInfo;
+                    }));
+                  }
+                  else {  // Directory entry info:
+      /*???mrhTODOsoon                  self._fileInfoCache.set(fullItemPath, fileInfo);
+                    RS.log('..._fileInfoCache.set(directory: ' + fullItemPath  + ')' );*/
+                    RS.log('Listing: ', name);
+                    listing[name] = fileInfo;
+                  }
+                }
+              }).then(_ => {
+                RS.log('Iteration finished');
+                RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: listing contains ' + JSON.stringify( listing ) );
+                return resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE/*, mrhTODOx revision: folderETagWithoutQuotes*/ });
+              }, function (err){
+                self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
+                RS.log('safeNfs.getEntries("' + fullPath + '") failed: ' + err.status );
+                // var status = (err == 'Unauthorized' ? 401 : 404); // mrhTODO
+                // ideally safe-js would provide response code (possible enhancement)
+                if (err.status === undefined)
+                    err.status = 401; // Force Unauthorised, to handle issue in safe-js:
+
+                if (err.status == 401){
+                  // Modelled on how googledrive.js handles expired token
+                  if (self.connected){
+                    self.connect();
+                    return resolve({statusCode: 401}); // mrhTODO should this reject
+                  }
+                }
+                return reject({statusCode: err.status});
+              }));
+
+              // mrhTODOx DELETE (moved above)
+              // RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
+              // return resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE/*, mrhTODOx revision: folderETagWithoutQuotes*/ });
+      /*          }, function (err){
+              RS.log('safeMutableData.getVersion("' + fullPath + '") failed: ' + err)
+              return reject(err);
+            });
+          }, function (err){
+            RS.log('_getFileInfo("' + fullPath + '") failed: ' + err)
+            return reject(err);
+          });*/
+
+        });
+
+        return result;
+      },
 
     /*
      * mrhTODO remove previous IMP: // mrhTODO change getDir to listLongNames on
@@ -1221,26 +1556,35 @@
 
         // Not yet cached or doesn't exist
         // Load parent folder listing update _fileInfoCache.
-        window.safeMutableData.getVersion(self.mdRoot).then((rootVersion) => {
+        return window.safeMutableData.getVersion(self.mdRoot).then((rootVersion) => {
 
+/*???mrhTODOsoon seems no point calling _getFileInfo on a folder so could just
+let that trigger an error in this function, then fix the call to handle differently
+*/
           if (fullPath.substr(-1) === '/') {    // folder, so fake its info
-            var eTagWithoutQuotes = fullPath + '-v' + rootVersion;
+/*???mrhTODOsoon folders don't exist in their own right, so there is no version
+and no way to support an ETag. We must instead ensure that anywhere trying to
+use the ETag treats it as not matching (or whatever is sensible in the context)
+
+Best way to catch those instance is to not provide the ETag
+*/
+            //mrhTODO see above // var eTagWithoutQuotes = fullPath + '-v' + rootVersion;
 
             // Add file info to cache
             var fileInfo = {
               fullPath:   fullPath, // Used by _fileInfoCache() but nothing else
-              version:    rootVersion,
+              //mrhTODO see above // version:    rootVersion,
 
               // Remaining members must pass RS.js test:
               // sync.js#corruptServerItemsMap()
-              ETag:       eTagWithoutQuotes,
+              //mrhTODO see above // ETag:       eTagWithoutQuotes,
             };
 
             self._fileInfoCache.set(fullPath, fileInfo);
             return resolve(fileInfo);
           }
 
-          self._getFolder(parentPath(fullPath)).then(_ => {
+          return self._getFolder(parentPath(fullPath)).then(_ => {
             if (info = self._fileInfoCache.get(fullPath)){
               return resolve(info);
             }
