@@ -93,7 +93,7 @@ function googleDrivePath (path) {
 /**
  * Internal cache object for storing Google file IDs.
  *
- * @param maxAge - Maximum age (in seconds) the content should be cached for
+ * @param {number} maxAge - Maximum age (in seconds) the content should be cached for
  */
 const Cache = function (maxAge) {
   this.maxAge = maxAge;
@@ -150,6 +150,8 @@ GoogleDrive.prototype = {
    * @param {object} settings
    * @param {string} [settings.userAddress] - The user's email address
    * @param {string} [settings.token] - Authorization token
+   *
+   * @protected
    */
   configure: function (settings) { // Settings parameter compatible with WireClient
     // We only update this.userAddress if settings.userAddress is set to a string or to null
@@ -219,7 +221,10 @@ GoogleDrive.prototype = {
    *
    * @param {string} path - Path of the resource
    * @param {object} options - Request options
-   * @returns {Promise} Resolves with an object containing the status code, body, content-type and revision
+   * @returns {Promise} Resolves with an object containing the status code,
+   *                    body, content-type and revision
+   *
+   * @protected
    */
   get: function (path, options) {
     if (path.substr(-1) === '/') {
@@ -236,8 +241,12 @@ GoogleDrive.prototype = {
    * @param body - File content
    * @param {string} contentType - File content-type
    * @param {object} options
-   * @param {string} options.ifNoneMatch - Only create of update the file if the current ETag doesn't match this string
-   * @returns {Promise} Resolves with an object containing the status code, content-type and revision
+   * @param {string} options.ifNoneMatch - Only create of update the file if the
+   *                                       current ETag doesn't match this string
+   * @returns {Promise} Resolves with an object containing the status code,
+   *                    content-type and revision
+   *
+   * @protected
    */
   put: function (path, body, contentType, options) {
     const fullPath = googleDrivePath(path);
@@ -271,8 +280,11 @@ GoogleDrive.prototype = {
    *
    * @param {string} path - File path
    * @param {object} options
-   * @param {string} options.ifMatch - only delete the file if it's ETag matches this string
+   * @param {string} options.ifMatch - only delete the file if it's ETag
+   *                                   matches this string
    * @returns {Promise} Resolves with an object containing the status code
+   *
+   * @protected
    */
   'delete': function (path, options) {
     const fullPath = googleDrivePath(path);
@@ -331,7 +343,8 @@ GoogleDrive.prototype = {
    * @param body - File content
    * @param {string} contentType - File content-type
    * @param {object} options
-   * @param {string} options.ifMatch - Only update the file if it's ETag matches this string
+   * @param {string} options.ifMatch - Only update the file if it's ETag
+   *                                   matches this string
    * @returns {Promise} Resolves with the response of the network request
    *
    * @private
@@ -401,8 +414,10 @@ GoogleDrive.prototype = {
    *
    * @param {string} path - File path
    * @param {object} options
-   * @param {string} [options.ifNoneMath] - Only return the file if its ETag doesn't match the given string
-   * @returns {Promise} Resolves with an object containing the status code, body, content-type and revision
+   * @param {string} [options.ifNoneMath] - Only return the file if its ETag
+   *                                        doesn't match the given string
+   * @returns {Promise} Resolves with an object containing the status code,
+   *                    body, content-type and revision
    *
    * @private
    */
@@ -452,7 +467,8 @@ GoogleDrive.prototype = {
    *
    * @param {string} path - Directory path
    * @param {object} options
-   * @returns {Promise} Resolves with an object containing the status code, body and content-type
+   * @returns {Promise} Resolves with an object containing the status code,
+   *                    body and content-type
    *
    * @private
    */
