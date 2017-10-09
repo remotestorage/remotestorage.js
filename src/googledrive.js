@@ -1,23 +1,18 @@
 /**
- * Class: GoogleDrive
- *
- * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
+ * @class GoogleDrive
  *
  * To use this backend, you need to specify the app's client ID like so:
  *
- * (start code)
- *
+ * @example
  * remoteStorage.setApiKeys('googledrive', {
  *   clientId: 'your-client-id'
  * });
  *
- * (end code)
- *
  * A client ID can be obtained by registering your app in the Google
- * Developers Console: https://developers.google.com/drive/web/auth/web-client
+ * Developers Console: https://console.developers.google.com/flows/enableapi?apiid=drive
  *
- * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
- **/
+ * Docs: https://developers.google.com/drive/v3/web/quickstart/js
+**/
 
 const Authorize = require('./authorize');
 const WireClient = require('./wireclient');
@@ -38,17 +33,42 @@ const cleanPath = util.cleanPath;
 
 let hasLocalStorage;
 
+/**
+ * Produce a title from a filename for metadata.
+ *
+ * @param {string} filename
+ * @returns {string} title
+ *
+ * @private
+ */
 function metaTitleFromFileName (filename) {
   if (filename.substr(-1) === '/') {
     filename = filename.substr(0, filename.length - 1);
   }
+
   return decodeURIComponent(filename);
 }
 
+/**
+ * Get the parent directory for the given path.
+ *
+ * @param {string} path
+ * @returns {string} parent directory
+ *
+ * @private
+ */
 function parentPath (path) {
   return path.replace(/[^\/]+\/?$/, '');
 }
 
+/**
+ * Get only the filename from a full path.
+ *
+ * @param {string} path
+ * @returns {string} filename
+ *
+ * @private
+ */
 function baseName (path) {
   const parts = path.split('/');
   if (path.substr(-1) === '/') {
@@ -63,11 +83,18 @@ function baseName (path) {
  *
  * @param {string} path - Path
  * @returns {string} - Actual path on Google Drive
+ *
+ * @private
  */
 function googleDrivePath (path) {
   return cleanPath(`${PATH_PREFIX}/${path}`);
 }
 
+/**
+ * Internal cache object for storing Google file IDs.
+ *
+ * @param maxAge - Maximum age (in seconds) the content should be cached for
+ */
 const Cache = function (maxAge) {
   this.maxAge = maxAge;
   this._items = {};
@@ -95,7 +122,7 @@ const GoogleDrive = function (remoteStorage, clientId) {
   this.rs = remoteStorage;
   this.clientId = clientId;
 
-  this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
+  this._fileIdCache = new Cache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
 
   hasLocalStorage = util.localStorageAvailable();
 
@@ -115,6 +142,15 @@ GoogleDrive.prototype = {
   connected: false,
   online: true,
 
+  /**
+   * Configure the Google Drive backend.
+   *
+   * Fetches the user info from Google when no ``userAddress`` is given.
+   *
+   * @param {object} settings
+   * @param {string} [settings.userAddress] - The user's email address
+   * @param {string} [settings.token] - Authorization token
+   */
   configure: function (settings) { // Settings parameter compatible with WireClient
     // We only update this.userAddress if settings.userAddress is set to a string or to null
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
@@ -145,31 +181,46 @@ GoogleDrive.prototype = {
         this._emit('connected');
         writeSettingsToCache.apply(this);
       } else {
-        this.info().then(function(info) {
+        this.info().then((info) => {
           this.userAddress = info.user.emailAddress;
           this._emit('connected');
           writeSettingsToCache.apply(this);
-        }.bind(this)).catch(function() {
+        }).catch(() => {
           handleError.apply(this);
           this.rs._emit('error', new Error('Could not fetch user info.'));
-        }.bind(this));
+        });
       }
     } else {
       handleError.apply(this);
     }
   },
 
+  /**
+   * Initiate the authorization flow's OAuth dance.
+   */
   connect: function () {
     this.rs.setBackend('googledrive');
     Authorize(this.rs, AUTH_URL, AUTH_SCOPE, String(Authorize.getLocation()), this.clientId);
   },
 
+  /**
+   * Stop the authorization process.
+   *
+   * @protected
+   */
   stopWaitingForToken: function () {
     if (!this.connected) {
       this._emit('not-connected');
     }
   },
 
+  /**
+   * Request a resource (file or directory).
+   *
+   * @param {string} path - Path of the resource
+   * @param {object} options - Request options
+   * @returns {Promise} Resolves with an object containing the status code, body, content-type and revision
+   */
   get: function (path, options) {
     if (path.substr(-1) === '/') {
       return this._getFolder(googleDrivePath(path), options);
@@ -178,6 +229,16 @@ GoogleDrive.prototype = {
     }
   },
 
+  /**
+   * Create or update a file.
+   *
+   * @param {string} path - File path
+   * @param body - File content
+   * @param {string} contentType - File content-type
+   * @param {object} options
+   * @param {string} options.ifNoneMatch - Only create of update the file if the current ETag doesn't match this string
+   * @returns {Promise} Resolves with an object containing the status code, content-type and revision
+   */
   put: function (path, body, contentType, options) {
     const fullPath = googleDrivePath(path);
 
@@ -205,6 +266,14 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Delete a file.
+   *
+   * @param {string} path - File path
+   * @param {object} options
+   * @param {string} options.ifMatch - only delete the file if it's ETag matches this string
+   * @returns {Promise} Resolves with an object containing the status code
+   */
   'delete': function (path, options) {
     const fullPath = googleDrivePath(path);
 
@@ -235,13 +304,11 @@ GoogleDrive.prototype = {
   },
 
   /**
-   * Method: info
+   * Fetch the user's info from Google.
    *
-   * Fetches the user's info from Google and returns a promise for it.
+   * @returns {Promise} resolves with the user's info.
    *
-   * Returns:
-   *
-   *   A promise to the user's info
+   * @protected
    */
   info: function () {
     const url = BASE_URL + '/drive/v2/about?fields=user';
@@ -256,6 +323,19 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Update an existing file.
+   *
+   * @param {string} id - File ID
+   * @param {string} path - File path
+   * @param body - File content
+   * @param {string} contentType - File content-type
+   * @param {object} options
+   * @param {string} options.ifMatch - Only update the file if it's ETag matches this string
+   * @returns {Promise} Resolves with the response of the network request
+   *
+   * @private
+   */
   _updateFile: function (id, path, body, contentType, options) {
     const metadata = {
       mimeType: contentType
@@ -282,6 +362,16 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Create a new file.
+   *
+   * @param {string} path - File path
+   * @param body - File content
+   * @param {string} contentType - File content-type
+   * @returns {Promise} Resolves with the response of the network request
+   *
+   * @private
+   */
   _createFile: function (path, body, contentType, options) {
     return this._getParentId(path).then((parentId) => {
       const fileName = baseName(path);
@@ -306,6 +396,16 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Request a file.
+   *
+   * @param {string} path - File path
+   * @param {object} options
+   * @param {string} [options.ifNoneMath] - Only return the file if its ETag doesn't match the given string
+   * @returns {Promise} Resolves with an object containing the status code, body, content-type and revision
+   *
+   * @private
+   */
   _getFile: function (path, options) {
     return this._getFileId(path).then((id) => {
       return this._getMeta(id).then((meta) => {
@@ -347,6 +447,15 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Request a directory.
+   *
+   * @param {string} path - Directory path
+   * @param {object} options
+   * @returns {Promise} Resolves with an object containing the status code, body and content-type
+   *
+   * @private
+   */
   _getFolder: function (path, options) {
     return this._getFileId(path).then((id) => {
       let query, fields, data, etagWithoutQuotes, itemsMap;
@@ -396,6 +505,16 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Get the ID of a parent path.
+   *
+   * Creates the directory if it doesn't exist yet.
+   *
+   * @param {string} path - Full path of a directory or file
+   * @returns {Promise} Resolves with ID of the parent directory.
+   *
+   * @private
+   */
   _getParentId: function (path) {
     const foldername = parentPath(path);
 
@@ -408,6 +527,16 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Create a directory.
+   *
+   * Creates all parent directories as well if any of them didn't exist yet.
+   *
+   * @param {string} path - Directory path
+   * @returns {Promise} Resolves with the ID of the new directory
+   *
+   * @private
+   */
   _createFolder: function (path) {
     return this._getParentId(path).then((parentId) => {
       return this._request('POST', BASE_URL + '/drive/v2/files', {
@@ -428,6 +557,14 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Get the ID of a file.
+   *
+   * @param {string} path - File path
+   * @returns {Promise} Resolves with the ID
+   *
+   * @private
+   */
   _getFileId: function (path) {
     let id;
 
@@ -455,6 +592,14 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Get the metadata for a given file ID.
+   *
+   * @param {string} id - File ID
+   * @returns {Promise} Resolves with an object containing the metadata
+   *
+   * @private
+   */
   _getMeta: function (id) {
     return this._request('GET', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
       if (response.status === 200) {
@@ -465,6 +610,16 @@ GoogleDrive.prototype = {
     });
   },
 
+  /**
+   * Make a network request.
+   *
+   * @param {string} method - Request method
+   * @param {string} url - Target URL
+   * @param {object} options - Request options
+   * @returns {Promise} Resolves with the response of the network request
+   *
+   * @private
+   */
   _request: function (method, url, options) {
     if (! options.headers) { options.headers = {}; }
     options.headers['Authorization'] = 'Bearer ' + this.token;
@@ -508,6 +663,13 @@ GoogleDrive.prototype = {
   }
 };
 
+/**
+ * Initialize the Google Drive backend.
+ *
+ * @param {object} remoteStorage - RemoteStorage instance
+ *
+ * @protected
+ */
 GoogleDrive._rs_init = function (remoteStorage) {
   const config = remoteStorage.apiKeys.googledrive;
   if (config) {
@@ -519,10 +681,25 @@ GoogleDrive._rs_init = function (remoteStorage) {
   }
 };
 
+/**
+ * Inform about the availability of the Google Drive backend.
+ *
+ * @param {object} rs - RemoteStorage instance
+ * @returns {Boolean}
+ *
+ * @protected
+ */
 GoogleDrive._rs_supported = function (rs) {
   return true;
 };
 
+/**
+ * Remove Google Drive as a backend.
+ *
+ * @param {object} remoteStorage - RemoteStorage instance
+ *
+ * @protected
+ */
 GoogleDrive._rs_cleanup = function (remoteStorage) {
   remoteStorage.setBackend(undefined);
   if (remoteStorage._origRemote) {
