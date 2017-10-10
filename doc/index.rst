@@ -22,6 +22,7 @@ across devices and applications.
    why
    data-modules
    caching
+   discovery-bootstrap
    js-api
    contributing
    legacy
