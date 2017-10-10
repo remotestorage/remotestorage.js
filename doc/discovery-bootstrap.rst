@@ -5,9 +5,8 @@ When the library loads, it checks the fragment of the URL to see if it
 contains an ``access_token`` or ``remotestorage`` parameter. In the
 first case, the access token is given to the remote using
 ``remoteStorage.remote.configure()``. In the second case, WebFinger
-discovery is triggered for the user address given (see `storage-first
-section of the remoteStorage spec
-<https://tools.ietf.org/html/draft-dejong-remotestorage-09#section-11>`_)
+discovery is triggered for the user address given (see `storage-first section`_
+of the remoteStorage spec)
 
 The user can also set the user address through the widget, or the app
 can call ``remoteStorage.remote.configure()`` to set the user address.
@@ -24,3 +23,5 @@ triggered by setting the ``location.href`` of the window, redirecting
 the user to that URL. When the dance comes back, the library will detect
 the ``access_token`` from the window location during the page load, and
 from that point onwards, the remote is connected.
+
+.. _storage-first section: https://tools.ietf.org/html/draft-dejong-remotestorage-09#section-11
