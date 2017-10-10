@@ -4,6 +4,8 @@ Caching
 This gets initialized as ``remoteStorage.caching``, unless the
 remoteStorage instance is created with the option ``caching: false``.
 
+.. _caching-strategies:
+
 Caching strategies
 ------------------
 
@@ -59,3 +61,4 @@ List of functions
   .. code:: javascript
 
      remoteStorage.caching.reset();
+

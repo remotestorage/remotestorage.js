@@ -21,6 +21,7 @@ across devices and applications.
 
    why
    data-modules
+   caching
    js-api
    contributing
    legacy
