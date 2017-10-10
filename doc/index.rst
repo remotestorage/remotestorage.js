@@ -23,6 +23,7 @@ across devices and applications.
    getting-started
    data-modules
    caching
+   discovery-bootstrap
    js-api
    nodejs
    contributing
