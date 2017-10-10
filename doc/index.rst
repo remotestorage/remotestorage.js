@@ -22,6 +22,7 @@ across devices and applications.
    why
    getting-started
    data-modules
+   caching
    js-api
    contributing
    legacy
