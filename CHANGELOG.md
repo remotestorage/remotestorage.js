@@ -22,6 +22,7 @@ All releases can also be found and downloaded on the
 ### Enhancements
 
 * Switch Dropbox adapter to use the Dropbox API v2 (#936)
+* Store data in Google Drive under "remotestorage" base dir (#962)
 
 ### Bugfixes
 
