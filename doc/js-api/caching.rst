@@ -5,6 +5,8 @@ This gets initialized as ``remoteStorage.caching``, unless the
 :doc:`RemoteStorage </js-api/remotestorage>` instance is created with the
 option ``caching: false``.
 
+.. _caching-strategies:
+
 Caching strategies
 ------------------
 
@@ -60,3 +62,4 @@ List of functions
   .. code:: javascript
 
      remoteStorage.caching.reset();
+
