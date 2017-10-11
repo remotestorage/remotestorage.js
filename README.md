@@ -71,9 +71,11 @@ Use the `jaribu` executable in order to test single files, like so e.g.:
 
 ### How to build
 
-Make sure you have [Sphinx](http://www.sphinx-doc.org/) and JSDoc installed on
-your system (see [How to build the docs on your
-machine](https://remotestoragejs.readthedocs.io/en/latest/contributing/docs.html#how-to-build-the-docs-on-your-machine))
+#### Docs
+
+See our documentation page about [how to build the docs on your machine](https://remotestoragejs.readthedocs.io/en/latest/contributing/docs.html#how-to-build-the-docs-on-your-machine).
+
+#### Build tasks
 
 Display the available build tasks:
 
