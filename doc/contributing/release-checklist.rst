@@ -10,7 +10,6 @@ Release Checklist
     * Collect and summarize changes using `git log <LAST RELEASE TAG>..HEAD`
     * Add changes to `CHANGELOG.md`
 
-* If new files were added to `test/unit/`, then add them to `.travis.yml`
 * Verify tests are green: `npm test`
 * Bump version in `src/version.js`
 * Bump version in `package.json`
