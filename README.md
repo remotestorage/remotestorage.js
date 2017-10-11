@@ -14,7 +14,7 @@ servers and syncing data across devices and applications.
 
 * See [remotestorage.io](http://remotestorage.io/) for general information about remoteStorage
 * Follow the [remoteStorage.js Beginners Guide](https://wiki.remotestorage.io/RemoteStorage.js:Beginners'_Guide) to get started
-* Read detailed library documentation in the [remoteStorage.js API docs](https://remotestorage.github.io/remotestorage.js)
+* Read detailed library documentation in the [remoteStorage.js API docs](https://remotestoragejs.readthedocs.io/en/latest/js-api.html)
 * Ask questions on the [community forums](https://community.remotestorage.io/)
 * Get instant support via IRC in [#remotestorage on Freenode](irc://irc.freenode.net:7000/remotestorage)
 
@@ -49,7 +49,7 @@ root.
 
     $ npm install remotestoragejs
 
-See our [node.js documentation](https://github.com/remotestorage/remotestorage.js/blob/master/doc/nodejs.md) for more details.
+See our [node.js documentation](https://remotestoragejs.readthedocs.io/en/latest/legacy/nodejs.html) for more details.
 
 ### Running tests
 
@@ -71,8 +71,11 @@ Use the `jaribu` executable in order to test single files, like so e.g.:
 
 ### How to build
 
-Make sure you have [Natural Docs](http://www.naturaldocs.org/) installed on
-your system (e.g. via `sudo apt-get install naturaldocs`).
+#### Docs
+
+See our documentation page about [how to build the docs on your machine](https://remotestoragejs.readthedocs.io/en/latest/contributing/docs.html#how-to-build-the-docs-on-your-machine).
+
+#### Build tasks
 
 Display the available build tasks:
 
