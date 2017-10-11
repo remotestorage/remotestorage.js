@@ -1,10 +1,13 @@
 {
     "name": "remotestorage",
-    "version": "0.14.0",
+    "version": "1.0.0-alpha7",
     "main": [
-        "./release/stable/remotestorage.js"
+        "./release/remotestorage.js"
     ],
     "license": "MIT",
     "homepage": "https://github.com/remotestorage/remotestorage.js",
-    "keywords": ["localstorage", "indexeddb", "storage", "offline", "no-backend", "unhosted", "offline-first"]
+    "keywords": [
+      "localstorage", "indexeddb", "storage", "offline", "no-backend",
+      "unhosted", "offline-first"
+    ]
 }
