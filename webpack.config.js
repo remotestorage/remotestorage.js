@@ -16,7 +16,7 @@ module.exports = {
   entry: ['./src/remotestorage.js'],
   devtool: isProd ? '#source-map' : '#eval-source-map',
   output: {
-    filename: __dirname + '/release/' + (isProd?'stable':'head') + '/remotestorage.js',
+    filename: __dirname + '/release/remotestorage.js',
     // global export name if needed
     library: 'RemoteStorage',
     libraryTarget: 'umd',

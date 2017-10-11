@@ -4,7 +4,7 @@
   "version": "1.0.0-alpha7",
   "private": false,
   "license": "MIT",
-  "main": "./release/stable/remotestorage.js",
+  "main": "./release/remotestorage.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/remotestorage/remotestorage.js.git"
@@ -13,7 +13,9 @@
   "scripts": {
     "test": "make test",
     "build": "NODE_ENV=production webpack -p",
-    "dev": "webpack -w"
+    "dev": "webpack -w",
+    "preversion": "npm test",
+    "version": "npm run build && git add -A release/"
   },
   "devDependencies": {
     "babel-core": "^6.18.2",

@@ -30,18 +30,6 @@ You can also get an account with a hoster, or use one of the various other
 remoteStorage server implementations:
 [Servers](https://wiki.remotestorage.io/Servers).
 
-### Which version to choose?
-
-You can either use a stable release or the current HEAD build. Stable releases
-can be found in [release/](https://github.com/remotestorage/remotestorage.js/tree/master/release/).
-Directories with a `-rcX` suffix contain release candidates, which may be used
-for testing but aren't necessarily "stable" releases.
-
-[release/head](https://github.com/remotestorage/remotestorage.js/tree/master/release/head/)
-contains a semi-current HEAD build. It is updated manually and irregularly. To
-build an up-to-date version of all files, run `npm run build` in the repository
-root.
-
 ## Usage
 [TODO]
 
