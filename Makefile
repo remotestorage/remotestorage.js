@@ -39,4 +39,4 @@ doc:
 	cd doc && sphinx-build . _build/html
 
 clean:
-	rm -f remotestorage.js remotestorage.min.js remotestorage.amd.js remotestorage-nocache.js remotestorage-nocache.amd.js remotestorage-nocache.min.js ${shell find -name "*~"} ${shell find -name "*.swp"}
+	rm -f ${shell find -name "*~"} ${shell find -name "*.swp"}
