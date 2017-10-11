@@ -10,11 +10,10 @@ NOCACHE_COMPONENTS = core baseclient modules debug googledrive dropbox
 default: help
 
 help:
-	@echo "help           - display this text"
-	@echo "build          - build remotestorage.js"
-	@echo "doc            - generate documentation with sphinx"
-	@echo "clean          - remove all builds and editor swapfiles"
-
+	@echo "help           - Display this text"
+	@echo "build          - Build remotestorage.js"
+	@echo "doc            - Generate documentation with Sphinx"
+	@echo "clean          - Remove all builds and editor swapfiles"
 
 all: deps build doc
 
