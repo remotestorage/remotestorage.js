@@ -15,8 +15,9 @@
     "build": "NODE_ENV=production webpack -p",
     "dev": "webpack -w",
     "preversion": "npm test",
-    "version": "npm run build && git add -A release/",
-    "postversion": "git push && git push --tags"
+    "version": "npm run build && git add release/ && npm run update-bower-version && git add bower.json",
+    "postversion": "git push && git push --tags",
+    "update-bower-version": "bash scripts/update-bower-version.sh"
   },
   "devDependencies": {
     "babel-core": "^6.18.2",

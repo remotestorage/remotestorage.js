@@ -13,13 +13,12 @@ Release Checklist
 * Run `npm version patch|minor|major|x.x.x-rc1`. This will automatically:
 
     * run the test suite
-    * update the version
+    * update the version in package.json
+    * update the version in bower.json
     * create a release build
     * commit everything using version as commit description
     * create a Git tag for the version
     * push the release commit and tag to GitHub
-
-.. * Bump version in `bower.json`
 
 * Push release commit and tag to GitHub `git push && git push --tags`
 
