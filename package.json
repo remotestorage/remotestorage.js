@@ -15,7 +15,8 @@
     "build": "NODE_ENV=production webpack -p",
     "dev": "webpack -w",
     "preversion": "npm test",
-    "version": "npm run build && git add -A release/"
+    "version": "npm run build && git add -A release/",
+    "postversion": "git push && git push --tags"
   },
   "devDependencies": {
     "babel-core": "^6.18.2",
