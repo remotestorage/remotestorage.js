@@ -20,6 +20,7 @@ across devices and applications.
    :caption: Contents
 
    why
+   getting-started
    data-modules
    js-api
    contributing
