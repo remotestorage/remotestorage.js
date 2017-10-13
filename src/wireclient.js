@@ -293,6 +293,11 @@
           } else {
             revision = undefined;
           }
+
+          if (response.status === 401) {
+            self.rs._emit('error', new Authorize.Unauthorized());
+          }
+
           return Promise.resolve({statusCode: response.status, revision: revision});
         } else if (isSuccessStatus(response.status) ||
                    (response.status === 200 && method !== 'GET')) {
