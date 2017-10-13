@@ -1025,7 +1025,7 @@
   /**
    * Hooking the sync
    *
-   * @todo
+   * TODO: document
    */
   function hookSync(rs) {
     if (rs._dropboxOrigSync) { return; } // already hooked
@@ -1042,7 +1042,7 @@
   /**
    * Unhooking the sync
    *
-   * @todo
+   * TODO: document
    */
   function unHookSync(rs) {
     if (! rs._dropboxOrigSync) { return; } // not hooked
@@ -1053,7 +1053,7 @@
   /**
    * Hooking getItemURL
    *
-   * @todo
+   * TODO: document
    */
   function hookGetItemURL(rs) {
     if (rs._origBaseClientGetItemURL) { return; }
@@ -1067,7 +1067,7 @@
   /**
    * Unhooking getItemURL
    *
-   * @todo
+   * TODO: document
    */
   function unHookGetItemURL(rs){
     if (! rs._origBaseClientGetItemURL) { return; }
@@ -1076,7 +1076,7 @@
   }
 
   /**
-   * @todo
+   * TODO: document
    */
   function hookRemote(rs){
     if (rs._origRemote) { return; }
@@ -1085,7 +1085,7 @@
   }
 
   /**
-   * @todo
+   * TODO: document
    */
   function unHookRemote(rs){
     if (rs._origRemote) {
@@ -1095,7 +1095,7 @@
   }
 
   /**
-   * @todo
+   * TODO: document
    */
   function hookIt(rs){
     hookRemote(rs);
@@ -1114,7 +1114,7 @@
   }
 
   /**
-   * @todo
+   * TODO: document
    */
   function unHookIt(rs){
     unHookRemote(rs);

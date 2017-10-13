@@ -84,7 +84,7 @@
 
   IndexedDB.prototype = {
     /**
-     * @todo Document
+     * TODO: Document
      */
     getNodes: function (paths) {
       var misses = [], fromCache = {};
@@ -110,7 +110,7 @@
     },
 
     /**
-     * @todo Document
+     * TODO: Document
      */
     setNodes: function (nodes) {
       for (var i in nodes) {
@@ -121,7 +121,7 @@
     },
 
     /**
-     * @todo Document
+     * TODO: Document
      */
     maybeFlush: function () {
       if (this.putsRunning === 0) {
@@ -136,7 +136,7 @@
     },
 
     /**
-     * @todo Document
+     * TODO: Document
      */
     flushChangesQueued: function () {
       if (this.commitSlownessWarning) {
@@ -151,7 +151,7 @@
     },
 
     /**
-     * @todo Document
+     * TODO: Document
      */
     getNodesFromDb: function (paths) {
       return new Promise((resolve, reject) => {
@@ -182,7 +182,7 @@
     },
 
     /**
-     * @todo Document
+     * TODO: Document
      */
     setNodesInDb: function (nodes) {
       return new Promise((resolve, reject) => {
@@ -234,7 +234,7 @@
     },
 
     /**
-     * @todo Document
+     * TODO: Document
      */
     reset: function (callback) {
       var dbName = this.db.name;
@@ -256,7 +256,7 @@
     },
 
     /**
-     * @todo Document
+     * TODO: Document
      */
     forAllNodes: function (cb) {
       return new Promise((resolve, reject) => {
@@ -285,7 +285,7 @@
   };
 
   /**
-   * @todo Document
+   * TODO: Document
    */
   IndexedDB.open = function (name, callback) {
     var timer = setTimeout(function () {
@@ -345,7 +345,7 @@
   };
 
   /**
-   * @todo Document
+   * TODO: Document
    */
   IndexedDB.clean = function (databaseName, callback) {
     var req = indexedDB.deleteDatabase(databaseName);

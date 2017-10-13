@@ -1,5 +1,5 @@
   /**
-   * @todo add documentation
+   * TODO: document
    **/
 
   "use strict";
