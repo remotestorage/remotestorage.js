@@ -359,7 +359,7 @@
 
       var context = util.getGlobalContext();
 
-      // TOFIX this is causing an error in chrome
+      // FIXME: this is causing an error in chrome
       // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
       //                    context.mozIndexedDB || context.oIndexedDB      ||
       //                    context.msIndexedDB;
