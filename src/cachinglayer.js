@@ -4,8 +4,6 @@
 
 
   /**
-   * Interface: cachinglayer
-   *
    * This module defines functions that are mixed into remoteStorage.local when
    * it is instantiated (currently one of indexeddb.js, localstorage.js, or
    * inmemorystorage.js).
@@ -14,6 +12,9 @@
    * this.getNodes, this.setNodes, and this.forAllNodes. The rest is blended in
    * here to create a GPD (get/put/delete) interface which the BaseClient can
    * talk to.
+   *
+   * @interface
+   *
    */
 
   const isFolder = util.isFolder;
@@ -412,18 +413,13 @@
   };
 
   /**
-   * Function: cachingLayer
-   *
    * Mixes common caching layer functionality into an object.
+   * @param {Object} object - the object to be extended
    *
-   * The first parameter is always the object to be extended.
-   *
-   * Example:
-   *   (start code)
-   *   var MyConstructor = function () {
-   *     cachingLayer(this);
-   *   };
-   *   (end code)
+   * @example
+   * var MyConstructor = function () {
+   *   cachingLayer(this);
+   * };
    */
   var cachingLayer = function (object) {
     for (var key in methods) {
