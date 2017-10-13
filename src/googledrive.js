@@ -82,7 +82,7 @@ function baseName (path) {
  * Prepend the path with the remoteStorage base directory.
  *
  * @param {string} path - Path
- * @returns {string} - Actual path on Google Drive
+ * @returns {string} Actual path on Google Drive
  *
  * @private
  */
