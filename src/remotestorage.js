@@ -295,6 +295,17 @@ RemoteStorage.prototype = {
   },
 
   /**
+   * Reconnect the remote server to get a new authorization.
+   */
+  reconnect: function () {
+    if (this.backend === 'remotestorage') {
+      this.connect(this.remote.userAddress);
+    } else {
+      this.remote.connect();
+    }
+  },
+
+  /**
    * "Disconnect" from remote server to terminate current session.
    *
    * This method clears all stored settings and deletes the entire local
