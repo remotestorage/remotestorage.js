@@ -1,12 +1,10 @@
   var log = require('./log');
 
   /**
-   * Interface: eventhandling
+   * @interfacek
    */
   var methods = {
     /**
-     * Method: addEventListener
-     *
      * Install an event handler for the given event name
      */
     addEventListener: function (eventName, handler) {
@@ -22,8 +20,6 @@
     },
 
     /**
-     * Method: removeEventListener
-     *
      * Remove a previously installed event handler
      */
     removeEventListener: function (eventName, handler) {
@@ -63,46 +59,38 @@
   };
 
   /**
-   * Method: eventhandling.on
-   *
-   * Alias for <addEventListener>
+   * Alias for ``addEventListener``
    **/
   methods.on = methods.addEventListener;
 
   /**
-   * Method: eventhandling.off
-   *
-   * Alias for <removeEventListener>
+   * Alias for ``removeEventListener``
    **/
   methods.off = methods.removeEventListener;
 
 
   /**
-   * Function: eventHandling
-   *
    * Mixes event handling functionality into an object.
    *
    * The first parameter is always the object to be extended.
    * All remaining parameter are expected to be strings, interpreted as valid event
    * names.
    *
-   * Example:
-   *   (start code)
-   *   var MyConstructor = function () {
-   *     eventHandling(this, 'connected', 'disconnected');
+   * @example
+   * var MyConstructor = function () {
+   *   eventHandling(this, 'connected', 'disconnected');
    *
-   *     this._emit('connected');
-   *     this._emit('disconnected');
-   *     // This would throw an exception:
-   *     // this._emit('something-else');
-   *   };
+   *   this._emit('connected');
+   *   this._emit('disconnected');
+   *   // This would throw an exception:
+   *   // this._emit('something-else');
+   * };
    *
-   *   var myObject = new MyConstructor();
-   *   myObject.on('connected', function () { console.log('connected'); });
-   *   myObject.on('disconnected', function () { console.log('disconnected'); });
-   *   // This would throw an exception as well:
-   *   // myObject.on('something-else', function () {});
-   *   (end code)
+   * var myObject = new MyConstructor();
+   * myObject.on('connected', function () { console.log('connected'); });
+   * myObject.on('disconnected', function () { console.log('disconnected'); });
+   * // This would throw an exception as well:
+   * // myObject.on('something-else', function () {});
    */
  module.exports = function (object) {
     var eventNames = Array.prototype.slice.call(arguments, 1);
