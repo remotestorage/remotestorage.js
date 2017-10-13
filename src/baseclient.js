@@ -346,9 +346,9 @@ BaseClient.prototype = {
   /**
    * Validate an object against the associated schema.
    *
-   * @param {object} object - JS object to validate. Must have a ``@context`` property.
+   * @param {Object} object - JS object to validate. Must have a ``@context`` property.
    *
-   * @returns {object} An object containing information about validation errors
+   * @returns {Object} An object containing information about validation errors
    **/
   validate: function(object) {
     var schema = BaseClient.Types.getSchema(object['@context']);

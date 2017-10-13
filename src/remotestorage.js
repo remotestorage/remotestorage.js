@@ -392,7 +392,7 @@ RemoteStorage.prototype = {
    * Use the method twice to set both.
    *
    * @param {string} type - Either 'googledrive' or 'dropbox'
-   * @param {object} keys - Must contain property 'clientId' for GoogleDrive,
+   * @param {Object} keys - Must contain property 'clientId' for GoogleDrive,
    *                        or 'appKey' for Dropbox
    */
   setApiKeys: function (type, keys) {
