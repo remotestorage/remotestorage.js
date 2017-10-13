@@ -1,7 +1,5 @@
   /**
-   * Class: I18n
-   *
-   * TODO add documentation
+   * @todo add documentation
    **/
 
   "use strict";
