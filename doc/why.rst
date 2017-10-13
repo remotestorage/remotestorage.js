@@ -52,10 +52,30 @@ features in the process.
 Reliability
 -----------
 
-...
+The very first prototype of rs.js has been written in November 2010. Since
+then, it has been used, tested, stabilized, and improved in almost 4000 commits
+(at the time of this writing). The library has been used in commercial apps by
+hundreds of thousands of users, and in countries around the globe. We have seen
+pretty much every device, browser, privacy setting and network connection there
+is, and fixed bugs and issues for most of them.
+
+In short: you can rely on rs.js to do its job. And if you do find a critical
+bug, there's a team of people who will help with fixing it.
+
+One JS API for multiple storage options
+---------------------------------------
+
+rs.js optionally supports Dropbox and Google Drive as storage backends which
+users can connect. Conveniently, as an app developer you don't have to
+implement anything special in order for these backends to work with your code
+[#f3]_. Just :doc:`configure OAuth app keys
+</getting-started/dropbox-and-google-drive>`, and your users can choose between
+3 different backends to connect.
 
 .. rubric:: Footnotes
 
 .. [#f1] Except for apps and use cases that don't require caching, like e.g.
          with `Sharesome <https://sharesome.5apps.com/>`_
 .. [#f2] Let's just be honest: nothing lasts forever.
+.. [#f3] Except adding UI for it, in case you're not using the :doc:`connect
+         widget</getting-started/connect-widget>`, of course.
