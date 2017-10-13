@@ -2,8 +2,6 @@
 
 
   /**
-   * Function: fixArrayBuffers
-   *
    * Takes an object and its copy as produced by the _deepClone function
    * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
    * of being cloned to new ArrayBuffers with the same content.
