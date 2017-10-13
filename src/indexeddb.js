@@ -1,8 +1,5 @@
 
   /**
-   * Class: IndexedDB
-   *
-   *
    * IndexedDB Interface
    * -------------------
    *
@@ -63,8 +60,6 @@
     this.putsRunning = 0;
 
     /**
-     * Property: changesQueued
-     *
      * Given a node for which uncommitted changes exist, this cache
      * stores either the entire uncommitted node, or false for a deletion.
      * The node's path is used as the key.
@@ -75,8 +70,6 @@
     this.changesQueued = {};
 
     /**
-     * Property: changesRunning
-     *
      * Given a node for which uncommitted changes exist, this cache
      * stores either the entire uncommitted node, or false for a deletion.
      * The node's path is used as the key.
@@ -90,6 +83,9 @@
   };
 
   IndexedDB.prototype = {
+    /**
+     * @todo Document
+     */
     getNodes: function (paths) {
       var misses = [], fromCache = {};
       for (var i = 0, len = paths.length; i < len; i++) {
@@ -113,6 +109,9 @@
       }
     },
 
+    /**
+     * @todo Document
+     */
     setNodes: function (nodes) {
       for (var i in nodes) {
         this.changesQueued[i] = nodes[i] || false;
@@ -121,6 +120,9 @@
       return Promise.resolve();
     },
 
+    /**
+     * @todo Document
+     */
     maybeFlush: function () {
       if (this.putsRunning === 0) {
         this.flushChangesQueued();
@@ -133,6 +135,9 @@
       }
     },
 
+    /**
+     * @todo Document
+     */
     flushChangesQueued: function () {
       if (this.commitSlownessWarning) {
         clearInterval(this.commitSlownessWarning);
@@ -145,6 +150,9 @@
       }
     },
 
+    /**
+     * @todo Document
+     */
     getNodesFromDb: function (paths) {
       return new Promise((resolve, reject) => {
 
@@ -173,6 +181,9 @@
       });
     },
 
+    /**
+     * @todo Document
+     */
     setNodesInDb: function (nodes) {
       return new Promise((resolve, reject) => {
 
@@ -222,6 +233,9 @@
       });
     },
 
+    /**
+     * @todo Document
+     */
     reset: function (callback) {
       var dbName = this.db.name;
       var self = this;
@@ -241,6 +255,9 @@
       });
     },
 
+    /**
+     * @todo Document
+     */
     forAllNodes: function (cb) {
       return new Promise((resolve, reject) => {
 
@@ -267,6 +284,9 @@
 
   };
 
+  /**
+   * @todo Document
+   */
   IndexedDB.open = function (name, callback) {
     var timer = setTimeout(function () {
       callback("timeout trying to open db");
@@ -324,6 +344,9 @@
     }
   };
 
+  /**
+   * @todo Document
+   */
   IndexedDB.clean = function (databaseName, callback) {
     var req = indexedDB.deleteDatabase(databaseName);
 
@@ -337,6 +360,13 @@
     };
   };
 
+  /**
+   * Initialize the IndexedDB backend.
+   *
+   * @param {Object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
   IndexedDB._rs_init = function (remoteStorage) {
 
     return new Promise((resolve, reject) => {
@@ -354,6 +384,14 @@
     });
   };
 
+  /**
+   * Inform about the availability of the IndexedDB backend.
+   *
+   * @param {Object} rs - RemoteStorage instance
+   * @returns {Boolean}
+   *
+   * @protected
+   */
   IndexedDB._rs_supported = function () {
     return new Promise((resolve, reject) => {
 
@@ -395,6 +433,13 @@
     });
   };
 
+  /**
+   * Remove IndexedDB as a backend.
+   *
+   * @param {Object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
   IndexedDB._rs_cleanup = function (remoteStorage) {
     return new Promise((resolve, reject) => {
       if (remoteStorage.local) {
