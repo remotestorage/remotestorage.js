@@ -194,21 +194,6 @@ RemoteStorage.prototype = {
    */
 
   /**
-   * startSync
-   *
-   * TODO: move to sync.js
-   *
-   * Start synchronization with remote storage, downloading and uploading any
-   * changes within the cached paths.
-   *
-   * Please consider: local changes will attempt sync immediately, and remote
-   * changes should also be synced timely when using library defaults. So
-   * this is mostly useful for letting users sync manually, when pressing a
-   * sync button for example. This might feel safer to them sometimes, esp.
-   * when shifting between offline and online a lot.
-   */
-
-  /**
    * Connect to a remoteStorage server.
    *
    * Discovers the WebFinger profile of the given user address and initiates
@@ -682,7 +667,16 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * TODO: document
+   * Start synchronization with remote storage, downloading and uploading any
+   * changes within the cached paths.
+   *
+   * Please consider: local changes will attempt sync immediately, and remote
+   * changes should also be synced timely when using library defaults. So
+   * this is mostly useful for letting users sync manually, when pressing a
+   * sync button for example. This might feel safer to them sometimes, esp.
+   * when shifting between offline and online a lot.
+   *
+   * TODO: move to sync.js
    */
   startSync: function () {
     if (!config.cache) { return; }
