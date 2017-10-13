@@ -675,8 +675,6 @@ RemoteStorage.prototype = {
    * this is mostly useful for letting users sync manually, when pressing a
    * sync button for example. This might feel safer to them sometimes, esp.
    * when shifting between offline and online a lot.
-   *
-   * TODO: move to sync.js
    */
   startSync: function () {
     if (!config.cache) { return; }
