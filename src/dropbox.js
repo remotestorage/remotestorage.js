@@ -43,7 +43,7 @@
    */
 
   var hasLocalStorage;
-  var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
+  var AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
   var PATH_PREFIX = '/remotestorage';
 
