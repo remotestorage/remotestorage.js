@@ -1,7 +1,7 @@
   var log = require('./log');
 
   /**
-   * @interfacek
+   * @interface
    */
   var methods = {
     /**
