@@ -2,12 +2,11 @@
   var log = require('./log');
   var cachingLayer = require('./cachinglayer');
   /**
-   * Class: InMemoryStorage
-   *
    * In-memory caching adapter. Used when no IndexedDB or localStorage
    * available.
+   *
+   * @class
    **/
-
   var InMemoryStorage = function () {
     cachingLayer(this);
     log('[InMemoryStorage] Registering events');
@@ -49,13 +48,32 @@
 
   };
 
+  /**
+   * Initialize the InMemoryStorage backend.
+   *
+   * @param {Object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
   InMemoryStorage._rs_init = function () {};
 
+  /**
+   * Inform about the availability of the InMemoryStorage backend.
+   *
+   * @returns {Boolean}
+   *
+   * @protected
+   */
   InMemoryStorage._rs_supported = function () {
     // In-memory storage is always supported
     return true;
   };
 
+  /**
+   * Remove InMemoryStorage as a backend.
+   *
+   * @protected
+   */
   InMemoryStorage._rs_cleanup = function () {};
 
   module.exports = InMemoryStorage;

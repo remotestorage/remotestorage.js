@@ -82,7 +82,7 @@ function baseName (path) {
  * Prepend the path with the remoteStorage base directory.
  *
  * @param {string} path - Path
- * @returns {string} - Actual path on Google Drive
+ * @returns {string} Actual path on Google Drive
  *
  * @private
  */
@@ -147,7 +147,7 @@ GoogleDrive.prototype = {
    *
    * Fetches the user info from Google when no ``userAddress`` is given.
    *
-   * @param {object} settings
+   * @param {Object} settings
    * @param {string} [settings.userAddress] - The user's email address
    * @param {string} [settings.token] - Authorization token
    *
@@ -220,7 +220,7 @@ GoogleDrive.prototype = {
    * Request a resource (file or directory).
    *
    * @param {string} path - Path of the resource
-   * @param {object} options - Request options
+   * @param {Object} options - Request options
    * @returns {Promise} Resolves with an object containing the status code,
    *                    body, content-type and revision
    *
@@ -240,7 +240,7 @@ GoogleDrive.prototype = {
    * @param {string} path - File path
    * @param body - File content
    * @param {string} contentType - File content-type
-   * @param {object} options
+   * @param {Object} options
    * @param {string} options.ifNoneMatch - Only create of update the file if the
    *                                       current ETag doesn't match this string
    * @returns {Promise} Resolves with an object containing the status code,
@@ -279,7 +279,7 @@ GoogleDrive.prototype = {
    * Delete a file.
    *
    * @param {string} path - File path
-   * @param {object} options
+   * @param {Object} options
    * @param {string} options.ifMatch - only delete the file if it's ETag
    *                                   matches this string
    * @returns {Promise} Resolves with an object containing the status code
@@ -342,8 +342,8 @@ GoogleDrive.prototype = {
    * @param {string} path - File path
    * @param body - File content
    * @param {string} contentType - File content-type
-   * @param {object} options
-   * @param {string} options.ifMatch - Only update the file if it's ETag
+   * @param {Object} options
+   * @param {string} options.ifMatch - Only update the file if its ETag
    *                                   matches this string
    * @returns {Promise} Resolves with the response of the network request
    *
@@ -413,7 +413,7 @@ GoogleDrive.prototype = {
    * Request a file.
    *
    * @param {string} path - File path
-   * @param {object} options
+   * @param {Object} options
    * @param {string} [options.ifNoneMath] - Only return the file if its ETag
    *                                        doesn't match the given string
    * @returns {Promise} Resolves with an object containing the status code,
@@ -466,7 +466,7 @@ GoogleDrive.prototype = {
    * Request a directory.
    *
    * @param {string} path - Directory path
-   * @param {object} options
+   * @param {Object} options
    * @returns {Promise} Resolves with an object containing the status code,
    *                    body and content-type
    *
@@ -631,7 +631,7 @@ GoogleDrive.prototype = {
    *
    * @param {string} method - Request method
    * @param {string} url - Target URL
-   * @param {object} options - Request options
+   * @param {Object} options - Request options
    * @returns {Promise} Resolves with the response of the network request
    *
    * @private
@@ -682,7 +682,7 @@ GoogleDrive.prototype = {
 /**
  * Initialize the Google Drive backend.
  *
- * @param {object} remoteStorage - RemoteStorage instance
+ * @param {Object} remoteStorage - RemoteStorage instance
  *
  * @protected
  */
@@ -700,7 +700,7 @@ GoogleDrive._rs_init = function (remoteStorage) {
 /**
  * Inform about the availability of the Google Drive backend.
  *
- * @param {object} rs - RemoteStorage instance
+ * @param {Object} rs - RemoteStorage instance
  * @returns {Boolean}
  *
  * @protected
@@ -712,7 +712,7 @@ GoogleDrive._rs_supported = function (rs) {
 /**
  * Remove Google Drive as a backend.
  *
- * @param {object} remoteStorage - RemoteStorage instance
+ * @param {Object} remoteStorage - RemoteStorage instance
  *
  * @protected
  */

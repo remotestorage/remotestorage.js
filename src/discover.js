@@ -14,26 +14,19 @@ var SETTINGS_KEY = 'remotestorage:discover';
 var cachedInfo = {};
 
 /**
- * Class: Discover
- *
  * This function deals with the Webfinger lookup, discovering a connecting
  * user's storage details.
  *
  * The discovery timeout can be configured via
  * `config.discoveryTimeout` (in ms).
  *
- * Arguments:
+ * @param {string} userAddress - user@host
  *
- *   userAddress - user@host
- *
- * Returns:
- *
- * A promise for an object with the following properties.
- *
- *   href - Storage base URL,
- *   storageType - Storage type,
- *   authUrl - OAuth URL,
- *   properties - Webfinger link properties
+ * @returns {Promise} A promise for an object with the following properties.
+ *          href - Storage base URL,
+ *          storageType - Storage type,
+ *          authUrl - OAuth URL,
+ *          properties - Webfinger link properties
  **/
 
 const Discover = function Discover(userAddress) {

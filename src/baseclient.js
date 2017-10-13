@@ -70,7 +70,7 @@ BaseClient.prototype = {
    * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
    *                          cached listing in milliseconds. See :ref:`max-age`.
    *
-   * @returns A promise for an object representing child nodes
+   * @returns {Promise} A promise for an object representing child nodes
    */
   getListing: function (path, maxAge) {
     if (typeof(path) !== 'string') {
@@ -92,7 +92,7 @@ BaseClient.prototype = {
    * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
    *                          cached objects in milliseconds. See :ref:`max-age`.
    *
-   * @returns A promise for an object
+   * @returns {Promise} A promise for an object
    */
   getAll: function (path, maxAge) {
     if (typeof(path) !== 'string') {
@@ -141,7 +141,7 @@ BaseClient.prototype = {
    * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
    *                          the cached file in milliseconds. See :ref:`max-age`.
    *
-   * @returns A promise for an object
+   * @returns {Promise} A promise for an object
    */
   getFile: function (path, maxAge) {
     if (typeof(path) !== 'string') {
@@ -163,7 +163,7 @@ BaseClient.prototype = {
    * @param {string} path     - Path relative to the module root
    * @param {string|ArrayBuffer|ArrayBufferView} data - Raw data to store
    *
-   * @returns {Promise}
+   * @returns {Promise} A promise for an object
    */
   storeFile: function (mimeType, path, body) {
     if (typeof(mimeType) !== 'string') {
@@ -196,7 +196,7 @@ BaseClient.prototype = {
    * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
    *                          cached object in milliseconds. See :ref:`max-age`.
    *
-   * @returns A promise, which resolves with the requested object (or ``null``
+   * @returns {Promise} A promise, which resolves with the requested object (or ``null``
    *          if non-existent)
    */
   getObject: function (path, maxAge) {
@@ -228,8 +228,8 @@ BaseClient.prototype = {
    * @param {object} object - A JavaScript object to be stored at the given
    *                          path. Must be serializable as JSON.
    *
-   * @returns {Promise} - Resolves with revision on success. Rejects with
-   *                      a ValidationError, if validations fail.
+   * @returns {Promise} Resolves with revision on success. Rejects with
+   *                    a ValidationError, if validations fail.
    */
   storeObject: function (typeAlias, path, object) {
     if (typeof(typeAlias) !== 'string') {
@@ -266,7 +266,7 @@ BaseClient.prototype = {
    * Remove node at given path from storage. Triggers synchronization.
    *
    * @param {string} path - Path relative to the module root.
-   * @returns Promise
+   * @returns {Promise} A promise for an object
    */
   remove: function (path) {
     if (typeof(path) !== 'string') {
@@ -284,7 +284,7 @@ BaseClient.prototype = {
    * URL of an item in the ``/public`` folder.
    *
    * @param {string} path - Path relative to the module root.
-   * @returns {string} - The full URL of the item, including the storage origin
+   * @returns {string} The full URL of the item, including the storage origin
    */
   getItemURL: function (path) {
     if (typeof(path) !== 'string') {
@@ -346,9 +346,9 @@ BaseClient.prototype = {
   /**
    * Validate an object against the associated schema.
    *
-   * @param {object} object - JS object to validate. Must have a ``@context`` property.
+   * @param {Object} object - JS object to validate. Must have a ``@context`` property.
    *
-   * @returns {object} - An object containing information about validation errors
+   * @returns {Object} An object containing information about validation errors
    **/
   validate: function(object) {
     var schema = BaseClient.Types.getSchema(object['@context']);
