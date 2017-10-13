@@ -1,16 +1,14 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
-
-  global.Promise = Promise;
-  global.tv4 = tv4;
-
+define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventHandling) {
   var suites = [];
 
   var consoleLog, fakeLogs;
+  global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
 
   function FakeRemote(connected) {
+    this.fakeRemote = true;
     this.connected = (typeof connected === 'boolean') ? connected : true;
     this.configure = function() {};
     this.stopWaitingForToken = function() {
@@ -18,7 +16,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         this._emit('not-connected');
       }
     };
-    RemoteStorage.eventHandling(this, 'connected', 'disconnected', 'not-connected');
+    eventHandling(this, 'connected', 'disconnected', 'not-connected');
   }
 
   function fakeRequest(path) {
@@ -65,47 +63,41 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
   }
 
   suites.push({
+    // abortOnFail: true,
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      require('./src/remotestorage');
-      if (global.rs_rs) {
-        global.RemoteStorage = global.rs_rs;
-      } else {
-        global.rs_rs = RemoteStorage;
-      }
+      global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
+      // global.WebFinger = require('webfinger.js')
+      // global.Discover = require('./src/discover');
+      global.SyncedGetPutDelete = require('./src/syncedgetputdelete');
+      global.Authorize = require('./src/authorize');
+      global.Sync = require('./src/sync');
+      global.config = require('./src/config');
+      global.log = require('./src/log');
+      global.Dropbox = require('./src/dropbox');
 
-      require('./src/eventhandling.js');
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
+      global.RemoteStorage = require('./src/remotestorage');
 
-      require('src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
 
-      RemoteStorage.Discover = function(userAddress) {
+      global.Discover = function(userAddress) {
         var pending = Promise.defer();
         if (userAddress === "someone@somewhere") {
           pending.reject('in this test, discovery fails for that address');
         }
         return  pending.promise;
       };
+
       global.localStorage = {};
-      RemoteStorage.prototype.remote = new FakeRemote();
+      global.RemoteStorage.prototype.remote = new FakeRemote();
       test.done();
     },
 
     beforeEach: function(env, test) {
-      var remoteStorage = new RemoteStorage();
+      var remoteStorage = new RemoteStorage({cache: false, disableFeatures: ['WireClient'] });
       env.rs = remoteStorage;
-      RemoteStorage.config.cordovaRedirectUri = undefined;
-      test.done();
+      config.cordovaRedirectUri = undefined;
+      remoteStorage.on('ready', test.done );
     },
 
     tests: [
@@ -113,8 +105,9 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         desc: "#get emiting error RemoteStorage.Unauthorized on 403",
         run: function (env, test) {
           var success = false;
+
           env.rs.on('error', function (e) {
-            if (e instanceof RemoteStorage.Unauthorized) {
+            if (e instanceof Authorize.Unauthorized) {
               success = true;
             }
           });
@@ -130,7 +123,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         run: function(env, test) {
           var success = false;
           env.rs.on('error', function(e) {
-            if (e instanceof RemoteStorage.Unauthorized) {
+            if (e instanceof Authorize.Unauthorized) {
               success = true;
             }
           });
@@ -145,7 +138,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         run: function (env, test) {
           var success = false;
           env.rs.on('error', function (e) {
-            if (e instanceof RemoteStorage.Unauthorized) {
+            if (e instanceof Authorize.Unauthorized) {
               success = true;
             }
           });
@@ -184,11 +177,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       {
         desc: "#setApiKeys initializes the configured backend when it's not initialized yet",
         run: function(env, test) {
-          RemoteStorage.Dropbox = {
-            _rs_init: function(remoteStorage) {
-              test.done();
-            }
-          }
+          Dropbox._rs_init = test.done;
 
           env.rs.setApiKeys('dropbox', { appKey: 'testkey' });
         }
@@ -201,11 +190,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
             clientId: 'old key'
           };
 
-          RemoteStorage.Dropbox = {
-            _rs_init: function(remoteStorage) {
-              test.done();
-            }
-          }
+          Dropbox._rs_init = test.done;
 
           env.rs.setApiKeys('dropbox', { appKey: 'new key' });
         }
@@ -218,11 +203,9 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
             clientId: 'old key'
           };
 
-          RemoteStorage.Dropbox = {
-            _rs_init: function(remoteStorage) {
+          Dropbox._rs_init = function(remoteStorage) {
               test.fail('Backend got reinitialized again although the key did not change.');
-            }
-          }
+            };
 
           env.rs.setApiKeys('dropbox', { appKey: 'old key' });
           test.done();
@@ -256,6 +239,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
           };
 
           env.rs = new RemoteStorage();
+          env.rs.remote = new FakeRemote(false);
 
           env.rs.connect('user@ho.st');
           test.assert(localStorage.getItem('remotestorage:backend'), 'remotestorage');
@@ -295,6 +279,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
           });
 
           env.rs.disconnect();
+          // config.cache = true
         }
       },
 
@@ -302,30 +287,27 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         desc: "cleanup functions don't bloat up on repeated initialization",
         run: function(env, test) {
           var initsCalled = 0;
-
-          // Mock feature to be loaded on initialization
-          RemoteStorage.Sync = {
-            _rs_init: function() {},
-            _rs_cleanup: function() {}
-          };
+          // // Mock feature to be loaded on initialization
+          // Sync._rs_init = function Sync_rs_init() {};
+          // Sync._rs_cleanup = function Sync_rs_cleanup() {};
 
           var loadedHandler = function() {
             initsCalled++;
 
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
-              test.assertAnd(env.rs._cleanups.length, 0);
+              test.assertAnd(env.rs._cleanups.length, 4);
             } else {
-              test.assertAnd(env.rs._cleanups.length, 1);
+              test.assertAnd(env.rs._cleanups.length, 4);
             }
 
             if (initsCalled === 2) {
               env.rs._init();
             } else if (initsCalled === 3) {
               env.rs.removeEventListener('features-loaded', loadedHandler);
-              delete RemoteStorage.Sync;
+              // delete Sync;
               test.done();
             }
-          }
+          };
 
           env.rs.on('features-loaded', loadedHandler);
           env.rs._init();
@@ -396,7 +378,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       {
         desc: "#connect throws DiscoveryError on timeout of RemoteStorage.Discover",
         run: function(env, test) {
-          RemoteStorage.config.discoveryTimeout = 500;
+          config.discoveryTimeout = 500;
           env.rs.on('error', function(e) {
             test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
             test.done();
@@ -409,7 +391,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         desc: "maxAge defaults to false when not connected",
         run: function(env, test) {
           var rs = {
-            get: RemoteStorage.SyncedGetPutDelete.get,
+            get: SyncedGetPutDelete.get,
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -431,7 +413,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         desc: "maxAge defaults to false when not online",
         run: function(env, test) {
           var rs = {
-            get: RemoteStorage.SyncedGetPutDelete.get,
+            get: SyncedGetPutDelete.get,
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -456,7 +438,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         desc: "maxAge defaults to 2*getSyncInterval when connected",
         run: function(env, test) {
           var rs = {
-            get: RemoteStorage.SyncedGetPutDelete.get,
+            get: SyncedGetPutDelete.get,
             local: {
               get: function(path, maxAge) {
                 test.assertAnd(path, 'foo');
@@ -485,7 +467,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         desc: "Set Cordova redirect URI config with valid URI",
         run: function(env, test) {
           env.rs.setCordovaRedirectUri('https://hyperchannel.kosmos.org');
-          test.assert(RemoteStorage.config.cordovaRedirectUri, 'https://hyperchannel.kosmos.org');
+          test.assert(config.cordovaRedirectUri, 'https://hyperchannel.kosmos.org');
         }
       },
 
@@ -495,24 +477,60 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
           try {
             env.rs.setCordovaRedirectUri('yolo');
           } catch(e) {
-            test.assert(typeof RemoteStorage.config.cordovaRedirectUri, 'undefined');
+            test.assert(typeof config.cordovaRedirectUri, 'undefined');
             test.done();
             throw(e);
           }
         }
       },
+
+      {
+        desc: "Setting and getting the request timeout",
+        run: function(env, test) {
+          // check the default value
+          test.assertAnd(env.rs.getRequestTimeout(), 30000);
+
+          env.rs.setRequestTimeout(5000);
+          test.assertAnd(env.rs.getRequestTimeout(), 5000);
+
+          // setting back to default
+          env.rs.setRequestTimeout(30000);
+          test.assert(env.rs.getRequestTimeout(), 30000);
+        }
+      },
+
+      {
+        desc: "#stopSync clears any scheduled sync calls",
+        run: function (env, test) {
+          // This timeout should not be called because it gets cancelled by stopSync()
+          env.rs._syncTimer = setTimeout(function() {
+            test.result(false, "This should not have been called after stopSync");
+          }, 10);
+
+          // This timeout ends the test successfully when the previous timeout
+          // doesn't get called
+          setTimeout(function() {
+            test.result(true);
+          }, 20);
+
+          env.rs.stopSync();
+
+          test.assertAnd(env.rs._syncTimer, undefined);
+        }
+      }
     ]
   });
 
   suites.push({
     name: "RemoteStorage",
+    // abortOnFail: true,
     desc: "The global RemoteStorage namespace",
     setup: function(env, test) {
-      require('./src/remotestorage.js');
       test.done();
     },
 
     beforeEach: function(env, test) {
+      global.log = require('./src/log');
       fakeLogs = [];
       test.done();
     },
@@ -521,7 +539,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       {
         desc: "exports the global RemoteStorage function",
         run: function(env, test) {
-          test.assertType(global.RemoteStorage, 'function');
+          test.assertType(RemoteStorage, 'function');
         }
       },
 
@@ -530,7 +548,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         run: function(env, test) {
           replaceConsoleLog();
           try {
-            RemoteStorage.log('message');
+            log('message');
             assertNoConsoleLog(test);
           } catch(e) {
             restoreConsoleLog();
@@ -545,15 +563,16 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
         run: function(env, test) {
           replaceConsoleLog();
           try {
-            RemoteStorage.config.logging = true;
-            RemoteStorage.log('foo', 'bar', 'baz');
+            config.logging = true;
+            log('foo', 'bar', 'baz');
             assertConsoleLog(test, 'foo', 'bar', 'baz');
           } catch(e) {
             restoreConsoleLog();
-            RemoteStorage.config.logging = false;
+            config.logging = false;
             throw e;
           }
           restoreConsoleLog();
+          config.logging = false;
         }
       }
     ]
@@ -563,42 +582,6 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
     name: "remoteStorage",
     desc: "the RemoteStorage instance - without a connected remote",
     setup: function(env, test) {
-      require('./src/remotestorage');
-      if (global.rs_rs) {
-        global.RemoteStorage = global.rs_rs;
-      } else {
-        global.rs_rs = RemoteStorage;
-      }
-
-      require('./src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      require('./src/eventhandling');
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      require('./src/wireclient');
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-
-      require('./lib/Math.uuid');
-      require('./src/baseclient');
-      require('./src/baseclient/types');
-      if (global.rs_baseclient_with_types) {
-        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-      } else {
-        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-      }
 
       RemoteStorage.prototype.remote = new FakeRemote(false);
       test.assertType(RemoteStorage, 'function');

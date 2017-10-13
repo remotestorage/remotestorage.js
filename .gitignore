@@ -7,6 +7,5 @@ node_modules
 server/server-state
 server-state
 doc/code
-doc/config
-!doc/config/Menu.txt
+doc/_build
 /remotestorage*.js

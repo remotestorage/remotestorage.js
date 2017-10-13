@@ -1,10 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise, requirejs, mocks, tv4) {
-
-  global.Promise = Promise;
-  global.tv4 = tv4;
+define(['./src/config', './src/baseclient', 'test/helpers/mocks', 'tv4'],
+       function (config, BaseClient, mocks, tv4) {
 
   var suites = [];
 
@@ -15,7 +13,6 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
       mocks.defineMocks(env);
 
       global.RemoteStorage = function() {};
-      RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         onChange: function(basePath, handler) {
           this.onChange = handler;
@@ -27,47 +24,17 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
           }
         }
       };
-      RemoteStorage.config = {
-        changeEvents: {
-          remote: true
-        }
-      };
 
-      require('./src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
+      config.changeEvents = { remote: true };
 
-      require('./src/eventhandling');
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      require('./src/wireclient');
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-
-      require('./lib/Math.uuid');
-      require('./src/baseclient');
-      require('./src/baseclient/types');
-      if (global.rs_baseclient_with_types) {
-        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-      } else {
-        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-      }
+      // require('../../lib/Math.uuid');
+      // global.BaseClient = require('../../src/baseclient')
       test.done();
     },
     beforeEach: function(env, test) {
       env.storage = new RemoteStorage();
       env.storage.access = new FakeAccess();
-      env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
+      env.client = new BaseClient(env.storage, '/foo/');
       test.done();
     },
     tests: [
@@ -84,7 +51,7 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
         desc: "it doesn't accept non-folder paths",
         run: function(env, test) {
           try {
-            new RemoteStorage.BaseClient(env.storage, '/foo');
+            new BaseClient(env.storage, '/foo');
             test.result(false);
           } catch(e) {
             test.done();
@@ -95,9 +62,9 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
       {
         desc: "it detects the module name correctly",
         run: function(env, test) {
-          var rootClient = new RemoteStorage.BaseClient(env.storage, '/');
-          var moduleClient = new RemoteStorage.BaseClient(env.storage, '/contacts/');
-          var nestedClient = new RemoteStorage.BaseClient(env.storage, '/email/credentials/');
+          var rootClient = new BaseClient(env.storage, '/');
+          var moduleClient = new BaseClient(env.storage, '/contacts/');
+          var nestedClient = new BaseClient(env.storage, '/email/credentials/');
           test.assertAnd(rootClient.moduleName, 'root');
           test.assertAnd(moduleClient.moduleName, 'contacts');
           test.assertAnd(nestedClient.moduleName, 'email');
@@ -113,7 +80,7 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
             test.assertAnd(path, '/foo/');
             test.done();
           };
-          var client = new RemoteStorage.BaseClient(env.storage, '/foo/');
+          var client = new BaseClient(env.storage, '/foo/');
         }
       },
 
@@ -144,9 +111,9 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
           onChange: function() {}
         };
       }
-      if (typeof(RemoteStorage.BaseClient) !== 'function') {
-        require('./src/eventhandling');
-        require('./src/baseclient');
+      if (typeof(BaseClient) !== 'function') {
+        require('../../src/eventhandling');
+        BaseClient = require('../../src/baseclient');
       }
       test.done();
     },
@@ -154,7 +121,7 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
     beforeEach: function(env, test) {
       env.storage = new RemoteStorage();
       env.storage.access = new FakeAccess();
-      env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
+      env.client = new BaseClient(env.storage, '/foo/');
       test.done();
     },
 
@@ -361,10 +328,10 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
       },
 
       {
-        desc: "#cache with 'false' flag disables caching for a given path",
+        desc: "#cache with 'FLUSH' flag disables caching for a given path",
         run: function(env, test) {
           env.client.cache('bar/');
-          env.client.cache('bar/', false);
+          env.client.cache('bar/', 'FLUSH');
           test.assert(env.storage.caching._rootPaths['/foo/bar/'], 'FLUSH');
         }
       },
@@ -478,10 +445,44 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
       },
 
       {
+        desc: "_attachType attaches default context to objects",
+        run: function(env, test) {
+          var obj = {
+            some: 'value'
+          };
+          env.storage = new RemoteStorage();
+          env.client = new BaseClient(env.storage, '/contacts/');
+          env.client._attachType(obj, 'contact');
+          test.assertAnd(obj, {
+            some: 'value',
+            '@context': 'http://remotestorage.io/spec/modules/contacts/contact'
+          });
+          test.done();
+        }
+      },
+
+      {
+        desc: "_attachType encodes special characters in type names for @context URI",
+        run: function(env, test) {
+          var obj = {
+            some: 'value'
+          };
+          env.storage = new RemoteStorage();
+          env.client = new BaseClient(env.storage, '/foo/');
+          env.client._attachType(obj, 'ba/F');
+          test.assertAnd(obj, {
+            some: 'value',
+            '@context': 'http://remotestorage.io/spec/modules/foo/ba%2FF'
+          });
+          test.done();
+        }
+      },
+
+      {
         desc: "values in change events are JSON-parsed when possible",
         run: function(env, test) {
           var storage = new RemoteStorage();
-          var client = new RemoteStorage.BaseClient(storage, '/foo/');
+          var client = new BaseClient(storage, '/foo/');
           var expected = [{
             path: '/foo/a',
             origin: 'remote',

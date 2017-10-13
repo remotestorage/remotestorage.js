@@ -1,9 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs'], function (Promise, requirejs) {
-  global.Promise = Promise;
-
+define(['./src/indexeddb', './src/config'], function (IndexedDB, config) {
   var suites = [];
 
   suites.push({
@@ -12,37 +10,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
-      global.RemoteStorage.config = {
-        changeEvents: { local: true, window: false, remote: true, conflict: true }
-      };
-
-      require('src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      require('src/eventhandling.js');
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      require('src/cachinglayer.js');
-      if (global.rs_cachinglayer) {
-        RemoteStorage.cachingLayer = global.rs_cachinglayer;
-      } else {
-        global.rs_cachinglayer = RemoteStorage.cachingLayer;
-      }
-
-      require('src/indexeddb.js');
-      if (global.rs_IndexedDB) {
-        RemoteStorage.IndexedDB = global.rs_IndexedDB;
-      } else {
-        global.rs_IndexedDB = RemoteStorage.IndexedDB;
-      }
+      config.changeEvents = { local: true, window: false, remote: true, conflict: true }
 
       test.done();
     },
@@ -88,7 +56,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
           }
         };
       };
-      env.idb = new RemoteStorage.IndexedDB({
+      env.idb = new IndexedDB({
         transaction: function() {
           var ret = {
             objectStore: objectStore,

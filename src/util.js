@@ -1,14 +1,7 @@
-/**
- * Class: RemoteStorage.Util
- *
- * Provides reusable utility functions at RemoteStorage.util
- *
- */
-(function (global) {
+// Reusable utility functions
+
 
   /**
-   * Function: fixArrayBuffers
-   *
    * Takes an object and its copy as produced by the _deepClone function
    * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
    * of being cloned to new ArrayBuffers with the same content.
@@ -34,17 +27,22 @@
     }
   }
 
-  RemoteStorage.util = {
-    getEventEmitter: function () {
-      var object = {};
-      var args = Array.prototype.slice.call(arguments);
-      args.unshift(object);
-      RemoteStorage.eventHandling.apply(RemoteStorage, args);
-      object.emit = object._emit;
-      return object;
+  var util = {
+    logError(error) {
+      if (typeof(error) === 'string') {
+        console.error(error);
+      } else {
+        console.error(error.message, error.stack);
+      }
     },
 
-    extend: function (target) {
+    globalContext: (typeof(window) !== 'undefined' ? window : global),
+
+    getGlobalContext () {
+      return (typeof(window) !== 'undefined' ? window : global);
+    },
+
+    extend (target) {
       var sources = Array.prototype.slice.call(arguments, 1);
       sources.forEach(function (source) {
         for (var key in source) {
@@ -54,12 +52,12 @@
       return target;
     },
 
-    asyncEach: function (array, callback) {
+    asyncEach (array, callback) {
       return this.asyncMap(array, callback).
         then(function () { return array; });
     },
 
-    asyncMap: function (array, callback) {
+    asyncMap (array, callback) {
       var pending = Promise.defer();
       var n = array.length, i = 0;
       var results = [], errors = [];
@@ -91,7 +89,7 @@
       return pending.promise;
     },
 
-    containingFolder: function (path) {
+    containingFolder (path) {
       if (path === '') {
         return '/';
       }
@@ -102,30 +100,30 @@
       return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
     },
 
-    isFolder: function (path) {
+    isFolder (path) {
       return path.substr(-1) === '/';
     },
 
-    isDocument: function (path) {
-      return !RemoteStorage.util.isFolder(path);
+    isDocument (path) {
+      return !util.isFolder(path);
     },
 
-    baseName: function (path) {
+    baseName (path) {
       var parts = path.split('/');
-      if (this.isFolder(path)) {
+      if (util.isFolder(path)) {
         return parts[parts.length-2]+'/';
       } else {
         return parts[parts.length-1];
       }
     },
 
-    cleanPath: function (path) {
+    cleanPath (path) {
       return path.replace(/\/+/g, '/')
                  .split('/').map(encodeURIComponent).join('/')
                  .replace(/'/g, '%27');
     },
 
-    bindAll: function (object) {
+    bindAll (object) {
       for (var key in this) {
         if (typeof(object[key]) === 'function') {
           object[key] = object[key].bind(object);
@@ -133,7 +131,7 @@
       }
     },
 
-    equal: function (a, b, seen) {
+    equal (a, b, seen) {
       var key;
       seen = seen || [];
 
@@ -164,7 +162,7 @@
         }
 
         for (var i = 0, c = a.length; i < c; i++) {
-          if (!RemoteStorage.util.equal(a[i], b[i], seen)) {
+          if (!util.equal(a[i], b[i], seen)) {
             return false;
           }
         }
@@ -199,7 +197,7 @@
             seenArg.push(b[key]);
           }
 
-          if (!RemoteStorage.util.equal(a[key], b[key], seenArg)) {
+          if (!util.equal(a[key], b[key], seenArg)) {
             return false;
           }
         }
@@ -208,12 +206,7 @@
       return true;
     },
 
-    equalObj: function (obj1, obj2) {
-      console.warn('DEPRECATION WARNING: RemoteStorage.util.equalObj has been replaced by RemoteStorage.util.equal.');
-      return RemoteStorage.util.equal(obj1, obj2);
-    },
-
-    deepClone: function (obj) {
+    deepClone (obj) {
       var clone;
       if (obj === undefined) {
         return undefined;
@@ -224,7 +217,7 @@
       }
     },
 
-    pathsFromRoot: function (path) {
+    pathsFromRoot (path) {
       var paths = [path];
       var parts = path.replace(/\/$/, '').split('/');
 
@@ -236,7 +229,7 @@
     },
 
     /* jshint ignore:start */
-    md5sum: function(str) {
+    md5sum (str) {
       //
       // http://www.myersdaily.org/joseph/javascript/md5.js
       //
@@ -405,12 +398,14 @@
     /* jshint ignore:end */
 
 
-    localStorageAvailable: function() {
-      if (!('localStorage' in global)) { return false; }
+    localStorageAvailable () {
+      const context = util.getGlobalContext();
+
+      if (!('localStorage' in context)) { return false; }
 
       try {
-        global.localStorage.setItem('rs-check', 1);
-        global.localStorage.removeItem('rs-check');
+        context.localStorage.setItem('rs-check', 1);
+        context.localStorage.removeItem('rs-check');
         return true;
       } catch(error) {
         return false;
@@ -419,12 +414,4 @@
 
   };
 
-  if (!RemoteStorage.prototype.util) {
-    Object.defineProperty(RemoteStorage.prototype, 'util', {
-      get: function () {
-        console.log('DEPRECATION WARNING: remoteStorage.util was moved to RemoteStorage.util');
-        return RemoteStorage.util;
-      }
-    });
-  }
-})(typeof(window) !== 'undefined' ? window : global);
+  module.exports = util;

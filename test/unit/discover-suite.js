@@ -1,34 +1,19 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requirejs, fs, WebFinger) {
-
-  global.Promise = Promise;
-  global.WebFinger = WebFinger;
-
+define(['require', 'fs'], function (require, fs) {
   var suites = [];
 
   suites.push({
     name: "Discover",
     desc: "Webfinger discovery",
     setup: function(env, test) {
+      global.XMLHttpRequest = require('xhr2');
+      global.WebFinger = require('webfinger.js')
+      global.Discover = require('./src/discover');
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-
-      require('src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      require('./src/discover');
-      if (global.rs_util) {
-        RemoteStorage.discover = global.rs_discover;
-      } else {
-        global.rs_discover = RemoteStorage.discover;
-      }
 
       test.done();
     },
@@ -74,7 +59,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
         desc: "it isn't supported with no XMLHttpRequest",
         run: function (env, test) {
           delete global.XMLHttpRequest; // in case it was declared by another test.
-          test.assert(RemoteStorage.Discover._rs_supported(), false);
+          test.assert(Discover._rs_supported(), false);
         }
       },
 
@@ -84,7 +69,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
           global.XMLHttpRequest = function() {
             XMLHttpRequest.instances.push(this);
           };
-          test.assert(RemoteStorage.Discover._rs_supported(), true);
+          test.assert(Discover._rs_supported(), true);
         }
       },
 
@@ -92,7 +77,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
         desc: "initialization works",
         run: function (env, test) {
           var rs = new RemoteStorage();
-          RemoteStorage.Discover._rs_init(rs);
+          Discover._rs_init(rs);
           test.done();
         }
       },
@@ -107,7 +92,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
             test.assert(XMLHttpRequest.openCalls[0][2], true); // cross-origin
           };
 
-          RemoteStorage.Discover('nil@heahdk.net').then(function (r) {
+          Discover('nil@heahdk.net').then(function (r) {
             test.done();
           });
         }
@@ -116,7 +101,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
       {
         desc: "it finds href, type and authURL, when the remotestorage version is in the link type",
         run: function (env, test) {
-          RemoteStorage.Discover('nil@heahdk.net').then(function (info) {
+          Discover('nil@heahdk.net').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-01',
@@ -152,7 +137,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
       {
         desc: "# localhost:port should work",
         run: function (env, test) {
-          RemoteStorage.Discover('me@localhost:8001').then(function (info) {
+          Discover('me@localhost:8001').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-01',
@@ -176,7 +161,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
           //TODO: clear the cache of the discover instance inbetween tests.
           //for now, we use a different user address in each test to avoid interference
           //between the previous test and this one when running the entire suite.
-          RemoteStorage.Discover('nil1@heahdk.net').then(function (info) {
+          Discover('nil1@heahdk.net').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-05',
@@ -215,7 +200,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
           //TODO: clear the cache of the discover instance inbetween tests.
           //for now, we use a different user address in each test to avoid interference
           //between the previous test and this one when running the entire suite.
-          RemoteStorage.Discover('nil2@heahdk.net').then(function (info) {
+          Discover('nil2@heahdk.net').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-02',
@@ -254,7 +239,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
           //TODO: clear the cache of the discover instance inbetween tests.
           //for now, we use a different user address in each test to avoid interference
           //between the previous test and this one when running the entire suite.
-          RemoteStorage.Discover('nil2@heahdk.net').then(function (info) {
+          Discover('nil2@heahdk.net').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-02',
@@ -273,11 +258,11 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
       {
         desc: "if unsuccesfully tried to discover a storage, promise is rejected",
         run: function (env, test) {
-          RemoteStorage.Discover("foo@bar").then(test.fail, function (err) {
+          Discover("foo@bar").then(test.fail, function (err) {
             test.assertType(err, 'object');
           });
           XMLHttpRequest.onOpen = function () {
-            var xhr = XMLHttpRequest.instances[0];
+            var xhr = XMLHttpRequest.instances[XMLHttpRequest.instances.length - 1];
             xhr.status = 200;
             xhr.readyState = 4;
             xhr.responseText = '';
@@ -289,11 +274,11 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
       {
         desc: "if Webfinger request returns a 404 (not found), promise is rejected",
         run: function (env, test) {
-          RemoteStorage.Discover("foo@bar").then(test.fail, function (err) {
+          Discover("foo@bar").then(test.fail, function (err) {
             test.assertType(err, 'object');
           });
           XMLHttpRequest.onOpen = function () {
-            var xhr = XMLHttpRequest.instances[0];
+            var xhr = XMLHttpRequest.instances[XMLHttpRequest.instances.length - 1];
             xhr.status = 404;
             xhr.readyState = 4;
             xhr.responseText = '';

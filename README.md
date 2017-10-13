@@ -31,7 +31,7 @@ help and contributions are also greatly appreciated, of course!
 
 * See [remotestorage.io](http://remotestorage.io/) for general information about remoteStorage
 * Follow the [remoteStorage.js Beginners Guide](https://wiki.remotestorage.io/RemoteStorage.js:Beginners'_Guide) to get started
-* Read detailed library documentation in the [remoteStorage.js API docs](https://remotestorage.github.io/remotestorage.js)
+* Read detailed library documentation in the [remoteStorage.js API docs](https://remotestoragejs.readthedocs.io/en/latest/js-api.html)
 * Ask questions on the [community forums](https://community.remotestorage.io/)
 * Get instant support via IRC in [#remotestorage on Freenode](irc://irc.freenode.net:7000/remotestorage)
 
@@ -47,50 +47,14 @@ You can also get an account with a hoster, or use one of the various other
 remoteStorage server implementations:
 [Servers](https://wiki.remotestorage.io/Servers).
 
-### Which version to choose?
+## Usage
+[TODO]
 
-You can either use a stable release or the current HEAD build. Stable releases
-can be found in [release/](https://github.com/remotestorage/remotestorage.js/tree/master/release/).
-Directories with a `-rcX` suffix contain release candidates, which may be used
-for testing but aren't necessarily "stable" releases.
-
-[release/head](https://github.com/remotestorage/remotestorage.js/tree/master/release/head/)
-contains a semi-current HEAD build. It is updated manually and irregularly. To
-build an up-to-date version of all files, run `make all` in the repository
-root.
-
-### Which build file to use for my app?
-
-There are a number of different builds available:
-
-* <kbd>remotestorage.js</kbd> - Contains all components of remotestorage.js for
-  running in a browser.
-* <kbd>remotestorage.amd.js</kbd> - The same as remotestorage.js, but wrapped
-  for use with
-  [AMD](https://en.wikipedia.org/wiki/Asynchronous_module_definition) loaders
-  such as [RequireJS](http://requirejs.org/). When using AMD, be aware of issues
-  [#709](https://github.com/remotestorage/remotestorage.js/issues/709).
-* <kbd>remotestorage.min.js</kbd> - Minified version of remotestorage.js
-* <kbd>remotestorage-nocache.js</kbd> - A version without any caching features
-  included. Use this if you want your app to write directly to the remote
-  server without caching any data in the browser's storage (localStorage or
-  IndexedDB).
-* <kbd>remotestorage-nocache.amd.js</kbd>,
-  <kbd>remotestorage-nocache.min.js</kbd> - same as the other .amd/.min
-  build, but based on remotestorage-nocache.js.
-
-
-For more information on using the AMD build(s) and its dependencies, see the [AMD documentation](https://github.com/remotestorage/remotestorage.js/blob/master/doc/amd.md).
-
-#### Bower
-
-    $ bower install -S remotestorage
-
-#### Node.js / NPM
+### Node
 
     $ npm install remotestoragejs
 
-See our [node.js documentation](https://github.com/remotestorage/remotestorage.js/blob/master/doc/nodejs.md) for more details.
+See our [node.js documentation](https://remotestoragejs.readthedocs.io/en/latest/legacy/nodejs.html) for more details.
 
 ### Running tests
 
@@ -112,8 +76,11 @@ Use the `jaribu` executable in order to test single files, like so e.g.:
 
 ### How to build
 
-Make sure you have [Natural Docs](http://www.naturaldocs.org/) installed on
-your system (e.g. via `sudo apt-get install naturaldocs`).
+#### Docs
+
+See our documentation page about [how to build the docs on your machine](https://remotestoragejs.readthedocs.io/en/latest/contributing/docs.html#how-to-build-the-docs-on-your-machine).
+
+#### Build tasks
 
 Display the available build tasks:
 

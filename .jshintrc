@@ -17,6 +17,7 @@
     "devel"         : true,   // Allow development statements e.g. `console.log();`.
 
     // EcmaScript 5
+    "esversion"     : 6,
     "strict"        : false,  // Require `use strict` pragma in every file.
     "globalstrict"  : true,   // Allow global "use strict" (also enables 'strict').
 

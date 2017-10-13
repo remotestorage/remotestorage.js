@@ -1,6 +1,5 @@
-(function () {
   /**
-   * Class: RemoteStorage.I18n
+   * Class: I18n
    *
    * TODO add documentation
    **/
@@ -20,7 +19,7 @@
     "view_unauthorized": "Unauthorized! Click here to reconnect."
   };
 
-  RemoteStorage.I18n = {
+var I18n = {
 
     translate: function () {
       var str    = arguments[0],
@@ -45,4 +44,5 @@
     _rs_init: function() {
     }
   };
-})();
+
+  module.exports = I18n;

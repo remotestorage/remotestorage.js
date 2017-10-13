@@ -1,4 +1,8 @@
-(function () {
+  const util = require('./util');
+  const config = require('./config');
+  const log = require('./log');
+
+
   /**
    * Interface: cachinglayer
    *
@@ -12,10 +16,9 @@
    * talk to.
    */
 
-  var isFolder = RemoteStorage.util.isFolder;
-  var isDocument = RemoteStorage.util.isDocument;
-  var deepClone = RemoteStorage.util.deepClone;
-  var equal = RemoteStorage.util.equal;
+  const isFolder = util.isFolder;
+  const isDocument = util.isDocument;
+  const deepClone = util.deepClone;
 
   function getLatest(node) {
     if (typeof(node) !== 'object' || typeof(node.path) !== 'string') {
@@ -49,7 +52,7 @@
   }
 
   function isOutdated(nodes, maxAge) {
-    var path, node;
+    var path;
     for (path in nodes) {
       if (nodes[path] && nodes[path].remote) {
         return true;
@@ -64,7 +67,7 @@
     return true;
   }
 
-  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
+  var pathsFromRoot = util.pathsFromRoot;
 
   function makeNode(path) {
     var node = { path: path, common: { } };
@@ -137,7 +140,6 @@
 
     put: function (path, body, contentType) {
       var paths = pathsFromRoot(path);
-      var self = this;
 
       function _processNodes(paths, nodes) {
         try {
@@ -168,7 +170,7 @@
           }
           return nodes;
         } catch (e) {
-          RemoteStorage.log('[Cachinglayer] Error during PUT', nodes, e);
+          log('[Cachinglayer] Error during PUT', nodes, e);
           throw e;
         }
       }
@@ -182,6 +184,8 @@
         for (var i = 0, len = paths.length; i < len; i++) {
           var path = paths[i];
           var node = nodes[path];
+          var previous;
+
           if (!node) {
             throw new Error('Cannot delete non-existing node '+path);
           }
@@ -211,7 +215,6 @@
         return nodes;
       });
     },
-
     flush: function (path) {
       var self = this;
       return self._getAllDescendentPaths(path).then(function (paths) {
@@ -235,13 +238,13 @@
     },
 
     _emitChange: function (obj) {
-      if (RemoteStorage.config.changeEvents[obj.origin]) {
+      if (config.changeEvents[obj.origin]) {
         this._emit('change', obj);
       }
     },
 
     fireInitial: function () {
-      if (!RemoteStorage.config.changeEvents.local) {
+      if (!config.changeEvents.local) {
         return;
       }
       var self = this;
@@ -292,13 +295,16 @@
     // this process of updating nodes needs to be heavily documented first, then
     // refactored. Right now it's almost impossible to refactor as there's no
     // explanation of why things are implemented certain ways or what the goal(s)
-    // of the behavior are. -slvrbckt
+    // of the behavior are. -slvrbckt (+1 -les)
     _updateNodesRunning: false,
     _updateNodesQueued: [],
     _updateNodes: function (paths, _processNodes) {
-      var pending = Promise.defer();
-      this._doUpdateNodes(paths, _processNodes, pending);
-      return pending.promise;
+      return new Promise(function(resolve, reject) {
+        this._doUpdateNodes(paths, _processNodes, {
+          resolve: resolve,
+          reject: reject
+        });
+      }.bind(this));
     },
     _doUpdateNodes: function (paths, _processNodes, promise) {
       var self = this;
@@ -318,7 +324,7 @@
         var existingNodes = deepClone(nodes);
         var changeEvents = [];
         var node;
-        var equal = RemoteStorage.util.equal;
+        var equal = util.equal;
 
         nodes = _processNodes(paths, nodes);
 
@@ -419,9 +425,10 @@
    *   };
    *   (end code)
    */
-  RemoteStorage.cachingLayer = function (object) {
+  var cachingLayer = function (object) {
     for (var key in methods) {
       object[key] = methods[key];
     }
   };
-})();
+
+  module.exports = cachingLayer;

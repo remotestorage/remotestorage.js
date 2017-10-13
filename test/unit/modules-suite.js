@@ -1,74 +1,66 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
-define([], function() {
-
+define(['./src/remotestorage', './src/modules'], function(RemoteStorage, modules) {
   var suites = [];
 
   suites.push({
     name: "modules",
     desc: "RemoteStorage modules",
     setup: function(env, test) {
-      global.Promise = require('./lib/bluebird.js');
-      require('./src/remotestorage');
-      if (global.rs_rs) {
-        global.RemoteStorage = global.rs_rs;
-      } else {
-        global.rs_rs = RemoteStorage;
-      }
-
-      require('./src/eventhandling');
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      require('src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
+      global.XMLHttpRequest = require('xhr2');
 
       RemoteStorage.prototype.remote = {
         connected: false
       };
       RemoteStorage.BaseClient = function() {};
-      require('./src/modules');
       test.done();
+      env.rs = new RemoteStorage();
     },
 
     tests: [
       {
-        desc: "defineModule creates a module",
+        desc: "addModule creates a module",
         run: function(env, test) {
-          RemoteStorage.defineModule('foo', function() {
+          env.rs.addModule({name: 'foo', builder: function() {
             return {
               exports: {
                 it: 'worked'
               }
             };
-          });
-          env.rs = new RemoteStorage();
+          }});
           test.assertAnd(env.rs.foo.it, 'worked');
           test.done();
         }
       },
-
       {
-        desc: "defineModule allows hyphens",
+        desc: "addModule allows hyphens",
         run: function(env, test) {
-          RemoteStorage.defineModule('foo-bar', function() {
+          env.rs.addModule({name: 'foo-bar', builder: function() {
             return {
               exports: {
                 it: 'worked'
               }
             };
-          });
+          }});
           test.assertAnd(env.rs.fooBar.it, 'worked');
           test.done();
         }
+      },
+      {
+        desc: "addModule called from rs constructor",
+        run: function(env, test) {
+          var rs = new RemoteStorage({modules: [{name: 'bar', builder: function(){
+            return {
+              exports: {
+                it: 'worked'
+              }
+            };
+          }}]});
+          test.assertAnd(rs.bar.it, 'worked');
+          test.done();
+        }
+
       }
     ]
   });

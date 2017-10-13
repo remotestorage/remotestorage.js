@@ -1,21 +1,18 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function (Promise, requirejs, backend, mocks, undefined) {
-
-  global.Promise = Promise;
+define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eventhandling', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
+       function (require, util, Dropbox, WireClient, eventHandling, config, backend, mocks) {
 
   var suites = [];
 
   function setup(env, test) {
     global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
+      eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
     };
     RemoteStorage.log = function () {};
-    RemoteStorage.prototype = {
-      setBackend: function (b){
-        this.backend = b;
-      }
+    RemoteStorage.prototype.setBackend = function (b) {
+      this.backend = b;
     };
 
     global.localStorage = {
@@ -25,41 +22,11 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
     global.RemoteStorage.Unauthorized = function () {};
 
-    require('./src/util');
-    if (global.rs_util) {
-      RemoteStorage.util = global.rs_util;
-    } else {
-      global.rs_util = RemoteStorage.util;
+    RemoteStorage.prototype.localStorageAvailable = function () {
+      return false;
     }
 
-    require('./src/baseclient');
-    require('./src/baseclient/types');
-    if (global.rs_baseclient_with_types) {
-      RemoteStorage.BaseClient = global.rs_baseclient_with_types;
-    } else {
-      global.rs_baseclient_with_types = RemoteStorage.BaseClient;
-    }
-
-    require('./src/eventhandling');
-    if (global.rs_eventhandling) {
-      RemoteStorage.eventHandling = global.rs_eventhandling;
-    } else {
-      global.rs_eventhandling = RemoteStorage.eventHandling;
-    }
-
-    require('./src/wireclient');
-    if (global.rs_wireclient) {
-      RemoteStorage.WireClient = global.rs_wireclient;
-    } else {
-      global.rs_wireclient = RemoteStorage.WireClient;
-    }
-
-    require('./src/dropbox');
-    if (global.rs_dropbox) {
-      RemoteStorage.Dropbox = global.rs_dropbox;
-    } else {
-      global.rs_dropbox = RemoteStorage.Dropbox;
-    }
+    global.Authorize = require('./src/authorize');
 
     test.done();
   }
@@ -71,12 +38,16 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       this._responseHeaders = {};
     };
     XMLHttpRequest.instances = [];
+    XMLHttpRequest.callbacks = [];
     XMLHttpRequest.prototype = {
       open: function () {
         this._open = Array.prototype.slice.call(arguments);
       },
       send: function () {
         this._send = Array.prototype.slice.call(arguments);
+
+        if (XMLHttpRequest.callbacks.length)
+          XMLHttpRequest.callbacks.shift()(this);
       },
       setRequestHeader: function (key, value) {
         this._headers[key] = value;
@@ -95,11 +66,12 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     });
     env.rs = new RemoteStorage();
     env.rs.apiKeys = { dropbox: {appKey: 'testkey'} };
-    var oldLocalStorageAvailable = RemoteStorage.util.localStorageAvailable;
-    RemoteStorage.util.localStorageAvailable = function() { return true; };
-    env.client = new RemoteStorage.Dropbox(env.rs);
-    env.connectedClient = new RemoteStorage.Dropbox(env.rs);
-    RemoteStorage.util.localStorageAvailable = oldLocalStorageAvailable;
+
+    var oldLocalStorageAvailable = util.localStorageAvailable;
+    util.localStorageAvailable = function() { return true; };
+    env.client = new Dropbox(env.rs);
+    env.connectedClient = new Dropbox(env.rs);
+    util.localStorageAvailable = oldLocalStorageAvailable;
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({
@@ -214,8 +186,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           setTimeout(function() {
             var req = XMLHttpRequest.instances.shift();
             req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-              mime_type: 'text/plain; charset=UTF-8',
+            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
               rev: 'rev'
             });
             req.status = 200;
@@ -236,8 +207,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           setTimeout(function() {
             var req = XMLHttpRequest.instances.shift();
             req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-              mime_type: 'text/plain; charset=UTF-8',
+            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
               rev: 'rev'
             });
             req.status = 200;
@@ -258,8 +228,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           setTimeout(function() {
             var req = XMLHttpRequest.instances.shift();
             req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-              mime_type: 'text/plain; charset=UTF-8',
+            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
               rev: 'rev'
             });
             req.status = 200;
@@ -298,8 +267,6 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#configure fetches the user info when no userAddress is given",
         run: function (env, test) {
-          env.rs.widget = { view: { setUserAddress: function() {} } };
-
           env.client.on('connected', function() {
             test.assert(env.client.userAddress, 'john.doe@example.com');
           });
@@ -312,25 +279,6 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              "referral_link": "https://db.tt/QjJhCJr1",
-              "display_name": "John Doe",
-              "uid": 123456,
-              "locale": "en",
-              "email_verified": true,
-              "team": null,
-              "quota_info": {
-                "datastores": 0,
-                "shared": 1415283650,
-                "quota": 6721372160,
-                "normal": 860651695
-              },
-              "is_paired": false,
-              "country": "DE",
-              "name_details": {
-                "familiar_name": "John",
-                "surname": "Doe",
-                "given_name": "John"
-              },
               "email": "john.doe@example.com"
             });
             req._onload();
@@ -395,8 +343,6 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#configure caches token and userAddress in localStorage",
         run: function (env, test) {
-          env.rs.widget = { view: { setUserAddress: function() {} } };
-
           var oldSetItem = global.localStorage.setItem;
           global.localStorage.setItem = function(key, value) {
             test.assertAnd(key, 'remotestorage:dropbox');
@@ -445,10 +391,10 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         desc: "#get opens a CORS request",
         run: function (env, test) {
           env.connectedClient.get('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          test.assertTypeAnd(request, 'object');
-          test.assert(request._open,
-                      ['GET', 'https://api-content.dropbox.com/1/files/auto/remotestorage/foo/bar', true]);
+          var req = XMLHttpRequest.instances.shift();
+          test.assertTypeAnd(req, 'object');
+          test.assert(req._open,
+                      ['GET', 'https://content.dropboxapi.com/2/files/download', true]);
         }
       },
 
@@ -458,15 +404,6 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           env.connectedClient.get('/foo/bar');
           var req = XMLHttpRequest.instances.shift();
           test.assertType(req._send, 'object');
-        }
-      },
-
-      {
-        desc: "#get strips duplicate slashes from the path",
-        run: function (env, test) {
-          env.connectedClient.get('/foo//baz');
-          var request = XMLHttpRequest.instances.shift();
-          test.assert(request._open[1], 'https://api-content.dropbox.com/1/files/auto/remotestorage/foo/baz');
         }
       },
 
@@ -518,12 +455,8 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           env.connectedClient.get('/').then(test.done, test.fail);
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-            mime_type: 'text/plain; charset=UTF-8',
-            rev: 'rev'
-          });
           req.status = 200;
-          req.responseText = '{"foo":"response-body"}';
+          req.responseText = '{"entries":[]}';
           req._onload();
         }
       },
@@ -539,8 +472,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-            mime_type: 'text/plain; charset=UTF-8',
+          req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
             rev: 'rev'
           });
           req.status = 200;
@@ -560,8 +492,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-            mime_type: 'text/plain; charset=UTF-8',
+          req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
             rev: 'rev'
           });
           req.status = 200;
@@ -590,6 +521,84 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             });
           var req = XMLHttpRequest.instances.shift();
           req.status = 401;
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get handles inexistent files",
+        run: function (env, test) {
+          env.connectedClient.get('/foo').
+            then(function (r) {
+              test.assert(r.statusCode, 404);
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 409;
+          req.responseText = JSON.stringify({
+            error_summary: 'path/not_found/...'
+          });
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get handles multi-page folders",
+        run: function (env, test) {
+          var makePayload = function (num, more) {
+            return JSON.stringify({
+              entries: [
+                {'.tag': 'file', path_lower: '/foo/file'+num, rev: 'rev'+num}
+              ],
+              has_more: more,
+              cursor: more ? 'cur'+num : undefined
+            });
+          }
+
+          XMLHttpRequest.callbacks.push(function (req) {
+            req.status = 200;
+            req.responseText = makePayload(1, true);
+            req._onload();
+          });
+
+          XMLHttpRequest.callbacks.push(function (req) {
+            req.status = 200;
+            req.responseText = makePayload(2, true);
+            req._onload();
+
+            test.assertAnd(JSON.parse(req._send).cursor, 'cur1');
+          });
+
+          XMLHttpRequest.callbacks.push(function (req) {
+            req.status = 200;
+            req.responseText = makePayload(3, false);
+            req._onload();
+
+            test.assertAnd(JSON.parse(req._send).cursor, 'cur2');
+          });
+
+          env.connectedClient.get('/foo/').
+            then(function (r) {
+              test.assertAnd((r.body.file1 || {}).ETag, 'rev1');
+              test.assertAnd((r.body.file2 || {}).ETag, 'rev2');
+              test.assert((r.body.file3 || {}).ETag, 'rev3');
+            });
+        }
+      },
+
+      {
+        desc: "#get handles an inexistent root folder properly",
+        run: function (env, test) {
+          env.connectedClient.get('/').
+            then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assert(Object.keys(r.body).length, 0);
+            });
+
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 409;
+          req.responseText = JSON.stringify({
+            error_summary: 'path/not_found/..'
+          });
           req._onload();
         }
       },
@@ -689,55 +698,6 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       },
 
       {
-        desc: "#put correctly handles a conflict after metadata check",
-        run: function (env, test) {
-          var waitlist = [];
-
-          // PUT
-          waitlist.push(function (req) {
-            req.status = 200;
-            req.responseText = JSON.stringify({
-              path: '/remotestorage/foo/bar_2'
-            });
-            setTimeout(function () {
-              req._onload();
-            }, 10);
-          });
-
-          // delete
-          waitlist.push(function (req) {
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar_2', true]);
-          });
-
-          // metadata
-          waitlist.push(function (req) {
-            req.status = 200;
-            req.responseText = JSON.stringify({
-              rev: 'foo'
-            });
-            setTimeout(function () {
-              req._onload();
-            }, 10);
-          });
-
-          env.connectedClient.put('/foo/bazz', 'data', 'text/plain').
-            then(function (r) {
-              test.assertAnd(r.statusCode, 412);
-              test.assert(r.revision, 'foo');
-            });
-
-          (function handleWaitlist () {
-            if (waitlist.length > 0) {
-              if (XMLHttpRequest.instances.length > 0) {
-                waitlist.shift()(XMLHttpRequest.instances.shift());
-              }
-              setTimeout(handleWaitlist, 5);
-            }
-          })();
-        }
-      },
-
-      {
         desc: "#put returns the erroneous status it received from DropBox",
         run: function (env, test) {
           env.connectedClient.put('/foo', 'data', 'text/plain').
@@ -793,7 +753,9 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           setTimeout(function () {
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar', true]);
+            req.responseText = '{}';
+            test.assertAnd(req._open, ['POST', 'https://api.dropboxapi.com/2/files/delete', true]);
+            test.assertAnd(JSON.parse(req._send).path, '/remotestorage/foo/bar');
             req._onload();
           }, 100);
         }
@@ -817,7 +779,8 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "WireClient destroys the bearer token after Unauthorized Error",
         run: function (env, test){
-          env.rs._emit('error', new RemoteStorage.Unauthorized());
+          var e = new Authorize.Unauthorized();
+          env.rs._emit('error', e);
           setTimeout(function () {
             test.assert(env.connectedClient.token, null);
           }, 100);
@@ -825,13 +788,17 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       },
 
       {
-        desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
+        desc: "requests are aborted if they aren't responded after the configured timeout",
         timeout: 2000,
         run: function (env, test) {
-          RemoteStorage.WireClient.REQUEST_TIMEOUT = 1000;
+          const originalTimeout = config.requestTimeout;
+          config.requestTimeout = 1000;
+
           env.connectedClient.get('/foo').then(function () {
+            config.requestTimeout = originalTimeout;
             test.result(false);
           }, function (error) {
+            config.requestTimeout = originalTimeout;
             test.assert('timeout', error);
           });
         }
@@ -855,8 +822,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-            mime_type: 'application/octet-stream; charset=binary',
+          req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
             rev: 'rev'
           });
           req.status = 200;
@@ -875,7 +841,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+          req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
             rev: 'rev'
           });
           req.status = 200;
@@ -947,10 +913,10 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
 
-          RemoteStorage.Dropbox._rs_init(rs);
+          Dropbox._rs_init(rs);
           test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
 
-          RemoteStorage.Dropbox._rs_cleanup(rs);
+          Dropbox._rs_cleanup(rs);
           test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
 
           test.done();
@@ -971,7 +937,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             }
           };
 
-          RemoteStorage.Dropbox._rs_init(env.rs);
+          Dropbox._rs_init(env.rs);
 
           env.rs.dropbox.fetchDelta = function() {
             fetchDeltaCalled = true;

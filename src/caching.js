@@ -1,5 +1,5 @@
   /**
-   * Class: RemoteStorage.Caching
+   * @class Caching
    *
    * Holds/manages caching configuration.
    *
@@ -22,38 +22,32 @@
    *
    **/
 
-(function (global) {
-  var SETTINGS_KEY = "remotestorage:caching";
+  var util = require('./util');
+  var log = require('./log');
 
-  var containingFolder = RemoteStorage.util.containingFolder;
+  var containingFolder = util.containingFolder;
 
-  RemoteStorage.Caching = function () {
+  var Caching = function () {
     this.reset();
   };
 
-  RemoteStorage.Caching.prototype = {
+  Caching.prototype = {
     pendingActivations: [],
 
     /**
-     * Method: set
-     *
      * Configure caching for a given path explicitly.
      *
-     * Not needed when using <enable>/<disable>.
+     * Not needed when using ``enable``/``disable``.
      *
-     * Parameters:
-     *   path     - Path to cache
-     *   strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
+     * @param {string} path - Path to cache
+     * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
      *
-     * Example:
-     *   (start code)
-     *   remoteStorage.caching.set('/bookmarks/archive')
      */
     set: function (path, strategy) {
       if (typeof path !== 'string') {
         throw new Error('path should be a string');
       }
-      if (!RemoteStorage.util.isFolder(path)) {
+      if (!util.isFolder(path)) {
         throw new Error('path should be a folder');
       }
       if (this._remoteStorage && this._remoteStorage.access &&
@@ -76,45 +70,36 @@
     },
 
     /**
-     * Method: enable
-     *
      * Enable caching for a given path.
      *
      * Uses caching strategy 'ALL'.
      *
-     * Parameters:
-     *   path - Path to enable caching for
+     * @param {string} path - Path to enable caching for
      */
     enable: function (path) {
       this.set(path, 'ALL');
     },
 
     /**
-     * Method: disable
-     *
      * Disable caching for a given path.
      *
      * Uses caching strategy 'FLUSH' (meaning items are only cached until
      * successfully pushed to the remote).
      *
-     * Parameters:
-     *   path - Path to disable caching for
+     * @param {string} path - Path to disable caching for
      */
     disable: function (path) {
       this.set(path, 'FLUSH');
     },
 
     /**
-     * Method: onActivate
-     *
      * Set a callback for when caching is activated for a path.
      *
-     * Parameters:
-     *   callback - Callback function
+     * @param {function} callback - Callback function
      */
     onActivate: function (cb) {
       var i;
-      RemoteStorage.log('[Caching] Setting activate handler', cb, this.pendingActivations);
+      log('[Caching] Setting activate handler', cb, this.pendingActivations);
       this.activateHandler = cb;
       for (i=0; i<this.pendingActivations.length; i++) {
         cb(this.pendingActivations[i]);
@@ -123,13 +108,11 @@
     },
 
     /**
-     * Method: checkPath
-     *
      * Retrieve caching setting for a given path, or its next parent
      * with a caching strategy set.
      *
-     * Parameters:
-     *   path - Path to retrieve setting for
+     * @param {string} path - Path to retrieve setting for
+     * @returns {string} caching strategy for the path
      **/
     checkPath: function (path) {
       if (this._rootPaths[path] !== undefined) {
@@ -142,8 +125,6 @@
     },
 
     /**
-     * Method: reset
-     *
      * Reset the state of caching by deleting all caching information.
      **/
     reset: function () {
@@ -152,24 +133,14 @@
     }
   };
 
-  // TODO clean up/harmonize how modules are loaded and/or document this architecture properly
-  //
-  // At this point the global remoteStorage object has not been created yet.
-  // Only its prototype exists so far, so we define a self-constructing
-  // property on there:
-  Object.defineProperty(RemoteStorage.prototype, 'caching', {
-    configurable: true,
-    get: function () {
-      var caching = new RemoteStorage.Caching();
-      Object.defineProperty(this, 'caching', {
-        value: caching
-      });
-      return caching;
-    }
-  });
 
-  RemoteStorage.Caching._rs_init = function (remoteStorage) {
+  /**
+   * Setup function that is called on initialization.
+   *
+   * @private
+   **/
+  Caching._rs_init = function (remoteStorage) {
     this._remoteStorage = remoteStorage;
   };
 
-})(typeof(window) !== 'undefined' ? window : global);
+module.exports = Caching;

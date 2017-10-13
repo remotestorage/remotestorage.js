@@ -1,14 +1,15 @@
-(function (global) {
+  var util = require('./util');
+  var Env = require('./env');
+  var eventHandling = require('./eventhandling');
+  var log = require('./log');
+  var Authorize = require('./authorize');
+  var config = require('./config');
 
-  var syncInterval = 10000,
-      backgroundSyncInterval = 60000,
-      isBackground = false;
-
-  var isFolder = RemoteStorage.util.isFolder;
-  var isDocument = RemoteStorage.util.isDocument;
-  var equal = RemoteStorage.util.equal;
-  var deepClone = RemoteStorage.util.deepClone;
-  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
+  var isFolder = util.isFolder;
+  var isDocument = util.isDocument;
+  var equal = util.equal;
+  var deepClone = util.deepClone;
+  var pathsFromRoot = util.pathsFromRoot;
 
   function taskFor(action, path, promise) {
     return {
@@ -27,34 +28,25 @@
   }
 
   function handleVisibility() {
-    var hidden,
-        visibilityChange,
-        rs = this;
+    var rs = this;
 
     function handleVisibilityChange(fg) {
       var oldValue, newValue;
       oldValue = rs.getCurrentSyncInterval();
-      isBackground = !fg;
+      config.isBackground = !fg;
       newValue = rs.getCurrentSyncInterval();
       rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
     }
 
-    RemoteStorage.Env.on("background", function () {
+    Env.on("background", function () {
       handleVisibilityChange(false);
     });
 
-    RemoteStorage.Env.on("foreground", function () {
+    Env.on("foreground", function () {
       handleVisibilityChange(true);
     });
   }
 
-  /**
-   * Check if interval is valid: numeric and between 1000ms and 3600000ms
-   *
-   */
-  function isValidInterval(interval) {
-    return (typeof interval === 'number' && interval > 1000 && interval < 3600000);
-  }
 
   /**
    * Class: RemoteStorage.Sync
@@ -75,7 +67,8 @@
    * folder GET comes in, it gives information about all the documents it
    * contains (this is the `markChildren` function).
    **/
-  RemoteStorage.Sync = function (setLocal, setRemote, setAccess, setCaching) {
+  var Sync = function (remoteStorage, setLocal, setRemote, setAccess, setCaching) {
+    this.remoteStorage = remoteStorage;
     this.local = setLocal;
     this.local.onDiff(function (path) {
       this.addTask(path);
@@ -87,37 +80,36 @@
     this._tasks = {};
     this._running = {};
     this._timeStarted = {};
-    RemoteStorage.eventHandling(this, 'done', 'req-done');
+    eventHandling(this, 'done', 'req-done');
     this.caching.onActivate(function (path) {
       this.addTask(path);
       this.doTasks();
     }.bind(this));
   };
 
-  RemoteStorage.Sync.prototype = {
+  Sync.prototype = {
 
     now: function () {
       return new Date().getTime();
     },
 
     queueGetRequest: function (path) {
-      var pending = Promise.defer();
+      return new Promise( (resolve, reject) => {
+        if (!this.remote.connected) {
+          reject('cannot fulfill maxAge requirement - remote is not connected');
+        } else if (!this.remote.online) {
+          reject('cannot fulfill maxAge requirement - remote is not online');
+        } else {
+          this.addTask(path, function () {
+            this.local.get(path).then(function (r) {
+              return resolve(r);
+            });
+          }.bind(this));
 
-      if (!this.remote.connected) {
-        pending.reject('cannot fulfill maxAge requirement - remote is not connected');
-      } else if (!this.remote.online) {
-        pending.reject('cannot fulfill maxAge requirement - remote is not online');
-      } else {
-        this.addTask(path, function () {
-          this.local.get(path).then(function (r) {
-            return pending.resolve(r);
-          });
-        }.bind(this));
+          this.doTasks();
+        }
 
-        this.doTasks();
-      }
-
-      return pending.promise;
+      });
     },
 
     corruptServerItemsMap: function (itemsMap, force02) {
@@ -205,7 +197,7 @@
         }
 
         if (this.isCorrupt(node)) {
-          RemoteStorage.log('[Sync] WARNING: corrupt node in local cache', node);
+          log('[Sync] WARNING: corrupt node in local cache', node);
           if (typeof(node) === 'object' && node.path) {
             this.addTask(node.path);
             num++;
@@ -235,7 +227,7 @@
         if (!node.common.timestamp) {
           return true;
         }
-        return (this.now() - node.common.timestamp > syncInterval);
+        return (this.now() - node.common.timestamp > config.syncInterval);
       }
       return false;
     },
@@ -325,7 +317,7 @@
       for (var path in nodes) {
         // Strategy is 'FLUSH' and no local changes exist
         if (this.caching.checkPath(path) === 'FLUSH' && nodes[path] && !nodes[path].local) {
-          RemoteStorage.log('[Sync] Flushing', path);
+          log('[Sync] Flushing', path);
           nodes[path] = undefined; // Cause node to be flushed from cache
         }
       }
@@ -413,7 +405,7 @@
     },
 
     autoMergeDocument: function (node) {
-      hasNoRemoteChanges = function (node) {
+      var hasNoRemoteChanges = function (node) {
         if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
           return false;
         }
@@ -421,7 +413,7 @@
                (node.remote.body === node.common.body &&
                 node.remote.contentType === node.common.contentType);
       };
-      mergeMutualDeletion = function (node) {
+      var mergeMutualDeletion = function (node) {
         if (node.remote && node.remote.body === false
             && node.local && node.local.body === false) {
            delete node.local;
@@ -434,7 +426,7 @@
         delete node.remote;
       } else if (node.remote.body !== undefined) {
         // keep/revert:
-        RemoteStorage.log('[Sync] Emitting keep/revert');
+        log('[Sync] Emitting keep/revert');
 
         this.local._emitChange({
           origin:         'conflict',
@@ -626,7 +618,7 @@
       return this.local.getNodes(paths).then(function (nodes) {
         var subPaths = {};
 
-        collectSubPaths = function (folder, path) {
+        var collectSubPaths = function (folder, path) {
           if (folder && folder.itemsMap) {
             for (var itemName in folder.itemsMap) {
               subPaths[path+itemName] = true;
@@ -746,7 +738,7 @@
         }
 
         if (conflict) {
-          RemoteStorage.log('[Sync] We have a conflict');
+          log('[Sync] We have a conflict');
 
           if (!node.remote || node.remote.revision !== revision) {
             node.remote = {
@@ -787,6 +779,7 @@
     },
 
     dealWithFailure: function (path, action, statusMeaning) {
+
       return this.local.getNodes([path]).then(function (nodes) {
         if (nodes[path]) {
           delete nodes[path].push;
@@ -796,9 +789,6 @@
     },
 
     interpretStatus: function (statusCode) {
-      // if (typeof statusCode.length === 'number') {
-      //   statusCode = statusCode[0];
-      // }
       if (statusCode === 'offline' || statusCode === 'timeout') {
         return {
           successful:      false,
@@ -812,7 +802,7 @@
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict:   (statusCode === 412),
-        unAuth:     ((statusCode === 401 && this.remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) ||
+        unAuth:     ((statusCode === 401 && this.remote.token !== Authorize.IMPLIED_FAKE_TOKEN) ||
                      statusCode === 402 || statusCode === 403),
         notFound:   (statusCode === 404),
         changed:    (statusCode !== 304),
@@ -833,7 +823,7 @@
         return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function (dataFromFetch) {
           if (isFolder(path)) {
             if (this.corruptServerItemsMap(bodyOrItemsMap)) {
-              RemoteStorage.log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
+              log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
               return false;
             } else {
               return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function () {
@@ -869,15 +859,15 @@
       // Unsuccessful
         var error;
         if (status.unAuth) {
-          error = new RemoteStorage.Unauthorized();
+          error = new Authorize.Unauthorized();
         } else if (status.networkProblems) {
-          error = new RemoteStorage.SyncError('Network request failed.');
+          error = new Sync.SyncError('Network request failed.');
         } else {
           error = new Error('HTTP response code ' + status.statusCode + ' received.');
         }
 
         return this.dealWithFailure(path, action, status).then(function () {
-          remoteStorage._emit('error', error);
+          this.remoteStorage._emit('error', error);
           throw error;
         });
       }
@@ -895,7 +885,7 @@
       return task.promise.then(function (r) {
         return self.handleResponse(task.path, task.action, r);
       }, function (err) {
-        RemoteStorage.log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
+        log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
         return self.handleResponse(task.path, task.action, {statusCode: 'offline'});
       })
 
@@ -917,7 +907,7 @@
         self.collectTasks(false).then(function () {
           // See if there are any more tasks that are not refresh tasks
           if (!self.hasTasks() || self.stopped) {
-            RemoteStorage.log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(self._tasks).length, self.stopped);
+            log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(self._tasks).length, self.stopped);
             if (!self.done) {
               self.done = true;
               self._emit('done');
@@ -932,7 +922,7 @@
           }
         });
       }, function (err) {
-        console.error('[Sync] Error', err);
+        log('[Sync] Error', err);
         delete self._timeStarted[task.path];
         delete self._running[task.path];
         self._emit('req-done');
@@ -1008,10 +998,10 @@
           try {
             this.doTasks();
           } catch(e) {
-            console.error('[Sync] doTasks error', e);
+            log('[Sync] doTasks error', e);
           }
         }.bind(this), function (e) {
-          console.error('[Sync] Sync error', e);
+          log('[Sync] Sync error', e);
           throw new Error('Local cache unavailable');
         });
       } else {
@@ -1020,151 +1010,33 @@
     },
   };
 
-  /**
-   * Method: getSyncInterval
-   *
-   * Get the value of the sync interval when application is in the foreground
-   *
-   * Returns a number of milliseconds
-   *
-   */
-  RemoteStorage.prototype.getSyncInterval = function () {
-    return syncInterval;
-  };
 
-  /**
-   * Method: setSyncInterval
-   *
-   * Set the value of the sync interval when application is in the foreground
-   *
-   * Parameters:
-   *   interval - sync interval in milliseconds
-   *
-   */
-  RemoteStorage.prototype.setSyncInterval = function (interval) {
-    if (!isValidInterval(interval)) {
-      throw interval + " is not a valid sync interval";
-    }
-    var oldValue = syncInterval;
-    syncInterval = parseInt(interval, 10);
-    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
-  };
 
-  /**
-   * Method: getBackgroundSyncInterval
-   *
-   * Get the value of the sync interval when application is in the background
-   *
-   * Returns a number of milliseconds
-   *
-   */
-  RemoteStorage.prototype.getBackgroundSyncInterval = function () {
-    return backgroundSyncInterval;
-  };
+  var syncCycleCb, syncOnConnect;
+  Sync._rs_init = function (remoteStorage) {
 
-  /**
-   * Method: setBackgroundSyncInterval
-   *
-   * Set the value of the sync interval when the application is in the background
-   *
-   * Parameters:
-   *   interval - sync interval in milliseconds
-   *
-   */
-  RemoteStorage.prototype.setBackgroundSyncInterval = function (interval) {
-    if(!isValidInterval(interval)) {
-      throw interval + " is not a valid sync interval";
-    }
-    var oldValue = backgroundSyncInterval;
-    backgroundSyncInterval = parseInt(interval, 10);
-    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
-  };
-
-  /**
-   * Method: getCurrentSyncInterval
-   *
-   * Get the value of the current sync interval
-   *
-   * Returns a number of milliseconds
-   *
-   */
-  RemoteStorage.prototype.getCurrentSyncInterval = function () {
-    return isBackground ? backgroundSyncInterval : syncInterval;
-  };
-
-  var SyncError = function (originalError) {
-    var msg = 'Sync failed: ';
-    if (typeof(originalError) === 'object' && 'message' in originalError) {
-      msg += originalError.message;
-    } else {
-      msg += originalError;
-    }
-    this.originalError = originalError;
-    this.message = msg;
-  };
-
-  SyncError.prototype = new Error();
-  SyncError.prototype.constructor = SyncError;
-
-  RemoteStorage.SyncError = SyncError;
-
-  RemoteStorage.prototype.syncCycle = function () {
-    if (this.sync.stopped) {
-      return;
-    }
-
-    this.sync.on('done', function () {
-      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
-      if (!this.sync.stopped) {
-        if (this._syncTimer) {
-          clearTimeout(this._syncTimer);
-        }
-        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
-      }
-    }.bind(this));
-
-    this.sync.sync();
-  };
-
-  RemoteStorage.prototype.stopSync = function () {
-    if (this.sync) {
-      RemoteStorage.log('[Sync] Stopping sync');
-      this.sync.stopped = true;
-    } else {
-      // TODO When is this ever the case and what is syncStopped for then?
-      RemoteStorage.log('[Sync] Will instantiate sync stopped');
-      this.syncStopped = true;
-    }
-  };
-
-  RemoteStorage.prototype.startSync = function () {
-    this.sync.stopped = false;
-    this.syncStopped = false;
-    this.sync.sync();
-  };
-
-  var syncCycleCb;
-
-  RemoteStorage.Sync._rs_init = function (remoteStorage) {
     syncCycleCb = function () {
-      RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
-      if (RemoteStorage.Env.isBrowser()) {
+      // if (!config.cache) return false
+      log('[Sync] syncCycleCb calling syncCycle');
+      if (Env.isBrowser()) {
         handleVisibility.bind(remoteStorage)();
       }
+
+
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
-        remoteStorage.sync = new RemoteStorage.Sync(
+        remoteStorage.sync = new Sync(remoteStorage,
             remoteStorage.local, remoteStorage.remote, remoteStorage.access,
             remoteStorage.caching);
 
         if (remoteStorage.syncStopped) {
-          RemoteStorage.log('[Sync] Instantiating sync stopped');
+          log('[Sync] Instantiating sync stopped');
           remoteStorage.sync.stopped = true;
           delete remoteStorage.syncStopped;
         }
       }
 
-      RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
+      log('[Sync] syncCycleCb calling syncCycle');
       remoteStorage.syncCycle();
     };
 
@@ -1177,11 +1049,28 @@
     remoteStorage.on('connected', syncOnConnect);
   };
 
-  RemoteStorage.Sync._rs_cleanup = function (remoteStorage) {
+  Sync._rs_cleanup = function (remoteStorage) {
     remoteStorage.stopSync();
     remoteStorage.removeEventListener('ready', syncCycleCb);
     remoteStorage.removeEventListener('connected', syncOnConnect);
+
+    remoteStorage.sync = undefined;
     delete remoteStorage.sync;
   };
 
-})(typeof(window) !== 'undefined' ? window : global);
+  Sync.SyncError = function(originalError) {
+    this.name = 'SyncError';
+    var msg = 'Sync failed: ';
+    if (typeof(originalError) === 'object' && 'message' in originalError) {
+      msg += originalError.message;
+      this.stack = originalError.stack;
+      this.originalError = originalError;
+    } else {
+      msg += originalError;
+    }
+    this.message = msg;
+  };
+  Sync.SyncError.prototype = Object.create(Error.prototype);
+  Sync.SyncError.prototype.constructor = Sync.SyncError;
+
+  module.exports = Sync;

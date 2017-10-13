@@ -3,6 +3,31 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 1.0.0 (June 2017)
+
+### Breaking changes
+
+* All builds, including AMD/CommonJS and no-cache, are now rolled into one UMD
+  build. (#951)
+* `RemoteStorage.defineModule` is no more, and both declaring modules and
+  loading them in apps can now be done with a new, improved API. (#974)
+* The connect widget is not part of the core library anymore, but has moved to
+  a seperate add-on library (#862)
+* Error events (e.g. unauthorized, sync error, etc.) are identified by name
+  instead of type now (#984)
+* Network request timeouts are configured via the `setRequestTimeout` method
+  on the RemoteStorage instance instead of setting
+  `RemoteStorage.WireClient.REQUEST_TIMEOUT` (#983).
+
+### Enhancements
+
+* Switch Dropbox adapter to use the Dropbox API v2 (#936)
+* Store data in Google Drive under "remotestorage" base dir (#962)
+
+### Bugfixes
+
+* Remove all scheduled sync calls after disconnect (#994)
+
 ## 0.14.0 (November 2016)
 
 ### Enhancements

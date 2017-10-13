@@ -1,9 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function (Promise, requirejs, backend, mocks, undefined) {
-
-  global.Promise = Promise;
+define(['util', 'require', './src/eventhandling', './src/googledrive', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
+       function (util, require, eventHandling, GoogleDrive, config, backend, mocks) {
 
   var suites = [];
 
@@ -13,43 +12,15 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       removeItem: function() {}
     };
     global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error', 'network-offline', 'network-online');
+      eventHandling(this, 'error', 'network-offline', 'network-online');
     };
-    RemoteStorage.log = function () {};
     RemoteStorage.prototype = {
-      setBackend: function (b){
+      setBackend: function (b) {
         this.backend = b;
       }
     };
-    global.RemoteStorage.Unauthorized = function () {};
 
-    require('./src/util');
-    if (global.rs_util) {
-      RemoteStorage.util = global.rs_util;
-    } else {
-      global.rs_util = RemoteStorage.util;
-    }
-
-    require('./src/eventhandling');
-    if (global.rs_eventhandling) {
-      RemoteStorage.eventHandling = global.rs_eventhandling;
-    } else {
-      global.rs_eventhandling = RemoteStorage.eventHandling;
-    }
-
-    require('./src/wireclient');
-    if (global.rs_wireclient) {
-      RemoteStorage.WireClient = global.rs_wireclient;
-    } else {
-      global.rs_wireclient = RemoteStorage.WireClient;
-    }
-
-    require('./src/googledrive');
-    if (global.rs_googledrive) {
-      RemoteStorage.GoogleDrive = global.rs_googledrive;
-    } else {
-      global.rs_googledrive = RemoteStorage.GoogleDrive;
-    }
+    global.Authorize = require('./src/authorize');
 
     test.done();
   }
@@ -85,11 +56,11 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     });
     env.rs = new RemoteStorage();
     env.rs.apiKeys= { googledrive: {clientId: 'testkey'} };
-    var oldLocalStorageAvailable = RemoteStorage.util.localStorageAvailable;
-    RemoteStorage.util.localStorageAvailable = function() { return true; };
-    env.client = new RemoteStorage.GoogleDrive(env.rs);
-    env.connectedClient = new RemoteStorage.GoogleDrive(env.rs);
-    RemoteStorage.util.localStorageAvailable = oldLocalStorageAvailable;
+    var oldLocalStorageAvailable = util.localStorageAvailable;
+    util.localStorageAvailable = function() { return true; };
+    env.client = new GoogleDrive(env.rs);
+    env.connectedClient = new GoogleDrive(env.rs);
+    util.localStorageAvailable = oldLocalStorageAvailable;
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
     env.connectedClient.configure({
@@ -163,8 +134,6 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#configure fetches the user info when no userAddress is given",
         run: function (env, test) {
-          env.rs.widget = { view: { setUserAddress: function() {} } };
-
           env.client.on('connected', function() {
             test.assert(env.client.userAddress, 'john.doe@gmail.com');
           });
@@ -224,8 +193,6 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#configure caches token and userAddress in localStorage",
         run: function (env, test) {
-          env.rs.widget = { view: { setUserAddress: function() {} } };
-
           var oldSetItem = global.localStorage.setItem;
           global.localStorage.setItem = function(key, value) {
             test.assertAnd(key, 'remotestorage:googledrive');
@@ -281,9 +248,9 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           var req;
           env.connectedClient.get('/foo/bar').then(function () {
             test.result(false, 'get call should not return successful');
-          }, function (err) {
+          }).catch(function (err) {
             test.assertAnd(err, 'request failed or something: undefined');
-          }).finally(function () {
+          }).then(function () {
             test.assertType(req._send, 'object');
           });
           setTimeout(function () {
@@ -299,9 +266,9 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           var req;
           env.connectedClient.get('/foo/bar').then(function () {
             test.result(false, 'get call should not return successful');
-          }, function (err) {
+          }).catch(function (err) {
             test.assertAnd(err, 'request failed or something: undefined');
-          }).finally(function () {
+          }).then(function () {
             test.assert(req._headers['Authorization'], 'Bearer ' + env.token);
           });
           setTimeout(function () {
@@ -316,9 +283,9 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         run: function (env, test) {
           env.connectedClient.get('/foo/bar').then(function () {
             test.result(false, 'get call should not return successful');
-          }, function (err) {
+          }).catch(function (err) {
             test.assertAnd(err, 'request failed or something: undefined');
-          }).finally(function () {
+          }).then(function () {
             test.done();
           });
           setTimeout(function () {
@@ -333,7 +300,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#get to folder result calls the files.list API function",
         run: function (env, test) {
-          env.connectedClient._fileIdCache.set('/foo/', 'abcd');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo/', 'abcd');
           env.connectedClient.get('/foo/')
           .then(function (r) {
             test.assertAnd(r.statusCode, 200);
@@ -384,7 +351,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#get responds with 304 if the file has not changed",
         run: function (env, test) {
-          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.get('/foo', { ifNoneMatch: 'foo' }).
             then(function (r) {
               test.assert (r.statusCode, 304);
@@ -469,7 +436,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         desc: "#get with success emits network-online if remote.online was false",
         run: function(env, test) {
           env.connectedClient.online = false;
-          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.get('/foo').then(function() {
             test.assertAnd(env.networkOnline.numCalled, 1);
             test.done();
@@ -489,7 +456,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         desc: "#get with success does not emit network-online if remote.online was true",
         run: function(env, test) {
           env.connectedClient.online = true;
-          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.get('/foo').then(function() {
             test.assertAnd(env.networkOnline.numCalled, 0);
             test.done();
@@ -508,7 +475,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#get emits wire-busy and wire-done on success",
         run: function(env, test) {
-          env.connectedClient._fileIdCache.set('/foo/', 'abcd');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo/', 'abcd');
           env.connectedClient.get('/foo/').then(function() {
             test.assertAnd(env.busy.numCalled, 1);
             test.assertAnd(env.done.numCalled, 1);
@@ -544,7 +511,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#put responds with 412 if ifNoneMatch condition fails",
         run: function (env, test) {
-          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.put('/foo', 'data', 'text/plain', { ifNoneMatch: '*' }).
             then(function (r) {
               test.assert(r.statusCode, 412);
@@ -555,7 +522,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#delete responds with 412 if ifMatch condition fails",
         run: function (env, test) {
-          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
           env.connectedClient.delete('/foo', { ifMatch: 'foo_id' }).
             then(function (r) {
               test.assert(r.statusCode, 412);
@@ -569,6 +536,23 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             });
             reqMeta._onload();
           }, 10);
+        }
+      },
+
+      {
+        desc: "requests are aborted if they aren't responded after the configured timeout",
+        timeout: 2000,
+        run: function (env, test) {
+          const originalTimeout = config.requestTimeout;
+          config.requestTimeout = 1000;
+
+          env.connectedClient.get('/foo/bar').then(function () {
+            config.requestTimeout = originalTimeout;
+            test.result(false);
+          }, function (error) {
+            config.requestTimeout = originalTimeout;
+            test.assert('timeout', error);
+          });
         }
       }
 
