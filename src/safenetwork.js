@@ -1006,16 +1006,20 @@
             var itemName = remainder // File name will be up to but excluding first '/'
             var firstSlash = remainder.indexOf('/');
             if (firstSlash != -1) {
-              itemName = remainder.slice(0,firstSlash); // Directory name with trailing '/'
+              itemName = remainder.slice(0,firstSlash+1); // Directory name with trailing '/'
             }
 
             // Add file/directory info to cache and for return as listing
             var fullItemPath = dirPath + itemName;
             // First part of fileInfo
             var fileInfo = {
-              name:       itemName,           // File or directory name
+              name:       itemName,       // File or directory name
               fullPath:   fullItemPath,   // Full path including name
               entryVersion:    v.version, // mrhTODO for debug
+
+              // Remaining members must pass RS.js test: sync.js#corruptServerItemsMap()
+              ETag:       'dummy-etag-for-folder',  // Must be present, but we fake it because diretories are implied (not versioned objects)
+                                                    // For folders an ETag is only useful for get: and _getFolder() ignores options so faking is ok
             }
 
             if (firstSlash == -1) { // File not folder
@@ -1040,28 +1044,35 @@
             listing[fileInfo.name] = fileInfo;
           }
           else {  // File entry:
-            return window.safeNfs.fetch(self.nfsRoot, fileInfo.fullPath)
-            .then((fileHandle) => self._makeFileInfo(fileHandle, fileInfo, fileInfo.fullPath)
-            .then((fileInfo) => {
+              try {
+              RS.log('DEBUG: window.safeNfs.fetch(' + fileInfo.fullPath + ')...');
+              return window.safeNfs.fetch(self.nfsRoot, fileInfo.fullPath)
+              .then((fileHandle) => self._makeFileInfo(fileHandle, fileInfo, fileInfo.fullPath)
+              .then((fileInfo) => {
 
-              RS.log('file created: ' + fileInfo.created);
-              RS.log('file modified: ' + fileInfo.modified);
-              RS.log('file version: ' + fileInfo.version);
-              RS.log('file dataMapName: ' + fileInfo.dataMapName);
+                RS.log('file created: ' + fileInfo.created);
+                RS.log('file modified: ' + fileInfo.modified);
+                RS.log('file version: ' + fileInfo.version);
+                RS.log('file dataMapName: ' + fileInfo.dataMapName.toString('base64'));
 
-              // File entry:
-              self._fileInfoCache.set(fileInfo.fullPath, fileInfo);
-              RS.log('..._fileInfoCache.set(file: ' + fileInfo.fullPath  + ')' );
-              RS.log('Listing: ', fileInfo.name);
-              listing[fileInfo.name] = fileInfo;
-            }));
+                // File entry:
+                self._fileInfoCache.set(fileInfo.fullPath, fileInfo);
+                RS.log('..._fileInfoCache.set(file: ' + fileInfo.fullPath  + ')' );
+                RS.log('Listing: ', fileInfo.name);
+                listing[fileInfo.name] = fileInfo;
+              }));
+            } catch (err){
+                RS.log('_getFolder( ' + fileInfo.fullPath + ' ) Skipping invalid entry. Error: ' + err);
+            }
           }
         })).then(_ => {
           RS.log('Iteration finished');
           RS.log('SafeNetwork._getFolder(' + fullPath + ', ...) RESULT: listing contains ' + JSON.stringify( listing ) );
           var folderMetadata = { contentType: RS_DIR_MIME_TYPE};        // mrhTODOx - check what is expected and whether we can provide something
           return resolve({statusCode: 200, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE /*, mrhTODOx revision: folderETagWithoutQuotes*/ });
-        }));
+        })).catch((err) => {
+          RS.log('directoryEntries.map() invalid folder entry - ERROR: ' + err );
+        });
       }).catch((err) => {
         self.reflectNetworkStatus(false);                // mrhTODO - should go offline for Unauth or Timeout
         RS.log('safeNfs.getEntries("' + fullPath + '") failed: ' + err.status );
