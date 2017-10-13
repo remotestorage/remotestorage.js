@@ -166,7 +166,11 @@ var util = require('./util');
       var authParamsUsed = false;
       if (params) {
         if (params.error) {
-          throw "Authorization server errored: " + params.error;
+          if (params.error === 'access_denied') {
+            throw new Authorize.Unauthorized('User denied access.');
+          } else {
+            throw "Authorization server errored: " + params.error;
+          }
         }
 
         // rsDiscovery came with the redirect, because it couldn't be
