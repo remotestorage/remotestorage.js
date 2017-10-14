@@ -124,7 +124,7 @@ var RemoteStorage = function (cfg) {
   }.bind(this);
 
   this.on('ready', this.fireInitial.bind(this));
-  this.loadModules()
+  this.loadModules();
 };
 
 // FIXME: Instead of doing this, would be better to only
