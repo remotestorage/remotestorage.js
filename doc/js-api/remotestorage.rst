@@ -150,8 +150,10 @@ The following functions can be called on your ``remoteStorage`` instance:
 
   .. code:: javascript
 
-     remoteStorage.setApiKeys('dropbox', { appKey: 'your-app-key' });
-     remoteStorage.setApiKeys('googledrive', { clientId: 'your-client-id' });}
+     remoteStorage.setApiKeys({
+       dropbox: 'your-app-key',
+       googledrive: 'your-client-id'
+     });
 
 .. autofunction:: RemoteStorage#setCordovaRedirectUri
   :short-name:

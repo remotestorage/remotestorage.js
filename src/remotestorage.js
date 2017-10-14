@@ -389,25 +389,41 @@ RemoteStorage.prototype = {
 
   /**
    * Set the OAuth key/ID for either GoogleDrive or Dropbox backend support.
-   * Use the method twice to set both.
    *
-   * @param {string} type - Either 'googledrive' or 'dropbox'
-   * @param {Object} keys - Must contain property 'clientId' for GoogleDrive,
-   *                        or 'appKey' for Dropbox
+   * @param {Object} apiKeys - A config object with these properties:
+   * @param {string} [apiKeys.type] - Backend type: 'googledrive' or 'dropbox'
+   * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
    */
-  setApiKeys: function (type, keys) {
-    if (keys) {
-      this.apiKeys[type] = keys;
-      if (type === 'dropbox' && (typeof this.dropbox === 'undefined' ||
-                                 this.dropbox.clientId !== keys.appKey)) {
-        Dropbox._rs_init(this);
-      } else if (type === 'googledrive' && (typeof this.googledrive === 'undefined' ||
-                                            this.googledrive.clientId !== keys.clientId)) {
-        GoogleDrive._rs_init(this);
-      }
-    } else {
-      delete this.apiKeys[type];
+  setApiKeys: function (apiKeys) {
+    const validTypes = ['googledrive', 'dropbox'];
+    if (typeof apiKeys !== 'object' || !Object.keys(apiKeys).every(type => validTypes.includes(type))) {
+      console.error('setApiKeys() was called with invalid arguments') ;
+      return false;
     }
+
+    Object.keys(apiKeys).forEach(type => {
+      let key = apiKeys[type];
+      if (!key) { delete this.apiKeys[type]; return; }
+
+      switch(type) {
+        case 'dropbox':
+          this.apiKeys['dropbox'] = { appKey: key };
+          if (typeof this.dropbox === 'undefined' ||
+              this.dropbox.clientId !== key) {
+            Dropbox._rs_init(this);
+          }
+          break;
+        case 'googledrive':
+          this.apiKeys['googledrive'] = { clientId: key };
+          if (typeof this.googledrive === 'undefined' ||
+            this.googledrive.clientId !== key) {
+            GoogleDrive._rs_init(this);
+          }
+          break;
+      }
+      return true;
+    });
+
     if (hasLocalStorage) {
       localStorage.setItem('remotestorage:api-keys', JSON.stringify(this.apiKeys));
     }
