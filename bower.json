@@ -1,6 +1,6 @@
 {
     "name": "remotestorage",
-    "version": "1.0.0-alpha7",
+    "version": "1.0.0-alpha8",
     "main": [
         "./release/remotestorage.js"
     ],
