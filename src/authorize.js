@@ -167,9 +167,9 @@ var util = require('./util');
       if (params) {
         if (params.error) {
           if (params.error === 'access_denied') {
-            throw new Authorize.Unauthorized('User denied access.');
+            throw new Authorize.Unauthorized('Authorization failed: access denied');
           } else {
-            throw "Authorization server errored: " + params.error;
+            throw new Authorize.Unauthorized(`Authorization failed: ${params.error}`);
           }
         }
 
