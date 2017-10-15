@@ -179,7 +179,7 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
         run: function(env, test) {
           Dropbox._rs_init = test.done;
 
-          env.rs.setApiKeys('dropbox', { appKey: 'testkey' });
+          env.rs.setApiKeys({ dropbox: 'testkey' });
         }
       },
 
@@ -192,7 +192,7 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
 
           Dropbox._rs_init = test.done;
 
-          env.rs.setApiKeys('dropbox', { appKey: 'new key' });
+          env.rs.setApiKeys({ dropbox: 'new key' });
         }
       },
 
@@ -207,8 +207,45 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
               test.fail('Backend got reinitialized again although the key did not change.');
             };
 
-          env.rs.setApiKeys('dropbox', { appKey: 'old key' });
+          env.rs.setApiKeys({ dropbox: 'old key' });
           test.done();
+        }
+      },
+
+      {
+        desc: "#setApiKeys allows setting values for 'googledrive' and 'dropbox'",
+        run: function(env, test) {
+          env.rs.setApiKeys({
+            dropbox: '123abc',
+            googledrive: '456def'
+          });
+
+          test.assert(env.rs.apiKeys['dropbox'].appKey, '123abc');
+          test.assert(env.rs.apiKeys['googledrive'].clientId, '456def');
+          test.assert(env.rs.dropbox.clientId, '123abc');
+          test.assert(env.rs.googledrive.clientId, '456def');
+        }
+      },
+
+      {
+        desc: "#setApiKeys returns false when receiving invalid config",
+        run: function(env, test) {
+          test.assert(env.rs.setApiKeys({ icloud: '123abc' }), false);
+        }
+      },
+
+      {
+        desc: "#setApiKeys clears config when receiving null values",
+        run: function(env, test) {
+          env.rs.setApiKeys({
+            dropbox: null,
+            googledrive: null
+          });
+
+          test.assertType(env.rs.apiKeys['dropbox'], 'undefined');
+          test.assertType(env.rs.apiKeys['googledrive'], 'undefined');
+          test.assert(env.rs.dropbox.clientId, 'null');
+          test.assert(env.rs.googledrive.clientId, 'null');
         }
       },
 
