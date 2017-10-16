@@ -777,17 +777,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       },
 
       {
-        desc: "WireClient destroys the bearer token after Unauthorized Error",
-        run: function (env, test){
-          var e = new Authorize.Unauthorized();
-          env.rs._emit('error', e);
-          setTimeout(function () {
-            test.assert(env.connectedClient.token, null);
-          }, 100);
-        }
-      },
-
-      {
         desc: "requests are aborted if they aren't responded after the configured timeout",
         timeout: 2000,
         run: function (env, test) {
@@ -897,31 +886,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
         }
       },
 */
-      {
-        desc: "Dropbox adapter sets and removes EventHandlers",
-        run: function (env, test){
-          function allHandlers() {
-            var handlers = rs._handlers;
-            var l = 0;
-            for (var k in handlers) {
-              l += handlers[k].length;
-            }
-            return l;
-          }
-          var rs = new RemoteStorage();
-          rs.apiKeys= { dropbox: {appKey: 'testkey'} };
-
-          test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
-
-          Dropbox._rs_init(rs);
-          test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
-
-          Dropbox._rs_cleanup(rs);
-          test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
-
-          test.done();
-        }
-      },
 
       {
         desc: "Dropbox adapter hooks itself into sync cycle when activated",

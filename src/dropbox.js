@@ -166,8 +166,6 @@
     }
   };
 
-  var onErrorCb;
-
   /**
    * Class: Dropbox
    */
@@ -178,21 +176,7 @@
     this.rs = rs;
     var self = this;
 
-    onErrorCb = function (error){
-      if (error instanceof Authorize.Unauthorized) {
-        // Delete all the settings - see the documentation of wireclient.configure
-        self.configure({
-          userAddress: null,
-          href: null,
-          storageApi: null,
-          token: null,
-          options: null
-        });
-      }
-    };
-
     eventHandling(this, 'connected', 'wire-busy', 'wire-done', 'not-connected');
-    rs.on('error', onErrorCb);
 
     this.clientId = rs.apiKeys.dropbox.appKey;
     this._revCache = new LowerCaseCache('rev');
@@ -1142,7 +1126,6 @@
     if (hasLocalStorage){
       localStorage.removeItem(SETTINGS_KEY);
     }
-    rs.removeEventListener('error', onErrorCb);
     rs.setBackend(undefined);
   };
 

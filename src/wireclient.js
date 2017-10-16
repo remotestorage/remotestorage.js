@@ -178,8 +178,6 @@
     return [401, 403, 404, 412].indexOf(status) >= 0;
   }
 
-  var onErrorCb;
-
   /**
    * Class : WireClient
    **/
@@ -194,12 +192,6 @@
      **/
     eventHandling(this, 'connected', 'not-connected', 'wire-busy', 'wire-done');
 
-    onErrorCb = function (error){
-      if (error instanceof Authorize.Unauthorized) {
-        this.configure({token: null});
-      }
-    }.bind(this);
-    rs.on('error', onErrorCb);
     if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
@@ -585,7 +577,6 @@
     if (hasLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
-    remoteStorage.removeEventListener('error', onErrorCb);
   };
 
 
