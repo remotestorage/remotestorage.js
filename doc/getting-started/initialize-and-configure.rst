@@ -10,6 +10,9 @@ set things up.
 
 .. highlight:: javascript
 
+.. role:: raw-html(raw)
+   :format: html
+
 Initializing an instance
 ------------------------
 
@@ -28,7 +31,9 @@ operates on the remote server/account::
 
    const remoteStorage = new RemoteStorage({cache: false});
 
+:raw-html:`<small>`
 Also see the :doc:`RemoteStorage API doc </js-api/remotestorage>`.
+:raw-html:`</small>`
 
 Claiming access
 ---------------
@@ -51,7 +56,9 @@ generally discouraged)::
 
    remoteStorage.access.claim('*', 'rw');
 
+:raw-html:`<small>`
 Also see the :doc:`Access API doc </js-api/access>`.
+:raw-html:`</small>`
 
 Configuring caching
 -------------------
@@ -63,4 +70,6 @@ of the items therein will be automatically synced from and to the server::
 
    remoteStorage.caching.enable('/myfavoritedrinks/')
 
+:raw-html:`<small>`
 See the :doc:`Caching API doc </js-api/caching>` for more options.
+:raw-html:`</small>`
