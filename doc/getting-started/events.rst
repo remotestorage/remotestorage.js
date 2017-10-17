@@ -1,0 +1,4 @@
+Handling events
+===============
+
+.. highlight:: javascript
