@@ -85,7 +85,11 @@ var util = require('./util');
 
   Authorize.Unauthorized = function(message) {
     this.name = 'Unauthorized';
-    this.message = message;
+    if (typeof message === 'undefined') {
+      this.message = 'App authorization expired or revoked.';
+    } else {
+      this.message = message;
+    }
     this.stack = (new Error()).stack;
   };
   Authorize.Unauthorized.prototype = Object.create(Error.prototype);
