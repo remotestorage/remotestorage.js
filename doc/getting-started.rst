@@ -8,3 +8,4 @@ to *remoteStorage.js*.
    :maxdepth: 2
 
    getting-started/how-to-add.rst
+   getting-started/initialize-and-configure.rst
