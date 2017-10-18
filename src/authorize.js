@@ -83,13 +83,19 @@ var util = require('./util');
 
   Authorize.IMPLIED_FAKE_TOKEN = false;
 
-  Authorize.Unauthorized = function(message) {
+  Authorize.Unauthorized = function(message, options = {}) {
     this.name = 'Unauthorized';
+
     if (typeof message === 'undefined') {
       this.message = 'App authorization expired or revoked.';
     } else {
       this.message = message;
     }
+
+    if (typeof options.code) {
+      this.code = options.code;
+    }
+
     this.stack = (new Error()).stack;
   };
   Authorize.Unauthorized.prototype = Object.create(Error.prototype);
@@ -171,7 +177,7 @@ var util = require('./util');
       if (params) {
         if (params.error) {
           if (params.error === 'access_denied') {
-            throw new Authorize.Unauthorized('Authorization failed: access denied');
+            throw new Authorize.Unauthorized('Authorization failed: access denied', { code: 'access_denied' });
           } else {
             throw new Authorize.Unauthorized(`Authorization failed: ${params.error}`);
           }
