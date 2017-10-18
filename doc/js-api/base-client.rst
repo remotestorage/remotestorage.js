@@ -231,15 +231,20 @@ Example:
 .. code:: javascript
 
    {
-     path: path, // Absolute path of the changed node, from the storage root
-     relativePath: relativePath, // Path of the changed node, relative to this baseclient's scope root
-     origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
-     oldValue: oldBody, // Old body of the changed node (local version in conflicts; undefined if creation)
-     newValue: newBody, // New body of the changed node (remote version in conflicts; undefined if deletion)
-     lastCommonValue: lastCommonValue, // Most recent known common ancestor body of 'yours' and 'theirs' in case of conflict
-     oldContentType: oldContentType, // Old contentType of the changed node ('yours' for conflicts; undefined if creation)
-     newContentType: newContentType, // New contentType of the changed node ('theirs' for conflicts; undefined if deletion)
-     lastCommonContentType: lastCommonContentType // Most recent known common ancestor contentType of 'yours' and 'theirs' in case of conflict
+     // Absolute path of the changed node, from the storage root
+     path: path,
+     // Path of the changed node, relative to this baseclient's scope root
+     relativePath: relativePath,
+     // See origin descriptions below
+     origin: 'window|local|remote|conflict',
+     // Old body of the changed node (local version in conflicts; undefined if creation)
+     oldValue: oldBody,
+     // New body of the changed node (remote version in conflicts; undefined if deletion)
+     newValue: newBody,
+     // Old contentType of the changed node (local version for conflicts; undefined if creation)
+     oldContentType: oldContentType,
+     // New contentType of the changed node (remote version for conflicts; undefined if deletion)
+     newContentType: newContentType
    }
 
 ``remote``
@@ -286,9 +291,11 @@ your local value of 'blue':
       origin: 'conflict',
       oldValue: 'blue',
       newValue: 'red',
-      lastCommonValue: 'white',
       oldContentType: 'text/plain',
       newContentType: 'text/plain',
+      // Most recent known common ancestor body of local and remote
+      lastCommonValue: 'white',
+      // Most recent known common ancestor contentType of local and remote
       lastCommonContentType: 'text/plain'
     }
 
