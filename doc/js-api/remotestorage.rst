@@ -1,8 +1,6 @@
 RemoteStorage
 =============
 
-.. highlight:: javascript
-
 Constructor
 -----------
 

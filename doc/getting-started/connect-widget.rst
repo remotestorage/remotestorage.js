@@ -1,8 +1,6 @@
 Using the Connect Widget add-on
 ===============================
 
-.. highlight:: javascript
-
 The easiest option for letting people connect their storage to your app is using
 the Connect Widget add-on library, which is written and maintained by the rs.js
 core team.
