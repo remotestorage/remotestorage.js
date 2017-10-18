@@ -60,7 +60,7 @@ No module system
 If you just link the build from HTML, it will add ``RemoteStorage`` as a global
 variable to ``window``.
 
-.. code:: html
+.. code-block:: html
 
    <script type="text/javascript" src="remotestorage.js"></script>
 

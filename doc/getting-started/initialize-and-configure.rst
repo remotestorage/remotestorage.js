@@ -8,8 +8,6 @@ set things up.
    Where and how you do this exactly will naturally depend on the rest of your
    code, your JS framework, and personal preferences.
 
-.. highlight:: javascript
-
 .. role:: raw-html(raw)
    :format: html
 
