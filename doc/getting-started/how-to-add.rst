@@ -46,7 +46,8 @@ Here is an example with `RequireJS <http://requirejs.org/>`_:
 
    requirejs.config({
      paths: {
-       RemoteStorage: 'remotestorage'
+       // Key: module name, value: path to the file without the .js extension
+       RemoteStorage: './remotestorage'
      }
    });
 
