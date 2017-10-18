@@ -37,35 +37,22 @@ CommonJS module
 
    var RemoteStorage = require('remotestoragejs');
 
-AMD module with `RequireJS <http://requirejs.org/>`_
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AMD module
+^^^^^^^^^^
 
-`Download require.js <http://www.requirejs.org/docs/download.html>`_ and save
-it as ``src/require.js``. Copy ``remotestorage.js`` to ``src/remotestorage.js``
-
-In your HTML document (for example ``index.html``)
-
-.. code:: html
-
-   <script data-main="src/main" src="src/require.js"></script>
-
-``src/main.js``
+Here is an example with `RequireJS <http://requirejs.org/>`_:
 
 .. code:: javascript
 
-    // Configure that the RemoteStorage module is declared in the
-    // remotestorage.js file
-    requirejs.config({
-        baseUrl: 'src',
-        paths: {
-            RemoteStorage: 'remotestorage'
-        }
-    });
+   requirejs.config({
+     paths: {
+       RemoteStorage: 'remotestorage'
+     }
+   });
 
-    requirejs(['RemoteStorage'], function(r) {
-        var RemoteStorage = r;
-        // Now write the rest of your app
-    });
+   requirejs(['RemoteStorage'], function(RemoteStorage) {
+     // Now write the rest of your app
+   });
 
 No module system
 ^^^^^^^^^^^^^^^^
