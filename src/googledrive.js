@@ -4,8 +4,8 @@
  * To use this backend, you need to specify the app's client ID like so:
  *
  * @example
- * remoteStorage.setApiKeys('googledrive', {
- *   clientId: 'your-client-id'
+ * remoteStorage.setApiKeys({
+ *   googledrive: 'your-client-id'
  * });
  *
  * A client ID can be obtained by registering your app in the Google

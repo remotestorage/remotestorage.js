@@ -21,8 +21,8 @@
    * To use this backend, you need to specify the Dropbox app key like so:
    *
    * @example
-   * remoteStorage.setApiKeys('dropbox', {
-   *   appKey: 'your-app-key'
+   * remoteStorage.setApiKeys({
+   *   dropbox: 'your-app-key'
    * });
    *
    * An app key can be obtained by registering your app at https://www.dropbox.com/developers/apps
