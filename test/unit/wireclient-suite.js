@@ -521,6 +521,21 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
       },
 
       {
+        desc: "#get emits an Unauthorized error on 401 responses",
+        run: function(env, test) {
+          env.rs.on('error', function(error) {
+            test.assert(error.name, 'Unauthorized');
+          });
+
+          env.connectedClient.get('/foo/bar');
+
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 401;
+          req._onload();
+        }
+      },
+
+      {
         desc: "#get extracts the Content-Type header, status and responseText and fulfills its promise with those, once onload is called",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').

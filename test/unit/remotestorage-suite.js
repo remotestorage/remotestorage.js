@@ -247,6 +247,53 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
       },
 
       {
+        desc: "#reconnect with remotestorage backend clears the token and connects again",
+        run: function(env, test) {
+
+          env.rs.backend = 'remotestorage';
+
+          const oldConnect = env.rs.connect;
+
+          env.rs.remote = new FakeRemote(false);
+          env.rs.remote.userAddress = 'test@foo.bar';
+          env.rs.remote.configure = function(options) {
+            test.assertAnd(options.token, null);
+            env.rs.remote.configure = function() {};
+          }
+          env.rs.connect = function(params) {
+            test.assert(params, 'test@foo.bar');
+
+            // reset everything
+            env.rs.connect = oldConnect;
+            env.rs.remote = new FakeRemote(false);
+          }
+
+          env.rs.reconnect();
+        }
+      },
+
+      {
+        desc: "#reconnect with dropbox backend clears the token and connects again",
+        run: function(env, test) {
+
+          env.rs.backend = 'dropbox';
+
+          env.rs.remote = new FakeRemote(false);
+          env.rs.remote.configure = function(options) {
+            test.assertAnd(options.token, null);
+            env.rs.remote.configure = function() {};
+          }
+          env.rs.remote.connect = function(params) {
+            test.assertType(params, 'undefined');
+
+            env.rs.remote = new FakeRemote(false);
+          }
+
+          env.rs.reconnect();
+        }
+      },
+
+      {
         desc: "#disconnect fires disconnected",
         run: function(env, test) {
           env.rs.on('disconnected', function() {
