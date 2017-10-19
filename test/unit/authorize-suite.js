@@ -243,6 +243,15 @@ define([ 'require', './src/authorize', 'fs'], function(require, Authorize, fs) {
           test.assertAnd(storage._handlers['features-loaded'].length, 0);
           test.done();
         }
+      },
+
+      {
+        desc: "the Unauthorized error accepts an error code",
+        run: function(env, test) {
+          let error = new Authorize.Unauthorized('error message', { code: 'error_code' });
+          test.assertAnd(error.message, 'error message');
+          test.assert(error.code, 'error_code');
+        }
       }
     ]
   });

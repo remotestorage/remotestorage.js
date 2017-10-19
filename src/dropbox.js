@@ -38,7 +38,7 @@
    */
 
   var hasLocalStorage;
-  var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
+  var AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
   var PATH_PREFIX = '/remotestorage';
 
@@ -155,8 +155,6 @@
     }
   };
 
-  var onErrorCb;
-
   /**
    * @class
    */
@@ -167,21 +165,7 @@
     this.rs = rs;
     var self = this;
 
-    onErrorCb = function (error){
-      if (error instanceof Authorize.Unauthorized) {
-        // Delete all the settings - see the documentation of wireclient.configure
-        self.configure({
-          userAddress: null,
-          href: null,
-          storageApi: null,
-          token: null,
-          options: null
-        });
-      }
-    };
-
     eventHandling(this, 'connected', 'wire-busy', 'wire-done', 'not-connected');
-    rs.on('error', onErrorCb);
 
     this.clientId = rs.apiKeys.dropbox.appKey;
     this._revCache = new LowerCaseCache('rev');
@@ -768,7 +752,7 @@
         }
 
         return self._request('POST', url, { body }).then(function (response) {
-          if (response.status === 400) {
+          if (response.status === 401) {
             self.rs._emit('error', new Authorize.Unauthorized());
             return Promise.resolve(args);
           }
@@ -1163,7 +1147,6 @@
     if (hasLocalStorage){
       localStorage.removeItem(SETTINGS_KEY);
     }
-    rs.removeEventListener('error', onErrorCb);
     rs.setBackend(undefined);
   };
 

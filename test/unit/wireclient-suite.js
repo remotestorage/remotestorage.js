@@ -521,6 +521,21 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
       },
 
       {
+        desc: "#get emits an Unauthorized error on 401 responses",
+        run: function(env, test) {
+          env.rs.on('error', function(error) {
+            test.assert(error.name, 'Unauthorized');
+          });
+
+          env.connectedClient.get('/foo/bar');
+
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 401;
+          req._onload();
+        }
+      },
+
+      {
         desc: "#get extracts the Content-Type header, status and responseText and fulfills its promise with those, once onload is called",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
@@ -722,16 +737,6 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
           var request = XMLHttpRequest.instances.shift();
           var hasIfMatchHeader = request._headers.hasOwnProperty('If-Match');
           test.assert(hasIfMatchHeader, false);
-        }
-      },
-
-      {
-        desc: "WireClient destroys the bearer token after Unauthorized Error",
-        run: function(env, test){
-          env.rs._emit('error', new Authorize.Unauthorized());
-          setTimeout(function() {
-            test.assert(env.connectedClient.token, null);
-          }, 100);
         }
       },
 
@@ -994,31 +999,6 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
           req.status = 200;
           req.response = '';
           req._onload();
-        }
-      },
-
-      {
-        desc: "WireClient sets and removes eventlisteners",
-        run: function(env, test) {
-          function allHandlers() {
-            var handlers = rs._handlers;
-            var l = 0;
-            for (var k in handlers) {
-              l += handlers[k].length;
-            }
-            return l;
-          }
-          var rs = new RemoteStorage();
-          eventHandling(rs, 'error');
-          test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
-
-          WireClient._rs_init(rs);
-          test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
-
-          WireClient._rs_cleanup(rs);
-          test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
-
-          test.done();
         }
       }
     ]

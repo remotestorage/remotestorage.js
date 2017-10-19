@@ -178,8 +178,6 @@
     return [401, 403, 404, 412].indexOf(status) >= 0;
   }
 
-  var onErrorCb;
-
   /**
    * Class : WireClient
    **/
@@ -194,12 +192,6 @@
      **/
     eventHandling(this, 'connected', 'not-connected', 'wire-busy', 'wire-done');
 
-    onErrorCb = function (error){
-      if (error instanceof Authorize.Unauthorized) {
-        this.configure({token: null});
-      }
-    }.bind(this);
-    rs.on('error', onErrorCb);
     if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
@@ -293,6 +285,11 @@
           } else {
             revision = undefined;
           }
+
+          if (response.status === 401) {
+            self.rs._emit('error', new Authorize.Unauthorized());
+          }
+
           return Promise.resolve({statusCode: response.status, revision: revision});
         } else if (isSuccessStatus(response.status) ||
                    (response.status === 200 && method !== 'GET')) {
@@ -580,7 +577,6 @@
     if (hasLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
-    remoteStorage.removeEventListener('error', onErrorCb);
   };
 
 
