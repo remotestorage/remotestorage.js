@@ -40,7 +40,19 @@ CommonJS module
 AMD module
 ^^^^^^^^^^
 
-TODO
+For example with `RequireJS <http://requirejs.org/>`_:
+
+.. code:: javascript
+
+   requirejs.config({
+     paths: {
+       RemoteStorage: './lib/remotestorage'
+     }
+   });
+
+   requirejs(['RemoteStorage'], function(RemoteStorage) {
+     // Here goes my app
+   });
 
 No module system
 ^^^^^^^^^^^^^^^^
