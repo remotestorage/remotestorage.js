@@ -188,7 +188,8 @@
           var previous;
 
           if (!node) {
-            throw new Error('Cannot delete non-existing node '+path);
+            console.error('Cannot delete non-existing node ' + path);
+            continue;
           }
 
           if (i === 0) {
