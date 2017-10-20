@@ -1,0 +1,4 @@
+/* Add a left and right margin to parens in function signatures */
+.rst-content dl .sig-paren {
+  margin: 0 0.25em;
+}

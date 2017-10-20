@@ -1,0 +1,5 @@
+<!-- Extend the layout and add our own stylesheet -->
+{% extends "!layout.html" %}
+{% block extrahead %}
+  <link href="{{ pathto("_static/css/remotestorage.css", True) }}" rel="stylesheet" type="text/css">
+{% endblock %}
