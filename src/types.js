@@ -1,5 +1,3 @@
-var tv4 = require('tv4');
-
 /**
  * @class BaseClient.Types
  *
