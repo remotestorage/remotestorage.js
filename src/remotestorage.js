@@ -578,7 +578,7 @@ RemoteStorage.prototype = {
    * Please use this method only for debugging and development, and choose or
    * create a :doc:`data module </data-modules>` for your app to use.
    *
-   * @param {string} scope - The base directory of the BaseClient that will be
+   * @param {string} path - The base directory of the BaseClient that will be
    *                         returned (with a leading and a trailing slash)
    *
    * @returns {BaseClient} A client with the specified scope (category/base directory)
