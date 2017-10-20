@@ -161,7 +161,7 @@ BaseClient.prototype = {
    *
    * @param {string} mimeType - MIME media type of the data being stored
    * @param {string} path     - Path relative to the module root
-   * @param {string|ArrayBuffer|ArrayBufferView} data - Raw data to store
+   * @param {string|ArrayBuffer|ArrayBufferView} body - Raw data to store
    *
    * @returns {Promise} A promise for an object
    */
