@@ -1,10 +1,10 @@
 var config = {
-	logging: false,
-	changeEvents: {
-      local:    true,
-      window:   false,
-      remote:   true,
-      conflict: true
+  logging: false,
+  changeEvents: {
+    local:    true,
+    window:   false,
+    remote:   true,
+    conflict: true
   },
   cache: true,
   disableFeatures: [],
