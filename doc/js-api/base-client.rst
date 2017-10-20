@@ -61,7 +61,7 @@ requirement entirely:
 List of functions
 ^^^^^^^^^^^^^^^^^
 
-.. autofunction:: BaseClient#getListing
+.. autofunction:: BaseClient#getListing(path, maxAge)
   :short-name:
 
   Example usage:
@@ -99,7 +99,7 @@ List of functions
        }
      }
 
-.. autofunction:: BaseClient#getObject
+.. autofunction:: BaseClient#getObject(path, maxAge)
   :short-name:
 
   Example:
@@ -109,7 +109,7 @@ List of functions
      client.getObject('/path/to/object')
            .then(obj => console.log(obj));
 
-.. autofunction:: BaseClient#storeObject
+.. autofunction:: BaseClient#storeObject(typeAlias, path, object)
   :short-name:
 
   Example:
@@ -127,7 +127,7 @@ List of functions
            .then(() => console.log('bookmark saved'))
            .catch((err) => console.log(err));
 
-.. autofunction:: BaseClient#getAll
+.. autofunction:: BaseClient#getAll(path, maxAge)
   :short-name:
 
   Example response object:
@@ -150,7 +150,7 @@ List of functions
        }
      });
 
-.. autofunction:: BaseClient#getFile
+.. autofunction:: BaseClient#getFile(path, maxAge)
   :short-name:
 
   The response object contains two properties:
@@ -172,7 +172,7 @@ List of functions
        targetElement.src = window.URL.createObjectURL(blob);
      });
 
-.. autofunction:: BaseClient#storeFile
+.. autofunction:: BaseClient#storeFile(mimeType, path, body)
   :short-name:
 
   Example (UTF-8 data):
@@ -197,7 +197,7 @@ List of functions
 
      fileReader.readAsArrayBuffer(file);
 
-.. autofunction:: BaseClient#remove
+.. autofunction:: BaseClient#remove(path)
   :short-name:
 
   Example:
@@ -326,7 +326,7 @@ Example:
 Data types
 ----------
 
-.. autofunction:: BaseClient#declareType
+.. autofunction:: BaseClient#declareType(alias, uri, schema)
   :short-name:
 
   Example:
@@ -356,7 +356,7 @@ Data types
   Visit `<http://json-schema.org>`_ for details on how
   to use JSON Schema.
 
-.. autofunction:: BaseClient#validate
+.. autofunction:: BaseClient#validate(object)
   :short-name:
 
   Example: TODO
@@ -364,12 +364,12 @@ Data types
 Caching
 -------
 
-.. autofunction:: BaseClient#cache
+.. autofunction:: BaseClient#cache(path, strategy)
   :short-name:
 
   Example: TODO
 
-.. autofunction:: BaseClient#flush
+.. autofunction:: BaseClient#flush(path)
   :short-name:
 
   Example: TODO
@@ -377,8 +377,8 @@ Caching
 Other functions
 ---------------
 
-.. autofunction:: BaseClient#getItemURL
+.. autofunction:: BaseClient#getItemURL(path)
   :short-name:
 
-.. autofunction:: BaseClient#scope
+.. autofunction:: BaseClient#scope(path)
   :short-name:
