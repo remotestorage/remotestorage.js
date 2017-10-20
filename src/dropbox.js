@@ -163,7 +163,6 @@
     this.rs = rs;
     this.connected = false;
     this.rs = rs;
-    var self = this;
 
     eventHandling(this, 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
