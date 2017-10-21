@@ -1023,7 +1023,7 @@
             }
 
             if (firstSlash == -1) { // File not folder
-              // Files have metadata but directories DON'T (simulated above)
+              // Files have metadata but directories DON'T (faked above)
               var metadata; // mrhTODO ??? - obtain this?
               metadata = { mimetype: 'application/json; charset=UTF-8' };  // mrhTODO fake it until implemented - should never be used
 // mrhTODOx add in get file size - or maybe leave this unset, and set it
