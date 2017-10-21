@@ -91,5 +91,6 @@ caniuse.com <https://caniuse.com/#search=promise>`_. Notable examples would be
 Android up to 4.4 and Internet Explorer up to 11.
 
 You can find a list of polyfill libraries `on the Promises website
-<https://promisesaplus.com/implementations>`_. We can recommend *bluebird.js*,
-which we used in rs.js before.
+<https://promisesaplus.com/implementations>`_. A good choice for a small and
+simple polyfill would be `es6-promise-auto
+<https://github.com/stefanpenner/es6-promise>`_ for example.
