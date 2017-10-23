@@ -99,7 +99,7 @@ Internals
 
 This section is aimed at developers of remoteStorage.js. The caching
 strategies are stored in ``remoteStorage.caching._rootPaths``. For
-instance, on https://myfavoritedrinks.5apps.com/, it has the value
+instance, on https://myfavoritedrinks.remotestorage.io/, it has the value
 ``{ /myfavoritedrinks/: "ALL" }``.
 
 The rootPaths are not stored in localStorage. If you refresh the page,
