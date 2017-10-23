@@ -90,7 +90,7 @@ the next automatic synchronization to happen, or trigger one yourself:
 
 .. code:: javascript
 
-   remoteStorage.sync.sync().then(function() {
+   remoteStorage.startSync().then(function() {
      console.log("Synchronization finished.");
    });
 

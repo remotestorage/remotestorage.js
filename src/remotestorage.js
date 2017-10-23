@@ -703,16 +703,18 @@ RemoteStorage.prototype = {
    * this is mostly useful for letting users sync manually, when pressing a
    * sync button for example. This might feel safer to them sometimes, esp.
    * when shifting between offline and online a lot.
+   *
+   * @returns {Promise} A Promise which resolves when the sync has finished
    */
   startSync: function () {
     if (!config.cache) { return; }
     this.sync.stopped = false;
     this.syncStopped = false;
-    this.sync.sync();
+    return this.sync.sync();
   },
 
   /**
-   * TODO: document
+   * Stop the synchronization interval.
    */
   stopSync: function () {
     clearTimeout(this._syncTimer);
@@ -722,7 +724,8 @@ RemoteStorage.prototype = {
       log('[Sync] Stopping sync');
       this.sync.stopped = true;
     } else {
-      // TODO When is this ever the case and what is syncStopped for then?
+      // The sync class has not been initialized yet, so we make sure it will
+      // not start the syncing process as soon as it's initialized.
       log('[Sync] Will instantiate sync stopped');
       this.syncStopped = true;
     }
