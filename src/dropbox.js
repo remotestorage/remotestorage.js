@@ -6,8 +6,6 @@
   var Sync = require('./sync');
 
   /**
-   * File: Dropbox
-   *
    * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
    *
    * Dropbox backend for RemoteStorage.js
@@ -22,13 +20,10 @@
    *
    * To use this backend, you need to specify the Dropbox app key like so:
    *
-   * (start code)
-   *
-   * remoteStorage.setApiKeys('dropbox', {
-   *   appKey: 'your-app-key'
+   * @example
+   * remoteStorage.setApiKeys({
+   *   dropbox: 'your-app-key'
    * });
-   *
-   * (end code)
    *
    * An app key can be obtained by registering your app at https://www.dropbox.com/developers/apps
    *
@@ -43,7 +38,7 @@
    */
 
   var hasLocalStorage;
-  var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
+  var AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
   var PATH_PREFIX = '/remotestorage';
 
@@ -51,9 +46,12 @@
   var cleanPath = util.cleanPath;
 
   /**
-   * Function: getDropboxPath(path)
+   * Map a local path to a path in Dropbox.
    *
-   * Map a local path to a path in DropBox.
+   * @param {string} path - Path
+   * @returns {string} Actual path in Dropbox
+   *
+   * @private
    */
   var getDropboxPath = function (path) {
     return cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
@@ -64,17 +62,16 @@
   };
 
   /**
-   * class: LowerCaseCache
-   *
    * A cache which automatically converts all keys to lower case and can
    * propagate changes up to parent folders.
    *
    * By default the set and delete methods are aliased to justSet and justDelete.
    *
-   * Parameters:
+   * @param defaultValue {string} the value that is returned for all keys that don't exist
+   *                              in the cache
    *
-   *   defaultValue - the value that is returned for all keys that don't exist
-   *                  in the cache
+   * @class
+   *
    */
   function LowerCaseCache(defaultValue){
     this.defaultValue = defaultValue;
@@ -85,10 +82,10 @@
 
   LowerCaseCache.prototype = {
     /**
-     * Method: get
-     *
      * Get a value from the cache or defaultValue, if the key is not in the
      * cache.
+     *
+     * @protected
      */
     get : function (key) {
       key = key.toLowerCase();
@@ -101,8 +98,6 @@
     },
 
     /**
-     * Method: propagateSet
-     *
      * Set a value and also update the parent folders with that value.
      */
     propagateSet : function (key, value) {
@@ -116,8 +111,6 @@
     },
 
     /**
-     * Method: propagateDelete
-     *
      * Delete a value and propagate the changes to the parent folders.
      */
     propagateDelete : function (key) {
@@ -133,8 +126,6 @@
     },
 
     /**
-     * Method: justSet
-     *
      * Set a value without propagating.
      */
     justSet : function (key, value) {
@@ -144,8 +135,6 @@
     },
 
     /**
-     * Method: justDelete
-     *
      * Delete a value without propagating.
      */
     justDelete : function (key, value) {
@@ -167,33 +156,16 @@
     }
   };
 
-  var onErrorCb;
-
   /**
-   * Class: Dropbox
+   * @class
    */
   var Dropbox = function (rs) {
 
     this.rs = rs;
     this.connected = false;
     this.rs = rs;
-    var self = this;
 
-    onErrorCb = function (error){
-      if (error instanceof Authorize.Unauthorized) {
-        // Delete all the settings - see the documentation of wireclient.configure
-        self.configure({
-          userAddress: null,
-          href: null,
-          storageApi: null,
-          token: null,
-          options: null
-        });
-      }
-    };
-
-    eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
-    rs.on('error', onErrorCb);
+    eventHandling(this, 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     this.clientId = rs.apiKeys.dropbox.appKey;
     this._revCache = new LowerCaseCache('rev');
@@ -222,8 +194,6 @@
     online: true,
 
     /**
-     * Method: connect
-     *
      * Set the backed to 'dropbox' and start the authentication flow in order
      * to obtain an API token from Dropbox.
      */
@@ -238,9 +208,13 @@
     },
 
     /**
-     * Method : configure(settings)
-     * Accepts its parameters according to the <WireClient>.
      * Sets the connected flag
+     * Accepts its parameters according to the <WireClient>.
+     * @param {Object} settings
+     * @param {string} [settings.userAddress] - The user's email address
+     * @param {string} [settings.token] - Authorization token
+     *
+     * @protected
      **/
     configure: function (settings) {
       // We only update this.userAddress if settings.userAddress is set to a string or to null:
@@ -285,9 +259,9 @@
     },
 
     /**
-     * Method: stopWaitingForToken
-     *
      * Stop waiting for the token and emit not-connected
+     *
+     * @protected
      */
     stopWaitingForToken: function () {
       if (!this.connected) {
@@ -296,21 +270,17 @@
     },
 
     /**
-     * Method: _getFolder
-     *
      * Get all items in a folder.
      *
-     * Parameters:
+     * @param path {string} - path of the folder to get, with leading slash
+     * @param options - not used
+     * @return {Object}
+     *         statusCode - HTTP status code
+     *         body - array of the items found
+     *         contentType - 'application/json; charset=UTF-8'
+     *         revision - revision of the folder
      *
-     *   path - path of the folder to get, with leading slash
-     *   options - not used
-     *
-     * Returns:
-     *
-     *  statusCode - HTTP status code
-     *  body - array of the items found
-     *  contentType - 'application/json; charset=UTF-8'
-     *  revision - revision of the folder
+     * @private
      */
     _getFolder: function (path, options) {
       var url = 'https://api.dropboxapi.com/2/files/list_folder';
@@ -383,14 +353,17 @@
     },
 
     /**
-     * Method: get
+     * Checks for the path in ``_revCache`` and decides based on that if file
+     * has changed. Calls ``_getFolder`` if the path points to a folder.
      *
-     * Compatible with <WireClient.get>
+     * Calls ``Dropbox.share`` afterwards to fill ``_itemRefs``.
      *
-     * Checks for the path in _revCache and decides based on that if file has
-     * changed. Calls _getFolder if the path points to a folder.
+     * Compatible with ``WireClient.get``
      *
-     * Calls <Dropbox.share> afterwards to fill _itemRefs.
+     * @param path {string} - path of the folder to get, with leading slash
+     * @param options {Object}
+     *
+     * @protected
      */
     get: function (path, options) {
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
@@ -455,7 +428,7 @@
 
         // handling binary
         if (!mime || mime.match(/charset=binary/)) {
-          // TOFIX: would be better to make readBinaryData return a Promise - les
+          // FIXME: would be better to make readBinaryData return a Promise - les
           return new Promise( (resolve, reject) => {
             WireClient.readBinaryData(resp.response, mime, function (result) {
               resolve({
@@ -482,14 +455,20 @@
     },
 
     /**
-     * Method: put
+     * Checks for the path in ``_revCache`` and decides based on that if file
+     * has changed.
      *
-     * Compatible with <WireClient>
+     * Compatible with ``WireClient``
      *
-     * Checks for the path in _revCache and decides based on that if file has
-     * changed.
+     * Calls ``Dropbox.share`` afterwards to fill ``_itemRefs``.
      *
-     * Calls <Dropbox.share> afterwards to fill _itemRefs.
+     * @param {string} path - path of the folder to put, with leading slash
+     * @param {Object} options
+     * @param {string} options.ifNoneMatch - Only create of update the file if the
+     *                                       current ETag doesn't match this string
+     * @returns {Promise} Resolves with an object containing the status code,
+     *                    content-type and revision
+     * @protected
      */
     put: function (path, body, contentType, options) {
       var self = this;
@@ -557,14 +536,17 @@
     },
 
     /**
-     * Method: delete
+     * Checks for the path in ``_revCache`` and decides based on that if file
+     * has changed.
      *
-     * Compatible with <WireClient.delete>
+     * Compatible with ``WireClient.delete``
      *
-     * Checks for the path in _revCache and decides based on that if file has
-     * changed.
+     * Calls ``Dropbox.share`` afterwards to fill ``_itemRefs``.
      *
-     * Calls <Dropbox.share> afterwards to fill _itemRefs.
+     * @param {string} path - path of the folder to delete, with leading slash
+     * @param {Object} options
+     *
+     * @protected
      */
     'delete': function (path, options) {
       if (!this.connected) {
@@ -594,9 +576,9 @@
     },
 
     /**
-     * Method: _shareIfNeeded
-     *
      * Calls share, if the provided path resides in a public folder.
+     *
+     * @private
      */
     _shareIfNeeded: function (path) {
       if (path.match(/^\/public\/.*[^\/]$/) && this._itemRefs[path] === undefined) {
@@ -605,14 +587,12 @@
     },
 
     /**
-     * Method: share
-     *
      * Gets a publicly-accessible URL for the path from Dropbox and stores it
-     * in _itemRefs.
+     * in ``_itemRefs``.
      *
-     * Returns:
+     * @return {Promise} a promise for the URL
      *
-     *   A promise for the URL
+     * @private
      */
     share: function (path) {
       var url = 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings';
@@ -657,15 +637,11 @@
     },
 
     /**
-     * Method: info
-     *
      * Fetches the user's info from dropbox and returns a promise for it.
      *
-     * Returns:
+     * @return {Promise} a promise for user info object (email - the user's email address)
      *
-     *   A promise for the user info object:
-     *
-     *     email - the user's email address
+     * @protected
      */
     info: function () {
       var url = 'https://api.dropboxapi.com/2/users/get_current_account';
@@ -686,19 +662,14 @@
     },
 
     /**
-     * Method: _request
+     * Make a network request.
      *
-     * Make a HTTP request.
+     * @param {string} method - Request method
+     * @param {string} url - Target URL
+     * @param {object} options - Request options
+     * @returns {Promise} Resolves with the response of the network request
      *
-     * Options:
-     *
-     *   headers - an object containing the request headers
-     *
-     * Parameters:
-     *
-     *   method - the method to use
-     *   url - the URL to make the request to
-     *   options - see above
+     * @private
      */
     _request: function (method, url, options) {
       var self = this;
@@ -755,11 +726,11 @@
     },
 
     /**
-     * Method: fetchDelta
-     *
      * Fetches the revision of all the files from dropbox API and puts them
-     * into _revCache. These values can then be used to determine if something
-     * has changed.
+     * into ``_revCache``. These values can then be used to determine if
+     * something has changed.
+     *
+     * @private
      */
     fetchDelta: function () {
       var args = Array.prototype.slice.call(arguments);
@@ -781,7 +752,7 @@
         }
 
         return self._request('POST', url, { body }).then(function (response) {
-          if (response.status === 400) {
+          if (response.status === 401) {
             self.rs._emit('error', new Authorize.Unauthorized());
             return Promise.resolve(args);
           }
@@ -835,18 +806,13 @@
     },
 
     /**
-     * Method: _getMetadata
-     *
      * Gets metadata for a path (can point to either a file or a folder).
      *
-     * Parameters:
+     * @param {string} path - the path to get metadata for
      *
-     *   path - the path to get metadata for
-     *   options - see above
+     * @returns {Promise} A promise for the metadata
      *
-     * Returns:
-     *
-     *   A promise for the metadata
+     * @private
      */
     _getMetadata: function (path) {
       var url = 'https://api.dropboxapi.com/2/files/get_metadata';
@@ -883,23 +849,20 @@
     },
 
     /**
-     * Method: _uploadSimple
-     *
      * Upload a simple file (the size is no more than 150MB).
      *
-     * Parameters:
+     * @param {Object} params
+     * @param {string} options.ifMatch - Only update the file if its ETag
+     *                                   matches this string
+     * @param {string} options.path - path of the file
+     * @param {string} options.body - contents of the file to upload
+     * @param {string} options.contentType - mime type of the file
      *
-     *   ifMatch - same as for get
-     *   path - path of the file
-     *   body - contents of the file to upload
-     *   contentType - mime type of the file
+     * @return {Promise} A promise for an object with the following structure:
+     *         statusCode - HTTP status code
+     *         revision - revision of the newly-created file, if any
      *
-     * Returns:
-     *
-     *   A promise for an object with the following structure:
-     *
-     *     statusCode - HTTP status code
-     *     revision - revision of the newly-created file, if any
+     * @private
      */
     _uploadSimple: function (params) {
       var url = 'https://content.dropboxapi.com/2/files/upload';
@@ -950,19 +913,14 @@
     },
 
     /**
-     * Method: _deleteSimple
-     *
      * Deletes a file or a folder.
      *
-     * Parameters:
+     * @param {string} path - the path to delete
      *
-     *   path - the path to delete
+     * @returns {Promise} A promise for an object with the following structure:
+     *          statusCode - HTTP status code
      *
-     * Returns:
-     *
-     *   A promise for an object with the following structure:
-     *
-     *     statusCode - HTTP status code
+     * @private
      */
     _deleteSimple: function (path) {
       var url = 'https://api.dropboxapi.com/2/files/delete';
@@ -1002,17 +960,13 @@
     },
 
     /**
-     * Method: _getSharedLink
-     *
      * Requests the link for an already-shared file or folder.
      *
-     * Parameters:
+     * @param {string} path - path to the file or folder
      *
-     *   path - path to the file or folder
+     * @returns {Promise} A promise for the shared link
      *
-     * Returns:
-     *
-     *   A promise for the shared link
+     * @private
      */
     _getSharedLink: function (path) {
       var url = 'https://api.dropbox.com/2/sharing/list_shared_links';
@@ -1052,8 +1006,11 @@
     }
   };
 
-  // Hooking and unhooking the sync
-
+  /**
+   * Hooking the sync
+   *
+   * TODO: document
+   */
   function hookSync(rs) {
     if (rs._dropboxOrigSync) { return; } // already hooked
     rs._dropboxOrigSync = rs.sync.sync.bind(rs.sync);
@@ -1066,14 +1023,22 @@
     }.bind(rs);
   }
 
+  /**
+   * Unhooking the sync
+   *
+   * TODO: document
+   */
   function unHookSync(rs) {
     if (! rs._dropboxOrigSync) { return; } // not hooked
     rs.sync.sync = rs._dropboxOrigSync;
     delete rs._dropboxOrigSync;
   }
 
-  // Hooking and unhooking getItemURL
-
+  /**
+   * Hooking getItemURL
+   *
+   * TODO: document
+   */
   function hookGetItemURL(rs) {
     if (rs._origBaseClientGetItemURL) { return; }
     rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
@@ -1083,18 +1048,29 @@
     };
   }
 
+  /**
+   * Unhooking getItemURL
+   *
+   * TODO: document
+   */
   function unHookGetItemURL(rs){
     if (! rs._origBaseClientGetItemURL) { return; }
     BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
     delete rs._origBaseClientGetItemURL;
   }
 
+  /**
+   * TODO: document
+   */
   function hookRemote(rs){
     if (rs._origRemote) { return; }
     rs._origRemote = rs.remote;
     rs.remote = rs.dropbox;
   }
 
+  /**
+   * TODO: document
+   */
   function unHookRemote(rs){
     if (rs._origRemote) {
       rs.remote = rs._origRemote;
@@ -1102,6 +1078,9 @@
     }
   }
 
+  /**
+   * TODO: document
+   */
   function hookIt(rs){
     hookRemote(rs);
     if (rs.sync) {
@@ -1118,12 +1097,22 @@
     hookGetItemURL(rs);
   }
 
+  /**
+   * TODO: document
+   */
   function unHookIt(rs){
     unHookRemote(rs);
     unHookSync(rs);
     unHookGetItemURL(rs);
   }
 
+  /**
+   * Initialize the Dropbox backend.
+   *
+   * @param {object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
   Dropbox._rs_init = function (rs) {
     hasLocalStorage = util.localStorageAvailable();
     if ( rs.apiKeys.dropbox ) {
@@ -1134,16 +1123,30 @@
     }
   };
 
+  /**
+   * Inform about the availability of the Dropbox backend.
+   *
+   * @param {object} rs - RemoteStorage instance
+   * @returns {Boolean}
+   *
+   * @protected
+   */
   Dropbox._rs_supported = function () {
     return true;
   };
 
+  /**
+   * Remove Dropbox as a backend.
+   *
+   * @param {object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
   Dropbox._rs_cleanup = function (rs) {
     unHookIt(rs);
     if (hasLocalStorage){
       localStorage.removeItem(SETTINGS_KEY);
     }
-    rs.removeEventListener('error', onErrorCb);
     rs.setBackend(undefined);
   };
 

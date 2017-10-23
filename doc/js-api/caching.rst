@@ -26,7 +26,7 @@ For each subtree, you can set the caching strategy to 'ALL', 'SEEN'
 List of functions
 -------------------
 
-.. autofunction:: Caching#enable
+.. autofunction:: Caching#enable(path)
   :short-name:
 
   Example:
@@ -35,7 +35,7 @@ List of functions
 
      remoteStorage.caching.enable('/bookmarks/');
 
-.. autofunction:: Caching#disable
+.. autofunction:: Caching#disable(path)
   :short-name:
 
   Example:
@@ -44,7 +44,7 @@ List of functions
 
      remoteStorage.caching.disable('/bookmarks/');
 
-.. autofunction:: Caching#set
+.. autofunction:: Caching#set(path, strategy)
   :short-name:
 
   Example:

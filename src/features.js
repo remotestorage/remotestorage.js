@@ -49,7 +49,7 @@ const Features = {
     this._allLoaded = false;
 
     for (let featureName in this.featureModules) {
-      // TOFIX this has to push the promised return value into an
+      // FIXME: this has to push the promised return value into an
       // array of promises and use Promise.all to emit `ready`
       // instead of increment a counter of loaded features. -les
       this.loadFeature(featureName);

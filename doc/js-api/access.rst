@@ -7,7 +7,7 @@ the remote. It gets initialized as ``remoteStorage.access``.
 List of functions
 -----------------
 
-.. autofunction:: Access#claim
+.. autofunction:: Access#claim(scope, mode)
   :short-name:
 
   Example:

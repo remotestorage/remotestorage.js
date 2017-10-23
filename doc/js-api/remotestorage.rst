@@ -97,10 +97,10 @@ Prototype functions
 
 The following functions can be called on your ``remoteStorage`` instance:
 
-.. autofunction:: RemoteStorage#authorize
+.. autofunction:: RemoteStorage#authorize(authURL, cordovaRedirectUri)
   :short-name:
 
-.. autofunction:: RemoteStorage#connect
+.. autofunction:: RemoteStorage#connect(userAddress, token)
   :short-name:
 
 .. autofunction:: RemoteStorage#disconnect
@@ -115,13 +115,13 @@ The following functions can be called on your ``remoteStorage`` instance:
 .. autofunction:: RemoteStorage#getSyncInterval
   :short-name:
 
-.. autofunction:: RemoteStorage#setSyncInterval
+.. autofunction:: RemoteStorage#setSyncInterval(interval)
   :short-name:
 
 .. autofunction:: RemoteStorage#getBackgroundSyncInterval
   :short-name:
 
-.. autofunction:: RemoteStorage#setBackgroundSyncInterval
+.. autofunction:: RemoteStorage#setBackgroundSyncInterval(interval)
   :short-name:
 
 .. autofunction:: RemoteStorage#getCurrentSyncInterval
@@ -130,10 +130,10 @@ The following functions can be called on your ``remoteStorage`` instance:
 .. autofunction:: RemoteStorage#getRequestTimeout
   :short-name:
 
-.. autofunction:: RemoteStorage#setRequestTimeout
+.. autofunction:: RemoteStorage#setRequestTimeout(timeout)
   :short-name:
 
-.. autofunction:: RemoteStorage#scope
+.. autofunction:: RemoteStorage#scope(path)
   :short-name:
 
   Example:
@@ -143,17 +143,19 @@ The following functions can be called on your ``remoteStorage`` instance:
      remoteStorage.scope('/pictures/').getListing('');
      remoteStorage.scope('/public/pictures/').getListing('');
 
-.. autofunction:: RemoteStorage#setApiKeys
+.. autofunction:: RemoteStorage#setApiKeys(apiKeys)
   :short-name:
 
   Example:
 
   .. code:: javascript
 
-     remoteStorage.setApiKeys('dropbox', { appKey: 'your-app-key' });
-     remoteStorage.setApiKeys('googledrive', { clientId: 'your-client-id' });}
+     remoteStorage.setApiKeys({
+       dropbox: 'your-app-key',
+       googledrive: 'your-client-id'
+     });
 
-.. autofunction:: RemoteStorage#setCordovaRedirectUri
+.. autofunction:: RemoteStorage#setCordovaRedirectUri(uri)
   :short-name:
 
 .. autofunction:: RemoteStorage#startSync
@@ -162,5 +164,5 @@ The following functions can be called on your ``remoteStorage`` instance:
 .. autofunction:: RemoteStorage#stopSync
   :short-name:
 
-.. autofunction:: RemoteStorage#onChange
+.. autofunction:: RemoteStorage#onChange(path, handler)
   :short-name:

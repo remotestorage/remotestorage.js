@@ -124,7 +124,7 @@ var RemoteStorage = function (cfg) {
   }.bind(this);
 
   this.on('ready', this.fireInitial.bind(this));
-  this.loadModules()
+  this.loadModules();
 };
 
 // FIXME: Instead of doing this, would be better to only
@@ -190,21 +190,6 @@ RemoteStorage.prototype = {
    * @property {boolean} remote.online - Whether last sync action was successful or not
    * @property {string} remote.userAddress - The user address of the connected user
    * @property {string} remote.properties - The properties of the WebFinger link
-   */
-
-  /**
-   * startSync
-   *
-   * TODO: move to sync.js
-   *
-   * Start synchronization with remote storage, downloading and uploading any
-   * changes within the cached paths.
-   *
-   * Please consider: local changes will attempt sync immediately, and remote
-   * changes should also be synced timely when using library defaults. So
-   * this is mostly useful for letting users sync manually, when pressing a
-   * sync button for example. This might feel safer to them sometimes, esp.
-   * when shifting between offline and online a lot.
    */
 
   /**
@@ -291,6 +276,19 @@ RemoteStorage.prototype = {
       clearTimeout(discoveryTimeout);
       this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
     }.bind(this));
+  },
+
+  /**
+   * Reconnect the remote server to get a new authorization.
+   */
+  reconnect: function () {
+    this.remote.configure({ token: null });
+
+    if (this.backend === 'remotestorage') {
+      this.connect(this.remote.userAddress);
+    } else {
+      this.remote.connect();
+    }
   },
 
   /**
@@ -403,25 +401,41 @@ RemoteStorage.prototype = {
 
   /**
    * Set the OAuth key/ID for either GoogleDrive or Dropbox backend support.
-   * Use the method twice to set both.
    *
-   * @param {string} type - Either 'googledrive' or 'dropbox'
-   * @param {object} keys - Must contain property 'clientId' for GoogleDrive,
-   *                        or 'appKey' for Dropbox
+   * @param {Object} apiKeys - A config object with these properties:
+   * @param {string} [apiKeys.type] - Backend type: 'googledrive' or 'dropbox'
+   * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
    */
-  setApiKeys: function (type, keys) {
-    if (keys) {
-      this.apiKeys[type] = keys;
-      if (type === 'dropbox' && (typeof this.dropbox === 'undefined' ||
-                                 this.dropbox.clientId !== keys.appKey)) {
-        Dropbox._rs_init(this);
-      } else if (type === 'googledrive' && (typeof this.googledrive === 'undefined' ||
-                                            this.googledrive.clientId !== keys.clientId)) {
-        GoogleDrive._rs_init(this);
-      }
-    } else {
-      delete this.apiKeys[type];
+  setApiKeys: function (apiKeys) {
+    const validTypes = ['googledrive', 'dropbox'];
+    if (typeof apiKeys !== 'object' || !Object.keys(apiKeys).every(type => validTypes.includes(type))) {
+      console.error('setApiKeys() was called with invalid arguments') ;
+      return false;
     }
+
+    Object.keys(apiKeys).forEach(type => {
+      let key = apiKeys[type];
+      if (!key) { delete this.apiKeys[type]; return; }
+
+      switch(type) {
+        case 'dropbox':
+          this.apiKeys['dropbox'] = { appKey: key };
+          if (typeof this.dropbox === 'undefined' ||
+              this.dropbox.clientId !== key) {
+            Dropbox._rs_init(this);
+          }
+          break;
+        case 'googledrive':
+          this.apiKeys['googledrive'] = { clientId: key };
+          if (typeof this.googledrive === 'undefined' ||
+            this.googledrive.clientId !== key) {
+            GoogleDrive._rs_init(this);
+          }
+          break;
+      }
+      return true;
+    });
+
     if (hasLocalStorage) {
       localStorage.setItem('remotestorage:api-keys', JSON.stringify(this.apiKeys));
     }
@@ -563,7 +577,7 @@ RemoteStorage.prototype = {
    * Please use this method only for debugging and development, and choose or
    * create a :doc:`data module </data-modules>` for your app to use.
    *
-   * @param {string} scope - The base directory of the BaseClient that will be
+   * @param {string} path - The base directory of the BaseClient that will be
    *                         returned (with a leading and a trailing slash)
    *
    * @returns {BaseClient} A client with the specified scope (category/base directory)
@@ -681,7 +695,14 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * TODO: document
+   * Start synchronization with remote storage, downloading and uploading any
+   * changes within the cached paths.
+   *
+   * Please consider: local changes will attempt sync immediately, and remote
+   * changes should also be synced timely when using library defaults. So
+   * this is mostly useful for letting users sync manually, when pressing a
+   * sync button for example. This might feel safer to them sometimes, esp.
+   * when shifting between offline and online a lot.
    */
   startSync: function () {
     if (!config.cache) { return; }

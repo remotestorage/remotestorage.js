@@ -2,14 +2,11 @@
   var RemoteStorage = require('./remotestorage');
 
   /*
-   * Method: RemoteStorage.addModule
+   * Add remoteStorage data module
    *
-   * Method for adding a remoteStorage data module
-   *
-   * Parameters:
-   *   module - module object needs following properies:
-   *       name - Name of the module
-   *       builder    - Builder function defining the module
+   * @param {Object} module - module object needs following properies:
+   * @param {string} [module.name] - Name of the module
+   * @param {function} [module.builder] - Builder function defining the module
    *
    * The module builder function should return an object containing another
    * object called exports, which will be exported to this <RemoteStorage>
@@ -23,8 +20,7 @@
    * scope of privateClient is `/locations` and the scope of publicClient is
    * `/public/locations`.
    *
-   * Example:
-   *   (start code)
+   * @example
    *   RemoteStorage.addModule({name: 'locations', builder: function (privateClient, publicClient) {
    *     return {
    *       exports: {
@@ -33,9 +29,7 @@
    *       }
    *     };
    *   }});
-   * (end code)
   */
-
   RemoteStorage.prototype.addModule = function (module) {
     var moduleName = module.name;
     var moduleBuilder = module.builder;
@@ -62,6 +56,12 @@
     }
   };
 
+  /*
+   * Load module
+   *
+   * @private
+   *
+   */
   RemoteStorage.prototype._loadModule = function (moduleName, moduleBuilder) {
     if (moduleBuilder) {
       var module = moduleBuilder(new BaseClient(this, '/' + moduleName + '/'),

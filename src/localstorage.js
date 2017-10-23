@@ -4,8 +4,6 @@
   var util = require('./util');
 
   /**
-   * Class: LocalStorage
-   *
    * localStorage caching adapter. Used when no IndexedDB available.
    **/
 
@@ -72,13 +70,31 @@
 
   };
 
+  /**
+   * Initialize the LocalStorage backend.
+   *
+   * @protected
+   */
   LocalStorage._rs_init = function () {};
 
+  /**
+   * Inform about the availability of the LocalStorage backend.
+   *
+   * @returns {Boolean}
+   *
+   * @protected
+   */
   LocalStorage._rs_supported = function () {
     return util.localStorageAvailable();
   };
 
-  // TODO tests missing!
+  /**
+   * Remove LocalStorage as a backend.
+   *
+   * @protected
+   *
+   * TODO: tests missing!
+   */
   LocalStorage._rs_cleanup = function () {
     var keys = [];
 

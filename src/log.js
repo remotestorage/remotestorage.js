@@ -1,14 +1,12 @@
 var config = require('./config');
 
 /**
- * Method: log
- *
  * Log using console.log, when remoteStorage logging is enabled.
  *
- * You can enable logging with <enableLog>.
+ * You can enable logging with ``RemoteStorage#enableLog``.
  *
  * (In node.js you can also enable logging during remoteStorage object
- * creation. See: <RemoteStorage>).
+ * creation. See: {@link RemoteStorage}).
  */
 function log() {
   if (config.logging) {

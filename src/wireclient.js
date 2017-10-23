@@ -178,8 +178,6 @@
     return [401, 403, 404, 412].indexOf(status) >= 0;
   }
 
-  var onErrorCb;
-
   /**
    * Class : WireClient
    **/
@@ -188,23 +186,12 @@
     this.connected = false;
 
     /**
-     * Event: change
-     *   Never fired for some reason
-     *   # TODO create issue and fix or remove
-     *
      * Event: connected
      *   Fired when the wireclient connect method realizes that it is in
      *   possession of a token and href
      **/
-    eventHandling(this, 'change', 'connected', 'not-connected',
-                           'wire-busy', 'wire-done');
+    eventHandling(this, 'connected', 'not-connected', 'wire-busy', 'wire-done');
 
-    onErrorCb = function (error){
-      if (error instanceof Authorize.Unauthorized) {
-        this.configure({token: null});
-      }
-    }.bind(this);
-    rs.on('error', onErrorCb);
     if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
@@ -298,6 +285,11 @@
           } else {
             revision = undefined;
           }
+
+          if (response.status === 401) {
+            self.rs._emit('error', new Authorize.Unauthorized());
+          }
+
           return Promise.resolve({statusCode: response.status, revision: revision});
         } else if (isSuccessStatus(response.status) ||
                    (response.status === 200 && method !== 'GET')) {
@@ -582,7 +574,6 @@
     if (hasLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
-    remoteStorage.removeEventListener('error', onErrorCb);
   };
 
 
