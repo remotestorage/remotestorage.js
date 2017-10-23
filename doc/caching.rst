@@ -104,7 +104,7 @@ instance, on https://myfavoritedrinks.5apps.com/, it has the value
 
 The rootPaths are not stored in localStorage. If you refresh the page,
 it is up to the app to set all caching strategies again during the
-pageload.
+page load.
 
 The effect of the caching strategy is basically achieved through three
 paths:
