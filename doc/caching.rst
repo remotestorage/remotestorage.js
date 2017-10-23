@@ -45,7 +45,7 @@ This example shows how to configure caching in a module:
      // These two are equivalent operations:
      privateClient.cache('pilsener/', 'ALL');
      // OR:
-     pilsener.cache('', ALL');
+     pilsener.cache('', 'ALL');
 
      // To disable caching for a given path, pass 'FLUSH' as the strategy:
      privateClient.cache('pilsener/', 'FLUSH');
