@@ -43,6 +43,7 @@
   var PATH_PREFIX = '/remotestorage';
 
   var isFolder = util.isFolder;
+  var cleanPath = util.cleanPath;
 
   /**
    * Map a local path to a path in Dropbox.
@@ -53,7 +54,7 @@
    * @private
    */
   var getDropboxPath = function (path) {
-    return WireClient.cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
+    return cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
   };
 
   var compareApiError = function (response, expect) {
@@ -353,7 +354,7 @@
 
     /**
      * Checks for the path in ``_revCache`` and decides based on that if file
-     * has changed. Calls ``_getFolder`` is the path points to a folder.
+     * has changed. Calls ``_getFolder`` if the path points to a folder.
      *
      * Calls ``Dropbox.share`` afterwards to fill ``_itemRefs``.
      *
