@@ -37,29 +37,29 @@ This example shows how to configure caching in a module:
 
 .. code:: javascript
 
-    var beersBuilder = function (privateClient, publicClient) {
-      var pilsener = privateClient.scope('pilsener/');
+   var beersBuilder = function (privateClient, publicClient) {
+     var pilsener = privateClient.scope('pilsener/');
 
-      // To enable always caching all data (not only data that was changed),
-      // change the caching strategy from 'SEEN' (the default) to 'ALL'.
-      // These two are equivalent operations:
-      privateClient.cache('pilsener/', 'ALL');
-      // OR:
-      pilsener.cache('', ALL');
+     // To enable always caching all data (not only data that was changed),
+     // change the caching strategy from 'SEEN' (the default) to 'ALL'.
+     // These two are equivalent operations:
+     privateClient.cache('pilsener/', 'ALL');
+     // OR:
+     pilsener.cache('', 'ALL');
 
-      // To disable caching for a given path, pass 'FLUSH' as the strategy:
-      privateClient.cache('pilsener/', 'FLUSH');
-      // OR:
-      pilsener.cache('', 'FLUSH');
+     // To disable caching for a given path, pass 'FLUSH' as the strategy:
+     privateClient.cache('pilsener/', 'FLUSH');
+     // OR:
+     pilsener.cache('', 'FLUSH');
 
-      return {
-        exports: {
-          pilsener: pilsener
-        }
-      };
-    });
+     return {
+       exports: {
+         pilsener: pilsener
+       }
+     };
+   };
 
-    export default { name: 'beers', builder: beersBuilder };
+   export default { name: 'beers', builder: beersBuilder };
 
 Configuring caching from the app
 --------------------------------
@@ -71,16 +71,15 @@ This example shows how to do that:
 
 .. code:: javascript
 
+   remoteStorage.caching.enable('/beers/pilsener/');
 
-    remoteStorage.caching.enable('/beers/pilsener/');
-
-    remoteStorage.caching.disable('/beers/pilsener/');
+   remoteStorage.caching.disable('/beers/pilsener/');
 
 or to use a different caching strategy:
 
 .. code:: javascript
 
-    remoteStorage.caching.set('/beers/ale', 'SEEN');
+   remoteStorage.caching.set('/beers/ale/', 'SEEN');
 
 
 Synchronizing after caching settings have changed
@@ -91,10 +90,9 @@ the next automatic synchronization to happen, or trigger one yourself:
 
 .. code:: javascript
 
-
-    remoteStorage.sync.sync().then(function() {
-      console.log("Synchronization finished.");
-    });
+   remoteStorage.sync.sync().then(function() {
+     console.log("Synchronization finished.");
+   });
 
 Internals
 ---------
@@ -106,7 +104,7 @@ instance, on https://myfavoritedrinks.5apps.com/, it has the value
 
 The rootPaths are not stored in localStorage. If you refresh the page,
 it is up to the app to set all caching strategies again during the
-pageload.
+page load.
 
 The effect of the caching strategy is basically achieved through three
 paths:
