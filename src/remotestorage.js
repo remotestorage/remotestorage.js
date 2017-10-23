@@ -717,7 +717,7 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * Stop the synchronization interval.
+   * Stop the periodic synchronization.
    */
   stopSync: function () {
     clearTimeout(this._syncTimer);
