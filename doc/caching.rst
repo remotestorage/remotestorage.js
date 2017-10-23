@@ -79,7 +79,7 @@ or to use a different caching strategy:
 
 .. code:: javascript
 
-   remoteStorage.caching.set('/beers/ale', 'SEEN');
+   remoteStorage.caching.set('/beers/ale/', 'SEEN');
 
 
 Synchronizing after caching settings have changed
