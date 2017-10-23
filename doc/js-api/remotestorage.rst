@@ -4,16 +4,12 @@ RemoteStorage
 Constructor
 -----------
 
-Create a ``remoteStorage`` instance like so:
-
-.. code:: javascript
+Create a ``remoteStorage`` instance like so::
 
    var remoteStorage = new RemoteStorage();
 
 The constructor can optionally be called with a configuration object, for
-example:
-
-.. code:: javascript
+example::
 
    var remoteStorage = new RemoteStorage({
      logging: true,  // defaults to false
@@ -21,17 +17,15 @@ example:
    });
 
 .. NOTE::
-   In the current version, it is only possible to use a single RemoteStorage
-   instance. You cannot connect to two different remotes yet.  We intend to
-   support this soon (see issue :issue:`991`)
+   In the current version, it is only possible to use a single
+   ``RemoteStorage`` instance. You cannot connect to two different remotes yet.
+   We intend to support this soon (see issue :issue:`991`)
 
 Events
 ------
 
 You can handle events from your ``remoteStorage`` instance by using the
-``.on()`` function. For example:
-
-.. code:: javascript
+``.on()`` function. For example::
 
    remoteStorage.on('connected', function() {
      // Storage account has been connected, let’s roll!
@@ -136,9 +130,7 @@ The following functions can be called on your ``remoteStorage`` instance:
 .. autofunction:: RemoteStorage#scope(path)
   :short-name:
 
-  Example:
-
-  .. code:: javascript
+  Example::
 
      remoteStorage.scope('/pictures/').getListing('');
      remoteStorage.scope('/public/pictures/').getListing('');
@@ -146,9 +138,7 @@ The following functions can be called on your ``remoteStorage`` instance:
 .. autofunction:: RemoteStorage#setApiKeys(apiKeys)
   :short-name:
 
-  Example:
-
-  .. code:: javascript
+  Example::
 
      remoteStorage.setApiKeys({
        dropbox: 'your-app-key',
