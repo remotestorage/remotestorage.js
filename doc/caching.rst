@@ -57,7 +57,7 @@ This example shows how to configure caching in a module:
          pilsener: pilsener
        }
      };
-   });
+   };
 
    export default { name: 'beers', builder: beersBuilder };
 
