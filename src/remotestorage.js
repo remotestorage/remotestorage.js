@@ -707,7 +707,10 @@ RemoteStorage.prototype = {
    * @returns {Promise} A Promise which resolves when the sync has finished
    */
   startSync: function () {
-    if (!config.cache) { return; }
+    if (!config.cache) {
+      console.warn('Can not start syncing, because caching is disabled.');
+      return Promise.resolve();
+    }
     this.sync.stopped = false;
     this.syncStopped = false;
     return this.sync.sync();
