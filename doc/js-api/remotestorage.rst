@@ -123,6 +123,10 @@ List of events
    Emitted once when a wire request succeeds for the first time after a failed
    one, and ``remote.online`` is set back to true
 
+``sync-interval-change``
+"""""""""
+   Emitted when the sync interval changes
+
 Prototype functions
 -------------------
 
