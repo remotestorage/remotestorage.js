@@ -43,6 +43,7 @@
   var PATH_PREFIX = '/remotestorage';
 
   var isFolder = util.isFolder;
+  var cleanPath = util.cleanPath;
 
   /**
    * Map a local path to a path in Dropbox.
@@ -53,7 +54,7 @@
    * @private
    */
   var getDropboxPath = function (path) {
-    return WireClient.cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
+    return cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
   };
 
   var compareApiError = function (response, expect) {
