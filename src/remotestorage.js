@@ -361,7 +361,7 @@ RemoteStorage.prototype = {
    * given 'path', the given handler is called.
    *
    * You should usually not use this method directly, but instead use the
-   * "change" events provided by <RemoteStorage.BaseClient>.
+   * "change" events provided by :doc:`BaseClient </js-api/base-client>`
    *
    * @param path    - Absolute path to attach handler to
    * @param handler - Handler function
