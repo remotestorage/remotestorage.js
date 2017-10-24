@@ -301,8 +301,8 @@
         }
 
         if (resp.status === 409) {
-          if (path === '/' && compareApiError(body, ['path', 'not_found'])) {
-            // if the root folder is not found, handle it as an empty folder
+          if (compareApiError(body, ['path', 'not_found'])) {
+            // if the folder is not found, handle it as an empty folder
             return Promise.resolve({});
           }
 
@@ -438,7 +438,6 @@
                 revision: rev
               });
             });
-
           });
         }
 
@@ -770,7 +769,15 @@
           }
 
           if (response.status === 409) {
-            return Promise.reject(new Error('API returned an error: ' + body.error_summary));
+            if (compareApiError(body, ['path', 'not_found'])) {
+              body = {
+                cursor: null,
+                entries: [],
+                has_more: false
+              }
+            } else {
+              return Promise.reject(new Error('API returned an error: ' + body.error_summary));
+            }
           }
 
           body.entries.forEach(function (entry) {

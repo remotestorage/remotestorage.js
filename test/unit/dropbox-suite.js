@@ -604,6 +604,24 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       },
 
       {
+        desc: "#get handles inexistent folders properly",
+        run: function (env, test) {
+          env.connectedClient.get('/bookmarks/').
+            then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assert(Object.keys(r.body).length, 0);
+            });
+
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 409;
+          req.responseText = JSON.stringify({
+            error_summary: 'path/not_found/..'
+          });
+          req._onload();
+        }
+      },
+
+      {
         desc: "#put causes the revision to propagate down in revCache",
         run: function (env, test) {
           env.connectedClient._revCache.set('/foo/', 'foo');
