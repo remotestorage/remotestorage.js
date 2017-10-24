@@ -608,7 +608,7 @@ RemoteStorage.prototype = {
   /**
    * Set the value of the sync interval when application is in the foreground
    *
-   * @param {number} interval - Sync interval in milliseconds
+   * @param {number} interval - Sync interval in milliseconds (between 1000 and 3600000)
    */
   setSyncInterval: function (interval) {
     if (!isValidInterval(interval)) {
@@ -632,7 +632,7 @@ RemoteStorage.prototype = {
    * Set the value of the sync interval when the application is in the
    * background
    *
-   * @param interval - Sync interval in milliseconds
+   * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
    */
   setBackgroundSyncInterval: function (interval) {
     if(!isValidInterval(interval)) {
