@@ -95,41 +95,89 @@ Prototype functions
 
 The following functions can be called on your ``remoteStorage`` instance:
 
-.. autofunction:: RemoteStorage#authorize(authURL, cordovaRedirectUri)
+.. autofunction:: RemoteStorage#authorize(authURL, [cordovaRedirectUri])
   :short-name:
 
-.. autofunction:: RemoteStorage#connect(userAddress, token)
+.. autofunction:: RemoteStorage#connect(userAddress, [token])
   :short-name:
+
+  Example::
+
+     remoteStorage.connect('user@example.com');
 
 .. autofunction:: RemoteStorage#disconnect
   :short-name:
 
+  Example::
+
+     remoteStorage.disconnect();
+
 .. autofunction:: RemoteStorage#enableLog
   :short-name:
+
+  Example::
+
+     remoteStorage.enableLog();
 
 .. autofunction:: RemoteStorage#disableLog
   :short-name:
 
+  Example::
+
+     remoteStorage.disableLog();
+
 .. autofunction:: RemoteStorage#getSyncInterval
   :short-name:
+
+  Example::
+
+     remoteStorage.getSyncInterval();
+     // 10000
 
 .. autofunction:: RemoteStorage#setSyncInterval(interval)
   :short-name:
 
+  Example::
+
+     remoteStorage.setSyncInterval(10000);
+
 .. autofunction:: RemoteStorage#getBackgroundSyncInterval
   :short-name:
+
+  Example::
+
+     remoteStorage.getBackgroundSyncInterval();
+     // 60000
 
 .. autofunction:: RemoteStorage#setBackgroundSyncInterval(interval)
   :short-name:
 
+  Example::
+
+     remoteStorage.setBackgroundSyncInterval(60000);
+
 .. autofunction:: RemoteStorage#getCurrentSyncInterval
   :short-name:
+
+  Example::
+
+     remoteStorage.getCurrentSyncInterval();
+     // 15000
 
 .. autofunction:: RemoteStorage#getRequestTimeout
   :short-name:
 
+  Example::
+
+     remoteStorage.getRequestTimeout();
+     // 30000
+
 .. autofunction:: RemoteStorage#setRequestTimeout(timeout)
   :short-name:
+
+  Example::
+
+     remoteStorage.setRequestTimeout(30000);
 
 .. autofunction:: RemoteStorage#scope(path)
   :short-name:
@@ -152,11 +200,29 @@ The following functions can be called on your ``remoteStorage`` instance:
 .. autofunction:: RemoteStorage#setCordovaRedirectUri(uri)
   :short-name:
 
+  Example::
+
+     remoteStorage.setCordovaRedirectUri('https://app.wow-much-app.com');
+
 .. autofunction:: RemoteStorage#startSync
   :short-name:
+
+  Example::
+
+     remoteStorage.startSync();
 
 .. autofunction:: RemoteStorage#stopSync
   :short-name:
 
+  Example::
+
+     remoteStorage.stopSync();
+
 .. autofunction:: RemoteStorage#onChange(path, handler)
   :short-name:
+
+  Example::
+
+     remoteStorage.onChange('/bookmarks/', function() {
+       // your code here
+     })
