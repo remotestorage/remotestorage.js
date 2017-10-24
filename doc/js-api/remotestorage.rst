@@ -87,7 +87,7 @@ List of events
    one, and ``remote.online`` is set back to true
 
 ``sync-interval-change``
-"""""""""
+""""""""""""""""""""""""
    Emitted when the sync interval changes
 
 Prototype functions
