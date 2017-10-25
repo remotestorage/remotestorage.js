@@ -902,7 +902,7 @@
           }
         }
 
-        self._emit('req-done');
+        self.remoteStorage._emit('sync-req-done');
 
         self.collectTasks(false).then(function () {
           // See if there are any more tasks that are not refresh tasks
@@ -910,7 +910,7 @@
             log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(self._tasks).length, self.stopped);
             if (!self.done) {
               self.done = true;
-              self._emit('done');
+              self.remoteStorage._emit('sync-done');
             }
           } else {
             // Use a 10ms timeout to let the JavaScript runtime catch its breath
@@ -925,10 +925,10 @@
         log('[Sync] Error', err);
         delete self._timeStarted[task.path];
         delete self._running[task.path];
-        self._emit('req-done');
+        self.remoteStorage._emit('sync-req-done');
         if (!self.done) {
           self.done = true;
-          self._emit('done');
+          self.remoteStorage._emit('sync-done');
         }
       });
     },

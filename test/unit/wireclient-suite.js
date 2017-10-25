@@ -51,7 +51,8 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
       });
     });
     env.rs = new RemoteStorage();
-    eventHandling(env.rs, 'error', 'network-offline', 'network-online');
+    eventHandling(env.rs, 'error', 'wire-busy', 'wire-done', 'network-offline',
+                  'network-online');
     env.client = new WireClient(env.rs);
     env.connectedClient = new WireClient(env.rs);
     env.baseURI = 'https://example.com/storage/test';
@@ -67,8 +68,8 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
     env.done = new test.Stub(function(){});
     env.networkOffline = new test.Stub(function(){});
     env.networkOnline = new test.Stub(function(){});
-    env.connectedClient.on('wire-busy', env.busy);
-    env.connectedClient.on('wire-done', env.done);
+    env.rs.on('wire-busy', env.busy);
+    env.rs.on('wire-done', env.done);
     env.rs.on('network-offline', env.networkOffline);
     env.rs.on('network-online', env.networkOnline);
 

@@ -22,7 +22,7 @@ define(['./src/config', './src/eventhandling', './src/inmemorystorage', './src/s
 
     setup: function(env, test){
       global.RemoteStorage = function(){
-        eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'error');
+        eventHandling(this, 'sync-req-done', 'sync-done', 'ready', 'error');
       };
       global.RemoteStorage.log = function() {};
       config.changeEvents = { local: true, window: false, remote: true, conflict: true };
