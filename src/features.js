@@ -26,7 +26,7 @@ const Features = {
       'Env': require('./env')
     };
 
-    // enable caching releate module if needed
+    // enable caching related modules if needed
     if (config.cache) {
       util.extend( this.featureModules, {
         'Caching': require('./caching'),
@@ -37,7 +37,9 @@ const Features = {
       });
     }
 
-    // disable specified modules
+    // disable features set in the config object passed to the RemoteStorage
+    // constructor
+    // For example: ['IndexedDB']
     config.disableFeatures.forEach( feature => {
       if (this.featureModules[feature]) {
         // this.featureModules[feature] = undefined
