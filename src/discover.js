@@ -17,9 +17,6 @@ var cachedInfo = {};
  * This function deals with the Webfinger lookup, discovering a connecting
  * user's storage details.
  *
- * The discovery timeout can be configured via
- * `config.discoveryTimeout` (in ms).
- *
  * @param {string} userAddress - user@host
  *
  * @returns {Promise} A promise for an object with the following properties.
