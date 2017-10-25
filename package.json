@@ -4,7 +4,7 @@
   "version": "1.0.0-rc1",
   "private": false,
   "license": "MIT",
-  "main": "./node-main.js",
+  "main": "./index.js",
   "browser": "./release/remotestorage.js",
   "repository": {
     "type": "git",
