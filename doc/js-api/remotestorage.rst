@@ -70,19 +70,19 @@ List of events
 
 ``wire-busy``
 """""""""""""
-   Emitted when a wire request starts
+   Emitted when a network request starts
 
 ``wire-done``
 """""""""""""
-   Emitted when a wire request completes
+   Emitted when a network request completes
 
 ``sync-req-done``
 """""""""""""""""
-   Emitted when a single sync task has finished
+   Emitted when a sync request has finished
 
 ``sync-done``
 """""""""""""
-   Emitted when the complete sync cycle has finished
+   Emitted when a sync cycle has finished
 
 ``network-offline``
 """""""""""""""""""
