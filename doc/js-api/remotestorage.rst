@@ -78,11 +78,12 @@ List of events
 
 ``sync-req-done``
 """""""""""""""""
-   Emitted when a sync request has finished
+   Emitted when a single sync request has finished
 
 ``sync-done``
 """""""""""""
-   Emitted when a sync cycle has finished
+   Emitted when all tasks of a sync have been completed and a new sync
+   is scheduled
 
 ``network-offline``
 """""""""""""""""""
