@@ -23,7 +23,6 @@ example::
        conflict: true
      },
      cordovaRedirectUri: undefined,
-     disableFeatures: [],
      logging: false,
      modules: []
    });

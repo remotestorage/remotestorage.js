@@ -11,12 +11,12 @@ var config = {
     conflict: true
   },
   cordovaRedirectUri: undefined,
-  disableFeatures: [],
   logging: false,
   modules: [],
   // the following are not public and will probably be moved away from the
   // default config
   backgroundSyncInterval: 60000,
+  disableFeatures: [],
   discoveryTimeout: 10000,
   isBackground: false,
   requestTimeout: 30000,
