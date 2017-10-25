@@ -22,7 +22,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
       mocks.defineMocks(env);
 
       global.RemoteStorage = function(){
-        eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
+        eventHandling(this, 'sync-req-done', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
       };
       global.RemoteStorage.log = function() {};
       global.Authorize = require('./src/authorize');
@@ -37,7 +37,6 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
       RemoteStorage.prototype.getSyncInterval = RS.prototype.getSyncInterval;
       RemoteStorage.prototype.setSyncInterval = RS.prototype.setSyncInterval;
       RemoteStorage.prototype.isValidInterval = RS.prototype.isValidInterval;
-
 
       test.done();
     },
@@ -79,7 +78,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
         run: function(env,test){
           var failed = false;
           env.rs.remote.connected = false;
-          env.rs.on('sync-busy', function(){
+          env.rs.on('sync-done', function(){
             failed = true;
           });
 
@@ -480,7 +479,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
           };
           env.rs.sync._running = {};
 
-          env.rs.sync.on('done', function() {
+          env.rs.on('sync-done', function() {
             test.assertAnd(env.rs.sync._running, {});
             test.assertAnd(env.rs.sync._tasks, {
               '/foo1/': true,

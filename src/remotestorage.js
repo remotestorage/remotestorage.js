@@ -39,9 +39,9 @@ var RemoteStorage = function (cfg) {
   }
 
   eventHandling(
-    this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
-          'error', 'features-loaded', 'connecting', 'authing',
-          'sync-interval-change', 'wire-busy', 'wire-done',
+    this, 'ready', 'authing', 'connecting', 'connected', 'disconnected',
+          'not-connected', 'conflict', 'error', 'features-loaded',
+          'sync-interval-change', 'sync-req-done', 'sync-done',
           'network-offline', 'network-online'
   );
 
