@@ -261,7 +261,9 @@ Events with origin ``conflict`` are fired when a conflict occurs while pushing
 out your local changes to the remote store.
 
 Say you changed 'color.txt' from 'white' to 'blue'; if you have set
-``config.changeEvents.window`` to ``true``, then you will receive:
+``config.changeEvents.window`` to ``true`` (by passing it to the
+``RemoteStorage`` constructor, see the Constructor section of the
+:doc:`RemoteStorage API doc </js-api/remotestorage>`), then you will receive:
 
 .. code:: javascript
 
