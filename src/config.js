@@ -3,33 +3,24 @@
  * RemoteStorage object
  */
 var config = {
-  // Enable remoteStorage logging
-  logging: false,
-  // Change Events that are enabled. See the BaseClient API for more information
+  cache: true,
   changeEvents: {
     local:    true,
     window:   false,
     remote:   true,
     conflict: true
   },
-  // enable caching
-  cache: true,
-  // disable specified modules
-  disableFeatures: [],
-  // timeout for the Webfinger lookup, discovering a connecting user's storage details
-  discoveryTimeout: 10000,
-  // sync interval when the application is in the foreground
-  syncInterval: 10000,
-  // sync interval when the application is in the background
-  backgroundSyncInterval: 60000,
-  // initial value for the internal state of the app being in the background
-  isBackground: false,
-  // set a redirect URI for Cordova apps
   cordovaRedirectUri: undefined,
-  // timeout for network requests
+  disableFeatures: [],
+  logging: false,
+  modules: [],
+  // the following are not public and will probably be moved away from the
+  // default config
+  backgroundSyncInterval: 60000,
+  discoveryTimeout: 10000,
+  isBackground: false,
   requestTimeout: 30000,
-  // extra ES6 modules to load
-  modules: []
+  syncInterval: 10000
 };
 
 module.exports = config;
