@@ -76,6 +76,14 @@ List of events
 """""""""""""
    Emitted when a wire request completes
 
+``sync-req-done``
+"""""""""""""""""
+   Emitted when a single sync task has finished
+
+``sync-done``
+"""""""""""""
+   Emitted when the complete sync cycle has finished
+
 ``network-offline``
 """""""""""""""""""
    Emitted once when a wire request fails for the first time, and
