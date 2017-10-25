@@ -30,6 +30,9 @@ function emitUnauthorized(r) {
  *
  * Depending on which features are built in, it contains different attributes
  * and functions. See the individual features for more information.
+ *
+ * @param {object} config - an optional configuration object
+ * @class
  */
 var RemoteStorage = function (cfg) {
 
