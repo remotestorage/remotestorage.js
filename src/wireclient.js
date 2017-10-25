@@ -190,7 +190,7 @@
      *   Fired when the wireclient connect method realizes that it is in
      *   possession of a token and href
      **/
-    eventHandling(this, 'connected', 'not-connected', 'wire-busy', 'wire-done');
+    eventHandling(this, 'connected', 'not-connected');
 
     if (hasLocalStorage) {
       var settings;
@@ -258,7 +258,7 @@
         headers['Authorization'] = 'Bearer ' + token;
       }
 
-      this._emit('wire-busy', {
+      this.rs._emit('wire-busy', {
         method: method,
         isFolder: isFolder(uri)
       });
@@ -272,7 +272,7 @@
           self.online = true;
           self.rs._emit('network-online');
         }
-        self._emit('wire-done', {
+        self.rs._emit('wire-done', {
           method: method,
           isFolder: isFolder(uri),
           success: true
@@ -321,7 +321,7 @@
           self.online = false;
           self.rs._emit('network-offline');
         }
-        self._emit('wire-done', {
+        self.rs._emit('wire-done', {
           method: method,
           isFolder: isFolder(uri),
           success: false

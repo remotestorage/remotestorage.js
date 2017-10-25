@@ -8,7 +8,8 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
 
   function setup(env, test) {
     global.RemoteStorage = function () {
-      eventHandling(this, 'error', 'connected', 'network-offline', 'network-online');
+      eventHandling(this, 'error', 'connected', 'wire-busy', 'wire-done',
+                    'network-offline', 'network-online');
     };
     RemoteStorage.log = function () {};
     RemoteStorage.prototype.setBackend = function (b) {
@@ -86,8 +87,8 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
     env.done = new test.Stub(function(){});
     env.networkOffline = new test.Stub(function(){});
     env.networkOnline = new test.Stub(function(){});
-    env.connectedClient.on('wire-busy', env.busy);
-    env.connectedClient.on('wire-done', env.done);
+    env.rs.on('wire-busy', env.busy);
+    env.rs.on('wire-done', env.done);
     env.rs.on('network-offline', env.networkOffline);
     env.rs.on('network-online', env.networkOnline);
 

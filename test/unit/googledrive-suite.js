@@ -12,7 +12,8 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
       removeItem: function() {}
     };
     global.RemoteStorage = function () {
-      eventHandling(this, 'error', 'network-offline', 'network-online');
+      eventHandling(this, 'error', 'wire-busy', 'wire-done', 'network-offline',
+                    'network-online');
     };
     RemoteStorage.prototype = {
       setBackend: function (b) {
@@ -75,8 +76,8 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
     env.done = new test.Stub(function(){});
     env.networkOffline = new test.Stub(function(){});
     env.networkOnline = new test.Stub(function(){});
-    env.connectedClient.on('wire-busy', env.busy);
-    env.connectedClient.on('wire-done', env.done);
+    env.rs.on('wire-busy', env.busy);
+    env.rs.on('wire-done', env.done);
     env.rs.on('network-offline', env.networkOffline);
     env.rs.on('network-online', env.networkOnline);
 

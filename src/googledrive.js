@@ -117,7 +117,7 @@ Cache.prototype = {
 
 const GoogleDrive = function (remoteStorage, clientId) {
 
-  eventHandling(this, 'connected', 'wire-busy', 'wire-done', 'not-connected');
+  eventHandling(this, 'connected', 'not-connected');
 
   this.rs = remoteStorage;
   this.clientId = clientId;
@@ -640,7 +640,7 @@ GoogleDrive.prototype = {
     if (! options.headers) { options.headers = {}; }
     options.headers['Authorization'] = 'Bearer ' + this.token;
 
-    this._emit('wire-busy', {
+    this.rs._emit('wire-busy', {
       method: method,
       isFolder: isFolder(url)
     });
@@ -655,7 +655,7 @@ GoogleDrive.prototype = {
           this.online = true;
           this.rs._emit('network-online');
         }
-        this._emit('wire-done', {
+        this.rs._emit('wire-done', {
           method: method,
           isFolder: isFolder(url),
           success: true
@@ -668,7 +668,7 @@ GoogleDrive.prototype = {
         this.online = false;
         this.rs._emit('network-offline');
       }
-      this._emit('wire-done', {
+      this.rs._emit('wire-done', {
         method: method,
         isFolder: isFolder(url),
         success: false

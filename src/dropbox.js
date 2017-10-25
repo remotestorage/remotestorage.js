@@ -165,7 +165,7 @@
     this.connected = false;
     this.rs = rs;
 
-    eventHandling(this, 'connected', 'wire-busy', 'wire-done', 'not-connected');
+    eventHandling(this, 'connected', 'not-connected');
 
     this.clientId = rs.apiKeys.dropbox.appKey;
     this._revCache = new LowerCaseCache('rev');
@@ -683,7 +683,7 @@
         options.headers['Content-Type'] = 'application/json; charset=UTF-8';
       }
 
-      this._emit('wire-busy', {
+      this.rs._emit('wire-busy', {
         method: method,
         isFolder: isFolder(url)
       });
@@ -701,7 +701,7 @@
             self.online = true;
             self.rs._emit('network-online');
           }
-          self._emit('wire-done', {
+          self.rs._emit('wire-done', {
             method: method,
             isFolder: isFolder(url),
             success: true
@@ -714,7 +714,7 @@
           self.online = false;
           self.rs._emit('network-offline');
         }
-        self._emit('wire-done', {
+        self.rs._emit('wire-done', {
           method: method,
           isFolder: isFolder(url),
           success: false

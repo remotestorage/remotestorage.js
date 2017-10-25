@@ -42,7 +42,7 @@ var RemoteStorage = function (cfg) {
     this, 'ready', 'authing', 'connecting', 'connected', 'disconnected',
           'not-connected', 'conflict', 'error', 'features-loaded',
           'sync-interval-change', 'sync-req-done', 'sync-done',
-          'network-offline', 'network-online'
+          'wire-busy', 'wire-done', 'network-offline', 'network-online'
   );
 
   /**
