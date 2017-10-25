@@ -1,7 +1,7 @@
 Offering Dropbox and Google Drive as a storage option
 =====================================================
 
-remoteStorage.js optionally enables app developers to let users to store their
+remoteStorage.js optionally enables app developers to let users store their
 app data in Dropbox or Google Drive instead of a RemoteStorage server.
 
 You need to set your API keys for Dropbox and/or your Client ID for Google
