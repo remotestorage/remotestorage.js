@@ -4,6 +4,9 @@ RemoteStorage
 Constructor
 -----------
 
+.. autofunction:: RemoteStorage([config])
+  :short-name:
+
 Create a ``remoteStorage`` instance like so::
 
    var remoteStorage = new RemoteStorage();
@@ -12,8 +15,22 @@ The constructor can optionally be called with a configuration object, for
 example::
 
    var remoteStorage = new RemoteStorage({
-     logging: true,  // defaults to false
-     cordovaRedirectUri: 'https://app.wow-much-app.com' // defaults to undefined
+     // enable caching, defaults to true
+     cache: true,
+     // Change Events that are enabled, default to true except for window
+     // which is false
+     changeEvents: {
+       local:    true,
+       window:   false,
+       remote:   true,
+       conflict: true
+     },
+     // set a redirect URI for Cordova apps, defaults to undefined
+     cordovaRedirectUri: undefined,
+     // enable remoteStorage logging, defaults to false
+     logging: false,
+     // extra remoteStorage data modules to load, defaults to an empty list
+     modules: []
    });
 
 .. NOTE::
