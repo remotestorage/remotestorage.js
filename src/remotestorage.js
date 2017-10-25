@@ -32,15 +32,6 @@ function emitUnauthorized(r) {
  * and functions. See the individual features for more information.
  *
  * @param {object} config - an optional configuration object
- * @param {boolean} config.cache - enable caching, defaults to true
- * @param {object} config.changeEvents - Change Events that are enabled. See the :doc:`the BaseClient API doc</js-api/base-client>` for more information
- * @param {boolean} config.changeEvents.local - defaults to true
- * @param {boolean} config.changeEvents.window - defaults to false
- * @param {boolean} config.changeEvents.remote - defaults to true
- * @param {boolean} config.changeEvents.conflict - defaults to true
- * @param {string} config.cordovaRedirectUri - set a redirect URI for Cordova apps
- * @param {boolean} config.logging - enable remoteStorage logging, defaults to false
- * @param {array} config.modules - extra remoteStorage data modules to load
  * @class
  */
 var RemoteStorage = function (cfg) {
