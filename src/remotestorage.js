@@ -39,7 +39,6 @@ function emitUnauthorized(r) {
  * @param {boolean} config.changeEvents.remote - defaults to true
  * @param {boolean} config.changeEvents.conflict - defaults to true
  * @param {string} config.cordovaRedirectUri - set a redirect URI for Cordova apps
- * @param {array} config.disableFeatures - disable specified features
  * @param {boolean} config.logging - enable remoteStorage logging, defaults to false
  * @param {array} config.modules - extra remoteStorage data modules to load
  * @class
