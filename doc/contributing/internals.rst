@@ -9,4 +9,5 @@ concepts of the remoteStorage library.
 
    internals/discovery-bootstrap
    internals/caching
+   internals/cache-data-format
 
