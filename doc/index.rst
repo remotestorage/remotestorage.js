@@ -24,6 +24,7 @@ across devices and applications.
    data-modules
    js-api
    contributing
+   nodejs
    legacy
 
 Indices and tables
