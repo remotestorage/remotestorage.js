@@ -1,20 +1,18 @@
-Data format
-===========
+Data format of the local cache
+==============================
 
-.. ATTENTION::
-   This document has not yet been updated for rs.js 1.0.0+. It likely contains
-   outdated information and API calls.
+This section describes the structure and concepts of the local cache.
 
 Storing up to 4 revisions of each node
 --------------------------------------
 
-Each cache node will represent the versioning state of either one
-document or one folder. The versioning state is represented by one or
-more of the ``common``, ``local``, ``remote``, and ``push`` revisions.
-Local changes are stored in ``local``, and in ``push`` while an outgoing
-request is active. Remote changes that have either not been fetched yet
-(see `caching.md <caching.md>`__), or have not been merged with local
-changes yet, are stored in ``remote``.
+Each cache node represents the versioning state of either one document
+or one folder. The versioning state is represented by one or more of the
+``common``, ``local``, ``remote``, and ``push`` revisions.  Local
+changes are stored in ``local``, and in ``push`` while an outgoing
+request is active. Remote changes that have either not been fetched yet,
+or have not been merged with local changes yet, are stored in
+``remote``.
 
 autoMerge
 ---------
@@ -55,7 +53,8 @@ local and remote revisions of a node can interact:
                     \
                      \ . . . . [remote]
 
-Each of local, push, remote, and common can have,
+Each of ``local``, ``push``, ``remote``, and ``common`` can have have
+following properties:
 
 * for documents:
 
@@ -72,30 +71,15 @@ Each of local, push, remote, and common can have,
   * revision
   * timestamp
 
-NB: The meaning of the timestamp was changed in
-https://github.com/remotestorage/remotestorage.js/pull/757#issuecomment-55276241
-
-Caching strategies
-------------------
-
-For each subtree, you can set the caching strategy to 'ALL', 'SEEN'
-(default), and 'FLUSH'.
-
--  'ALL' means that once all outgoing changes have been pushed, sync
-   will start retrieving nodes to cache pro-actively. If a local copy
-   exists of everything, it will check on each sync whether the ETag of
-   the root folder changed, and retrieve remote changes if they exist.
--  'SEEN' does this only for documents and folders that have been either
-   read from or written to at least once since connecting to the current
-   remote backend, plus their parent/ancestor folders up to the root (to
-   make tree-based sync possible).
--  'FLUSH' will only cache outgoing changes, and forget them as soon as
-   they have been saved to remote successfully.
+NB: The timestamp represents the last sync time, not the last modified
+time. It is used by the ``isOutdated`` function in
+``src/cachinglayer.js`` to determine if the data needs to be fetched
+from remote again, or can be served from cache.
 
 "keep/revert" conflict resolution
 ---------------------------------
 
-Remotestorage implements a hub-and-spokes versioning system, with one
+RemoteStorage implements a hub-and-spokes versioning system, with one
 central remoteStorage server (the hub) and any number of clients (the
 spokes). The clients will typically be unhosted web apps based on this
 JS lib (remotestorage.js), but they don't have to be; they can also be
@@ -104,9 +88,9 @@ desktop apps, native smartphone apps, etcetera. New versions of subtrees
 always start at one of these clients. They are then sent to the server,
 and from there to all the other clients. The server assigns the revision
 numbers and sends them to the initiating client using HTTP ETag response
-headers in response to PUT requests. Remotestorage.js is a library that
-attempts to make it easy to build remoteStorage clients, by hiding both
-the push/pull synchronization and the version merging from the client
+headers in response to PUT requests. remotestorage.js is a library that
+attempts to make it easy to build remoteStorage applications, by hiding both
+the push/pull synchronization and the version merging from the app
 developer. Versioning conflicts between the local client and the remote
 server are initially resolved as a 'remote wins', to which the client
 code may respond with an explicit revert (putting the old, local version
