@@ -16,7 +16,7 @@ token using ``remoteStorage.remote.token`` in the console.
 
 If you are writing a Node.js command line application you can open a browser
 window to let the user create an OAuth token (or return an existing one) and
-redirect it to a web page that displays it so they can they paste it in their
+redirect to a web page that displays it so they can they paste it in their
 terminal. Here is how `rs-backup`_, a remoteStorage backup utility, does it:
 `authorization dialog from Node.js`_ and the matching HTML `auth page`_.
 
