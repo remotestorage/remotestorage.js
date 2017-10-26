@@ -13,3 +13,4 @@ to remoteStorage.js development.
    contributing/docs.rst
    contributing/github-flow.rst
    contributing/release-checklist.rst
+   contributing/internals
