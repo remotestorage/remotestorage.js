@@ -33,7 +33,7 @@
    *   - Listing and deleting folders with more than 10'000 files will cause problems
    *   - Content-Type is not fully supported due to limitations of the Dropbox API
    *   - Dropbox preserves cases but is not case-sensitive
-   *   - getItemURL is asynchronous which means getIetmURL returns useful values
+   *   - getItemURL is asynchronous which means it returns useful values
    *     after the syncCycle
    */
 
