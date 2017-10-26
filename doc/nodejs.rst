@@ -4,54 +4,50 @@ Usage with Node.js
 Although remoteStorage.js was initially written for being used in a
 browser, we do support using it in a Node.js environment as well.
 
+Differences between normal usage and Node.js
+--------------------------------------------
+
+The OAuth browser redirect is not supported, you need to pass a token to the
+`remotestorage.connect()` as the second argument. See the documentation on
+the :doc:`RemoteStorage API doc</js-api/remotestorage>`.
+
+You can use a web app to connect to the storage server and get the OAuth bearer
+token using ``remoteStorage.remote.token`` in the console.
+
+If you are writing a Node.js command line application you can open a browser
+window to let the user create an OAuth token (or return an existing one) and
+redirect it to a web page that displays it so they can they paste it in their
+terminal. Here is how `rs-backup`_, a remoteStorage backup utility, does it:
+`authorization dialog from Node.js`_ and the matching HTML `auth page`_.
+
 Installation
 ------------
 
 Client library
 ^^^^^^^^^^^^^^
 
-remoteStorage.js is available from npm::
-
-   $ npm install remotestoragejs
+See :doc:`Adding rs.js to your app</getting-started/how-to-add>`.
 
 Modules
 ^^^^^^^
 
-remoteStorage.js modules are not packaged as part of the ``remotestoragejs``
-npm module. You will need to download (or create) your own module to use. You
-can visit our `modules repository`_ to see existing modules, feel free to
-submit a pull request if you've written your own.
-
-They can also be published as npm modules: `search for "remotestorage-module" on npm`_ to find them.
-
-As of remoteStorage.js 1.0 you do not need to declare a ``remoteStorage`` global
-for modules to work in Node.js any longer, because they can be ES6 modules.
+TODO: See the upcoming Data Modules docs
 
 Caveats
 -------
 
-* The OAuth browser redirect is not supported, you need to pass a token to the
-  `remotestorage.connect()` as the second argument. See the documentation on
-  the :doc:`RemoteStorage API doc</js-api/remotestorage>`. For example you
-  can use a web app to connect to the storage server and get the OAuth bearer
-  token using ``remoteStorage.remote.token`` in the console.
 * IndexedDB and LocalStorage are not supported in a Node.js environment, for
-  local storage only in-memory storage is supported.
-
+  local storage only in-memory storage is supported. It means that
+  unsynchronized data will be lost between sessions and program executions.
 
 Examples
 --------
 
 * `hubot-remotestorage-logger`_, a Hubot script that logs chat messages to
-  remoteStorage-enabled accounts using the `remotestorage-module-chat-messages`_
-  module
-* `rs-backup`_, a program that allows you to backup your data from a
-  remoteStorage account to a local hard drive and restore it to the same or
-  another account or server. It does not use remoteStorage modules or the
-  remoteStorage.js client library.
+  remoteStorage-enabled accounts using the `chat-messages`_ module
 
-.. _modules repository: https://github.com/RemoteStorage/modules
-.. _search for "remotestorage-module" on npm: https://www.npmjs.com/search?q=remotestorage-module
+.. _authorization dialog from Node.js: https://github.com/skddc/rs-backup/blob/v1.5.0/backup.js#L137-L160
+.. _auth page: https://github.com/skddc/rs-backup-auth-page/blob/a91b487413f3a3531883a6cee9751c5b536edaa4/index.html#L72-L96
 .. _hubot-remotestorage-logger: https://github.com/67P/hubot-remotestorage-logger
-.. _remotestorage-module-chat-messages: https://www.npmjs.com/package/remotestorage-module-chat-messages
+.. _chat-messages: https://www.npmjs.com/package/remotestorage-module-chat-messages
 .. _rs-backup: https://github.com/skddc/rs-backup
