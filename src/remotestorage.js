@@ -807,12 +807,6 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
 });
 
 /*
- * @property remote
- *
- * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
- */
-
-/*
  * @property local
  *
  * Access to the local caching backend used. Usually either a
