@@ -276,7 +276,7 @@ Say you changed 'color.txt' from 'white' to 'blue'; if you have set
     }
 
 But when this change is pushed out by asynchronous synchronization, this change
-may rejected by the server, if the remote version has in the meantime changed
+may be rejected by the server, if the remote version has in the meantime changed
 from 'white' to  for instance 'red'; this will then lead to a change event with
 origin 'conflict' (usually a few seconds after the event with origin 'window',
 if you have those activated). Note that since you already changed it from
@@ -366,7 +366,20 @@ Data types
 .. autofunction:: BaseClient#validate(object)
   :short-name:
 
-  Example: TODO
+
+  Example:
+
+  .. code:: javascript
+
+    var result = client.validate(document);
+
+    // result:
+    // {
+    //   error: null,
+    //   missing: [],
+    //   valid: true
+    // }
+
 
 Caching
 -------
@@ -374,12 +387,20 @@ Caching
 .. autofunction:: BaseClient#cache(path, strategy)
   :short-name:
 
-  Example: TODO
+  Example:
+
+  .. code:: javascript
+
+    client.cache('documents/', 'ALL');
 
 .. autofunction:: BaseClient#flush(path)
   :short-name:
 
-  Example: TODO
+  Example:
+
+  .. code:: javascript
+
+    client.flush('documents/');
 
 Other functions
 ---------------
