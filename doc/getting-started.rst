@@ -11,3 +11,4 @@ to *remoteStorage.js*.
    getting-started/initialize-and-configure.rst
    getting-started/connect-widget.rst
    getting-started/events.rst
+   getting-started/dropbox-and-google-drive.rst
