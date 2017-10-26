@@ -44,6 +44,37 @@ one):
      };
    });
 
+Configuring caching
+-------------------
+
+This example shows how to configure caching in a module:
+
+.. code:: javascript
+
+   var beersBuilder = function (privateClient, publicClient) {
+     var pilsener = privateClient.scope('pilsener/');
+
+     // To enable always caching all data (not only data that was changed),
+     // change the caching strategy from 'SEEN' (the default) to 'ALL'.
+     // These two are equivalent operations:
+     privateClient.cache('pilsener/', 'ALL');
+     // OR:
+     pilsener.cache('', 'ALL');
+
+     // To disable caching for a given path, pass 'FLUSH' as the strategy:
+     privateClient.cache('pilsener/', 'FLUSH');
+     // OR:
+     pilsener.cache('', 'FLUSH');
+
+     return {
+       exports: {
+         pilsener: pilsener
+       }
+     };
+   };
+
+   export default { name: 'beers', builder: beersBuilder };
+
 Using a module in your app
 --------------------------
 

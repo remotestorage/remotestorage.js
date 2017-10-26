@@ -8,4 +8,5 @@ concepts of the remoteStorage library.
    :maxdepth: 2
 
    internals/discovery-bootstrap
+   internals/caching
 
