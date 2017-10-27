@@ -1042,23 +1042,28 @@
   }
 
   /**
-   * Hooking getItemURL
+   * Overwrite BaseClient's getItemURL with our own implementation
    *
-   * TODO: document
+   * TODO: getItemURL still needs to be implemented
+   *
+   * @param {object} rs - RemoteStorage instance
+   *
+   * @private
    */
-  function hookGetItemURL(rs) {
+  function hookGetItemURL (rs) {
     if (rs._origBaseClientGetItemURL) { return; }
     rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
-    BaseClient.prototype.getItemURL = function (path){
-      var ret = rs.dropbox._itemRefs[path];
-      return  ret ? ret : '';
+    BaseClient.prototype.getItemURL = function (path) {
+      throw new Error('getItemURL is not implemented for Dropbox yet');
     };
   }
 
   /**
-   * Unhooking getItemURL
+   * Restore BaseClient's getItemURL original implementation
    *
-   * TODO: document
+   * @param {object} rs - RemoteStorage instance
+   *
+   * @private
    */
   function unHookGetItemURL(rs){
     if (! rs._origBaseClientGetItemURL) { return; }
