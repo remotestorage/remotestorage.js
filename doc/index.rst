@@ -23,8 +23,8 @@ across devices and applications.
    getting-started
    data-modules
    js-api
-   contributing
    nodejs
+   contributing
    legacy
 
 Indices and tables
