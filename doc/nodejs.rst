@@ -46,7 +46,7 @@ program, one possible solution is the following:
    URL etc., e.g. using `webfinger.js
    <https://www.npmjs.com/package/webfinger.js>`_.
 3. Create the OAuth request URI with the correct scope etc., and open a browser
-   window with that URI from your program.
+   window with that URI from your program (or prompt the user to open it).
 4. Have the Web app, which the user is being redirected to, show the token to
    the user, in order for them to copy and enter in your program
 5. Connect with that token.
