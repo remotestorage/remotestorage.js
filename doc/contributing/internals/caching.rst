@@ -15,8 +15,8 @@ paths:
 
 1. Setting caching strategy 'ALL' for a path creates an empty node for
    that path, unless it already exists.
-2. The sync process will then do a 'GET', and create new nodes under any
-   folder with an 'ALL' strategy, when that folder is fetched.
+2. The sync process will then do a GET request, and create new nodes
+   under any folder with an 'ALL' strategy, when that folder is fetched.
 3. The sync process will create a new task for any node under an 'ALL'
    strategy, unless a task already exists for one of its ancestors.
 

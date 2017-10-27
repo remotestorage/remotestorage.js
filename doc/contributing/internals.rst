@@ -2,7 +2,7 @@ Internals
 =========
 
 This section contains information about some of the internals and
-concepts of the remoteStorage library.
+concepts of the remoteStorage.js library.
 
 .. toctree::
    :maxdepth: 2
