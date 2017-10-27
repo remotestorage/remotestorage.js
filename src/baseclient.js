@@ -283,10 +283,6 @@ BaseClient.prototype = {
    * Retrieve full URL of a document. Useful for example for sharing the public
    * URL of an item in the ``/public`` folder.
    *
-   * Please note: This method currently only works for remoteStorage
-   * backends. The issues for implementing it for Dropbox and Google
-   * Drive can be found at :issue:`1052` and :issue:`1054`.
-   *
    * @param {string} path - Path relative to the module root.
    * @returns {string} The full URL of the item, including the storage origin
    */
