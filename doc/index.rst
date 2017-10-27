@@ -23,6 +23,7 @@ across devices and applications.
    getting-started
    data-modules
    js-api
+   nodejs
    contributing
    legacy
 
