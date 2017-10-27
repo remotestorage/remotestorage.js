@@ -432,11 +432,16 @@
 
         // handling binary
         if (!mime || mime.match(/charset=binary/)) {
-          return Promise.resolve({
-            statusCode: status,
-            body: resp.response,
-            contentType: mime,
-            revision: rev
+          // FIXME: would be better to make readBinaryData return a Promise - les
+          return new Promise( (resolve, reject) => {
+            WireClient.readBinaryData(resp.response, mime, function (result) {
+              resolve({
+                statusCode: status,
+                body: result,
+                contentType: mime,
+                revision: rev
+              });
+            });
           });
         }
 

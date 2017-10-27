@@ -33,12 +33,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
   }
 
   function beforeEach(env, test) {
-    global.ArrayBufferMock = function(str) {
-      return {
-        iAmA: 'ArrayBufferMock',
-        content: str
-      };
-    };
     global.XMLHttpRequest = function () {
       XMLHttpRequest.instances.push(this);
       this._headers = {};
@@ -819,25 +813,28 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       },
 
       {
-        desc: "responses with the charset set to 'binary' are left as the raw response",
+        desc: "responses with the charset set to 'binary' are read using a FileReader, after constructing a Blob",
         run: function (env, test) {
           env.connectedClient.get('/foo/bar').
             then(function (r) {
-              test.assertAnd(r.statusCode, 200);
-              test.assertAnd(r.body, {
-                iAmA: 'ArrayBufferMock',
-                content: 'response-body'
+              // check Blob
+              test.assertTypeAnd(env.blob, 'object');
+              test.assertAnd(env.blob.input, ['response-body']);
+              test.assertAnd(env.blob.options, {
+                type: 'application/octet-stream; charset=binary'
               });
+
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, env.fileReaderResult);
               test.assert(r.contentType, 'application/octet-stream; charset=binary');
             });
-
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
           req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
             rev: 'rev'
           });
           req.status = 200;
-          req.response = new ArrayBufferMock('response-body');
+          req.response = 'response-body';
           req._onload();
         }
       },
@@ -848,7 +845,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
           env.connectedClient.get('/foo/bar').
             then(function (r) {
               test.assertAnd(r.statusCode, 200);
-              test.assertAnd(r.body, 'response-body');
+              test.assertAnd(r.body, env.fileReaderResult);
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
