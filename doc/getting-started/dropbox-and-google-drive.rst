@@ -49,8 +49,7 @@ Known issues
 * Listing and deleting folders with more than 10000 files will cause problems
 * Content-Type is not fully supported due to limitations of the Dropbox API
 * Dropbox preserves cases but is not case-sensitive
-* ``getItemURL`` is asynchronous which means it only returns useful values for
-  newly created items after the next sync
+* ``getItemURL`` is not implemented yet (see issue :issue:`1052`)
 
 Google Drive
 ------------
@@ -66,3 +65,9 @@ Console <https://console.developers.google.com/flows/enableapi?apiid=drive>`_.
   with Dropbox)
 * Once your app is running in production, you will want to get verified by
   Google to avoid a security warning when the user first connects their account
+
+Known issues
+^^^^^^^^^^^^
+
+* Sharing public files is not supported yet (see issue :issue:`1051`)
+* ``getItemURL`` is not implemented yet (see issue :issue:`1054`)
