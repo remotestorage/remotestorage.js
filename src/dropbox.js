@@ -65,6 +65,32 @@
     return data instanceof ArrayBuffer || WireClient.isArrayBufferView(data);
   }
 
+  const readBinaryData = function (content, mimeType) {
+    return new Promise((resolve) => {
+      var blob;
+      util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
+      if (typeof util.globalContext.BlobBuilder !== 'undefined') {
+        var bb = new global.BlobBuilder();
+        bb.append(content);
+        blob = bb.getBlob(mimeType);
+      } else {
+        blob = new Blob([content], { type: mimeType });
+      }
+
+      var reader = new FileReader();
+      if (typeof reader.addEventListener === 'function') {
+        reader.addEventListener('loadend', function () {
+          resolve(reader.result); // reader.result contains the contents of blob as a typed array
+        });
+      } else {
+        reader.onloadend = function() {
+          resolve(reader.result); // reader.result contains the contents of blob as a typed array
+        };
+      }
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+
   /**
    * A cache which automatically converts all keys to lower case and can
    * propagate changes up to parent folders.
@@ -432,16 +458,13 @@
 
         // handling binary
         if (!mime || mime.match(/charset=binary/)) {
-          // FIXME: would be better to make readBinaryData return a Promise - les
-          return new Promise( (resolve, reject) => {
-            WireClient.readBinaryData(resp.response, mime, function (result) {
-              resolve({
-                statusCode: status,
-                body: result,
-                contentType: mime,
-                revision: rev
-              });
-            });
+          return readBinaryData(resp.response, mime).then((result) => {
+            return {
+              statusCode: status,
+              body: result,
+              contentType: mime,
+              revision: rev
+            };
           });
         }
 
