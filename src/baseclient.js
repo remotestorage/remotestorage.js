@@ -307,7 +307,8 @@ BaseClient.prototype = {
    * strategies.
    *
    * @param {string} path - Path to cache
-   * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
+   * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or
+   *                            'FLUSH'. Defaults to 'ALL'.
    *
    * @returns {BaseClient} The same instance this is called on to allow for method chaining
    */
