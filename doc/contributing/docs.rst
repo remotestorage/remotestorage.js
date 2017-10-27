@@ -57,10 +57,9 @@ Setup
 Build
 ^^^^^
 
-From the ``doc/`` folder, run the following command to automatically watch and
-build the documentation::
+Run the following command to automatically watch and build the documentation::
 
-   $ sphinx-autobuild . _build/html
+   $ npm run doc
 
 This will start a web server, serving the HTML docs on `<http://localhost:8000>`_.
 
@@ -72,8 +71,8 @@ This will start a web server, serving the HTML docs on `<http://localhost:8000>`
 .. HINT::
    If your editor adds additional files to the ``doc/`` folder, you might want
    to ignore those explicitly using the ``-i`` option, because at the time of
-   this writing, ``sphinx-autobuild`` watched for changes to *any* files. For
-   example for Vim, you could use ``sphinx-autobuild -i *.sw* . _build/html``.
+   this writing, ``sphinx-autobuild`` watched for changes to *any* files. Right
+   now we have ignored swap/temp files for Vim and Emacs
 
 .. rubric:: Footnotes
 

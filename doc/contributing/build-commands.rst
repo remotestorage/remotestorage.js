@@ -24,7 +24,4 @@ comments::
 doc
 ---
 
-Generates the documentation website. See :doc:`the Documentation section of
-the Contributing docs</contributing/docs>` to install the dependencies::
-
-   $ npm run doc
+See :doc:`the Documentation section of the Contributing docs</contributing/docs>`
