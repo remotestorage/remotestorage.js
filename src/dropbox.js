@@ -61,6 +61,10 @@
     return new RegExp('^' + expect.join('\\/') + '(\\/|$)').test(response.error_summary);
   };
 
+  const isBinaryData = function (data) {
+    return data instanceof ArrayBuffer || WireClient.isArrayBufferView(data);
+  }
+
   /**
    * A cache which automatically converts all keys to lower case and can
    * propagate changes up to parent folders.
@@ -487,8 +491,7 @@
         return Promise.resolve({statusCode: 412, revision: savedRev});
       }
 
-      if ((!contentType.match(/charset=/)) &&
-          (body instanceof ArrayBuffer || WireClient.isArrayBufferView(body))) {
+      if ((!contentType.match(/charset=/)) && isBinaryData(body)) {
         contentType += '; charset=binary';
       }
 
@@ -678,7 +681,7 @@
       }
       options.headers['Authorization'] = 'Bearer ' + this.token;
 
-      if (typeof options.body === 'object') {
+      if (typeof options.body === 'object' && !isBinaryData(options.body)) {
         options.body = JSON.stringify(options.body);
         options.headers['Content-Type'] = 'application/json; charset=UTF-8';
       }
