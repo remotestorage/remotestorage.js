@@ -91,7 +91,7 @@
      *
      * @protected
      */
-    get : function (key) {
+    get: function (key) {
       key = key.toLowerCase();
       var stored = this._storage[key];
       if (typeof stored === 'undefined'){
@@ -104,7 +104,7 @@
     /**
      * Set a value and also update the parent folders with that value.
      */
-    propagateSet : function (key, value) {
+    propagateSet: function (key, value) {
       key = key.toLowerCase();
       if (this._storage[key] === value) {
         return value;
@@ -117,7 +117,7 @@
     /**
      * Delete a value and propagate the changes to the parent folders.
      */
-    propagateDelete : function (key) {
+    propagateDelete: function (key) {
       key = key.toLowerCase();
       this._propagate(key, this._storage[key]);
       return delete this._storage[key];
@@ -132,7 +132,7 @@
     /**
      * Set a value without propagating.
      */
-    justSet : function (key, value) {
+    justSet: function (key, value) {
       key = key.toLowerCase();
       this._storage[key] = value;
       return value;
@@ -141,7 +141,7 @@
     /**
      * Delete a value without propagating.
      */
-    justDelete : function (key, value) {
+    justDelete: function (key, value) {
       key = key.toLowerCase();
       return delete this._storage[key];
     },
