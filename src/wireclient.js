@@ -97,30 +97,6 @@
     return str.replace(/^["']|["']$/g, '');
   }
 
-  function readBinaryData(content, mimeType, callback) {
-    var blob;
-    util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
-    if (typeof util.globalContext.BlobBuilder !== 'undefined') {
-      var bb = new global.BlobBuilder();
-      bb.append(content);
-      blob = bb.getBlob(mimeType);
-    } else {
-      blob = new Blob([content], { type: mimeType });
-    }
-
-    var reader = new FileReader();
-    if (typeof reader.addEventListener === 'function') {
-      reader.addEventListener('loadend', function () {
-        callback(reader.result); // reader.result contains the contents of blob as a typed array
-      });
-    } else {
-      reader.onloadend = function() {
-        callback(reader.result); // reader.result contains the contents of blob as a typed array
-      };
-    }
-    reader.readAsArrayBuffer(blob);
-  }
-
   function getTextFromArrayBuffer(arrayBuffer, encoding) {
     return new Promise((resolve, reject) => {
       if (typeof Blob === 'undefined') {
@@ -499,8 +475,6 @@
 
   // Shared isArrayBufferView used by WireClient and Dropbox
   WireClient.isArrayBufferView = isArrayBufferView;
-
-  WireClient.readBinaryData = readBinaryData;
 
   // Shared request function used by WireClient, GoogleDrive and Dropbox.
   // TODO: Should we use fetch ?
