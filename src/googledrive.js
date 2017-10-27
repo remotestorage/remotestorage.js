@@ -15,6 +15,7 @@
 **/
 
 const Authorize = require('./authorize');
+const BaseClient = require('./baseclient');
 const WireClient = require('./wireclient');
 const eventHandling = require('./eventhandling');
 const util = require('./util');
@@ -680,6 +681,37 @@ GoogleDrive.prototype = {
 };
 
 /**
+ * Overwrite BaseClient's getItemURL with our own implementation
+ *
+ * TODO: Still needs to be implemented. At the moment it just throws
+ * and error saying that it's not implemented yet.
+ *
+ * @param {object} rs - RemoteStorage instance
+ *
+ * @private
+ */
+function hookGetItemURL (rs) {
+  if (rs._origBaseClientGetItemURL) { return; }
+  rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
+  BaseClient.prototype.getItemURL = function (path){
+    throw new Error('getItemURL is not implemented for Google Drive yet');
+  };
+}
+
+/**
+ * Restore BaseClient's getItemURL original implementation
+ *
+ * @param {object} rs - RemoteStorage instance
+ *
+ * @private
+ */
+function unHookGetItemURL (rs) {
+  if (!rs._origBaseClientGetItemURL) { return; }
+  BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
+  delete rs._origBaseClientGetItemURL;
+}
+
+/**
  * Initialize the Google Drive backend.
  *
  * @param {Object} remoteStorage - RemoteStorage instance
@@ -693,6 +725,8 @@ GoogleDrive._rs_init = function (remoteStorage) {
     if (remoteStorage.backend === 'googledrive') {
       remoteStorage._origRemote = remoteStorage.remote;
       remoteStorage.remote = remoteStorage.googledrive;
+
+      hookGetItemURL(remoteStorage);
     }
   }
 };
@@ -722,6 +756,7 @@ GoogleDrive._rs_cleanup = function (remoteStorage) {
     remoteStorage.remote = remoteStorage._origRemote;
     delete remoteStorage._origRemote;
   }
+  unHookGetItemURL(remoteStorage);
 };
 
 module.exports = GoogleDrive;
