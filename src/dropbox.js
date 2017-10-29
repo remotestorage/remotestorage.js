@@ -915,7 +915,8 @@
         }
 
         this._revCache.propagateSet(params.path, body.rev);
-        return Promise.resolve({ statusCode: response.status });
+
+        return Promise.resolve({ statusCode: response.status, revision: body.rev });
       });
     },
 
