@@ -717,6 +717,25 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
       },
 
       {
+        desc: "#put responds with the revision of the file when successful",
+        run: function (env, test) {
+          env.connectedClient.put('/foo/bar', 'data', 'text/plain').
+            then(function (r) {
+              test.assert(r.revision, 'some-revision');
+            });
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              path: '/remotestorage/foo/bar',
+              rev: 'some-revision'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
         desc: "#put returns the erroneous status it received from DropBox",
         run: function (env, test) {
           env.connectedClient.put('/foo', 'data', 'text/plain').
