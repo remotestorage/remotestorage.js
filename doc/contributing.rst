@@ -8,6 +8,8 @@ to remoteStorage.js development.
    :maxdepth: 2
 
    contributing/code-overview.rst
+   contributing/building.rst
+   contributing/testing.rst
    contributing/docs.rst
    contributing/github-flow.rst
    contributing/release-checklist.rst

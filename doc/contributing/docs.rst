@@ -57,10 +57,9 @@ Setup
 Build
 ^^^^^
 
-From the ``doc/`` folder, run the following command to automatically watch and
-build the documentation::
+Run the following command to automatically watch and build the documentation::
 
-   $ sphinx-autobuild . _build/html
+   $ npm run doc
 
 This will start a web server, serving the HTML docs on `<http://localhost:8000>`_.
 
@@ -68,12 +67,6 @@ This will start a web server, serving the HTML docs on `<http://localhost:8000>`
    The autobuild cannot watch for changes in JSDoc comments as of now, so you
    will need to re-run the command, or change something in a ``.rst`` file in
    order for code documentation changes to be re-built.
-
-.. HINT::
-   If your editor adds additional files to the ``doc/`` folder, you might want
-   to ignore those explicitly using the ``-i`` option, because at the time of
-   this writing, ``sphinx-autobuild`` watched for changes to *any* files. For
-   example for Vim, you could use ``sphinx-autobuild -i *.sw* . _build/html``.
 
 .. rubric:: Footnotes
 

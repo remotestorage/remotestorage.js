@@ -8,7 +8,6 @@ branches:
     - master
     - stable
 sudo: false
-before_script: make deps
 script:
-    - make test
+    - npm test
     - scripts/validate-greenkeeper-pr.sh
