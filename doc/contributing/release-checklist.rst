@@ -1,4 +1,4 @@
-Release Checklist
+Release checklist
 =================
 
 .. highlight:: bash

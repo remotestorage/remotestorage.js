@@ -1,5 +1,7 @@
-How connecting to a storage works internally
-============================================
+Discovery bootstrap
+===================
+
+*This section describes how connecting to a storage works internally.*
 
 When the RemoteStorage instance is instantiated, it checks the fragment
 of the URL to see if it contains an ``access_token`` or
