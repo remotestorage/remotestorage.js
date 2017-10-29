@@ -63,11 +63,11 @@ Configuring caching
 
 Last but not least, we'll usually want to configure caching (and with it
 automatic sync) for the data we're accessing. The ``caching.enable()`` method
-will set the default caching strategy (``ALL``) for the given path, meaning all
-of the items therein will be automatically synced from and to the server::
+will activate full caching for the given path, meaning all of the items therein
+will be automatically synced from and to the server::
 
    remoteStorage.caching.enable('/myfavoritedrinks/')
 
 :raw-html:`<small>`
-See the :doc:`Caching API doc </js-api/caching>` for more options.
+See the :doc:`Caching API doc </js-api/caching>` for details and options.
 :raw-html:`</small>`
