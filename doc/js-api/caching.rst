@@ -43,19 +43,6 @@ For each subtree, you can set the caching strategy to ``ALL``, ``SEEN``
 * ``FLUSH`` will only cache outgoing changes, and forget them as soon as
   they have been saved to remote successfully.
 
-Synchronizing after caching settings have changed
--------------------------------------------------
-
-Whenever you have changed the caching settings, you can either wait for
-the next automatic synchronization to happen, or trigger one yourself:
-
-.. code:: javascript
-
-   remoteStorage.startSync().then(function() {
-     console.log("Synchronization finished.");
-   });
-
-
 List of functions
 -------------------
 
