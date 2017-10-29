@@ -56,6 +56,8 @@ BaseClient.prototype = {
    * Instantiate a new client, scoped to a subpath of the current client's
    * path.
    *
+   * @param {string} path - The path to scope the new client to.
+   *
    * @returns {BaseClient} A new client operating on a subpath of the current
    *                       base path.
    */
@@ -299,12 +301,16 @@ BaseClient.prototype = {
   },
 
   /**
-   * Set caching strategy for a given path and its children
+   * Set caching strategy for a given path and its children.
    *
-   * TODO: document
+   * See :ref:`caching-strategies` for a detailed description of the available
+   * strategies.
    *
-   * @param {string} path
-   * @param {string} strategy
+   * @param {string} path - Path to cache
+   * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or
+   *                            'FLUSH'. Defaults to 'ALL'.
+   *
+   * @returns {BaseClient} The same instance this is called on to allow for method chaining
    */
   cache: function (path, strategy) {
     if (typeof path  !== 'string') {
@@ -323,7 +329,17 @@ BaseClient.prototype = {
           + '["FLUSH", "SEEN", "ALL"]';
     }
     this.storage.caching.set(this.makePath(path), strategy);
+
     return this;
+  },
+
+  /**
+   * TODO: document
+   *
+   * @param {string} path
+   */
+  flush: function (path) {
+    return this.storage.local.flush(path);
   },
 
   /**
@@ -387,15 +403,6 @@ BaseClient.prototype = {
    */
   _attachType: function(object, alias) {
     object['@context'] = BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
-  },
-
-  /**
-   * TODO: document
-   *
-   * @param {string} path
-   */
-  flush: function (path) {
-    return this.storage.local.flush(path);
   },
 
   /**

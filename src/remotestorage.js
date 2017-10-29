@@ -184,16 +184,15 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * TODO: where is this defined?
+   * @property {object} remote
    *
-   * Property: remote
+   * Depending on the chosen backend, this is either an instance of ``WireClient``,
+   * ``Dropbox`` or ``GoogleDrive``.
    *
-   * Properties:
-   *
-   *   connected   - Boolean, whether or not a remote store is connected
-   *   online      - Boolean, whether last sync action was successful or not
-   *   userAddress - String, the user address of the connected user
-   *   properties  - String, the properties of the WebFinger link
+   * @property {boolean} remote.connected - Whether or not a remote store is connected
+   * @property {boolean} remote.online - Whether last sync action was successful or not
+   * @property {string} remote.userAddress - The user address of the connected user
+   * @property {string} remote.properties - The properties of the WebFinger link
    */
 
   /**
@@ -806,12 +805,6 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
     return caching;
   }
 });
-
-/*
- * @property remote
- *
- * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
- */
 
 /*
  * @property local
