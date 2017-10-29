@@ -9,6 +9,7 @@ to remoteStorage.js development.
 
    contributing/code-overview.rst
    contributing/build-commands.rst
+   contributing/testing.rst
    contributing/docs.rst
    contributing/github-flow.rst
    contributing/release-checklist.rst

@@ -3,17 +3,6 @@ Build commands
 
 Here are the commands you will find useful as a contributor:
 
-test
-----
-
-Runs all the tests, then all the test suites separately::
-
-   $ npm run test
-
-Run a specific test file::
-
-   $ node_modules/jaribu/bin/jaribu test/unit/remotestorage-suite.js
-
 dev
 ---
 
