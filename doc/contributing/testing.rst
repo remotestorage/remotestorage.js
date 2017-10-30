@@ -30,8 +30,8 @@ single file:
 Continous integration
 ---------------------
 
-The rs.js test suite is by Travis CI on every push to our repo on GitHub.  When
-you open a pull request, your code will be tested there, too. You can check out
-the build status and history at
+The rs.js test suite is run by Travis CI on every push to our repo on GitHub.
+When you open a pull request, your code will be tested there, too. You can
+check out the build status and history at
 https://travis-ci.org/remotestorage/remotestorage.js/, and the CI settings in
 ``.travis.yml``.
