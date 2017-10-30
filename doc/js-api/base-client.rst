@@ -1,11 +1,15 @@
 BaseClient
 ==========
 
-TODO explain:
+A ``BaseClient`` instance is the main endpoint you will use for interacting
+with a connected storage: listing, reading, creating, updating and deleting
+documents, as well as handling incoming changes.
 
-* usually used in modules, given as argument to the builder function (public
-  plus private)
-* can also be created on the fly using remoteStorage#scope
+Base clients are usually used in :doc:`data modules </data-modules>`_, which
+are loaded with two ``BaseClient`` instances, for public and private documents.
+
+However, you can also instantiate a BaseClient outside of a data module using
+the ``remoteStorage.scope()`` function.
 
 .. contents::
 
