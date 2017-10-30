@@ -61,6 +61,36 @@
     return new RegExp('^' + expect.join('\\/') + '(\\/|$)').test(response.error_summary);
   };
 
+  const isBinaryData = function (data) {
+    return data instanceof ArrayBuffer || WireClient.isArrayBufferView(data);
+  }
+
+  const readBinaryData = function (content, mimeType) {
+    return new Promise((resolve) => {
+      var blob;
+      util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
+      if (typeof util.globalContext.BlobBuilder !== 'undefined') {
+        var bb = new global.BlobBuilder();
+        bb.append(content);
+        blob = bb.getBlob(mimeType);
+      } else {
+        blob = new Blob([content], { type: mimeType });
+      }
+
+      var reader = new FileReader();
+      if (typeof reader.addEventListener === 'function') {
+        reader.addEventListener('loadend', function () {
+          resolve(reader.result); // reader.result contains the contents of blob as a typed array
+        });
+      } else {
+        reader.onloadend = function() {
+          resolve(reader.result); // reader.result contains the contents of blob as a typed array
+        };
+      }
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+
   /**
    * A cache which automatically converts all keys to lower case and can
    * propagate changes up to parent folders.
@@ -87,7 +117,7 @@
      *
      * @protected
      */
-    get : function (key) {
+    get: function (key) {
       key = key.toLowerCase();
       var stored = this._storage[key];
       if (typeof stored === 'undefined'){
@@ -100,7 +130,7 @@
     /**
      * Set a value and also update the parent folders with that value.
      */
-    propagateSet : function (key, value) {
+    propagateSet: function (key, value) {
       key = key.toLowerCase();
       if (this._storage[key] === value) {
         return value;
@@ -113,7 +143,7 @@
     /**
      * Delete a value and propagate the changes to the parent folders.
      */
-    propagateDelete : function (key) {
+    propagateDelete: function (key) {
       key = key.toLowerCase();
       this._propagate(key, this._storage[key]);
       return delete this._storage[key];
@@ -128,7 +158,7 @@
     /**
      * Set a value without propagating.
      */
-    justSet : function (key, value) {
+    justSet: function (key, value) {
       key = key.toLowerCase();
       this._storage[key] = value;
       return value;
@@ -137,7 +167,7 @@
     /**
      * Delete a value without propagating.
      */
-    justDelete : function (key, value) {
+    justDelete: function (key, value) {
       key = key.toLowerCase();
       return delete this._storage[key];
     },
@@ -428,16 +458,13 @@
 
         // handling binary
         if (!mime || mime.match(/charset=binary/)) {
-          // FIXME: would be better to make readBinaryData return a Promise - les
-          return new Promise( (resolve, reject) => {
-            WireClient.readBinaryData(resp.response, mime, function (result) {
-              resolve({
-                statusCode: status,
-                body: result,
-                contentType: mime,
-                revision: rev
-              });
-            });
+          return readBinaryData(resp.response, mime).then((result) => {
+            return {
+              statusCode: status,
+              body: result,
+              contentType: mime,
+              revision: rev
+            };
           });
         }
 
@@ -487,8 +514,7 @@
         return Promise.resolve({statusCode: 412, revision: savedRev});
       }
 
-      if ((!contentType.match(/charset=/)) &&
-          (body instanceof ArrayBuffer || WireClient.isArrayBufferView(body))) {
+      if ((!contentType.match(/charset=/)) && isBinaryData(body)) {
         contentType += '; charset=binary';
       }
 
@@ -678,7 +704,7 @@
       }
       options.headers['Authorization'] = 'Bearer ' + this.token;
 
-      if (typeof options.body === 'object') {
+      if (typeof options.body === 'object' && !isBinaryData(options.body)) {
         options.body = JSON.stringify(options.body);
         options.headers['Content-Type'] = 'application/json; charset=UTF-8';
       }
