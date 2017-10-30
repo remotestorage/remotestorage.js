@@ -5,11 +5,13 @@ A ``BaseClient`` instance is the main endpoint you will use for interacting
 with a connected storage: listing, reading, creating, updating and deleting
 documents, as well as handling incoming changes.
 
-Base clients are usually used in :doc:`data modules </data-modules>`_, which
-are loaded with two ``BaseClient`` instances, for public and private documents.
+Base clients are usually used in :doc:`data modules </data-modules>`, which are
+loaded with two ``BaseClient`` instances by default: one for private and one for
+public documents.
 
 However, you can also instantiate a BaseClient outside of a data module using
-the ``remoteStorage.scope()`` function.
+the ``remoteStorage.scope()`` function. Similarly, you can create a new scoped
+client within another client, using the ``BaseClient``'s own :func:`scope`.
 
 .. contents::
 
