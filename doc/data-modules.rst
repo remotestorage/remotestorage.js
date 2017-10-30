@@ -31,6 +31,6 @@ certainly encouraged, it is by no means required, of course.
    :caption: Contents
    :maxdepth: 2
 
-   data-modules/anatomy-of-a-module
+   data-modules/defining-a-module
    data-modules/find
    data-modules/types
