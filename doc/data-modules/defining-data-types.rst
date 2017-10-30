@@ -28,7 +28,7 @@ Consider this simplified example of an archive bookmark:
            "type": "array",
            "default": []
          },
-       }),
+       },
        "required": [ "title", "url" ]
      });
 
@@ -69,8 +69,8 @@ errors in case the data format doesn't match::
    })
    .then(() => {
      console.log('stored bookmark successfully');
-   }
-   .catch((err)) => {
+   })
+   .catch((err) => {
      console.error('validation error:', err);
    });
 
