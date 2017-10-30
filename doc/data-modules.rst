@@ -33,3 +33,4 @@ certainly encouraged, it is by no means required, of course.
 
    data-modules/defining-a-module
    data-modules/defining-data-types
+   data-modules/publishing-and-finding-modules
