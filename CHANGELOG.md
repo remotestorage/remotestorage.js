@@ -21,28 +21,28 @@ All releases can also be found and downloaded on the
 * Deprecated method `equalObj` from `RemoteStorage.util` has been
   removed
 * `setApiKeys` takes a config object as argument to allow to configure
-  multiple backends at once
+  multiple backends at once (#1021)
 * The sync events 'done' and 'req-done' are emitted by the `remoteStorage`
   instance instead of `remoteStorage.sync` as 'sync-done' and
-  'sync-req-done
+  'sync-req-done (#1044)
 * The network events 'wire-busy' and 'wire-done' are emitted by the
-  `remoteStorage` instance instead of `remoteStorage.remote`
+  `remoteStorage` instance instead of `remoteStorage.remote` (#1044)
 
 ### Enhancements
 
 * Switch Dropbox adapter to use the Dropbox API v2 (#936)
 * Store data in Google Drive under "remotestorage" base dir (#962)
-* Emit `Unauthorized` error on 401 responses
+* Emit `Unauthorized` error on 401 responses (#1018)
 * Emit `Unauthorized` error with code "access_denied" when user denies
-  access
+  access (#1018)
 * Add `reconnect()` method to retrieve new authorization (e.g. after it
-  expired)
-* `startSync()` returns the sync promise
+  expired) (#1018)
+* `startSync()` returns the sync promise (#1036)
 
 ### Bugfixes
 
 * Remove all scheduled sync calls after disconnect (#994)
-* Fix discovery problems in Internet Explorer
+* Fix discovery problems in Internet Explorer (#1018)
 * Don't throw error when trying to delete non-existing document (#993)
 * Fix Dropbox first-time connect when "remotestorage" directory doesn't
   exist yet (#1035)
