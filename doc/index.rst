@@ -25,7 +25,6 @@ across devices and applications.
    js-api
    nodejs
    contributing
-   legacy
 
 Indices and tables
 ------------------
