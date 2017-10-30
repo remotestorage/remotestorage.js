@@ -12,7 +12,7 @@
   },
   "homepage": "https://remotestorage.io",
   "scripts": {
-    "test": "./scripts/test",
+    "test": "bash scripts/test-all.sh",
     "build": "NODE_ENV=production webpack -p",
     "dev": "webpack -w",
     "doc": "cd doc; sphinx-autobuild -i '*~' -i '*.sw*' -i '#*#' . _build/html",

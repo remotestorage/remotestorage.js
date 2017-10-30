@@ -10,4 +10,3 @@ branches:
 sudo: false
 script:
     - npm test
-    - scripts/validate-greenkeeper-pr.sh
