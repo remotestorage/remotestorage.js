@@ -387,8 +387,8 @@ RemoteStorage.prototype = {
    * You should usually not use this method directly, but instead use the
    * "change" events provided by :doc:`BaseClient </js-api/base-client>`
    *
-   * @param path    - Absolute path to attach handler to
-   * @param handler - Handler function
+   * @param {string} path - Absolute path to attach handler to
+   * @param {function} handler - Handler function
    */
   onChange: function (path, handler) {
     if (! this._pathHandlers.change[path]) {
