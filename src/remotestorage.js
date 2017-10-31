@@ -98,12 +98,14 @@ var RemoteStorage = function (cfg) {
     this.setBackend(localStorage.getItem('remotestorage:backend') || 'remotestorage');
   }
 
+  // Keep a reference to the orginal `on` function
   var origOn = this.on;
 
   /**
-   * TODO: document
+   * Register an event handler. See :ref:`rs-events` for available event names.
    *
-   * @private
+   * @param {string} eventName - Name of the event
+   * @param {function} handler - Event handler
    */
   this.on = function (eventName, handler) {
     // check if the handler should be called immedtiately, because the
