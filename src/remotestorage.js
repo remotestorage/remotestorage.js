@@ -106,11 +106,31 @@ var RemoteStorage = function (cfg) {
    * @private
    */
   this.on = function (eventName, handler) {
-    if (eventName === 'ready' && this.remote && this.remote.connected && this._allLoaded) {
-      setTimeout(handler, 0);
-    } else if (eventName === 'features-loaded' && this._allLoaded) {
-      setTimeout(handler, 0);
+    // check if the handler should be called immedtiately, because the
+    // event has happened already
+    switch(eventName) {
+      case 'features-loaded':
+        if (this._allLoaded) {
+          setTimeout(handler, 0);
+        }
+        break;
+      case 'ready':
+        if (this._allLoaded && this.remote) {
+          setTimeout(handler, 0);
+        }
+        break;
+      case 'connected':
+        if (this._allLoaded && this.remote && this.remote.connected) {
+          setTimeout(handler, 0);
+        }
+        break;
+      case 'not-connected':
+        if (this._allLoaded && this.remote && !this.remote.connected) {
+          setTimeout(handler, 0);
+        }
+        break;
     }
+
     return origOn.call(this, eventName, handler);
   };
 
