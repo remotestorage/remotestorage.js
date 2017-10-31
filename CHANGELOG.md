@@ -42,9 +42,9 @@ All releases can also be found and downloaded on the
 
 ### Bugfixes
 
-* Remove all scheduled sync calls after disconnect (#994)
+* Fix sync errors after disconnect (#994)
 * Fix discovery problems in Internet Explorer (#1018)
-* Don't throw error when trying to delete non-existing document (#993)
+* Fix error when trying to delete last document in a directory (#993)
 * Fix Dropbox files not being deleted when they had been created in the
   same session (#1042)
 * Emit 'wire-busy' and 'wire-done' events when using Dropbox or Google
