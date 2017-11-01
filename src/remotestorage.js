@@ -98,19 +98,41 @@ var RemoteStorage = function (cfg) {
     this.setBackend(localStorage.getItem('remotestorage:backend') || 'remotestorage');
   }
 
+  // Keep a reference to the orginal `on` function
   var origOn = this.on;
 
   /**
-   * TODO: document
+   * Register an event handler. See :ref:`rs-events` for available event names.
    *
-   * @private
+   * @param {string} eventName - Name of the event
+   * @param {function} handler - Event handler
    */
   this.on = function (eventName, handler) {
-    if (eventName === 'ready' && this.remote && this.remote.connected && this._allLoaded) {
-      setTimeout(handler, 0);
-    } else if (eventName === 'features-loaded' && this._allLoaded) {
-      setTimeout(handler, 0);
+    if (this._allLoaded) {
+      // check if the handler should be called immediately, because the
+      // event has happened already
+      switch(eventName) {
+        case 'features-loaded':
+          setTimeout(handler, 0);
+          break;
+        case 'ready':
+          if (this.remote) {
+            setTimeout(handler, 0);
+          }
+          break;
+        case 'connected':
+          if (this.remote && this.remote.connected) {
+            setTimeout(handler, 0);
+          }
+          break;
+        case 'not-connected':
+          if (this.remote && !this.remote.connected) {
+            setTimeout(handler, 0);
+          }
+          break;
+      }
     }
+
     return origOn.call(this, eventName, handler);
   };
 
@@ -365,8 +387,8 @@ RemoteStorage.prototype = {
    * You should usually not use this method directly, but instead use the
    * "change" events provided by :doc:`BaseClient </js-api/base-client>`
    *
-   * @param path    - Absolute path to attach handler to
-   * @param handler - Handler function
+   * @param {string} path - Absolute path to attach handler to
+   * @param {function} handler - Handler function
    */
   onChange: function (path, handler) {
     if (! this._pathHandlers.change[path]) {

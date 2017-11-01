@@ -44,6 +44,8 @@ You can handle events from your ``remoteStorage`` instance by using the
      // Storage account has been connected, let’s roll!
    });
 
+.. _rs-events:
+
 List of events
 ^^^^^^^^^^^^^^
 
@@ -239,6 +241,15 @@ The following functions can be called on your ``remoteStorage`` instance:
   Example::
 
      remoteStorage.stopSync();
+
+.. autofunction:: RemoteStorage#on(eventName, handler)
+  :short-name:
+
+  Example::
+
+     remoteStorage.on('connected', function() {
+       console.log('user connected their storage');
+     });
 
 .. autofunction:: RemoteStorage#onChange(path, handler)
   :short-name:
