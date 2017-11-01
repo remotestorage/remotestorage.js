@@ -77,6 +77,7 @@
 
   const isFolder = util.isFolder;
   const cleanPath = util.cleanPath;
+  const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
 
   function addQuotes(str) {
     if (typeof(str) !== 'string') {
@@ -282,7 +283,7 @@
 
           var charset = determineCharset(mimeType);
 
-          if ((!mimeType) || charset === 'binary') {
+          if (shouldBeTreatedAsBinary(response.response, mimeType)) {
             log('[WireClient] Successful request with unknown or binary mime-type', revision);
             return Promise.resolve({statusCode: response.status, body: response.response, contentType: mimeType, revision: revision});
           } else {

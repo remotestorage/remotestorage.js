@@ -410,6 +410,52 @@
       } catch(error) {
         return false;
       }
+    },
+
+    /**
+     * Decide if data should be treated as binary based on the content
+     * and content-type.
+     *
+     * @param {string} content - The data
+     * @param {string} mimeType - The data's content-type
+     *
+     * @returns {boolean}
+     */
+    shouldBeTreatedAsBinary (content, mimeType) {
+      return (mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x1F]/.test(content);
+    },
+
+    /**
+     * Read binary data and return it as ArrayBuffer.
+     *
+     * @param {string} content - The data
+     * @param {string} mimeType - The data's content-type
+     * @returns {Promise} Resolves with an ArrayBuffer containing the data
+     */
+     readBinaryData (content, mimeType) {
+      return new Promise((resolve) => {
+        let blob;
+        util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
+        if (typeof util.globalContext.BlobBuilder !== 'undefined') {
+          const bb = new global.BlobBuilder();
+          bb.append(content);
+          blob = bb.getBlob(mimeType);
+        } else {
+          blob = new Blob([content], { type: mimeType });
+        }
+
+        const reader = new FileReader();
+        if (typeof reader.addEventListener === 'function') {
+          reader.addEventListener('loadend', function () {
+            resolve(reader.result); // reader.result contains the contents of blob as a typed array
+          });
+        } else {
+          reader.onloadend = function() {
+            resolve(reader.result); // reader.result contains the contents of blob as a typed array
+          };
+        }
+        reader.readAsArrayBuffer(blob);
+      });
     }
 
   };
