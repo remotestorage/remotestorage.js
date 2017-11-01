@@ -108,9 +108,9 @@ var RemoteStorage = function (cfg) {
    * @param {function} handler - Event handler
    */
   this.on = function (eventName, handler) {
-    // check if the handler should be called immedtiately, because the
-    // event has happened already
     if (this._allLoaded) {
+      // check if the handler should be called immediately, because the
+      // event has happened already
       switch(eventName) {
         case 'features-loaded':
           setTimeout(handler, 0);
