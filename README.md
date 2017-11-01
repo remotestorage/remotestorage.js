@@ -8,70 +8,50 @@
 
 remoteStorage.js is a JavaScript library for storing user data locally in the
 browser, as well as connecting to [remoteStorage](http://remotestorage.io)
-servers and syncing data across devices and applications.
+servers and syncing data across devices and applications. It is also capable of
+connecting and syncing data with a person's Dropbox or Google Drive account
+(optional).
+
+The library is well-tested and actively maintained. It is safe to use in
+production.
 
 ### Where to get help?
 
-* See [remotestorage.io](http://remotestorage.io/) for general information about remoteStorage
-* Follow the [remoteStorage.js Beginners Guide](https://wiki.remotestorage.io/RemoteStorage.js:Beginners'_Guide) to get started
-* Read detailed library documentation in the [remoteStorage.js API docs](https://remotestoragejs.readthedocs.io/en/latest/js-api.html)
+* See [remotestorage.io](http://remotestorage.io/) for general information
+  about the remoteStorage protocol
+* Read [the docs](http://remotestoragejs.readthedocs.io/) (source files in `doc/`)
+    * [Why use this?](https://remotestoragejs.readthedocs.io/en/latest/why.html)
+    * [Getting started](https://remotestoragejs.readthedocs.io/en/latest/getting-started.html)
+    * [Data modules](https://remotestoragejs.readthedocs.io/en/latest/data-modules.html)
+    * [JavaScript API](https://remotestoragejs.readthedocs.io/en/latest/js-api.html)
+    * [Usage with Node.js](https://remotestoragejs.readthedocs.io/en/latest/nodejs.html)
 * Ask questions on the [community forums](https://community.remotestorage.io/)
-* Get instant support via IRC in [#remotestorage on Freenode](irc://irc.freenode.net:7000/remotestorage)
+* Ask questions on IRC in [#remotestorage on Freenode](irc://irc.freenode.net:7000/remotestorage)
+  (wait a bit, if nobody's responding right away)
+* If you found a potential bug, or want to propose a change, [open an issue on
+  GitHub](https://github.com/remotestorage/remotestorage.js/issues). New issues
+  will usually receive a response within 24-48 hours.
 
 ### Running a local test server
 
 To develop remoteStorage-enabled apps, you need to have a
 remoteStorage-compatible storage account. We recommend
 [php-remote-storage](https://github.com/fkooman/php-remote-storage) (PHP) or
-[mysteryshack](https://github.com/untitaker/mysteryshack) (Rust)
-for running a local test server.
+[mysteryshack](https://github.com/untitaker/mysteryshack) (Rust) for running a
+local test server, or for self-hosting an RS server.
 
 You can also get an account with a hoster, or use one of the various other
-remoteStorage server implementations:
-[Servers](https://wiki.remotestorage.io/Servers).
+remoteStorage server implementations: [Servers](https://wiki.remotestorage.io/Servers).
 
-## Usage
-[TODO]
+### Developing, Contributing
 
-### Node
+remoteStorage.js is a grassroots project, developed by the community, for the
+community. We'd be happy to count you among the many [people who
+contributed](https://github.com/remotestorage/remotestorage.js/graphs/contributors)
+to the project so far!
 
-    $ npm install remotestoragejs
-
-See our [node.js documentation](https://remotestoragejs.readthedocs.io/en/latest/legacy/nodejs.html) for more details.
-
-### Running tests
-
-Install development dependencies including the
-[testing framework](https://github.com/silverbucket/jaribu):
-
-    $ npm install
-
-Run all tests:
-
-    $ npm test
-
-Note: deliberate exceptions may look like errors, but if it says "all
-tests passed" under the test output all is well for that test.
-
-Use the `jaribu` executable in order to test single files, like so e.g.:
-
-    $ node_modules/.bin/jaribu test/unit/baseclient-suite.js
-
-### How to build
-
-#### Docs
-
-See our documentation page about [how to build the docs on your machine](https://remotestoragejs.readthedocs.io/en/latest/contributing/docs.html#how-to-build-the-docs-on-your-machine).
-
-#### Build tasks
-
-Display the available build tasks:
-
-    $ make
-
-Build everything:
-
-    $ make all
+Read our [Contributing docs](https://remotestoragejs.readthedocs.io/en/latest/contributing.html)
+to get started.
 
 ### Credits
 
