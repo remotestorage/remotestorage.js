@@ -19,7 +19,7 @@ defining the properties and functions to be used in the app as ``exports``:
      }
    }};
 
-You can then load it into your :doc:`RemoteStorage <js-api/remotestorage>`
+You can then load it into your :doc:`RemoteStorage </js-api/remotestorage>`
 instance either on initialization, or later using the ``addModule()`` function::
 
    const remoteStorage = new RemoteStorage({ modules: [ Bookmarks ] });
