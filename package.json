@@ -24,12 +24,12 @@
   },
   "devDependencies": {
     "babel-core": "^6.18.2",
-    "babel-loader": "^6.2.8",
+    "babel-loader": "^7.1.2",
     "babel-plugin-array-includes": "^2.0.3",
     "babel-preset-es2015": "^6.18.0",
     "jaribu": "^2.0.0",
     "uuid": "^3.0.1",
-    "webpack": "^1.13.2"
+    "webpack": "^3.8.1"
   },
   "dependencies": {
     "tv4": "^1.2.7",
