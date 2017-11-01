@@ -43,26 +43,26 @@ local store, *as long as it is reasonably up-to-date*. The default maximum age
 of requested data is two times the periodic sync interval (10 seconds by
 default).
 
-However, you can adjust this behavior by using the `maxAge` argument with any
+However, you can adjust this behavior by using the ``maxAge`` argument with any
 of these functions, thereby changing the maximum age or removing the
-requirement entirely:
+requirement entirely.
 
 * If the ``maxAge`` requirement is set, and the last sync request for the path
   is further in the past than the maximum age given, the folder will first be
   checked for changes on the remote, and then the promise will be fulfilled
-  with the up-to-date folder listing.
+  with the up-to-date document or listing.
 
-* If the ``maxAge`` requirement cannot be met because of network problems,
-  the promise will be rejected.
+* If the ``maxAge`` requirement is set, and cannot be met because of network
+  problems, the promise will be rejected.
 
 * If the ``maxAge`` requirement is set to ``false``, or the library is in
-  offline mode (TODO link this), or no remote storage is connected (a.k.a.
-  "anonymous mode"), the promise will always be fulfilled with data from the
-  local store.
+  offline mode, or no remote storage is connected (a.k.a.  "anonymous mode"),
+  the promise will always be fulfilled with data from the local store.
 
 .. HINT::
-   If caching for the folder is turned off, none of this applies and data will
-   always be requested from the remote store directly.
+   If :doc:`caching </js-api/caching>` for the folder is turned off, none of
+   this applies and data will always be requested from the remote store
+   directly.
 
 List of functions
 ^^^^^^^^^^^^^^^^^
@@ -253,12 +253,49 @@ Example:
      newContentType: newContentType
    }
 
+``local``
+^^^^^^^^^
+
+Events with origin ``local`` are fired conveniently during the page load, so
+that you can fill your views when the page loads.
+
+Example:
+
+.. code:: javascript
+
+   {
+     path: '/public/design/color.txt',
+     relativePath: 'color.txt',
+     origin: 'local',
+     oldValue: undefined,
+     newValue: 'white',
+     oldContentType: undefined,
+     newContentType: 'text/plain'
+   }
+
+.. HINT::
+   You may also use for example :func:`getAll` instead, and choose to
+   deactivate these.
+
 ``remote``
 ^^^^^^^^^^
 
 Events with origin ``remote`` are fired when remote changes are discovered
-during sync (TODO: depends on caching strategy?)
+during sync.
 
+.. NOTE::
+   Automatically receiving remote changes depends on the :doc:`caching
+   </js-api/caching>` settings for your module/paths.
+
+``window``
+^^^^^^^^^^
+
+Events with origin `window` are fired whenever you change a value by calling a
+method on the ``BaseClient``; these are disabled by default.
+
+.. HINT::
+   You can enable them by configuring ``changeEvents`` for your
+   :doc:`RemoteStorage </js-api/remotestorage>` instance.
 
 ``conflict``
 ^^^^^^^^^^^^
@@ -306,37 +343,6 @@ your local value of 'blue':
       // Most recent known common ancestor contentType of local and remote
       lastCommonContentType: 'text/plain'
     }
-
-``window``
-^^^^^^^^^^
-
-Events with origin `window` are fired whenever you change a value by calling a
-method on the ``BaseClient``; these are disabled by default.
-
-TODO: how to enable them?
-
-``local``
-^^^^^^^^^
-
-Events with origin ``local`` are fired conveniently during the page load, so
-that you can fill your views when the page loads.
-
-(You may also use for example :func:`getAll` instead, and choose to deactivate
-these).
-
-Example:
-
-.. code:: javascript
-
-   {
-     path: '/public/design/color.txt',
-     relativePath: 'color.txt',
-     origin: 'local',
-     oldValue: undefined,
-     newValue: 'white',
-     oldContentType: undefined,
-     newContentType: 'text/plain'
-   }
 
 Data types
 ----------

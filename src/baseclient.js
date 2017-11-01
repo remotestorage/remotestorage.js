@@ -268,7 +268,7 @@ BaseClient.prototype = {
    * Remove node at given path from storage. Triggers synchronization.
    *
    * @param {string} path - Path relative to the module root.
-   * @returns {Promise} A promise for an object
+   * @returns {Promise}
    */
   remove: function (path) {
     if (typeof(path) !== 'string') {
