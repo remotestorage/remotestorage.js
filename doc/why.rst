@@ -53,11 +53,11 @@ Reliability
 -----------
 
 The very first prototype of rs.js has been written in November 2010. Since
-then, it has been used, tested, stabilized, and improved in almost 4000 commits
-(at the time of this writing). The library has been used in commercial apps by
-hundreds of thousands of users, and in countries around the globe. We have seen
-pretty much every device, browser, privacy setting and network connection there
-is, and fixed bugs and issues for most of them.
+then, it has been used, tested, stabilized, and improved in more than 4000
+commits. The library has been used in commercial apps by hundreds of thousands
+of users, and in countries around the globe. We have seen pretty much every
+device, browser, privacy setting and network connection there is, and fixed
+bugs and issues for most of them.
 
 In short: you can rely on rs.js to do its job. And if you do find a critical
 bug, there's a team of people who will help with fixing it.
