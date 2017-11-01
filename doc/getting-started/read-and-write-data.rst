@@ -41,7 +41,7 @@ given path::
 
    // Write some text to "foo/bar.txt"
    const content = 'The most simple things can bring the most happiness.'
-   client.storeFile('text/plain', 'quotes.txt', content)
+   client.storeFile('text/plain', 'bar.txt', content)
      .then(() => console.log("data has been saved"));
 
 The recommended way: using clients in data modules
