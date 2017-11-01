@@ -53,6 +53,19 @@ to the project so far!
 Read our [Contributing docs](https://remotestoragejs.readthedocs.io/en/latest/contributing.html)
 to get started.
 
+### Versioning
+
+We adhere to [Semantic Versioning](http://semver.org/). This means that
+breaking changes will result in a new major version. With npm, you can make
+sure to only automatically upgrade to API-compatible versions by using either
+the `^` prefix, or `x` as indicator for flexible numbers:
+
+```js
+"devDependencies": {
+  "remotestoragejs": "1.x" // same as "^1.0.0"
+}
+```
+
 ### Credits
 
 Original authors: Niklas Cathor, Michiel de Jong
