@@ -422,7 +422,7 @@
      * @returns {boolean}
      */
     shouldBeTreatedAsBinary (content, mimeType) {
-      return !mimeType || mimeType.match(/charset=binary/) || /[\x00-\x1F]/.test(content);
+      return (mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x1F]/.test(content);
     },
 
     /**
