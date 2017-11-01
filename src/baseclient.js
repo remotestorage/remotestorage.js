@@ -223,7 +223,8 @@ BaseClient.prototype = {
   /**
    * Store object at given path. Triggers synchronization.
    *
-   * TODO see ``declareType()`` and :doc:`data types </data-modules/types>` for explanation of types
+   * See ``declareType()`` and :doc:`data types </data-modules/defining-data-types>`
+   * for an explanation of types
    *
    * @param {string} type   - Unique type of this object within this module.
    * @param {string} path   - Path relative to the module root.
@@ -268,7 +269,7 @@ BaseClient.prototype = {
    * Remove node at given path from storage. Triggers synchronization.
    *
    * @param {string} path - Path relative to the module root.
-   * @returns {Promise} A promise for an object
+   * @returns {Promise}
    */
   remove: function (path) {
     if (typeof(path) !== 'string') {
@@ -345,7 +346,7 @@ BaseClient.prototype = {
   /**
    * Declare a remoteStorage object type using a JSON schema.
    *
-   * See :doc:`data types </data-modules/types>` for more info.
+   * See :doc:`Defining data types </data-modules/defining-data-types>` for more info.
    *
    * @param {string} alias  - A type alias/shortname
    * @param {uri}    uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
