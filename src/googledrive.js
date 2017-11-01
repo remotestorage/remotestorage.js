@@ -31,6 +31,8 @@ const RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
 const isFolder = util.isFolder;
 const cleanPath = util.cleanPath;
+const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
+const readBinaryData = util.readBinaryData;
 
 let hasLocalStorage;
 
@@ -447,16 +449,25 @@ GoogleDrive.prototype = {
           }
         }
 
-        if (meta.mimeType.match(/charset=binary/)) {
-          options2.responseType = 'blob';
-        }
         return this._request('GET', meta.downloadUrl, options2).then((response) => {
           let body = response.response;
           if (meta.mimeType.match(/^application\/json/)) {
             try {
               body = JSON.parse(body);
             } catch(e) {}
+          } else {
+            if (shouldBeTreatedAsBinary(body, meta.mimeType)) {
+              return readBinaryData(body, meta.mimeType).then((result) => {
+                return {
+                  statusCode: 200,
+                  body: result,
+                  contentType: meta.mimeType,
+                  revision: etagWithoutQuotes
+                };
+              });
+            }
           }
+
           return Promise.resolve({statusCode: 200, body: body, contentType: meta.mimeType, revision: etagWithoutQuotes});
         });
       });

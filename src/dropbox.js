@@ -37,13 +37,15 @@
    *     after the syncCycle
    */
 
-  var hasLocalStorage;
-  var AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
-  var SETTINGS_KEY = 'remotestorage:dropbox';
-  var PATH_PREFIX = '/remotestorage';
+  let hasLocalStorage;
+  const AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
+  const SETTINGS_KEY = 'remotestorage:dropbox';
+  const PATH_PREFIX = '/remotestorage';
 
-  var isFolder = util.isFolder;
-  var cleanPath = util.cleanPath;
+  const isFolder = util.isFolder;
+  const cleanPath = util.cleanPath;
+  const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
+  const readBinaryData = util.readBinaryData;
 
   /**
    * Map a local path to a path in Dropbox.
@@ -63,32 +65,6 @@
 
   const isBinaryData = function (data) {
     return data instanceof ArrayBuffer || WireClient.isArrayBufferView(data);
-  }
-
-  const readBinaryData = function (content, mimeType) {
-    return new Promise((resolve) => {
-      var blob;
-      util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
-      if (typeof util.globalContext.BlobBuilder !== 'undefined') {
-        var bb = new global.BlobBuilder();
-        bb.append(content);
-        blob = bb.getBlob(mimeType);
-      } else {
-        blob = new Blob([content], { type: mimeType });
-      }
-
-      var reader = new FileReader();
-      if (typeof reader.addEventListener === 'function') {
-        reader.addEventListener('loadend', function () {
-          resolve(reader.result); // reader.result contains the contents of blob as a typed array
-        });
-      } else {
-        reader.onloadend = function() {
-          resolve(reader.result); // reader.result contains the contents of blob as a typed array
-        };
-      }
-      reader.readAsArrayBuffer(blob);
-    });
   }
 
   /**
@@ -457,7 +433,7 @@
         self._shareIfNeeded(path);
 
         // handling binary
-        if (!mime || mime.match(/charset=binary/)) {
+        if (shouldBeTreatedAsBinary(resp.response, mime)) {
           return readBinaryData(resp.response, mime).then((result) => {
             return {
               statusCode: status,
