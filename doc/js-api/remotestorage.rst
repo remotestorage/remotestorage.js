@@ -242,14 +242,8 @@ The following functions can be called on your ``remoteStorage`` instance:
 
      remoteStorage.stopSync();
 
-.. function:: on(eventName, handler)
-
-  Register an event handler. See :ref:`rs-events` for available event names.
-
-  :param eventName: Name of the event
-  :param handler: Event handler
-  :type eventName: string
-  :type handler: function
+.. autofunction:: RemoteStorage#on(eventName, handler)
+  :short-name:
 
   Example::
 
