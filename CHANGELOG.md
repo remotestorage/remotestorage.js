@@ -3,7 +3,7 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 1.0.0 (June 2017)
+## 1.0.0 (November 2017)
 
 ### Breaking changes
 
@@ -39,6 +39,8 @@ All releases can also be found and downloaded on the
 * Add `reconnect()` method to retrieve new authorization (e.g. after it
   expired) (#1018)
 * `startSync()` returns the sync promise (#1036)
+* Emit `ready`, `connected` and `not-connected` events when registering an
+  handler after they happened originally. (#1066)
 
 ### Bugfixes
 
