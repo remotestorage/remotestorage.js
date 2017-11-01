@@ -3,7 +3,7 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 1.0.0 (June 2017)
+## 1.0.0 (November 2017)
 
 ### Breaking changes
 
@@ -18,15 +18,39 @@ All releases can also be found and downloaded on the
 * Network request timeouts are configured via the `setRequestTimeout` method
   on the RemoteStorage instance instead of setting
   `RemoteStorage.WireClient.REQUEST_TIMEOUT` (#983).
+* Deprecated method `equalObj` from `RemoteStorage.util` has been
+  removed
+* `setApiKeys` takes a config object as argument to allow to configure
+  multiple backends at once (#1021)
+* The sync events 'done' and 'req-done' are emitted by the `remoteStorage`
+  instance instead of `remoteStorage.sync` as 'sync-done' and
+  'sync-req-done (#1044)
+* The network events 'wire-busy' and 'wire-done' are emitted by the
+  `remoteStorage` instance instead of `remoteStorage.remote` (#1044)
 
 ### Enhancements
 
 * Switch Dropbox adapter to use the Dropbox API v2 (#936)
 * Store data in Google Drive under "remotestorage" base dir (#962)
+* Use email address as user address when connected to Google Drive (#955)
+* Emit `Unauthorized` error on 401 responses (#1018)
+* Emit `Unauthorized` error with code "access_denied" when user denies
+  access (#1018)
+* Add `reconnect()` method to retrieve new authorization (e.g. after it
+  expired) (#1018)
+* `startSync()` returns the sync promise (#1036)
+* Emit `ready`, `connected` and `not-connected` events when registering an
+  handler after they happened originally. (#1066)
 
 ### Bugfixes
 
-* Remove all scheduled sync calls after disconnect (#994)
+* Fix sync errors after disconnect (#994)
+* Fix discovery problems in Internet Explorer (#1018)
+* Fix error when trying to delete last document in a directory (#993)
+* Fix Dropbox files not being deleted when they had been created in the
+  same session (#1042)
+* Emit 'wire-busy' and 'wire-done' events when using Dropbox or Google
+  Drive (#957)
 
 ## 0.14.0 (November 2016)
 
