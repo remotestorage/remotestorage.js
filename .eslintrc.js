@@ -62,7 +62,8 @@ var options = {
         }
       }
     ],
-    "no-multi-str": 2
+    "no-multi-str": 2,
+    "semi": 2
   }
 };
 

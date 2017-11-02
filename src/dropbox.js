@@ -65,7 +65,7 @@ var compareApiError = function (response, expect) {
 
 const isBinaryData = function (data) {
   return data instanceof ArrayBuffer || WireClient.isArrayBufferView(data);
-}
+};
 
 /**
  * A cache which automatically converts all keys to lower case and can
@@ -623,7 +623,7 @@ Dropbox.prototype = {
 
       return Promise.resolve(body.url);
     }).then((link) => {
-      this._itemRefs[path] = link
+      this._itemRefs[path] = link;
 
       if (hasLocalStorage) {
         localStorage.setItem(SETTINGS_KEY+':shares', JSON.stringify(this._itemRefs));
@@ -775,7 +775,7 @@ Dropbox.prototype = {
               cursor: null,
               entries: [],
               has_more: false
-            }
+            };
           } else {
             return Promise.reject(new Error('API returned an error: ' + responseBody.error_summary));
           }
