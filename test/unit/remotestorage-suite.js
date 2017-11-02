@@ -584,6 +584,16 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
       },
 
       {
+        desc: "#syncCycle registers an event handler to schedule periodic sync",
+        run: function (env, test) {
+          env.rs.sync = { sync: function(){} };
+          env.rs.syncCycle();
+
+          test.assert(env.rs._handlers["sync-done"].length, 1);
+        }
+      },
+
+      {
         desc: "#stopSync clears any scheduled sync calls",
         run: function (env, test) {
           // This timeout should not be called because it gets cancelled by stopSync()
