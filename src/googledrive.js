@@ -133,7 +133,9 @@ const GoogleDrive = function (remoteStorage, clientId) {
     let settings;
     try {
       settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-    } catch(e){}
+    } catch(e) {
+      // no settings stored
+    }
     if (settings) {
       this.configure(settings);
     }
@@ -388,7 +390,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _createFile: function (path, body, contentType, options) {
+  _createFile: function (path, body, contentType/*, options*/) {
     return this._getParentId(path).then((parentId) => {
       const fileName = baseName(path);
       const metadata = {
@@ -454,7 +456,9 @@ GoogleDrive.prototype = {
           if (meta.mimeType.match(/^application\/json/)) {
             try {
               body = JSON.parse(body);
-            } catch(e) {}
+            } catch(e) {
+              // body couldn't be parsed as JSON, so we'll just return it as is
+            }
           } else {
             if (shouldBeTreatedAsBinary(body, meta.mimeType)) {
               return readBinaryData(body, meta.mimeType).then((result) => {
@@ -484,7 +488,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _getFolder: function (path, options) {
+  _getFolder: function (path/*, options*/) {
     return this._getFileId(path).then((id) => {
       let query, fields, data, etagWithoutQuotes, itemsMap;
       if (! id) {
@@ -704,7 +708,7 @@ GoogleDrive.prototype = {
 function hookGetItemURL (rs) {
   if (rs._origBaseClientGetItemURL) { return; }
   rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
-  BaseClient.prototype.getItemURL = function (path){
+  BaseClient.prototype.getItemURL = function (/* path */){
     throw new Error('getItemURL is not implemented for Google Drive yet');
   };
 }
@@ -750,7 +754,7 @@ GoogleDrive._rs_init = function (remoteStorage) {
  *
  * @protected
  */
-GoogleDrive._rs_supported = function (rs) {
+GoogleDrive._rs_supported = function () {
   return true;
 };
 

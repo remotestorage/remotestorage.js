@@ -269,7 +269,7 @@ RemoteStorage.prototype = {
       this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
     }.bind(this), config.discoveryTimeout);
 
-    Discover(userAddress).then(function (info) {
+    Discover(userAddress).then(info => {
       // Info contains fields: href, storageApi, authURL (optional), properties
 
       clearTimeout(discoveryTimeout);
@@ -297,10 +297,10 @@ RemoteStorage.prototype = {
           this.impliedauth();
         }
       }
-    }.bind(this), function(err) {
+    }, (/*err*/) => {
       clearTimeout(discoveryTimeout);
       this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
-    }.bind(this));
+    });
   },
 
   /**
