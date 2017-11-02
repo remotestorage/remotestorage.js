@@ -7,7 +7,7 @@ function shareFirst(path) {
 
 function maxAgeInvalid(maxAge) {
   return maxAge !== false && typeof(maxAge) !== 'number';
-};
+}
 
 var SyncedGetPutDelete = {
   get: function (path, maxAge) {
