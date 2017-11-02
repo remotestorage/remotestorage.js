@@ -840,15 +840,12 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
       },
 
       {
-        desc: "responses without a Content-Type header are left as the raw response",
+        desc: "responses without a Content-Type header are converted to text when it only contains printable characters",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(r) {
               test.assertAnd(r.statusCode, 200);
-              test.assertAnd(r.body, {
-                iAmA: 'ArrayBufferMock',
-                content: 'response-body'
-              });
+              test.assertAnd(r.body, 'response-body');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
