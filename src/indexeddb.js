@@ -1,7 +1,4 @@
 /**
- * IndexedDB Interface
- * -------------------
- *
  * TODO rewrite, doesn't expose GPD anymore, it's in cachinglayer now
  *
  * This file exposes a get/put/delete interface, accessing data in an IndexedDB.
@@ -32,6 +29,7 @@
  *     - #getNodes([paths]) returns the requested nodes in a promise.
  *     - #setNodes(map) stores all the nodes given in the (path -> node) map.
  *
+ * @interface
  */
 
 var log = require('./log');
@@ -87,7 +85,7 @@ IndexedDB.prototype = {
    */
   getNodes: function (paths) {
     var misses = [], fromCache = {};
-    for (var i = 0, len = paths.length; i < len; i++) {
+    for (let i = 0, len = paths.length; i < len; i++) {
       if (this.changesQueued[paths[i]] !== undefined) {
         fromCache[paths[i]] = util.deepClone(this.changesQueued[paths[i]] || undefined);
       } else if(this.changesRunning[paths[i]] !== undefined) {
@@ -98,7 +96,7 @@ IndexedDB.prototype = {
     }
     if (misses.length > 0) {
       return this.getNodesFromDb(misses).then(function (nodes) {
-        for (var i in fromCache) {
+        for (let i in fromCache) {
           nodes[i] = fromCache[i];
         }
         return nodes;
@@ -155,13 +153,13 @@ IndexedDB.prototype = {
   getNodesFromDb: function (paths) {
     return new Promise((resolve, reject) => {
 
-      var transaction = this.db.transaction(['nodes'], 'readonly');
-      var nodes = transaction.objectStore('nodes');
-      var retrievedNodes = {};
+      let transaction = this.db.transaction(['nodes'], 'readonly');
+      let nodes = transaction.objectStore('nodes');
+      let retrievedNodes = {};
 
       this.getsRunning++;
 
-      paths.map(function (path, i) {
+      paths.map(function (path) {
         nodes.get(path).onsuccess = function (evt) {
           retrievedNodes[path] = evt.target.result;
         };
@@ -186,9 +184,9 @@ IndexedDB.prototype = {
   setNodesInDb: function (nodes) {
     return new Promise((resolve, reject) => {
 
-      var transaction = this.db.transaction(['nodes'], 'readwrite');
-      var nodesStore = transaction.objectStore('nodes');
-      var startTime = new Date().getTime();
+      let transaction = this.db.transaction(['nodes'], 'readwrite');
+      let nodesStore = transaction.objectStore('nodes');
+      let startTime = new Date().getTime();
 
       this.putsRunning++;
 
@@ -236,18 +234,17 @@ IndexedDB.prototype = {
    * TODO: Document
    */
   reset: function (callback) {
-    var dbName = this.db.name;
-    var self = this;
+    let dbName = this.db.name;
 
     this.db.close();
 
-    IndexedDB.clean(this.db.name, function() {
-      IndexedDB.open(dbName, function (err, other) {
+    IndexedDB.clean(this.db.name, () => {
+      IndexedDB.open(dbName, (err, other) => {
         if (err) {
           log('[IndexedDB] Error while resetting local storage', err);
         } else {
           // hacky!
-          self.db = other;
+          this.db = other;
         }
         if (typeof callback === 'function') { callback(self); }
       });
@@ -258,13 +255,13 @@ IndexedDB.prototype = {
    * TODO: Document
    */
   forAllNodes: function (cb) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve/*, reject*/) => {
 
-      var transaction = this.db.transaction(['nodes'], 'readonly');
-      var cursorReq = transaction.objectStore('nodes').openCursor();
+      let transaction = this.db.transaction(['nodes'], 'readonly');
+      let cursorReq = transaction.objectStore('nodes').openCursor();
 
-      cursorReq.onsuccess = function (evt) {
-        var cursor = evt.target.result;
+      cursorReq.onsuccess = (evt) => {
+        let cursor = evt.target.result;
 
         if (cursor) {
           cb(this.migrate(cursor.value));
@@ -272,8 +269,7 @@ IndexedDB.prototype = {
         } else {
           resolve();
         }
-      }.bind(this);
-
+      };
     });
   },
 
@@ -414,10 +410,10 @@ IndexedDB._rs_supported = function () {
     if ('indexedDB' in context && !poorIndexedDbSupport) {
       try {
         var check = indexedDB.open("rs-check");
-        check.onerror = function (event) {
+        check.onerror = function (/* event */) {
           reject();
         };
-        check.onsuccess = function (event) {
+        check.onsuccess = function (/* event */) {
           check.result.close();
           indexedDB.deleteDatabase("rs-check");
           resolve();
@@ -440,7 +436,7 @@ IndexedDB._rs_supported = function () {
  * @protected
  */
 IndexedDB._rs_cleanup = function (remoteStorage) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve/*, reject*/) => {
     if (remoteStorage.local) {
       remoteStorage.local.closeDB();
     }
