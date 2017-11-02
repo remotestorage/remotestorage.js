@@ -5,7 +5,8 @@ var options = {
   },
   env: {
     browser: true,
-    node: true
+    node: true,
+    es6: true
   },
   globals: {
     "Promise": true,
