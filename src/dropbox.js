@@ -141,9 +141,9 @@ LowerCaseCache.prototype = {
   },
 
   /**
-   * Delete a value without propagating.
+   * Delete a key without propagating.
    */
-  justDelete: function (key, value) {
+  justDelete: function (key) {
     key = key.toLowerCase();
     return delete this._storage[key];
   },
@@ -183,13 +183,13 @@ var Dropbox = function (rs) {
     var settings;
     try {
       settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-    } catch(e){}
+    } catch(e) { /* ok to ignore, probably no data in localStorage */ }
     if (settings) {
       this.configure(settings);
     }
     try {
       this._itemRefs = JSON.parse(localStorage.getItem(SETTINGS_KEY+':shares')) || {};
-    } catch(e) {  }
+    } catch(e) { /* ok to ignore, no shares in localStorage */ }
   }
   if (this.connected) {
     setTimeout(this._emit.bind(this), 0, 'connected');
@@ -209,6 +209,7 @@ Dropbox.prototype = {
     if (this.token){
       hookIt(this.rs);
     } else {
+      // eslint-disable-next-line new-cap
       Authorize(this.rs, AUTH_URL, '', String(Authorize.getLocation()), this.clientId);
     }
   },
@@ -279,7 +280,6 @@ Dropbox.prototype = {
    * Get all items in a folder.
    *
    * @param path {string} - path of the folder to get, with leading slash
-   * @param options - not used
    * @return {Object}
    *         statusCode - HTTP status code
    *         body - array of the items found
@@ -288,7 +288,7 @@ Dropbox.prototype = {
    *
    * @private
    */
-  _getFolder: function (path, options) {
+  _getFolder: function (path) {
     var url = 'https://api.dropboxapi.com/2/files/list_folder';
     var revCache = this._revCache;
     var self = this;
@@ -335,13 +335,13 @@ Dropbox.prototype = {
       return Promise.resolve(listing);
     };
 
-    var loadNext = function (cursor) {
-      var url = 'https://api.dropboxapi.com/2/files/list_folder/continue';
-      var params = {
-        body: {cursor: cursor}
+    const loadNext = function (cursor) {
+      const continueURL = 'https://api.dropboxapi.com/2/files/list_folder/continue';
+      const params = {
+        body: { cursor: cursor }
       };
 
-      return self._request('POST', url, params).then(processResponse);
+      return self._request('POST', continueURL, params).then(processResponse);
     };
 
     return this._request('POST', url, {
@@ -582,7 +582,7 @@ Dropbox.prototype = {
    * @private
    */
   _shareIfNeeded: function (path) {
-    if (path.match(/^\/public\/.*[^\/]$/) && this._itemRefs[path] === undefined) {
+    if (path.match(/^\/public\/.*[^/]$/) && this._itemRefs[path] === undefined) {
       this.share(path);
     }
   },
@@ -738,21 +738,21 @@ Dropbox.prototype = {
     var self = this;
 
     var fetch = function (cursor) {
-      var url = 'https://api.dropboxapi.com/2/files/list_folder';
-      var body;
+      let url = 'https://api.dropboxapi.com/2/files/list_folder';
+      let requestBody;
 
       if (typeof cursor === 'string') {
         url += '/continue';
-        body = { cursor };
+        requestBody = { cursor };
       } else {
-        body = {
+        requestBody = {
           path: PATH_PREFIX,
           recursive: true,
           include_deleted: true
         };
       }
 
-      return self._request('POST', url, { body }).then(function (response) {
+      return self._request('POST', url, { body: requestBody }).then(function (response) {
         if (response.status === 401) {
           self.rs._emit('error', new Authorize.Unauthorized());
           return Promise.resolve(args);
@@ -762,27 +762,27 @@ Dropbox.prototype = {
           return Promise.reject(new Error('Invalid response status: ' + response.status));
         }
 
-        var body;
+        let responseBody;
 
         try {
-          body = JSON.parse(response.responseText);
+          responseBody = JSON.parse(response.responseText);
         } catch (e) {
           return Promise.reject(new Error('Invalid response body: ' + response.responseText));
         }
 
         if (response.status === 409) {
-          if (compareApiError(body, ['path', 'not_found'])) {
-            body = {
+          if (compareApiError(responseBody, ['path', 'not_found'])) {
+            responseBody = {
               cursor: null,
               entries: [],
               has_more: false
             }
           } else {
-            return Promise.reject(new Error('API returned an error: ' + body.error_summary));
+            return Promise.reject(new Error('API returned an error: ' + responseBody.error_summary));
           }
         }
 
-        body.entries.forEach(function (entry) {
+        responseBody.entries.forEach(function (entry) {
           var path = entry.path_lower.substr(PATH_PREFIX.length);
 
           if (entry['.tag'] === 'deleted') {
@@ -794,8 +794,8 @@ Dropbox.prototype = {
           }
         });
 
-        if (body.has_more) {
-          return fetch(body.cursor);
+        if (responseBody.has_more) {
+          return fetch(responseBody.cursor);
         }
       });
     };
@@ -824,33 +824,33 @@ Dropbox.prototype = {
    * @private
    */
   _getMetadata: function (path) {
-    var url = 'https://api.dropboxapi.com/2/files/get_metadata';
-    var body = {
+    const url = 'https://api.dropboxapi.com/2/files/get_metadata';
+    const requestBody = {
       path: getDropboxPath(path)
     };
 
-    return this._request('POST', url, {body}).then((response) => {
+    return this._request('POST', url, { body: requestBody }).then((response) => {
       if (response.status !== 200 && response.status !== 409) {
         return Promise.reject(new Error('Invalid response status:' + response.status));
       }
 
-      var body;
+      let responseBody;
 
       try {
-        body = JSON.parse(response.responseText);
+        responseBody = JSON.parse(response.responseText);
       } catch (e) {
         return Promise.reject(new Error('Invalid response body: ' + response.responseText));
       }
 
       if (response.status === 409) {
-        if (compareApiError(body, ['path', 'not_found'])) {
+        if (compareApiError(responseBody, ['path', 'not_found'])) {
           return Promise.resolve();
         }
 
-        return Promise.reject(new Error('API error: ' + body.error_summary));
+        return Promise.reject(new Error('API error: ' + responseBody.error_summary));
       }
 
-      return Promise.resolve(body);
+      return Promise.resolve(responseBody);
     }).then(undefined, (error) => {
       error.message = 'Could not load metadata for file or folder ("' + path + '"): ' + error.message;
       return Promise.reject(error);
@@ -933,27 +933,27 @@ Dropbox.prototype = {
    * @private
    */
   _deleteSimple: function (path) {
-    var url = 'https://api.dropboxapi.com/2/files/delete';
-    var body = {path: getDropboxPath(path)};
+    const url = 'https://api.dropboxapi.com/2/files/delete';
+    const requestBody = { path: getDropboxPath(path) };
 
-    return this._request('POST', url, {body}).then((response) => {
+    return this._request('POST', url, { body: requestBody }).then((response) => {
       if (response.status !== 200 && response.status !== 409) {
         return Promise.resolve({statusCode: response.status});
       }
 
-      var body = response.responseText;
+      var responseBody = response.responseText;
 
       try {
-        body = JSON.parse(body);
+        responseBody = JSON.parse(responseBody);
       } catch (e) {
-        return Promise.reject(new Error('Invalid response body: ' + body));
+        return Promise.reject(new Error('Invalid response body: ' + responseBody));
       }
 
       if (response.status === 409) {
-        if (compareApiError(body, ['path_lookup', 'not_found'])) {
+        if (compareApiError(responseBody, ['path_lookup', 'not_found'])) {
           return Promise.resolve({statusCode: 404});
         }
-        return Promise.reject(new Error('API error: ' + body.error_summary));
+        return Promise.reject(new Error('API error: ' + responseBody.error_summary));
       }
 
       return Promise.resolve({statusCode: 200});
@@ -1056,7 +1056,7 @@ function unHookSync(rs) {
 function hookGetItemURL (rs) {
   if (rs._origBaseClientGetItemURL) { return; }
   rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
-  BaseClient.prototype.getItemURL = function (path) {
+  BaseClient.prototype.getItemURL = function (/*path*/) {
     throw new Error('getItemURL is not implemented for Dropbox yet');
   };
 }
