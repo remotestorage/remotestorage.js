@@ -79,7 +79,7 @@ Discover._rs_init = function (/*remoteStorage*/) {
   hasLocalStorage = util.localStorageAvailable();
   if (hasLocalStorage) {
     var settings;
-    try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {/* empty */}
+    try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) { /* empty */ }
     if (settings) {
       cachedInfo = settings.cache;
     }

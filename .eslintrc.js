@@ -44,6 +44,7 @@ var options = {
     "new-cap": 2,
     "no-empty": 2,
     "no-new": 2,
+    "block-spacing": 2,
     "indent": [
       "error",
       2,
