@@ -1,15 +1,15 @@
-var util = require('./util');
-var Env = require('./env');
-var eventHandling = require('./eventhandling');
-var log = require('./log');
-var Authorize = require('./authorize');
-var config = require('./config');
+const util = require('./util');
+const Env = require('./env');
+const eventHandling = require('./eventhandling');
+const log = require('./log');
+const Authorize = require('./authorize');
+const config = require('./config');
 
-var isFolder = util.isFolder;
-var isDocument = util.isDocument;
-var equal = util.equal;
-var deepClone = util.deepClone;
-var pathsFromRoot = util.pathsFromRoot;
+const isFolder = util.isFolder;
+const isDocument = util.isDocument;
+const equal = util.equal;
+const deepClone = util.deepClone;
+const pathsFromRoot = util.pathsFromRoot;
 
 function taskFor(action, path, promise) {
   return {
@@ -17,6 +17,11 @@ function taskFor(action, path, promise) {
     path:    path,
     promise: promise
   };
+}
+
+function nodeChanged(node, etag) {
+  return node.common.revision !== etag &&
+         (!node.remote || node.remote.revision !== etag);
 }
 
 function isStaleChild(node) {
@@ -27,8 +32,26 @@ function hasCommonRevision(node) {
   return node.common && node.common.revision;
 }
 
+function hasNoRemoteChanges(node) {
+  if (node.remote && node.remote.revision &&
+      node.remote.revision !== node.common.revision) {
+    return false;
+  }
+  return (node.common.body === undefined && node.remote.body === false) ||
+    (node.remote.body === node.common.body &&
+     node.remote.contentType === node.common.contentType);
+}
+
+function mergeMutualDeletion(node) {
+  if (node.remote && node.remote.body === false &&
+      node.local && node.local.body === false) {
+    delete node.local;
+  }
+  return node;
+}
+
 function handleVisibility() {
-  var rs = this;
+  let rs = this;
 
   function handleVisibilityChange(fg) {
     var oldValue, newValue;
@@ -67,7 +90,7 @@ function handleVisibility() {
  * folder GET comes in, it gives information about all the documents it
  * contains (this is the `markChildren` function).
  **/
-var Sync = function (remoteStorage, setLocal, setRemote, setAccess, setCaching) {
+const Sync = function (remoteStorage, setLocal, setRemote, setAccess, setCaching) {
   this.remoteStorage = remoteStorage;
   this.local = setLocal;
   this.local.onDiff(function (path) {
@@ -94,7 +117,7 @@ Sync.prototype = {
   },
 
   queueGetRequest: function (path) {
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       if (!this.remote.connected) {
         reject('cannot fulfill maxAge requirement - remote is not connected');
       } else if (!this.remote.online) {
@@ -108,7 +131,6 @@ Sync.prototype = {
 
         this.doTasks();
       }
-
     });
   },
 
@@ -191,10 +213,7 @@ Sync.prototype = {
     var num = 0;
 
     return this.local.forAllNodes(function (node) {
-
-      if (num > 100) {
-        return;
-      }
+      if (num > 100) { return; }
 
       if (this.isCorrupt(node)) {
         log('[Sync] WARNING: corrupt node in local cache', node);
@@ -236,10 +255,14 @@ Sync.prototype = {
     if (this.inConflict(node)) {
       return true;
     }
-    if (node.common && node.common.itemsMap === undefined && node.common.body === undefined) {
+    if (node.common &&
+        node.common.itemsMap === undefined &&
+        node.common.body === undefined) {
       return true;
     }
-    if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
+    if (node.remote &&
+        node.remote.itemsMap === undefined &&
+        node.remote.body === undefined) {
       return true;
     }
     return false;
@@ -405,22 +428,6 @@ Sync.prototype = {
   },
 
   autoMergeDocument: function (node) {
-    var hasNoRemoteChanges = function (node) {
-      if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
-        return false;
-      }
-      return (node.common.body === undefined && node.remote.body === false) ||
-             (node.remote.body === node.common.body &&
-              node.remote.contentType === node.common.contentType);
-    };
-    var mergeMutualDeletion = function (node) {
-      if (node.remote && node.remote.body === false
-          && node.local && node.local.body === false) {
-        delete node.local;
-      }
-      return node;
-    };
-
     if (hasNoRemoteChanges(node)) {
       node = mergeMutualDeletion(node);
       delete node.remote;
@@ -529,10 +536,6 @@ Sync.prototype = {
     return this.local.getNodes(paths).then(function (nodes) {
       var cachingStrategy;
       var node;
-
-      var nodeChanged = function (node, etag) {
-        return node.common.revision !== etag && (!node.remote || node.remote.revision !== etag);
-      };
 
       for (var nodePath in nodes) {
         node = nodes[nodePath];
@@ -676,7 +679,7 @@ Sync.prototype = {
 
       var collectMissingChildren = function (folder) {
         if (folder && folder.itemsMap) {
-          for (var itemName in folder.itemsMap) {
+          for (itemName in folder.itemsMap) {
             if (!bodyOrItemsMap[itemName]) {
               missingChildren[itemName] = true;
             }
@@ -778,8 +781,7 @@ Sync.prototype = {
     }.bind(this));
   },
 
-  dealWithFailure: function (path, action, statusMeaning) {
-
+  dealWithFailure: function (path/*, action, statusMeaning*/) {
     return this.local.getNodes([path]).then(function (nodes) {
       if (nodes[path]) {
         delete nodes[path].push;
@@ -797,7 +799,7 @@ Sync.prototype = {
       };
     }
 
-    var series = Math.floor(statusCode / 100);
+    let series = Math.floor(statusCode / 100);
 
     return {
       successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
@@ -880,61 +882,58 @@ Sync.prototype = {
       delete this._running[task.path];
       return;
     }
-    var self = this;
 
-    return task.promise.then(function (r) {
-      return self.handleResponse(task.path, task.action, r);
-    }, function (err) {
-      log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
-      return self.handleResponse(task.path, task.action, {statusCode: 'offline'});
-    })
+    return task.promise
+      .then(res => {
+        return this.handleResponse(task.path, task.action, res);
+      }, err => {
+        log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
+        return this.handleResponse(task.path, task.action, { statusCode: 'offline' });
+      })
+      .then(completed => {
+        delete this._timeStarted[task.path];
+        delete this._running[task.path];
 
-    .then(function (completed) {
-      delete self._timeStarted[task.path];
-      delete self._running[task.path];
-
-      if (completed) {
-        if (self._tasks[task.path]) {
-          for (var i=0; i<self._tasks[task.path].length; i++) {
-            self._tasks[task.path][i]();
+        if (completed) {
+          if (this._tasks[task.path]) {
+            for (var i=0; i < this._tasks[task.path].length; i++) {
+              this._tasks[task.path][i]();
+            }
+            delete this._tasks[task.path];
           }
-          delete self._tasks[task.path];
         }
-      }
 
-      self.remoteStorage._emit('sync-req-done');
+        this.remoteStorage._emit('sync-req-done');
 
-      self.collectTasks(false).then(function () {
-        // See if there are any more tasks that are not refresh tasks
-        if (!self.hasTasks() || self.stopped) {
-          log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(self._tasks).length, self.stopped);
-          if (!self.done) {
-            self.done = true;
-            self.remoteStorage._emit('sync-done');
+        this.collectTasks(false).then(() => {
+          // See if there are any more tasks that are not refresh tasks
+          if (!this.hasTasks() || this.stopped) {
+            log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
+            if (!this.done) {
+              this.done = true;
+              this.remoteStorage._emit('sync-done');
+            }
+          } else {
+            // Use a 10ms timeout to let the JavaScript runtime catch its breath
+            // (and hopefully force an IndexedDB auto-commit?), and also to cause
+            // the threads to get staggered and get a good spread over time:
+            setTimeout(() => { this.doTasks(); }, 10);
           }
-        } else {
-          // Use a 10ms timeout to let the JavaScript runtime catch its breath
-          // (and hopefully force an IndexedDB auto-commit?), and also to cause
-          // the threads to get staggered and get a good spread over time:
-          setTimeout(function () {
-            self.doTasks();
-          }, 10);
+        });
+      }, err => {
+        log('[Sync] Error', err);
+        delete this._timeStarted[task.path];
+        delete this._running[task.path];
+        this.remoteStorage._emit('sync-req-done');
+        if (!this.done) {
+          this.done = true;
+          this.remoteStorage._emit('sync-done');
         }
       });
-    }, function (err) {
-      log('[Sync] Error', err);
-      delete self._timeStarted[task.path];
-      delete self._running[task.path];
-      self.remoteStorage._emit('sync-req-done');
-      if (!self.done) {
-        self.done = true;
-        self.remoteStorage._emit('sync-done');
-      }
-    });
   },
 
   doTasks: function () {
-    var numToHave, numAdded = 0, numToAdd, path;
+    let numToHave, numAdded = 0, numToAdd, path;
     if (this.remote.connected) {
       if (this.remote.online) {
         numToHave = this.numThreads;
@@ -1010,8 +1009,6 @@ Sync.prototype = {
   },
 };
 
-
-
 var syncCycleCb, syncOnConnect;
 Sync._rs_init = function (remoteStorage) {
 
@@ -1021,7 +1018,6 @@ Sync._rs_init = function (remoteStorage) {
     if (Env.isBrowser()) {
       handleVisibility.bind(remoteStorage)();
     }
-
 
     if (!remoteStorage.sync) {
       // Call this now that all other modules are also ready:
