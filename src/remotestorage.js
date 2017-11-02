@@ -705,7 +705,7 @@ RemoteStorage.prototype = {
       return;
     }
 
-    this.sync.on('done', function () {
+    this.on('sync-done', function () {
       log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (!this.sync.stopped) {
         if (this._syncTimer) {
