@@ -209,7 +209,6 @@ Dropbox.prototype = {
     if (this.token){
       hookIt(this.rs);
     } else {
-      // eslint-disable-next-line new-cap
       Authorize(this.rs, AUTH_URL, '', String(Authorize.getLocation()), this.clientId);
     }
   },
