@@ -1,463 +1,462 @@
 // Reusable utility functions
 
-
-  /**
-   * Takes an object and its copy as produced by the _deepClone function
-   * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
-   * of being cloned to new ArrayBuffers with the same content.
-   *
-   * It recurses into sub-objects, but skips arrays if they occur.
-   */
-  function fixArrayBuffers(srcObj, dstObj) {
-    var field, srcArr, dstArr;
-    if (typeof(srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
-      return;
-    }
-    for (field in srcObj) {
-      if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
-        if (srcObj[field].toString() === '[object ArrayBuffer]') {
-          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
-          srcArr = new Int8Array(srcObj[field]);
-          dstArr = new Int8Array(dstObj[field]);
-          dstArr.set(srcArr);
-        } else {
-          fixArrayBuffers(srcObj[field], dstObj[field]);
-        }
+/**
+ * Takes an object and its copy as produced by the _deepClone function
+ * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
+ * of being cloned to new ArrayBuffers with the same content.
+ *
+ * It recurses into sub-objects, but skips arrays if they occur.
+ */
+function fixArrayBuffers(srcObj, dstObj) {
+  var field, srcArr, dstArr;
+  if (typeof(srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
+    return;
+  }
+  for (field in srcObj) {
+    if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
+      if (srcObj[field].toString() === '[object ArrayBuffer]') {
+        dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
+        srcArr = new Int8Array(srcObj[field]);
+        dstArr = new Int8Array(dstObj[field]);
+        dstArr.set(srcArr);
+      } else {
+        fixArrayBuffers(srcObj[field], dstObj[field]);
       }
     }
   }
+}
 
-  var util = {
-    logError(error) {
-      if (typeof(error) === 'string') {
-        console.error(error);
+var util = {
+  logError(error) {
+    if (typeof(error) === 'string') {
+      console.error(error);
+    } else {
+      console.error(error.message, error.stack);
+    }
+  },
+
+  globalContext: (typeof(window) !== 'undefined' ? window : global),
+
+  getGlobalContext () {
+    return (typeof(window) !== 'undefined' ? window : global);
+  },
+
+  extend (target) {
+    var sources = Array.prototype.slice.call(arguments, 1);
+    sources.forEach(function (source) {
+      for (var key in source) {
+        target[key] = source[key];
+      }
+    });
+    return target;
+  },
+
+  asyncEach (array, callback) {
+    return this.asyncMap(array, callback).
+      then(function () { return array; });
+  },
+
+  asyncMap (array, callback) {
+    var pending = Promise.defer();
+    var n = array.length, i = 0;
+    var results = [], errors = [];
+
+    function oneDone() {
+      i++;
+      if (i === n) {
+        pending.resolve(results, errors);
+      }
+    }
+
+    array.forEach(function (item, index) {
+      var result;
+      try {
+        result = callback(item);
+      } catch(exc) {
+        oneDone();
+        errors[index] = exc;
+      }
+      if (typeof(result) === 'object' && typeof(result.then) === 'function') {
+        result.then(function (res) { results[index] = res; oneDone(); },
+                    function (error) { errors[index] = error; oneDone(); });
       } else {
-        console.error(error.message, error.stack);
+        oneDone();
+        results[index] = result;
       }
-    },
+    });
 
-    globalContext: (typeof(window) !== 'undefined' ? window : global),
+    return pending.promise;
+  },
 
-    getGlobalContext () {
-      return (typeof(window) !== 'undefined' ? window : global);
-    },
+  containingFolder (path) {
+    if (path === '') {
+      return '/';
+    }
+    if (! path) {
+      throw "Path not given!";
+    }
 
-    extend (target) {
-      var sources = Array.prototype.slice.call(arguments, 1);
-      sources.forEach(function (source) {
-        for (var key in source) {
-          target[key] = source[key];
-        }
-      });
-      return target;
-    },
+    return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
+  },
 
-    asyncEach (array, callback) {
-      return this.asyncMap(array, callback).
-        then(function () { return array; });
-    },
+  isFolder (path) {
+    return path.substr(-1) === '/';
+  },
 
-    asyncMap (array, callback) {
-      var pending = Promise.defer();
-      var n = array.length, i = 0;
-      var results = [], errors = [];
+  isDocument (path) {
+    return !util.isFolder(path);
+  },
 
-      function oneDone() {
-        i++;
-        if (i === n) {
-          pending.resolve(results, errors);
-        }
+  baseName (path) {
+    var parts = path.split('/');
+    if (util.isFolder(path)) {
+      return parts[parts.length-2]+'/';
+    } else {
+      return parts[parts.length-1];
+    }
+  },
+
+  cleanPath (path) {
+    return path.replace(/\/+/g, '/')
+               .split('/').map(encodeURIComponent).join('/')
+               .replace(/'/g, '%27');
+  },
+
+  bindAll (object) {
+    for (var key in this) {
+      if (typeof(object[key]) === 'function') {
+        object[key] = object[key].bind(object);
       }
+    }
+  },
 
-      array.forEach(function (item, index) {
-        var result;
-        try {
-          result = callback(item);
-        } catch(exc) {
-          oneDone();
-          errors[index] = exc;
-        }
-        if (typeof(result) === 'object' && typeof(result.then) === 'function') {
-          result.then(function (res) { results[index] = res; oneDone(); },
-                      function (error) { errors[index] = error; oneDone(); });
-        } else {
-          oneDone();
-          results[index] = result;
-        }
-      });
+  equal (a, b, seen) {
+    var key;
+    seen = seen || [];
 
-      return pending.promise;
-    },
+    if (typeof(a) !== typeof(b)) {
+      return false;
+    }
 
-    containingFolder (path) {
-      if (path === '') {
-        return '/';
-      }
-      if (! path) {
-        throw "Path not given!";
-      }
+    if (typeof(a) === 'number' || typeof(a) === 'boolean' || typeof(a) === 'string') {
+      return a === b;
+    }
 
-      return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
-    },
+    if (typeof(a) === 'function') {
+      return a.toString() === b.toString();
+    }
 
-    isFolder (path) {
-      return path.substr(-1) === '/';
-    },
+    if (a instanceof ArrayBuffer && b instanceof ArrayBuffer) {
+      // Without the following conversion the browsers wouldn't be able to
+      // tell the ArrayBuffer instances apart.
+      a = new Uint8Array(a);
+      b = new Uint8Array(b);
+    }
 
-    isDocument (path) {
-      return !util.isFolder(path);
-    },
+    // If this point has been reached, a and b are either arrays or objects.
 
-    baseName (path) {
-      var parts = path.split('/');
-      if (util.isFolder(path)) {
-        return parts[parts.length-2]+'/';
-      } else {
-        return parts[parts.length-1];
-      }
-    },
-
-    cleanPath (path) {
-      return path.replace(/\/+/g, '/')
-                 .split('/').map(encodeURIComponent).join('/')
-                 .replace(/'/g, '%27');
-    },
-
-    bindAll (object) {
-      for (var key in this) {
-        if (typeof(object[key]) === 'function') {
-          object[key] = object[key].bind(object);
-        }
-      }
-    },
-
-    equal (a, b, seen) {
-      var key;
-      seen = seen || [];
-
-      if (typeof(a) !== typeof(b)) {
+    if (a instanceof Array) {
+      if (a.length !== b.length) {
         return false;
       }
 
-      if (typeof(a) === 'number' || typeof(a) === 'boolean' || typeof(a) === 'string') {
-        return a === b;
+      for (var i = 0, c = a.length; i < c; i++) {
+        if (!util.equal(a[i], b[i], seen)) {
+          return false;
+        }
+      }
+    } else {
+      // Check that keys from a exist in b
+      for (key in a) {
+        if (a.hasOwnProperty(key) && !(key in b)) {
+          return false;
+        }
       }
 
-      if (typeof(a) === 'function') {
-        return a.toString() === b.toString();
-      }
+      // Check that keys from b exist in a, and compare the values
+      for (key in b) {
+        if (!b.hasOwnProperty(key)) {
+          continue;
+        }
 
-      if (a instanceof ArrayBuffer && b instanceof ArrayBuffer) {
-        // Without the following conversion the browsers wouldn't be able to
-        // tell the ArrayBuffer instances apart.
-        a = new Uint8Array(a);
-        b = new Uint8Array(b);
-      }
-
-      // If this point has been reached, a and b are either arrays or objects.
-
-      if (a instanceof Array) {
-        if (a.length !== b.length) {
+        if (!(key in a)) {
           return false;
         }
 
-        for (var i = 0, c = a.length; i < c; i++) {
-          if (!util.equal(a[i], b[i], seen)) {
-            return false;
-          }
-        }
-      } else {
-        // Check that keys from a exist in b
-        for (key in a) {
-          if (a.hasOwnProperty(key) && !(key in b)) {
-            return false;
-          }
-        }
+        var seenArg;
 
-        // Check that keys from b exist in a, and compare the values
-        for (key in b) {
-          if (!b.hasOwnProperty(key)) {
+        if (typeof(b[key]) === 'object') {
+          if (seen.indexOf(b[key]) >= 0) {
+            // Circular reference, don't attempt to compare this object.
+            // If nothing else returns false, the objects match.
             continue;
           }
 
-          if (!(key in a)) {
-            return false;
-          }
-
-          var seenArg;
-
-          if (typeof(b[key]) === 'object') {
-            if (seen.indexOf(b[key]) >= 0) {
-              // Circular reference, don't attempt to compare this object.
-              // If nothing else returns false, the objects match.
-              continue;
-            }
-
-            seenArg = seen.slice();
-            seenArg.push(b[key]);
-          }
-
-          if (!util.equal(a[key], b[key], seenArg)) {
-            return false;
-          }
-        }
-      }
-
-      return true;
-    },
-
-    deepClone (obj) {
-      var clone;
-      if (obj === undefined) {
-        return undefined;
-      } else {
-        clone = JSON.parse(JSON.stringify(obj));
-        fixArrayBuffers(obj, clone);
-        return clone;
-      }
-    },
-
-    pathsFromRoot (path) {
-      var paths = [path];
-      var parts = path.replace(/\/$/, '').split('/');
-
-      while (parts.length > 1) {
-        parts.pop();
-        paths.push(parts.join('/')+'/');
-      }
-      return paths;
-    },
-
-    /* jshint ignore:start */
-    md5sum (str) {
-      //
-      // http://www.myersdaily.org/joseph/javascript/md5.js
-      //
-      function md5cycle(x, k) {
-        var a = x[0], b = x[1], c = x[2], d = x[3];
-
-        a = ff(a, b, c, d, k[0], 7, -680876936);
-        d = ff(d, a, b, c, k[1], 12, -389564586);
-        c = ff(c, d, a, b, k[2], 17,  606105819);
-        b = ff(b, c, d, a, k[3], 22, -1044525330);
-        a = ff(a, b, c, d, k[4], 7, -176418897);
-        d = ff(d, a, b, c, k[5], 12,  1200080426);
-        c = ff(c, d, a, b, k[6], 17, -1473231341);
-        b = ff(b, c, d, a, k[7], 22, -45705983);
-        a = ff(a, b, c, d, k[8], 7,  1770035416);
-        d = ff(d, a, b, c, k[9], 12, -1958414417);
-        c = ff(c, d, a, b, k[10], 17, -42063);
-        b = ff(b, c, d, a, k[11], 22, -1990404162);
-        a = ff(a, b, c, d, k[12], 7,  1804603682);
-        d = ff(d, a, b, c, k[13], 12, -40341101);
-        c = ff(c, d, a, b, k[14], 17, -1502002290);
-        b = ff(b, c, d, a, k[15], 22,  1236535329);
-
-        a = gg(a, b, c, d, k[1], 5, -165796510);
-        d = gg(d, a, b, c, k[6], 9, -1069501632);
-        c = gg(c, d, a, b, k[11], 14,  643717713);
-        b = gg(b, c, d, a, k[0], 20, -373897302);
-        a = gg(a, b, c, d, k[5], 5, -701558691);
-        d = gg(d, a, b, c, k[10], 9,  38016083);
-        c = gg(c, d, a, b, k[15], 14, -660478335);
-        b = gg(b, c, d, a, k[4], 20, -405537848);
-        a = gg(a, b, c, d, k[9], 5,  568446438);
-        d = gg(d, a, b, c, k[14], 9, -1019803690);
-        c = gg(c, d, a, b, k[3], 14, -187363961);
-        b = gg(b, c, d, a, k[8], 20,  1163531501);
-        a = gg(a, b, c, d, k[13], 5, -1444681467);
-        d = gg(d, a, b, c, k[2], 9, -51403784);
-        c = gg(c, d, a, b, k[7], 14,  1735328473);
-        b = gg(b, c, d, a, k[12], 20, -1926607734);
-
-        a = hh(a, b, c, d, k[5], 4, -378558);
-        d = hh(d, a, b, c, k[8], 11, -2022574463);
-        c = hh(c, d, a, b, k[11], 16,  1839030562);
-        b = hh(b, c, d, a, k[14], 23, -35309556);
-        a = hh(a, b, c, d, k[1], 4, -1530992060);
-        d = hh(d, a, b, c, k[4], 11,  1272893353);
-        c = hh(c, d, a, b, k[7], 16, -155497632);
-        b = hh(b, c, d, a, k[10], 23, -1094730640);
-        a = hh(a, b, c, d, k[13], 4,  681279174);
-        d = hh(d, a, b, c, k[0], 11, -358537222);
-        c = hh(c, d, a, b, k[3], 16, -722521979);
-        b = hh(b, c, d, a, k[6], 23,  76029189);
-        a = hh(a, b, c, d, k[9], 4, -640364487);
-        d = hh(d, a, b, c, k[12], 11, -421815835);
-        c = hh(c, d, a, b, k[15], 16,  530742520);
-        b = hh(b, c, d, a, k[2], 23, -995338651);
-
-        a = ii(a, b, c, d, k[0], 6, -198630844);
-        d = ii(d, a, b, c, k[7], 10,  1126891415);
-        c = ii(c, d, a, b, k[14], 15, -1416354905);
-        b = ii(b, c, d, a, k[5], 21, -57434055);
-        a = ii(a, b, c, d, k[12], 6,  1700485571);
-        d = ii(d, a, b, c, k[3], 10, -1894986606);
-        c = ii(c, d, a, b, k[10], 15, -1051523);
-        b = ii(b, c, d, a, k[1], 21, -2054922799);
-        a = ii(a, b, c, d, k[8], 6,  1873313359);
-        d = ii(d, a, b, c, k[15], 10, -30611744);
-        c = ii(c, d, a, b, k[6], 15, -1560198380);
-        b = ii(b, c, d, a, k[13], 21,  1309151649);
-        a = ii(a, b, c, d, k[4], 6, -145523070);
-        d = ii(d, a, b, c, k[11], 10, -1120210379);
-        c = ii(c, d, a, b, k[2], 15,  718787259);
-        b = ii(b, c, d, a, k[9], 21, -343485551);
-
-        x[0] = add32(a, x[0]);
-        x[1] = add32(b, x[1]);
-        x[2] = add32(c, x[2]);
-        x[3] = add32(d, x[3]);
-
-      }
-
-      function cmn(q, a, b, x, s, t) {
-        a = add32(add32(a, q), add32(x, t));
-        return add32((a << s) | (a >>> (32 - s)), b);
-      }
-
-      function ff(a, b, c, d, x, s, t) {
-        return cmn((b & c) | ((~b) & d), a, b, x, s, t);
-      }
-
-      function gg(a, b, c, d, x, s, t) {
-        return cmn((b & d) | (c & (~d)), a, b, x, s, t);
-      }
-
-      function hh(a, b, c, d, x, s, t) {
-        return cmn(b ^ c ^ d, a, b, x, s, t);
-      }
-
-      function ii(a, b, c, d, x, s, t) {
-        return cmn(c ^ (b | (~d)), a, b, x, s, t);
-      }
-
-      function md51(s) {
-        txt = '';
-        var n = s.length,
-            state = [1732584193, -271733879, -1732584194, 271733878], i;
-        for (i=64; i<=s.length; i+=64) {
-          md5cycle(state, md5blk(s.substring(i-64, i)));
-        }
-        s = s.substring(i-64);
-        var tail = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
-        for (i=0; i<s.length; i++)
-          tail[i>>2] |= s.charCodeAt(i) << ((i%4) << 3);
-        tail[i>>2] |= 0x80 << ((i%4) << 3);
-        if (i > 55) {
-          md5cycle(state, tail);
-          for (i=0; i<16; i++) tail[i] = 0;
-        }
-        tail[14] = n*8;
-        md5cycle(state, tail);
-        return state;
-      }
-
-      function md5blk(s) {
-        var md5blks = [], i;
-        for (i=0; i<64; i+=4) {
-          md5blks[i>>2] = s.charCodeAt(i) + (s.charCodeAt(i+1) << 8) + (s.charCodeAt(i+2) << 16) + (s.charCodeAt(i+3) << 24);
-        }
-        return md5blks;
-      }
-
-      var hex_chr = '0123456789abcdef'.split('');
-
-      function rhex(n)
-      {
-        var s='', j=0;
-        for(; j<4; j++)
-          s += hex_chr[(n >> (j * 8 + 4)) & 0x0F] + hex_chr[(n >> (j * 8)) & 0x0F];
-        return s;
-      }
-
-      function hex(x) {
-        for (var i=0; i<x.length; i++)
-          x[i] = rhex(x[i]);
-        return x.join('');
-      }
-
-      function md5(s) {
-        return hex(md51(s));
-      }
-
-      var add32 = function (a, b) {
-        return (a + b) & 0xFFFFFFFF;
-      };
-
-      if (md5('hello') !== '5d41402abc4b2a76b9719d911017c592') {
-        add32 = function (x, y) {
-          var lsw = (x & 0xFFFF) + (y & 0xFFFF),
-              msw = (x >> 16) + (y >> 16) + (lsw >> 16);
-          return (msw << 16) | (lsw & 0xFFFF);
-        };
-      }
-
-      return md5(str);
-    },
-    /* jshint ignore:end */
-
-
-    localStorageAvailable () {
-      const context = util.getGlobalContext();
-
-      if (!('localStorage' in context)) { return false; }
-
-      try {
-        context.localStorage.setItem('rs-check', 1);
-        context.localStorage.removeItem('rs-check');
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
-
-    /**
-     * Decide if data should be treated as binary based on the content
-     * and content-type.
-     *
-     * @param {string} content - The data
-     * @param {string} mimeType - The data's content-type
-     *
-     * @returns {boolean}
-     */
-    shouldBeTreatedAsBinary (content, mimeType) {
-      return (mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x1F]/.test(content);
-    },
-
-    /**
-     * Read binary data and return it as ArrayBuffer.
-     *
-     * @param {string} content - The data
-     * @param {string} mimeType - The data's content-type
-     * @returns {Promise} Resolves with an ArrayBuffer containing the data
-     */
-     readBinaryData (content, mimeType) {
-      return new Promise((resolve) => {
-        let blob;
-        util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
-        if (typeof util.globalContext.BlobBuilder !== 'undefined') {
-          const bb = new global.BlobBuilder();
-          bb.append(content);
-          blob = bb.getBlob(mimeType);
-        } else {
-          blob = new Blob([content], { type: mimeType });
+          seenArg = seen.slice();
+          seenArg.push(b[key]);
         }
 
-        const reader = new FileReader();
-        if (typeof reader.addEventListener === 'function') {
-          reader.addEventListener('loadend', function () {
-            resolve(reader.result); // reader.result contains the contents of blob as a typed array
-          });
-        } else {
-          reader.onloadend = function() {
-            resolve(reader.result); // reader.result contains the contents of blob as a typed array
-          };
+        if (!util.equal(a[key], b[key], seenArg)) {
+          return false;
         }
-        reader.readAsArrayBuffer(blob);
-      });
+      }
     }
 
-  };
+    return true;
+  },
 
-  module.exports = util;
+  deepClone (obj) {
+    var clone;
+    if (obj === undefined) {
+      return undefined;
+    } else {
+      clone = JSON.parse(JSON.stringify(obj));
+      fixArrayBuffers(obj, clone);
+      return clone;
+    }
+  },
+
+  pathsFromRoot (path) {
+    var paths = [path];
+    var parts = path.replace(/\/$/, '').split('/');
+
+    while (parts.length > 1) {
+      parts.pop();
+      paths.push(parts.join('/')+'/');
+    }
+    return paths;
+  },
+
+  /* jshint ignore:start */
+  md5sum (str) {
+    //
+    // http://www.myersdaily.org/joseph/javascript/md5.js
+    //
+    function md5cycle(x, k) {
+      var a = x[0], b = x[1], c = x[2], d = x[3];
+
+      a = ff(a, b, c, d, k[0], 7, -680876936);
+      d = ff(d, a, b, c, k[1], 12, -389564586);
+      c = ff(c, d, a, b, k[2], 17,  606105819);
+      b = ff(b, c, d, a, k[3], 22, -1044525330);
+      a = ff(a, b, c, d, k[4], 7, -176418897);
+      d = ff(d, a, b, c, k[5], 12,  1200080426);
+      c = ff(c, d, a, b, k[6], 17, -1473231341);
+      b = ff(b, c, d, a, k[7], 22, -45705983);
+      a = ff(a, b, c, d, k[8], 7,  1770035416);
+      d = ff(d, a, b, c, k[9], 12, -1958414417);
+      c = ff(c, d, a, b, k[10], 17, -42063);
+      b = ff(b, c, d, a, k[11], 22, -1990404162);
+      a = ff(a, b, c, d, k[12], 7,  1804603682);
+      d = ff(d, a, b, c, k[13], 12, -40341101);
+      c = ff(c, d, a, b, k[14], 17, -1502002290);
+      b = ff(b, c, d, a, k[15], 22,  1236535329);
+
+      a = gg(a, b, c, d, k[1], 5, -165796510);
+      d = gg(d, a, b, c, k[6], 9, -1069501632);
+      c = gg(c, d, a, b, k[11], 14,  643717713);
+      b = gg(b, c, d, a, k[0], 20, -373897302);
+      a = gg(a, b, c, d, k[5], 5, -701558691);
+      d = gg(d, a, b, c, k[10], 9,  38016083);
+      c = gg(c, d, a, b, k[15], 14, -660478335);
+      b = gg(b, c, d, a, k[4], 20, -405537848);
+      a = gg(a, b, c, d, k[9], 5,  568446438);
+      d = gg(d, a, b, c, k[14], 9, -1019803690);
+      c = gg(c, d, a, b, k[3], 14, -187363961);
+      b = gg(b, c, d, a, k[8], 20,  1163531501);
+      a = gg(a, b, c, d, k[13], 5, -1444681467);
+      d = gg(d, a, b, c, k[2], 9, -51403784);
+      c = gg(c, d, a, b, k[7], 14,  1735328473);
+      b = gg(b, c, d, a, k[12], 20, -1926607734);
+
+      a = hh(a, b, c, d, k[5], 4, -378558);
+      d = hh(d, a, b, c, k[8], 11, -2022574463);
+      c = hh(c, d, a, b, k[11], 16,  1839030562);
+      b = hh(b, c, d, a, k[14], 23, -35309556);
+      a = hh(a, b, c, d, k[1], 4, -1530992060);
+      d = hh(d, a, b, c, k[4], 11,  1272893353);
+      c = hh(c, d, a, b, k[7], 16, -155497632);
+      b = hh(b, c, d, a, k[10], 23, -1094730640);
+      a = hh(a, b, c, d, k[13], 4,  681279174);
+      d = hh(d, a, b, c, k[0], 11, -358537222);
+      c = hh(c, d, a, b, k[3], 16, -722521979);
+      b = hh(b, c, d, a, k[6], 23,  76029189);
+      a = hh(a, b, c, d, k[9], 4, -640364487);
+      d = hh(d, a, b, c, k[12], 11, -421815835);
+      c = hh(c, d, a, b, k[15], 16,  530742520);
+      b = hh(b, c, d, a, k[2], 23, -995338651);
+
+      a = ii(a, b, c, d, k[0], 6, -198630844);
+      d = ii(d, a, b, c, k[7], 10,  1126891415);
+      c = ii(c, d, a, b, k[14], 15, -1416354905);
+      b = ii(b, c, d, a, k[5], 21, -57434055);
+      a = ii(a, b, c, d, k[12], 6,  1700485571);
+      d = ii(d, a, b, c, k[3], 10, -1894986606);
+      c = ii(c, d, a, b, k[10], 15, -1051523);
+      b = ii(b, c, d, a, k[1], 21, -2054922799);
+      a = ii(a, b, c, d, k[8], 6,  1873313359);
+      d = ii(d, a, b, c, k[15], 10, -30611744);
+      c = ii(c, d, a, b, k[6], 15, -1560198380);
+      b = ii(b, c, d, a, k[13], 21,  1309151649);
+      a = ii(a, b, c, d, k[4], 6, -145523070);
+      d = ii(d, a, b, c, k[11], 10, -1120210379);
+      c = ii(c, d, a, b, k[2], 15,  718787259);
+      b = ii(b, c, d, a, k[9], 21, -343485551);
+
+      x[0] = add32(a, x[0]);
+      x[1] = add32(b, x[1]);
+      x[2] = add32(c, x[2]);
+      x[3] = add32(d, x[3]);
+
+    }
+
+    function cmn(q, a, b, x, s, t) {
+      a = add32(add32(a, q), add32(x, t));
+      return add32((a << s) | (a >>> (32 - s)), b);
+    }
+
+    function ff(a, b, c, d, x, s, t) {
+      return cmn((b & c) | ((~b) & d), a, b, x, s, t);
+    }
+
+    function gg(a, b, c, d, x, s, t) {
+      return cmn((b & d) | (c & (~d)), a, b, x, s, t);
+    }
+
+    function hh(a, b, c, d, x, s, t) {
+      return cmn(b ^ c ^ d, a, b, x, s, t);
+    }
+
+    function ii(a, b, c, d, x, s, t) {
+      return cmn(c ^ (b | (~d)), a, b, x, s, t);
+    }
+
+    function md51(s) {
+      txt = '';
+      var n = s.length,
+          state = [1732584193, -271733879, -1732584194, 271733878], i;
+      for (i=64; i<=s.length; i+=64) {
+        md5cycle(state, md5blk(s.substring(i-64, i)));
+      }
+      s = s.substring(i-64);
+      var tail = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
+      for (i=0; i<s.length; i++)
+        tail[i>>2] |= s.charCodeAt(i) << ((i%4) << 3);
+      tail[i>>2] |= 0x80 << ((i%4) << 3);
+      if (i > 55) {
+        md5cycle(state, tail);
+        for (i=0; i<16; i++) tail[i] = 0;
+      }
+      tail[14] = n*8;
+      md5cycle(state, tail);
+      return state;
+    }
+
+    function md5blk(s) {
+      var md5blks = [], i;
+      for (i=0; i<64; i+=4) {
+        md5blks[i>>2] = s.charCodeAt(i) + (s.charCodeAt(i+1) << 8) + (s.charCodeAt(i+2) << 16) + (s.charCodeAt(i+3) << 24);
+      }
+      return md5blks;
+    }
+
+    var hex_chr = '0123456789abcdef'.split('');
+
+    function rhex(n)
+    {
+      var s='', j=0;
+      for(; j<4; j++)
+        s += hex_chr[(n >> (j * 8 + 4)) & 0x0F] + hex_chr[(n >> (j * 8)) & 0x0F];
+      return s;
+    }
+
+    function hex(x) {
+      for (var i=0; i<x.length; i++)
+        x[i] = rhex(x[i]);
+      return x.join('');
+    }
+
+    function md5(s) {
+      return hex(md51(s));
+    }
+
+    var add32 = function (a, b) {
+      return (a + b) & 0xFFFFFFFF;
+    };
+
+    if (md5('hello') !== '5d41402abc4b2a76b9719d911017c592') {
+      add32 = function (x, y) {
+        var lsw = (x & 0xFFFF) + (y & 0xFFFF),
+            msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+        return (msw << 16) | (lsw & 0xFFFF);
+      };
+    }
+
+    return md5(str);
+  },
+  /* jshint ignore:end */
+
+
+  localStorageAvailable () {
+    const context = util.getGlobalContext();
+
+    if (!('localStorage' in context)) { return false; }
+
+    try {
+      context.localStorage.setItem('rs-check', 1);
+      context.localStorage.removeItem('rs-check');
+      return true;
+    } catch(error) {
+      return false;
+    }
+  },
+
+  /**
+   * Decide if data should be treated as binary based on the content
+   * and content-type.
+   *
+   * @param {string} content - The data
+   * @param {string} mimeType - The data's content-type
+   *
+   * @returns {boolean}
+   */
+  shouldBeTreatedAsBinary (content, mimeType) {
+    return (mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x1F]/.test(content);
+  },
+
+  /**
+   * Read binary data and return it as ArrayBuffer.
+   *
+   * @param {string} content - The data
+   * @param {string} mimeType - The data's content-type
+   * @returns {Promise} Resolves with an ArrayBuffer containing the data
+   */
+   readBinaryData (content, mimeType) {
+    return new Promise((resolve) => {
+      let blob;
+      util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
+      if (typeof util.globalContext.BlobBuilder !== 'undefined') {
+        const bb = new global.BlobBuilder();
+        bb.append(content);
+        blob = bb.getBlob(mimeType);
+      } else {
+        blob = new Blob([content], { type: mimeType });
+      }
+
+      const reader = new FileReader();
+      if (typeof reader.addEventListener === 'function') {
+        reader.addEventListener('loadend', function () {
+          resolve(reader.result); // reader.result contains the contents of blob as a typed array
+        });
+      } else {
+        reader.onloadend = function() {
+          resolve(reader.result); // reader.result contains the contents of blob as a typed array
+        };
+      }
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+
+};
+
+module.exports = util;

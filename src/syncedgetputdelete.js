@@ -1,4 +1,3 @@
-
 var log = require('./log');
 
 function shareFirst(path) {
