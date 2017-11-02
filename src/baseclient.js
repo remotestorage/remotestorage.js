@@ -1,9 +1,11 @@
-var eventHandling = require('./eventhandling');
-var util = require('./util');
-var config = require('./config');
-var uuid = require('uuid/v4');
-var tv4 = require('tv4');
-var Types = require('./types');
+const eventHandling = require('./eventhandling');
+const util = require('./util');
+const config = require('./config');
+const uuid = require('uuid/v4');
+const tv4 = require('tv4');
+const Types = require('./types');
+
+const SchemaNotFound = Types.SchemaNotFound;
 
 /**
  * Provides a high-level interface to access data below a given root path.
