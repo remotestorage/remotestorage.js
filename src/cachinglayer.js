@@ -139,17 +139,17 @@ var methods = {
   },
 
   put: function (path, body, contentType) {
-    var paths = pathsFromRoot(path);
+    const paths = pathsFromRoot(path);
 
-    function _processNodes(paths, nodes) {
+    function _processNodes(nodePaths, nodes) {
       try {
-        for (var i = 0, len = paths.length; i < len; i++) {
-          var path = paths[i];
-          var node = nodes[path];
-          var previous;
+        for (var i = 0, len = nodePaths.length; i < len; i++) {
+          const nodePath = nodePaths[i];
+          let node = nodes[nodePath];
+          let previous;
 
           if (!node) {
-            nodes[path] = node = makeNode(path);
+            nodes[nodePath] = node = makeNode(nodePath);
           }
 
           // Document
@@ -164,7 +164,7 @@ var methods = {
           }
           // Folder
           else {
-            var itemName = paths[i-1].substring(path.length);
+            var itemName = nodePaths[i-1].substring(nodePath.length);
             node = updateFolderNodeWithItemName(node, itemName);
           }
         }
@@ -174,20 +174,21 @@ var methods = {
         throw e;
       }
     }
+
     return this._updateNodes(paths, _processNodes);
   },
 
   delete: function (path) {
-    var paths = pathsFromRoot(path);
+    const paths = pathsFromRoot(path);
 
-    return this._updateNodes(paths, function (paths, nodes) {
-      for (var i = 0, len = paths.length; i < len; i++) {
-        var path = paths[i];
-        var node = nodes[path];
-        var previous;
+    return this._updateNodes(paths, function (nodePaths, nodes) {
+      for (var i = 0, len = nodePaths.length; i < len; i++) {
+        const nodePath = nodePaths[i];
+        const node = nodes[nodePath];
+        let previous;
 
         if (!node) {
-          console.error('Cannot delete non-existing node ' + path);
+          console.error('Cannot delete non-existing node ' + nodePath);
           continue;
         }
 
@@ -204,7 +205,7 @@ var methods = {
           if (!node.local) {
             node.local = deepClone(node.common);
           }
-          var itemName = paths[i-1].substring(path.length);
+          var itemName = nodePaths[i-1].substring(nodePath.length);
           delete node.local.itemsMap[itemName];
 
           if (Object.getOwnPropertyNames(node.local.itemsMap).length > 0) {
@@ -216,13 +217,14 @@ var methods = {
       return nodes;
     });
   },
+
   flush: function (path) {
     var self = this;
     return self._getAllDescendentPaths(path).then(function (paths) {
       return self.getNodes(paths);
     }).then(function (nodes) {
-      for (var path in nodes) {
-        var node = nodes[path];
+      for (var nodePath in nodes) {
+        const node = nodes[nodePath];
 
         if (node && node.common && node.local) {
           self._emitChange({
@@ -232,8 +234,9 @@ var methods = {
             newValue: (node.common.body === false ? undefined : node.common.body)
           });
         }
-        nodes[path] = undefined;
+        nodes[nodePath] = undefined;
       }
+
       return self.setNodes(nodes);
     });
   },
