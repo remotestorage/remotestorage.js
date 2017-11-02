@@ -1,9 +1,13 @@
-var log = require('./log');
+const log = require('./log');
 
 function shareFirst(path) {
   return ( this.backend === 'dropbox' &&
            path.match(/^\/public\/.*[^\/]$/) );
 }
+
+function maxAgeInvalid(maxAge) {
+  return maxAge !== false && typeof(maxAge) !== 'number';
+};
 
 var SyncedGetPutDelete = {
   get: function (path, maxAge) {
@@ -17,9 +21,6 @@ var SyncedGetPutDelete = {
           maxAge = false;
         }
       }
-      var maxAgeInvalid = function (maxAge) {
-        return maxAge !== false && typeof(maxAge) !== 'number';
-      };
 
       if (maxAgeInvalid(maxAge)) {
         return Promise.reject('Argument \'maxAge\' must be false or a number');
