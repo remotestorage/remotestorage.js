@@ -7,8 +7,7 @@ var options = {
     browser: true,
     node: true,
     es6: true
-  },
-  globals: {
+  }, globals: {
     "Promise": true,
     "ArrayBuffer": true,
     "ArrayBufferView": true,
@@ -42,7 +41,11 @@ var options = {
     "no-new-func": 0,
     "no-new-wrappers": 0,
     "no-undef": 2,
-    "new-cap": 2,
+    "new-cap": [
+      "error", {
+        "capIsNewExceptions": [ "Authorize", "Discover" ]
+      }
+    ],
     "no-empty": 2,
     "no-new": 2,
     "no-useless-escape": 0,
