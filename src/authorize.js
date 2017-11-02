@@ -23,7 +23,7 @@ function extractParams(url) {
       params['rsDiscovery'] = JSON.parse(atob(encodedData));
 
       // remove rsDiscovery param
-      stateValue = stateValue.replace(new RegExp('\&?rsDiscovery=' + encodedData), '');
+      stateValue = stateValue.replace(new RegExp('&?rsDiscovery=' + encodedData), '');
 
       if (stateValue.length > 0) {
         params['state'] = stateValue;
@@ -66,11 +66,7 @@ var Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) 
   url += '&response_type=token';
 
   if (util.globalContext.cordova) {
-    return Authorize.openWindow(
-        url,
-        redirectUri,
-        'location=yes,clearsessioncache=yes,clearcache=yes'
-      )
+    return Authorize.openWindow(url, redirectUri, 'location=yes,clearsessioncache=yes,clearcache=yes')
       .then(function(authResult) {
         remoteStorage.remote.configure({
           token: authResult.access_token
@@ -92,7 +88,7 @@ Authorize.Unauthorized = function(message, options = {}) {
     this.message = message;
   }
 
-  if (typeof options.code) {
+  if (typeof options.code !== 'undefined') {
     this.code = options.code;
   }
 

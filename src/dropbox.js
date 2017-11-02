@@ -316,7 +316,7 @@ Dropbox.prototype = {
       }
 
       listing = body.entries.reduce(function (map, item) {
-        var isDir = item['.tag'] == 'folder';
+        var isDir = item['.tag'] === 'folder';
         var itemName = item.path_lower.split('/').slice(-1)[0] + (isDir ? '/' : '');
         if (isDir){
           map[itemName] = { ETag: revCache.get(path+itemName) };

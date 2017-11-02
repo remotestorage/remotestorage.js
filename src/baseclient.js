@@ -120,6 +120,7 @@ BaseClient.prototype = {
                 try {
                   o.body = JSON.parse(o.body);
                 } catch (e) {
+                  // empty
                 }
               }
               if (typeof(o.body) === 'object') {
@@ -429,6 +430,7 @@ BaseClient.prototype = {
             try {
               event[fieldNamePrefix+'Value'] = JSON.parse(event[fieldNamePrefix+'Value']);
             } catch(e) {
+              // empty
             }
           }
         }

@@ -416,7 +416,7 @@ Sync.prototype = {
     var mergeMutualDeletion = function (node) {
       if (node.remote && node.remote.body === false
           && node.local && node.local.body === false) {
-         delete node.local;
+        delete node.local;
       }
       return node;
     };

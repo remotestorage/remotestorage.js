@@ -128,7 +128,7 @@ IndexedDB.prototype = {
     } else {
       if (!this.commitSlownessWarning) {
         this.commitSlownessWarning = setInterval(function () {
-          console.log('WARNING: waited more than 10 seconds for previous commit to finish');
+          console.warn('WARNING: waited more than 10 seconds for previous commit to finish');
         }, 10000);
       }
     }
