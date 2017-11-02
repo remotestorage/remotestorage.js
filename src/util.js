@@ -96,7 +96,8 @@ var util = {
       throw "Path not given!";
     }
 
-    return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
+    return path.replace(/\/+/g, '/')
+               .replace(/[^\/]+\/?$/, '');
   },
 
   isFolder (path) {
