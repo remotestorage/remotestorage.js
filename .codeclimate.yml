@@ -1,4 +1,5 @@
-eslint:
-  enabled: true
-  config:
-    config: .eslintrc.js
+engines:
+  eslint:
+    enabled: true
+    config:
+      config: .eslintrc.js
