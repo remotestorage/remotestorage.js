@@ -7,3 +7,7 @@ engines:
 ratings:
   paths:
   - src/**
+exclude_paths:
+  - test/**/*
+  - index.js
+  - webpack.config.js
