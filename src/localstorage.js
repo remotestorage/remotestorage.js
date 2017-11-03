@@ -1,16 +1,16 @@
-var cachingLayer = require('./cachinglayer');
-var log = require('./log');
-var eventHandling = require('./eventhandling');
-var util = require('./util');
+const cachingLayer = require('./cachinglayer');
+const log = require('./log');
+const eventHandling = require('./eventhandling');
+const util = require('./util');
 
 /**
  * localStorage caching adapter. Used when no IndexedDB available.
  **/
 
-var NODES_PREFIX = "remotestorage:cache:nodes:";
-var CHANGES_PREFIX = "remotestorage:cache:changes:";
+const NODES_PREFIX = "remotestorage:cache:nodes:";
+const CHANGES_PREFIX = "remotestorage:cache:changes:";
 
-var LocalStorage = function () {
+const LocalStorage = function () {
   cachingLayer(this);
   log('[LocalStorage] Registering events');
   eventHandling(this, 'change', 'local-events-done');
@@ -96,10 +96,10 @@ LocalStorage._rs_supported = function () {
  * TODO: tests missing!
  */
 LocalStorage._rs_cleanup = function () {
-  var keys = [];
+  let keys = [];
 
   for (var i = 0, len = localStorage.length; i < len; i++) {
-    var key = localStorage.key(i);
+    let key = localStorage.key(i);
     if (isRemoteStorageKey(key)) {
       keys.push(key);
     }

@@ -98,7 +98,7 @@ Access.prototype = {
     if (path[0] !== '/') {
       throw new Error('Path should start with a slash');
     }
-    var moduleMatch = path.replace(/^\/public/, '').match(/^\/([^\/]*)\//);
+    var moduleMatch = path.replace(/^\/public/, '').match(/^\/([^/]*)\//);
     return moduleMatch ? moduleMatch[1] : '*';
   },
 

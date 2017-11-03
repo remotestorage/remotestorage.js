@@ -41,11 +41,11 @@ var RemoteStorage = function (cfg) {
     util.extend(config, cfg);
   }
 
-  eventHandling(
-    this, 'ready', 'authing', 'connecting', 'connected', 'disconnected',
-          'not-connected', 'conflict', 'error', 'features-loaded',
-          'sync-interval-change', 'sync-req-done', 'sync-done',
-          'wire-busy', 'wire-done', 'network-offline', 'network-online'
+  eventHandling(this,
+    'ready', 'authing', 'connecting', 'connected', 'disconnected',
+    'not-connected', 'conflict', 'error', 'features-loaded',
+    'sync-interval-change', 'sync-req-done', 'sync-done',
+    'wire-busy', 'wire-done', 'network-offline', 'network-online'
   );
 
   /**
@@ -183,7 +183,7 @@ RemoteStorage.prototype = {
 
     var redirectUri = globalContext.cordova ? cordovaRedirectUri : String(Authorize.getLocation());
 
-    var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+    var clientId = redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
 
     Authorize(this, authURL, scope, redirectUri, clientId);
   },
@@ -269,7 +269,7 @@ RemoteStorage.prototype = {
       this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
     }.bind(this), config.discoveryTimeout);
 
-    Discover(userAddress).then(function (info) {
+    Discover(userAddress).then(info => {
       // Info contains fields: href, storageApi, authURL (optional), properties
 
       clearTimeout(discoveryTimeout);
@@ -297,10 +297,10 @@ RemoteStorage.prototype = {
           this.impliedauth();
         }
       }
-    }.bind(this), function(err) {
+    }, (/*err*/) => {
       clearTimeout(discoveryTimeout);
       this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
-    }.bind(this));
+    });
   },
 
   /**
@@ -473,7 +473,7 @@ RemoteStorage.prototype = {
    * @param {string} uri - A valid HTTP(S) URI
    */
   setCordovaRedirectUri: function (uri) {
-    if (typeof uri !== 'string' || !uri.match(/http(s)?\:\/\//)) {
+    if (typeof uri !== 'string' || !uri.match(/http(s)?:\/\//)) {
       throw new Error("Cordova redirect URI must be a URI string");
     }
     config.cordovaRedirectUri = uri;

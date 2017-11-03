@@ -75,11 +75,11 @@ Discover.DiscoveryError = function(message) {
 Discover.DiscoveryError.prototype = Object.create(Error.prototype);
 Discover.DiscoveryError.prototype.constructor = Discover.DiscoveryError;
 
-Discover._rs_init = function (remoteStorage) {
+Discover._rs_init = function (/*remoteStorage*/) {
   hasLocalStorage = util.localStorageAvailable();
   if (hasLocalStorage) {
     var settings;
-    try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
+    try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) { /* empty */ }
     if (settings) {
       cachedInfo = settings.cache;
     }

@@ -7,11 +7,6 @@ const Authorize = require('./authorize');
 const config = require('./config');
 
 /**
- * Class: WireClient
- *
- * WireClient Interface
- * --------------------
- *
  * This file exposes a get/put/delete interface on top of XMLHttpRequest.
  * It requires to be configured with parameters about the remotestorage server to
  * connect to.
@@ -42,6 +37,8 @@ const config = require('./config');
  * receives an empty folder listing, to mimic remotestorage-01 behavior. Note
  * that it is not always possible to know the revision beforehand, hence it may
  * be undefined at times (especially for caching-roots).
+ *
+ * @interface
  */
 
 var hasLocalStorage;
@@ -99,7 +96,7 @@ function stripQuotes(str) {
 }
 
 function getTextFromArrayBuffer(arrayBuffer, encoding) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve/*, reject*/) => {
     if (typeof Blob === 'undefined') {
       var buffer = new Buffer(new Uint8Array(arrayBuffer));
       resolve(buffer.toString(encoding));
@@ -171,7 +168,11 @@ var WireClient = function WireClient(rs) {
 
   if (hasLocalStorage) {
     var settings;
-    try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
+    try {
+      settings = JSON.parse(localStorage[SETTINGS_KEY]);
+    } catch(e) {
+      // no settings stored
+    }
     if (settings) {
       setTimeout(function () {
         this.configure(settings);
@@ -285,12 +286,23 @@ WireClient.prototype = {
 
         if (shouldBeTreatedAsBinary(response.response, mimeType)) {
           log('[WireClient] Successful request with unknown or binary mime-type', revision);
-          return Promise.resolve({statusCode: response.status, body: response.response, contentType: mimeType, revision: revision});
-        } else {
-          return getTextFromArrayBuffer(response.response, charset).then(function (body) {
-            log('[WireClient] Successful request', revision);
-            return Promise.resolve({statusCode: response.status, body: body, contentType: mimeType, revision: revision});
+          return Promise.resolve({
+            statusCode: response.status,
+            body: response.response,
+            contentType: mimeType,
+            revision: revision
           });
+        } else {
+          return getTextFromArrayBuffer(response.response, charset)
+            .then(function (textContent) {
+              log('[WireClient] Successful request', revision);
+              return Promise.resolve({
+                statusCode: response.status,
+                body: textContent,
+                contentType: mimeType,
+                revision: revision
+              });
+            });
         }
       }
     }, function (error) {
@@ -545,11 +557,10 @@ WireClient._rs_supported = function () {
   return !! XMLHttpRequest;
 };
 
-WireClient._rs_cleanup = function (remoteStorage){
+WireClient._rs_cleanup = function () {
   if (hasLocalStorage){
     delete localStorage[SETTINGS_KEY];
   }
 };
-
 
 module.exports = WireClient;

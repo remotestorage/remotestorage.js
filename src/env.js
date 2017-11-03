@@ -1,11 +1,9 @@
-var eventHandling = require('./eventhandling');
+const eventHandling = require('./eventhandling');
 
-var mode = typeof(window) !== 'undefined' ? 'browser' : 'node',
-    env = {},
-    isBackground = false;
+const mode = typeof(window) !== 'undefined' ? 'browser' : 'node',
+    env = {};
 
-
-var Env = function () {
+const Env = function () {
   return env;
 };
 
@@ -18,19 +16,17 @@ Env.isNode = function () {
 };
 
 Env.goBackground = function () {
-  isBackground = true;
   Env._emit("background");
 };
 
 Env.goForeground = function () {
-  isBackground = false;
   Env._emit("foreground");
 };
 
-Env._rs_init = function (remoteStorage) {
+Env._rs_init = function (/* remoteStorage */) {
   eventHandling(Env, "background", "foreground");
 
-  function visibility() {
+  function visibility () {
     if (document[env.hiddenProperty]) {
       Env.goBackground();
     } else {
@@ -38,17 +34,17 @@ Env._rs_init = function (remoteStorage) {
     }
   }
 
-  if ( mode === 'browser') {
-    if ( typeof(document.hidden) !== "undefined" ) {
+  if (mode === 'browser') {
+    if (typeof(document.hidden) !== "undefined") {
       env.hiddenProperty = "hidden";
       env.visibilityChangeEvent = "visibilitychange";
-    } else if ( typeof(document.mozHidden) !== "undefined" ) {
+    } else if (typeof(document.mozHidden) !== "undefined") {
       env.hiddenProperty = "mozHidden";
       env.visibilityChangeEvent = "mozvisibilitychange";
-    } else if ( typeof(document.msHidden) !== "undefined" ) {
+    } else if (typeof(document.msHidden) !== "undefined") {
       env.hiddenProperty = "msHidden";
       env.visibilityChangeEvent = "msvisibilitychange";
-    } else if ( typeof(document.webkitHidden) !== "undefined" ) {
+    } else if (typeof(document.webkitHidden) !== "undefined") {
       env.hiddenProperty = "webkitHidden";
       env.visibilityChangeEvent = "webkitvisibilitychange";
     }
@@ -57,7 +53,7 @@ Env._rs_init = function (remoteStorage) {
   }
 };
 
-Env._rs_cleanup = function (remoteStorage) {
+Env._rs_cleanup = function (/* remoteStorage */) {
 };
 
 

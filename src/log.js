@@ -10,6 +10,7 @@ var config = require('./config');
  */
 function log() {
   if (config.logging) {
+    // eslint-disable-next-line no-console
     console.log.apply(console, arguments);
   }
 }

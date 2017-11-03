@@ -96,7 +96,8 @@ var util = {
       throw "Path not given!";
     }
 
-    return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
+    return path.replace(/\/+/g, '/')
+               .replace(/[^\/]+\/?$/, '');
   },
 
   isFolder (path) {
@@ -227,7 +228,7 @@ var util = {
     return paths;
   },
 
-  /* jshint ignore:start */
+  /* eslint-disable no-bitwise */
   md5sum (str) {
     //
     // http://www.myersdaily.org/joseph/javascript/md5.js
@@ -332,7 +333,6 @@ var util = {
     }
 
     function md51(s) {
-      txt = '';
       var n = s.length,
           state = [1732584193, -271733879, -1732584194, 271733878], i;
       for (i=64; i<=s.length; i+=64) {
@@ -341,11 +341,11 @@ var util = {
       s = s.substring(i-64);
       var tail = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
       for (i=0; i<s.length; i++)
-        tail[i>>2] |= s.charCodeAt(i) << ((i%4) << 3);
+      { tail[i>>2] |= s.charCodeAt(i) << ((i%4) << 3); }
       tail[i>>2] |= 0x80 << ((i%4) << 3);
       if (i > 55) {
         md5cycle(state, tail);
-        for (i=0; i<16; i++) tail[i] = 0;
+        for (i=0; i<16; i++) { tail[i] = 0; }
       }
       tail[14] = n*8;
       md5cycle(state, tail);
@@ -366,13 +366,13 @@ var util = {
     {
       var s='', j=0;
       for(; j<4; j++)
-        s += hex_chr[(n >> (j * 8 + 4)) & 0x0F] + hex_chr[(n >> (j * 8)) & 0x0F];
+      { s += hex_chr[(n >> (j * 8 + 4)) & 0x0F] + hex_chr[(n >> (j * 8)) & 0x0F]; }
       return s;
     }
 
     function hex(x) {
       for (var i=0; i<x.length; i++)
-        x[i] = rhex(x[i]);
+      { x[i] = rhex(x[i]); }
       return x.join('');
     }
 
@@ -394,7 +394,7 @@ var util = {
 
     return md5(str);
   },
-  /* jshint ignore:end */
+  /* eslint-enable no-bitwise */
 
 
   localStorageAvailable () {
@@ -421,6 +421,7 @@ var util = {
    * @returns {boolean}
    */
   shouldBeTreatedAsBinary (content, mimeType) {
+    // eslint-disable-next-line no-control-regex
     return (mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x1F]/.test(content);
   },
 
@@ -431,7 +432,7 @@ var util = {
    * @param {string} mimeType - The data's content-type
    * @returns {Promise} Resolves with an ArrayBuffer containing the data
    */
-   readBinaryData (content, mimeType) {
+  readBinaryData (content, mimeType) {
     return new Promise((resolve) => {
       let blob;
       util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;

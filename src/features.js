@@ -189,6 +189,7 @@ const Features = {
     log(`[REMOTESTORAGE] All features loaded !`);
 
     this._setCachingModule();
+    // eslint-disable-next-line new-cap
     this.local = config.cache && this.features.local && new this.features.local();
 
     // this.remote set by WireClient._rs_init as lazy property on
