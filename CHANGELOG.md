@@ -41,6 +41,7 @@ All releases can also be found and downloaded on the
 * `startSync()` returns the sync promise (#1036)
 * Emit `ready`, `connected` and `not-connected` events when registering an
   handler after they happened originally. (#1066)
+* Introduce ESLint, fix syntax and scope issues throughout the code (#1080)
 
 ### Bugfixes
 
