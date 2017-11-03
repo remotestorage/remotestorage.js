@@ -13,7 +13,7 @@
   "homepage": "https://remotestorage.io",
   "scripts": {
     "test": "bash scripts/test-all.sh",
-    "lint": "eslint src/",
+    "lint": "eslint --quiet src/",
     "build": "NODE_ENV=production webpack -p",
     "dev": "webpack -w",
     "doc": "cd doc; sphinx-autobuild -i '*~' -i '*.sw*' -i '#*#' . _build/html",

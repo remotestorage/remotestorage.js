@@ -1,37 +1,21 @@
+---
 engines:
   eslint:
     enabled: true
     channel: "eslint-4"
+  duplication:
+    enabled: true
     config:
-      config: .eslintrc.js
-    checks:
-      complexity:
-        enabled: true
+      languages:
+      - javascript
 ratings:
   paths:
-  - src/**
+    - src/**
 exclude_paths:
-  - test/**/*
+  - doc/
+  - node_modules/
+  - release/
+  - scripts/
+  - test/
   - index.js
   - webpack.config.js
-checks:
-  argument-count:
-    enabled: true
-  complex-logic:
-    enabled: true
-  file-lines:
-    enabled: true
-  method-complexity:
-    enabled: true
-  method-count:
-    enabled: true
-  method-lines:
-    enabled: true
-  nested-control-flow:
-    enabled: true
-  return-statements:
-    enabled: true
-  similar-code:
-    enabled: true
-  identical-code:
-    enabled: true

@@ -13,6 +13,8 @@ var options = {
   },
   extends: "eslint:recommended",
   rules: {
+    "complexity": ["warn"],
+    "max-statements": ["warn"],
     "no-debugger": 2,
     "no-console": [
       2,
