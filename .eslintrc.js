@@ -8,17 +8,8 @@ var options = {
     node: true,
     es6: true
   }, globals: {
-    "Promise": true,
     "ArrayBuffer": true,
-    "ArrayBufferView": true,
-    "Int8Array": true,
-    "Int16Array": true,
-    "Int32Array": true,
-    "Uint8Array": true,
-    "Uint16Array": true,
-    "Uint32Array": true,
-    "Float32Array": true,
-    "Float64Array": true
+    "ArrayBufferView": true
   },
   extends: "eslint:recommended",
   rules: {
