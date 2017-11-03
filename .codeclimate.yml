@@ -4,6 +4,9 @@ engines:
     channel: "eslint-4"
     config:
       config: .eslintrc.js
+  checks:
+    complexity:
+      enabled: true
 ratings:
   paths:
   - src/**
@@ -11,3 +14,24 @@ exclude_paths:
   - test/**/*
   - index.js
   - webpack.config.js
+checks:
+  argument-count:
+    enabled: true
+  complex-logic:
+    enabled: true
+  file-lines:
+    enabled: true
+  method-complexity:
+    enabled: true
+  method-count:
+    enabled: true
+  method-lines:
+    enabled: true
+  nested-control-flow:
+    enabled: true
+  return-statements:
+    enabled: true
+  similar-code:
+    enabled: true
+  identical-code:
+    enabled: true
