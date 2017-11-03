@@ -25,10 +25,6 @@ Release checklist
     * create a Git tag for the version
     * push the release commit and tag to GitHub
 
-* Push release commit and tag to GitHub::
-
-     git push && git push --tags
-
 * Publish release notes on GitHub
 
     * Go to https://github.com/remotestorage/remotestorage.js/tags and click "Add release notes"
