@@ -4,3 +4,6 @@ engines:
     channel: "eslint-4"
     config:
       config: .eslintrc.js
+ratings:
+  paths:
+  - src/**
