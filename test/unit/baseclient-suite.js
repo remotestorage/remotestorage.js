@@ -27,8 +27,6 @@ define(['./src/config', './src/baseclient', 'test/helpers/mocks', 'tv4'],
 
       config.changeEvents = { remote: true };
 
-      // require('../../lib/Math.uuid');
-      // global.BaseClient = require('../../src/baseclient')
       test.done();
     },
     beforeEach: function(env, test) {
@@ -90,15 +88,7 @@ define(['./src/config', './src/baseclient', 'test/helpers/mocks', 'tv4'],
           env.client.on('change', function() {});
           test.done();
         }
-      },
-      {
-        desc: "#BaseClient.uuid()",
-        run: function(env, test) {
-          test.assertType(env.client.uuid, 'function');
-          var string = env.client.uuid();
-          test.assertType(string, 'string');
-        }
-      },
+      }
     ]
   });
 
@@ -296,18 +286,6 @@ define(['./src/config', './src/baseclient', 'test/helpers/mocks', 'tv4'],
           test.assertTypeAnd(scope, 'object');
           test.assertAnd(scope.base, '/foo/bar/');
           test.done();
-        }
-      },
-
-      {
-        desc: "#uuid returns a different string each time",
-        run: function(env, test) {
-          var n = 10000;
-          var uuids = {};
-          for (var i=0;i<n;i++) {
-            uuids[env.client.uuid()] = true;
-          }
-          test.assert(Object.keys(uuids).length, n);
         }
       },
 
