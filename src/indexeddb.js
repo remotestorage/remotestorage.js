@@ -441,8 +441,9 @@ IndexedDB._rs_cleanup = function (remoteStorage) {
       remoteStorage.local.closeDB();
     }
 
-    IndexedDB.clean(DEFAULT_DB_NAME, resolve);
+    IndexedDB.clean(DEFAULT_DB_NAME, function () {}); // use empty callback, because we don't want to wait
 
+    resolve();
   });
 };
 
