@@ -1,7 +1,6 @@
 const eventHandling = require('./eventhandling');
 const util = require('./util');
 const config = require('./config');
-const uuid = require('uuid/v4');
 const tv4 = require('tv4');
 const Types = require('./types');
 
@@ -446,11 +445,8 @@ BaseClient.prototype = {
    *
    * @private
    */
-  _cleanPath: util.cleanPath,
+  _cleanPath: util.cleanPath
 
-  uuid: function () {
-    return uuid();
-  }
 };
 
 BaseClient._rs_init = function () {};
