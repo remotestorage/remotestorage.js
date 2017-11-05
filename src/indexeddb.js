@@ -319,6 +319,7 @@ IndexedDB.open = function (name, callback) {
       var db = req.result;
       if(!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
         log("[IndexedDB] Missing object store. Resetting the database.");
+        db.close();
         IndexedDB.clean(name, function() {
           IndexedDB.open(name, callback);
         });
@@ -441,8 +442,9 @@ IndexedDB._rs_cleanup = function (remoteStorage) {
       remoteStorage.local.closeDB();
     }
 
-    IndexedDB.clean(DEFAULT_DB_NAME, resolve);
+    IndexedDB.clean(DEFAULT_DB_NAME, function () {}); // use empty callback, because we don't want to wait
 
+    resolve();
   });
 };
 
