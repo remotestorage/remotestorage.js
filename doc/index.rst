@@ -26,7 +26,9 @@ connecting and syncing data with a person's Dropbox or Google Drive account
    data-modules
    js-api
    nodejs
+   cordova
    contributing
+   advanced
 
 Indices and tables
 ------------------
