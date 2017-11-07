@@ -3,7 +3,7 @@ Caching
 
 The caching class gets initialized as ``remoteStorage.caching``, unless the
 :doc:`RemoteStorage </js-api/remotestorage>` instance is created with the
-option ``caching: false``, disabling caching entirely.
+option ``cache: false``, disabling caching entirely.
 
 In case your app hasn't explictly configured caching, the default setting is to
 cache any documents that have been either created or requested since your app
