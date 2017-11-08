@@ -25,6 +25,7 @@ across devices and applications.
    js-api
    nodejs
    contributing
+   advanced
 
 Indices and tables
 ------------------
