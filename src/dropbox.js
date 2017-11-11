@@ -796,6 +796,13 @@ Dropbox.prototype = {
         if (responseBody.has_more) {
           return fetch(responseBody.cursor);
         }
+      }).catch((error) => {
+        if (error instanceof ProgressEvent) {
+          // Offline is handled elsewhere already, just ignore it here
+          return Promise.resolve();
+        } else {
+          return Promise.reject(error);
+        }
       });
     };
 
