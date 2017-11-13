@@ -3,6 +3,12 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 1.0.1 (November 2017)
+
+### Bugfixes
+
+Fix Dropbox throwing an error on failed requests (#1096)
+
 ## 1.0.0 (November 2017)
 
 ### Breaking changes
