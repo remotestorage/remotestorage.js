@@ -1,5 +1,6 @@
 var log = require('./log');
 var util = require('./util');
+var config = require('./config');
 
 function extractParams(url) {
   //FF already decodes the URL fragment in document.location.hash, so use this instead:
@@ -38,6 +39,13 @@ function extractParams(url) {
 
 
 var Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
+  // if the platform is cordova, change redirectUri's value to cordovaRedirectUri.
+  // this will only happen if the user has set cordovaRedirectUri.
+  if (util.globalContext.cordova &&
+    typeof config.cordovaRedirectUri !== 'undefined') {
+    redirectUri = config.cordovaRedirectUri;
+  }
+
   log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
 
   // keep track of the discovery data during redirect if we can't save it in localStorage
