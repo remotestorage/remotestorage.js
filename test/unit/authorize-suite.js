@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define([ 'require', './src/authorize', 'fs'], function(require, Authorize, fs) {
+define([ 'require', './src/authorize', './src/config'], function(require, Authorize, config) {
   var suites = [];
 
   suites.push({
@@ -79,6 +79,30 @@ define([ 'require', './src/authorize', 'fs'], function(require, Authorize, fs) {
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&response_type=token';
           test.assert(document.location.href, expectedUrl);
+        }
+      },
+
+      {
+        desc: "Authorize doesn't redirect, but opens an in-app-browser window",
+        run: function(env, test) {
+          document.location.href = 'file:///some/cordova/path';
+          var authUrl = 'http://storage.provider.com/oauth';
+          var scope = 'contacts:r';
+          var redirectUri = 'http://awesome.app.com/#';
+          var clientId = 'http://awesome.app.com/';
+
+          global.cordova = { foo: 'bar' }; // Pretend we run in Cordova
+
+          this.localStorageAvailable = function() { return true; };
+
+          Authorize.openWindow = function(url, uri) {
+            test.assertAnd(uri, redirectUri);
+            test.done();
+          };
+
+          Authorize(this, authUrl, scope, redirectUri, clientId);
+
+          test.assertAnd(document.location.href, 'file:///some/cordova/path');
         }
       },
 
