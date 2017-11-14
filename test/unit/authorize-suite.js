@@ -109,6 +109,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       {
         desc: "document.location getter",
         run: function(env, test) {
+          document.location.href = 'http://foo/bar';
           test.assert(Authorize.getLocation().href, "http://foo/bar");
         }
       },
@@ -116,6 +117,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       {
         desc: "document.location setter",
         run: function(env, test) {
+          document.location.href = 'http://foo/bar';
           Authorize.setLocation("https://bar/foo");
           test.assert(Authorize.getLocation().href, "https://bar/foo");
         }
