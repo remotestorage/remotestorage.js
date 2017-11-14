@@ -9,7 +9,7 @@ remoteStorage.js
 Welcome to the remoteStorage.js documentation!
 
 remoteStorage.js is a JavaScript library for storing user data locally in the
-browser, as well as connecting to [remoteStorage](http://remotestorage.io)
+browser, as well as connecting to `remoteStorage <http://remotestorage.io>`_
 servers and syncing data across devices and applications. It is also capable of
 connecting and syncing data with a person's Dropbox or Google Drive account
 (optional).
