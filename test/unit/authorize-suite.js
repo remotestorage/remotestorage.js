@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define([ 'require', './src/authorize', 'fs'], function(require, Authorize, fs) {
+define([ 'require', './src/authorize', './src/config'], function(require, Authorize, config) {
   var suites = [];
 
   suites.push({
@@ -83,8 +83,33 @@ define([ 'require', './src/authorize', 'fs'], function(require, Authorize, fs) {
       },
 
       {
+        desc: "Authorize doesn't redirect, but opens an in-app-browser window",
+        run: function(env, test) {
+          document.location.href = 'file:///some/cordova/path';
+          var authUrl = 'http://storage.provider.com/oauth';
+          var scope = 'contacts:r';
+          var redirectUri = 'http://awesome.app.com/#';
+          var clientId = 'http://awesome.app.com/';
+
+          global.cordova = { foo: 'bar' }; // Pretend we run in Cordova
+
+          this.localStorageAvailable = function() { return true; };
+
+          Authorize.openWindow = function(url, uri) {
+            test.assertAnd(uri, redirectUri);
+            test.done();
+          };
+
+          Authorize(this, authUrl, scope, redirectUri, clientId);
+
+          test.assertAnd(document.location.href, 'file:///some/cordova/path');
+        }
+      },
+
+      {
         desc: "document.location getter",
         run: function(env, test) {
+          document.location.href = 'http://foo/bar';
           test.assert(Authorize.getLocation().href, "http://foo/bar");
         }
       },
@@ -92,6 +117,7 @@ define([ 'require', './src/authorize', 'fs'], function(require, Authorize, fs) {
       {
         desc: "document.location setter",
         run: function(env, test) {
+          document.location.href = 'http://foo/bar';
           Authorize.setLocation("https://bar/foo");
           test.assert(Authorize.getLocation().href, "https://bar/foo");
         }
