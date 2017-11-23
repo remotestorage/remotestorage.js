@@ -175,7 +175,7 @@ RemoteStorage.prototype = {
    * Initiate the OAuth authorization flow.
    *
    * @param {object} options
-   * @param {string} [options.authURL] - URL of the authorization endpoint
+   * @param {string} options.authURL - URL of the authorization endpoint
    * @param {string} [options.scope] - access scope
    * @param {string} [options.clientId] - client identifier (defaults to the
    *                                      origin of the redirectUri)
