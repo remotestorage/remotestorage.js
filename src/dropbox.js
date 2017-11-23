@@ -209,7 +209,7 @@ Dropbox.prototype = {
     if (this.token){
       hookIt(this.rs);
     } else {
-      Authorize(this.rs, AUTH_URL, '', String(Authorize.getLocation()), this.clientId);
+      this.rs.authorize({ authURL: AUTH_URL, scope: '', clientId: this.clientId });
     }
   },
 
