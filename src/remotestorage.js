@@ -172,20 +172,31 @@ RemoteStorage.prototype = {
   },
 
   /**
-   * TODO: document
+   * Initiate the OAuth authorization flow.
    *
-   * @param {string} authUrl
-   * @param {string} cordovaRedirectUri
+   * @param {object} options
+   * @param {string} [options.authURL] - URL to the authorization endpoint
+   * @param {string} [options.scope] - access scope
+   * @param {string} [options.redirectUri] - client URL that should be redirected
+   *                                         to after authorization
+   * @param {string} [options.clientId] - client identifier (defaults to the
+   *                                      origin of the redirectUri)
    */
-  authorize: function authorize(authURL, cordovaRedirectUri) {
+  authorize: function authorize (options) {
     this.access.setStorageType(this.remote.storageType);
-    var scope = this.access.scopeParameter;
+    if (typeof options.scope === 'undefined') {
+      options.scope = this.access.scopeParameter;
+    }
 
-    var redirectUri = globalContext.cordova ? cordovaRedirectUri : String(Authorize.getLocation());
+    if (typeof options.redirectUri === 'undefined') {
+      options.redirectUri = globalContext.cordova ? config.cordovaRedirectUri : String(Authorize.getLocation());
+    }
 
-    var clientId = redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
+    if (typeof options.clientId === 'undefined') {
+      options.clientId = options.redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
+    }
 
-    Authorize(this, authURL, scope, redirectUri, clientId);
+    Authorize(this, options);
   },
 
   /**
@@ -280,7 +291,7 @@ RemoteStorage.prototype = {
         if (info.authURL) {
           if (typeof token === 'undefined') {
             // Normal authorization step; the default way to connect
-            this.authorize(info.authURL, config.cordovaRedirectUri);
+            this.authorize({ authURL: info.authURL });
           } else if (typeof token === 'string') {
             // Token supplied directly by app/developer/user
             log('Skipping authorization sequence and connecting with known token');
