@@ -655,7 +655,7 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
       },
 
       {
-        desc: "#authorize uses the given redirectUri",
+        desc: "#authorize uses the cordovaRedirectUri when in Cordova",
         run: function (env, test) {
           global.document = {
             location: {
@@ -664,14 +664,21 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
             }
           };
 
+          global.cordova = { foo: 'bar' }; // Pretend we run in Cordova
+
+          global.Authorize.openWindow = function(url, redirectUri) {
+            test.assertAnd(url, 'https://provider.com/oauth?redirect_uri=https%3A%2F%2Fmy.custom-redirect.url&scope=contacts%3Ar&client_id=https%3A%2F%2Fmy.custom-redirect.url&response_type=token');
+            test.assertAnd(redirectUri, 'https://my.custom-redirect.url');
+            delete global.cordova;
+            delete global.document;
+            test.done();
+          };
+
           const authURL = 'https://provider.com/oauth';
+
           env.rs.access.claim('contacts', 'r');
-
-          env.rs.authorize({ authURL, redirectUri: 'http://my.custom-redirect.url' });
-
-          test.assert(document.location.href, 'https://provider.com/oauth?redirect_uri=http%3A%2F%2Fmy.custom-redirect.url&scope=contacts%3Ar&client_id=http%3A%2F%2Fmy.custom-redirect.url&response_type=token');
-
-          delete global.document;
+          env.rs.setCordovaRedirectUri('https://my.custom-redirect.url');
+          env.rs.authorize({ authURL });
         }
       },
 

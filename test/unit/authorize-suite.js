@@ -97,6 +97,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
 
           Authorize.openWindow = function(url, uri) {
             test.assertAnd(uri, redirectUri);
+            delete global.cordova;
             test.done();
           };
 

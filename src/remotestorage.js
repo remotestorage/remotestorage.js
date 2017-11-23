@@ -175,10 +175,8 @@ RemoteStorage.prototype = {
    * Initiate the OAuth authorization flow.
    *
    * @param {object} options
-   * @param {string} [options.authURL] - URL to the authorization endpoint
+   * @param {string} [options.authURL] - URL of the authorization endpoint
    * @param {string} [options.scope] - access scope
-   * @param {string} [options.redirectUri] - client URL that should be redirected
-   *                                         to after authorization
    * @param {string} [options.clientId] - client identifier (defaults to the
    *                                      origin of the redirectUri)
    */
@@ -188,9 +186,7 @@ RemoteStorage.prototype = {
       options.scope = this.access.scopeParameter;
     }
 
-    if (typeof options.redirectUri === 'undefined') {
-      options.redirectUri = globalContext.cordova ? config.cordovaRedirectUri : String(Authorize.getLocation());
-    }
+    options.redirectUri = globalContext.cordova ? config.cordovaRedirectUri : String(Authorize.getLocation());
 
     if (typeof options.clientId === 'undefined') {
       options.clientId = options.redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
