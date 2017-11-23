@@ -53,8 +53,7 @@ function buildOAuthURL (authURL, redirectUri, scope, clientId) {
   return url;
 }
 
-const Authorize = function (remoteStorage, options) {
-  let { authURL, scope, redirectUri, clientId } = options;
+const Authorize = function (remoteStorage, { authURL, scope, redirectUri, clientId }) {
   log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
 
   // keep track of the discovery data during redirect if we can't save it in localStorage
