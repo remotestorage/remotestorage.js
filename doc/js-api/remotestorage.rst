@@ -119,7 +119,7 @@ Prototype functions
 
 The following functions can be called on your ``remoteStorage`` instance:
 
-.. autofunction:: RemoteStorage#authorize(authURL, [cordovaRedirectUri])
+.. autofunction:: RemoteStorage#authorize(options)
   :short-name:
 
 .. autofunction:: RemoteStorage#connect(userAddress, [token])
