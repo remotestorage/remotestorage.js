@@ -14,7 +14,6 @@
  * Docs: https://developers.google.com/drive/v3/web/quickstart/js
 **/
 
-const Authorize = require('./authorize');
 const BaseClient = require('./baseclient');
 const WireClient = require('./wireclient');
 const eventHandling = require('./eventhandling');
@@ -207,7 +206,7 @@ GoogleDrive.prototype = {
    */
   connect: function () {
     this.rs.setBackend('googledrive');
-    Authorize(this.rs, AUTH_URL, AUTH_SCOPE, String(Authorize.getLocation()), this.clientId);
+    this.rs.authorize({ authURL: AUTH_URL, scope: AUTH_SCOPE, clientId: this.clientId });
   },
 
   /**
