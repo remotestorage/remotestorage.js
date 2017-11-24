@@ -810,7 +810,11 @@ Dropbox.prototype = {
     self._revCache = new LowerCaseCache('rev');
 
     return fetch().then(undefined, function (error) {
-      error.message = 'Dropbox: fetchDelta: ' + error.message;
+      if (typeof(error) === 'object' && 'message' in error) {
+        error.message = 'Dropbox: fetchDelta: ' + error.message;
+      } else {
+        error = `Dropbox: fetchDelta: ${error}`;
+      }
       return Promise.reject(error);
     }).then(function () {
       if (self._revCache) {
