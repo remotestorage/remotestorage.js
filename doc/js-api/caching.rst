@@ -70,6 +70,18 @@ List of functions
 
      remoteStorage.caching.set('/bookmarks/archive/', 'SEEN');
 
+.. autofunction:: Caching#checkPath(path)
+  :short-name:
+
+  Example:
+
+  .. code:: javascript
+
+     remoteStorage.caching.checkPath('documents/').then(strategy => {
+       console.log(`caching strategy for 'documents/': ${strategy}`));
+       // "caching strategy for 'documents/': SEEN"
+     });
+
 .. autofunction:: Caching#reset
   :short-name:
 
