@@ -893,6 +893,46 @@ define(['require', './src/util', './src/dropbox', './src/wireclient', './src/eve
         }
       },
 
+      {
+        desc: "fetchDelta doesn't fail on timeouts",
+        run: function (env, test) {
+          const originalRequestFunction = env.connectedClient._request;
+
+          env.connectedClient._request = function() {
+            return Promise.reject('timeout');
+          };
+
+          env.connectedClient.fetchDelta().then(() => {
+            env.connectedClient._request = originalRequestFunction;
+            test.done();
+          }).catch((error) => {
+            env.connectedClient._request = originalRequestFunction;
+            test.fail(error);
+          });
+        }
+      },
+
+      {
+        desc: "fetchDelta doesn't fail when offline",
+        run: function (env, test) {
+          global.ProgressEvent = function () {};
+
+          const originalRequestFunction = env.connectedClient._request;
+
+          env.connectedClient._request = function() {
+            return Promise.reject(new global.ProgressEvent());
+          };
+
+          env.connectedClient.fetchDelta().then(() => {
+            env.connectedClient._request = originalRequestFunction;
+            test.done();
+          }).catch((error) => {
+            env.connectedClient._request = originalRequestFunction;
+            test.fail(error);
+          });
+        }
+      },
+
 //FIXME: fix this test
 /*
       {

@@ -797,7 +797,7 @@ Dropbox.prototype = {
           return fetch(responseBody.cursor);
         }
       }).catch((error) => {
-        if (error instanceof ProgressEvent) {
+        if (error === 'timeout' || error instanceof ProgressEvent) {
           // Offline is handled elsewhere already, just ignore it here
           return Promise.resolve();
         } else {
