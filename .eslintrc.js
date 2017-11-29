@@ -25,7 +25,6 @@ var options = {
     "no-bitwise": 2,
     "curly": 2,
     "eqeqeq": 2,
-    "max-lines": 0,
     "no-eval": 2,
     // "no-use-before-define": 2,
     "no-loop-func": 0,

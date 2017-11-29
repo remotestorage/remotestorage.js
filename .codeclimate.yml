@@ -1,4 +1,5 @@
 ---
+version: "2"
 engines:
   eslint:
     enabled: true
@@ -8,6 +9,9 @@ engines:
     config:
       languages:
         - javascript
+checks:
+  file-lines:
+    enabled: false
 ratings:
   paths:
     - src/**
