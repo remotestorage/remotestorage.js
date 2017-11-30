@@ -93,6 +93,18 @@ function googleDrivePath (path) {
 }
 
 /**
+ * Remove surrounding quotes from a string.
+ *
+ * @param {string} string - string with surrounding quotes
+ * @returns {string} string without surrounding quotes
+ *
+ * @private
+ */
+function removeQuotes (string) {
+  return string.substring(1, string.length-1);
+}
+
+/**
  * Internal cache object for storing Google file IDs.
  *
  * @param {number} maxAge - Maximum age (in seconds) the content should be cached for
@@ -258,7 +270,7 @@ GoogleDrive.prototype = {
     function putDone(response) {
       if (response.status >= 200 && response.status < 300) {
         const meta = JSON.parse(response.responseText);
-        const etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+        const etagWithoutQuotes = removeQuotes(meta.etag);
         return Promise.resolve({statusCode: 200, contentType: meta.mimeType, revision: etagWithoutQuotes});
       } else if (response.status === 412) {
         return Promise.resolve({statusCode: 412, revision: 'conflict'});
@@ -302,7 +314,7 @@ GoogleDrive.prototype = {
       return this._getMeta(id).then((meta) => {
         let etagWithoutQuotes;
         if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
-          etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          etagWithoutQuotes = removeQuotes(meta.etag);
         }
         if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
           return {statusCode: 412, revision: etagWithoutQuotes};
@@ -430,7 +442,7 @@ GoogleDrive.prototype = {
       return this._getMeta(id).then((meta) => {
         let etagWithoutQuotes;
         if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
-          etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          etagWithoutQuotes = removeQuotes(meta.etag);
         }
 
         if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
@@ -514,7 +526,7 @@ GoogleDrive.prototype = {
 
         itemsMap = {};
         for (const item of data.items) {
-          etagWithoutQuotes = item.etag.substring(1, item.etag.length-1);
+          etagWithoutQuotes = removeQuotes(item.etag);
           if (item.mimeType === GD_DIR_MIME_TYPE) {
             this._fileIdCache.set(path + item.title + '/', item.id);
             itemsMap[item.title + '/'] = {
