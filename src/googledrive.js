@@ -32,6 +32,7 @@ const isFolder = util.isFolder;
 const cleanPath = util.cleanPath;
 const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
 const readBinaryData = util.readBinaryData;
+const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
 
 let hasLocalStorage;
 
@@ -141,12 +142,7 @@ const GoogleDrive = function (remoteStorage, clientId) {
   hasLocalStorage = util.localStorageAvailable();
 
   if (hasLocalStorage){
-    let settings;
-    try {
-      settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-    } catch(e) {
-      // no settings stored
-    }
+    const settings = getJSONFromLocalStorage(SETTINGS_KEY);
     if (settings) {
       this.configure(settings);
     }

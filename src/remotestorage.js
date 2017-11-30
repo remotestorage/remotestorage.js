@@ -12,6 +12,7 @@ const log = require('./log');
 const Features = require('./features');
 const globalContext = util.getGlobalContext();
 const eventHandling = require('./eventhandling');
+const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
 
 var hasLocalStorage;
 
@@ -90,11 +91,7 @@ var RemoteStorage = function (cfg) {
   hasLocalStorage = util.localStorageAvailable();
 
   if (hasLocalStorage) {
-    try {
-      this.apiKeys = JSON.parse(localStorage.getItem('remotestorage:api-keys')) || {};
-    } catch(exc) {
-      // ignored
-    }
+    this.apiKeys = getJSONFromLocalStorage('remotestorage:api-keys') || {};
     this.setBackend(localStorage.getItem('remotestorage:backend') || 'remotestorage');
   }
 

@@ -206,6 +206,23 @@ var util = {
   },
 
   /**
+   * Extract and parse JSON data from localStorage.
+   *
+   * @param {string} key - localStorage key
+   *
+   * @returns {object} parsed object or undefined
+   */
+  getJSONFromLocalStorage (key) {
+    const context = util.getGlobalContext();
+
+    try {
+      return JSON.parse(context.localStorage.getItem(key));
+    } catch(e) {
+      // no JSON stored
+    }
+  },
+
+  /**
    * Decide if data should be treated as binary based on the content
    * and content-type.
    *
