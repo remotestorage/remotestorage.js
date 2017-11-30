@@ -446,7 +446,6 @@ GoogleDrive.prototype = {
           return Promise.resolve({statusCode: 304});
         }
 
-        const options2 = {};
         if (!meta.downloadUrl) {
           if (meta.exportLinks && meta.exportLinks['text/html']) {
             // Documents that were generated inside GoogleDocs have no
@@ -459,7 +458,7 @@ GoogleDrive.prototype = {
           }
         }
 
-        return this._request('GET', meta.downloadUrl, options2).then((response) => {
+        return this._request('GET', meta.downloadUrl, {}).then((response) => {
           let body = response.response;
           if (meta.mimeType.match(/^application\/json/)) {
             try {
