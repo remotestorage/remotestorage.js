@@ -11,3 +11,12 @@ sudo: false
 script:
     - npm test
     - npm run lint
+notifications:
+  webhooks:
+      urls:
+        - https://www.travisbuddy.com/
+      on_success: never
+      on_failure: always
+      on_start: never
+      on_cancel: never
+      on_error: never
