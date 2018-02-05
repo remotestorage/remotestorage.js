@@ -18,9 +18,10 @@
     "dev": "webpack -w",
     "doc": "cd doc; sphinx-autobuild -i '*~' -i '*.sw*' -i '#*#' . _build/html",
     "preversion": "npm test",
-    "version": "npm run build && git add release/ && npm run update-bower-version && git add bower.json",
+    "version": "npm run build && git add release/ && npm run update-bower-version && git add bower.json && npm run update-doc-version && git add doc/version.py",
     "postversion": "git push && git push --tags",
     "update-bower-version": "bash scripts/update-bower-version.sh",
+    "update-doc-version": "bash scripts/update-doc-version.sh",
     "autobuild-docs": "cd doc && sphinx-autobuild . _build/html"
   },
   "devDependencies": {
