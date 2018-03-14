@@ -274,7 +274,11 @@ IndexedDB.prototype = {
   },
 
   closeDB: function () {
-    this.db.close();
+    if (this.putsRunning === 0) { // check if we are currently writing to the DB
+      this.db.close();
+    } else {
+      setTimeout(this.closeDB.bind(this), 100); // try again a little later
+    }
   }
 
 };
