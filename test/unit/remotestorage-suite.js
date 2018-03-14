@@ -594,6 +594,43 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
       },
 
       {
+        desc: "#syncCycle does not register any event handlers when there is no sync instance",
+        run: function (env, test) {
+          env.rs.syncCycle();
+
+          test.assert(env.rs._handlers["sync-done"].length, 0);
+        }
+      },
+
+      {
+        desc: "sync-done handler does not reschedule a new sync when sync is stopped",
+        run: function (env, test) {
+          env.rs.sync = { sync: function() {} };
+          env.rs.syncCycle();
+
+          env.rs.sync.stopped = true;
+
+          env.rs._emit('sync-done');
+
+          test.assert(env.rs._syncTimer, undefined);
+        }
+      },
+
+      {
+        desc: "sync-done handler does not reschedule a new sync when there is no sync instance",
+        run: function (env, test) {
+          env.rs.sync = { sync: function() {} };
+          env.rs.syncCycle();
+
+          env.rs.sync = undefined;
+
+          env.rs._emit('sync-done');
+
+          test.assert(env.rs._syncTimer, undefined);
+        }
+      },
+
+      {
         desc: "#stopSync clears any scheduled sync calls",
         run: function (env, test) {
           // This timeout should not be called because it gets cancelled by stopSync()
