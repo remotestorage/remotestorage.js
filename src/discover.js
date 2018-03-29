@@ -21,7 +21,7 @@ var cachedInfo = {};
  *
  * @returns {Promise} A promise for an object with the following properties.
  *          href - Storage base URL,
- *          storageType - Storage type,
+ *          storageApi - RS protocol version,
  *          authUrl - OAuth URL,
  *          properties - Webfinger link properties
  **/
@@ -52,11 +52,16 @@ const Discover = function Discover(userAddress) {
       var rs = response.idx.links.remotestorage[0];
       var authURL = rs.properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
                     rs.properties['auth-endpoint'];
-      var storageType = rs.properties['http://remotestorage.io/spec/version'] ||
-                        rs.type;
+      var storageApi = rs.properties['http://remotestorage.io/spec/version'] ||
+                       rs.type;
 
       // cache fetched data
-      cachedInfo[userAddress] = { href: rs.href, storageType: storageType, authURL: authURL, properties: rs.properties };
+      cachedInfo[userAddress] = {
+        href: rs.href,
+        storageApi: storageApi,
+        authURL: authURL,
+        properties: rs.properties
+      };
 
       if (hasLocalStorage) {
         localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
