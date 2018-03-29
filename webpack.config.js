@@ -1,22 +1,24 @@
-var webpack = require('webpack');
-var isProd = (process.env.NODE_ENV === 'production');
+const path = require('path');
+const webpack = require('webpack');
+const pkg = require('./package.json');
 
-var PACKAGE = require('./package.json');
-var banner =  'remotestorage.js ' + PACKAGE.version +
-              ', ' + PACKAGE.homepage +
-              ', ' + PACKAGE.license + ' licensed';
+const isProd = (process.env.NODE_ENV === 'production');
+
+const banner =  'remotestorage.js ' + pkg.version +
+              ', ' + pkg.homepage +
+              ', ' + pkg.license + ' licensed';
 
 // minimize only in production
-var plugins = isProd ? [
-  new webpack.optimize.UglifyJsPlugin({minimize: true}),
+const plugins = isProd ? [
   new webpack.BannerPlugin(banner)
 ] : [];
 
 module.exports = {
   entry: ['./src/remotestorage.js'],
-  devtool: isProd ? '#source-map' : '#eval-source-map',
+  devtool: isProd ? 'source-map' : 'eval',
   output: {
-    filename: 'release/remotestorage.js',
+    path: path.resolve(__dirname, 'release'),
+    filename: 'remotestorage.js',
     // global export name if needed
     library: 'RemoteStorage',
     libraryTarget: 'umd',
@@ -27,16 +29,17 @@ module.exports = {
   externals: [ 'xmlhttprequest' ],
   plugins: plugins,
 
-  // using babel to transpile ES6
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        loader: 'babel-loader',
-        query: {
-          presets: ['es2015'],
-          plugins: ['babel-plugin-array-includes']
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['es2015'],
+            plugins: ['babel-plugin-array-includes']
+          }
         }
       }
     ]
