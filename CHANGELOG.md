@@ -14,6 +14,7 @@ at GitHub.
 
 ### Enhancements
 
+* Update dependencies, build config (#1122)
 * Documentation fixes and improvements
 
 ## 1.0.2 (November 2017)
