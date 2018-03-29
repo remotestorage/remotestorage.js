@@ -3,6 +3,12 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 1.0.3 (March 2018)
+
+### Bugfixes
+
+* Fix sync errors after disconnect (#939, #1117)
+
 ## 1.0.2 (November 2017)
 
 ### Bugfixes
