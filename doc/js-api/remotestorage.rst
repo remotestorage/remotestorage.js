@@ -67,9 +67,33 @@ List of events
 
 ``error``
 """""""""
-   Emitted when an error occurs
+   Emitted when an error occurs; receives an error object as argument
 
-   Arguments: Error object
+   There are a handful of known errors, which are identified by the ``name``
+   property of the error object:
+
+   .. table::
+
+      ================== ============================================================
+      Name               Description
+      ================== ============================================================
+      ``Unauthorized``   Emitted when a network request resulted in a 401 or 403
+                         response. You can use this event to handle invalid OAuth
+                         tokens in custom UI (i.e. when a stored token has been
+                         revoked or expired by the RS server).
+      ``DiscoveryError`` A variety of storage discovery errors, e.g. from user
+                         address input validation, or user address lookup issues
+      ================== ============================================================
+
+   Example::
+
+      remoteStorage.on('error', err => console.log(err));
+
+      // {
+      //   name: "Unauthorized",
+      //   message: "App authorization expired or revoked.",
+      //   stack: "Error↵  at new a.Unauthorized (vendor.js:65710:41870)"
+      // }
 
 ``features-loaded``
 """""""""""""""""""

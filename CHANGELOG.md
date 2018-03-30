@@ -1,13 +1,38 @@
 # remoteStorage.js Changelog
 
 All releases can also be found and downloaded on the
-[releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
+[releases page](https://github.com/remotestorage/remotestorage.js/releases)
+at GitHub.
+
+## 1.0.3 (March 2018)
+
+### Bugfixes
+
+* Fix missing If-Match headers on PUT requests (#1121)
+* Fix sync errors after disconnect (#939, #1117)
+* Use/update correct version number for documentation (#1115)
+
+### Enhancements
+
+* Update dependencies, build config (#1122)
+* Documentation fixes and improvements
+
+## 1.0.2 (November 2017)
+
+### Bugfixes
+
+* Fix Dropbox offline issues (#1102)
+
+### Enhancements
+
+* Refactorings and cleanups
+* Documentation fixes and improvements
 
 ## 1.0.1 (November 2017)
 
 ### Bugfixes
 
-Fix Dropbox throwing an error on failed requests (#1096)
+* Fix Dropbox throwing an error on failed requests (#1096)
 
 ## 1.0.0 (November 2017)
 

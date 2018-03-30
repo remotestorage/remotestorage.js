@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 
-define(['require', 'fs'], function(require, fs, undefined) {
+define(['require'], function(require) {
   var suites = [];
 
   suites.push({
@@ -92,15 +92,22 @@ define(['require', 'fs'], function(require, fs, undefined) {
         desc: "#set() sets caching settings for given path and subtree",
         run: function(env, test) {
           env.caching.set('/foo/', 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/bar'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/bar/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/bar/foo'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/foo/'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/foo/bar'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/foo/bar/'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/foo/bar/baz'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/foo/bar/baz/'), 'FLUSH');
+
+          let config = {
+            '/': 'SEEN',
+            '/bar': 'SEEN',
+            '/bar/': 'SEEN',
+            '/bar/foo': 'SEEN',
+            '/foo/': 'FLUSH',
+            '/foo/bar': 'FLUSH',
+            '/foo/bar/': 'FLUSH',
+            '/foo/bar/baz': 'FLUSH',
+            '/foo/bar/baz/': 'FLUSH'
+          };
+
+          for (let path in config) {
+            test.assertAnd(env.caching.checkPath(path), config[path]);
+          }
           test.done();
         }
       },
@@ -120,25 +127,31 @@ define(['require', 'fs'], function(require, fs, undefined) {
           env.caching.set('/foo/bar/baz/', 'FLUSH');
           env.caching.set('/foo/baf/', 'SEEN');
           env.caching.set('/bar/', 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/foo/'), 'ALL');
-          test.assertAnd(env.caching.checkPath('/foo/1'), 'ALL');
-          test.assertAnd(env.caching.checkPath('/foo/2/'), 'ALL');
-          test.assertAnd(env.caching.checkPath('/foo/2/3'), 'ALL');
-          test.assertAnd(env.caching.checkPath('/foo/bar/'), 'ALL');
-          test.assertAnd(env.caching.checkPath('/foo/bar/baz/'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/foo/baf/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/foo/baf/1'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/foo/baf/2/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/foo/baf/2/1/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/bar/'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/bar/1'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/bar/2/'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/bar/2/3/'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/1/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/2/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/2/3/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/2/3/'), 'SEEN');
+
+          let config = {
+            '/foo/': 'ALL',
+            '/foo/1': 'ALL',
+            '/foo/2/': 'ALL',
+            '/foo/2/3': 'ALL',
+            '/foo/bar/': 'ALL',
+            '/foo/bar/baz/': 'FLUSH',
+            '/foo/baf/': 'SEEN',
+            '/foo/baf/1': 'SEEN',
+            '/foo/baf/2/': 'SEEN',
+            '/foo/baf/2/1/': 'SEEN',
+            '/bar/': 'FLUSH',
+            '/bar/1': 'FLUSH',
+            '/bar/2/': 'FLUSH',
+            '/bar/2/3/': 'FLUSH',
+            '/': 'SEEN',
+            '/1/': 'SEEN',
+            '/2/': 'SEEN',
+            '/2/3/': 'SEEN',
+          };
+
+          for (let path in config) {
+            test.assertAnd(env.caching.checkPath(path), config[path]);
+          }
           test.done();
         }
       },

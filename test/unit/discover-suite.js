@@ -104,7 +104,7 @@ define(['require', 'fs'], function (require, fs) {
           Discover('nil@heahdk.net').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
-              storageType: 'draft-dejong-remotestorage-01',
+              storageApi: 'draft-dejong-remotestorage-01',
               authURL: 'https://auth/url',
               properties: {
                 'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
@@ -140,7 +140,7 @@ define(['require', 'fs'], function (require, fs) {
           Discover('me@localhost:8001').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
-              storageType: 'draft-dejong-remotestorage-01',
+              storageApi: 'draft-dejong-remotestorage-01',
               authURL: 'https://auth/url',
               properties: {
                 'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
@@ -164,7 +164,7 @@ define(['require', 'fs'], function (require, fs) {
           Discover('nil1@heahdk.net').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
-              storageType: 'draft-dejong-remotestorage-05',
+              storageApi: 'draft-dejong-remotestorage-05',
               authURL: 'https://auth/url',
               properties: {
                 'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-05',
@@ -203,7 +203,7 @@ define(['require', 'fs'], function (require, fs) {
           Discover('nil2@heahdk.net').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
-              storageType: 'draft-dejong-remotestorage-02',
+              storageApi: 'draft-dejong-remotestorage-02',
               authURL: 'https://auth/url',
               properties: {
                 'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
@@ -242,7 +242,7 @@ define(['require', 'fs'], function (require, fs) {
           Discover('nil2@heahdk.net').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
-              storageType: 'draft-dejong-remotestorage-02',
+              storageApi: 'draft-dejong-remotestorage-02',
               authURL: 'https://auth/url',
               properties: {
                 'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',

@@ -181,7 +181,7 @@ RemoteStorage.prototype = {
    *                                      origin of the redirectUri)
    */
   authorize: function authorize (options) {
-    this.access.setStorageType(this.remote.storageType);
+    this.access.setStorageType(this.remote.storageApi);
     if (typeof options.scope === 'undefined') {
       options.scope = this.access.scopeParameter;
     }
@@ -708,13 +708,13 @@ RemoteStorage.prototype = {
    * @private
    */
   syncCycle: function () {
-    if (this.sync.stopped) {
+    if (!this.sync || this.sync.stopped) {
       return;
     }
 
     this.on('sync-done', function () {
       log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
-      if (!this.sync.stopped) {
+      if (this.sync && !this.sync.stopped) {
         if (this._syncTimer) {
           clearTimeout(this._syncTimer);
           this._syncTimer = undefined;

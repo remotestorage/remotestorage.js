@@ -18,7 +18,7 @@ The package is available on `npm <https://www.npmjs.com/>`_ as
 
 .. code:: bash
 
-   $ bower install -S remotestoragejs
+   $ bower install -S rs
 
 Examples
 --------

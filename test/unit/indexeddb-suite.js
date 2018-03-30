@@ -140,8 +140,34 @@ define(['./src/indexeddb', './src/config'], function (IndexedDB, config) {
           test.assertAnd(env.idb.changesQueued, {});
           test.assertAnd(env.idb.changesRunning, {foo: {path: 'foo'}});
         }
-      }
-/* TODO: mock indexeddb with some nodejs library
+      },
+
+      {
+        desc: "closeDB waits for already running writes to finish",
+        run: function(env, test) {
+          let originalClose = env.idb.db.close;
+
+          env.idb.putsRunning = 1;
+
+          env.idb.db.close = function () {
+            if (env.idb.putsRunning > 0) {
+              test.result(false, 'DB was closed while there are still puts running');
+            } else {
+              test.result(true);
+            }
+
+            env.idb.db.close = originalClose;
+          };
+
+          env.idb.closeDB();
+
+          setTimeout(function () {
+            env.idb.putsRunning = 0;
+          }, 150);
+        }
+      },
+
+      /* TODO: mock indexeddb with some nodejs library
       {
         desc: "getNodes, setNodes",
         run: function(env, test) {

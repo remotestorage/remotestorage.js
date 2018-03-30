@@ -51,43 +51,6 @@ var util = {
     return target;
   },
 
-  asyncEach (array, callback) {
-    return this.asyncMap(array, callback).
-      then(function () { return array; });
-  },
-
-  asyncMap (array, callback) {
-    var pending = Promise.defer();
-    var n = array.length, i = 0;
-    var results = [], errors = [];
-
-    function oneDone() {
-      i++;
-      if (i === n) {
-        pending.resolve(results, errors);
-      }
-    }
-
-    array.forEach(function (item, index) {
-      var result;
-      try {
-        result = callback(item);
-      } catch(exc) {
-        oneDone();
-        errors[index] = exc;
-      }
-      if (typeof(result) === 'object' && typeof(result.then) === 'function') {
-        result.then(function (res) { results[index] = res; oneDone(); },
-                    function (error) { errors[index] = error; oneDone(); });
-      } else {
-        oneDone();
-        results[index] = result;
-      }
-    });
-
-    return pending.promise;
-  },
-
   containingFolder (path) {
     if (path === '') {
       return '/';

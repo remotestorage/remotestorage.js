@@ -105,6 +105,13 @@ List of functions
        }
      }
 
+  .. WARNING::
+     At the moment, this function only returns detailed metadata, when caching
+     is turned off (``new RemoteStorage({cache: false})``). With caching turned
+     on, it will only contain the item names as properties with ``true`` as
+     value. See issues :issue:`721` and :issue:`1108` — contributions
+     welcome!
+
 .. autofunction:: BaseClient#getObject(path, maxAge)
   :short-name:
 

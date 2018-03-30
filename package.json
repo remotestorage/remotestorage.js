@@ -1,7 +1,7 @@
 {
   "name": "remotestoragejs",
   "description": "JavaScript library for integrating remoteStorage",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "private": false,
   "license": "MIT",
   "main": "./index.js",
@@ -14,26 +14,28 @@
   "scripts": {
     "test": "bash scripts/test-all.sh",
     "lint": "eslint --quiet src/",
-    "build": "NODE_ENV=production webpack -p",
-    "dev": "webpack -w",
+    "build": "NODE_ENV=production webpack --mode=production",
+    "dev": "webpack -w --mode=development",
     "doc": "cd doc; sphinx-autobuild -i '*~' -i '*.sw*' -i '#*#' . _build/html",
     "preversion": "npm test",
-    "version": "npm run build && git add release/ && npm run update-bower-version && git add bower.json",
+    "version": "npm run build && git add release/ && npm run update-bower-version && git add bower.json && npm run update-doc-version && git add doc/version.py",
     "postversion": "git push && git push --tags",
     "update-bower-version": "bash scripts/update-bower-version.sh",
+    "update-doc-version": "bash scripts/update-doc-version.sh",
     "autobuild-docs": "cd doc && sphinx-autobuild . _build/html"
   },
   "devDependencies": {
-    "babel-core": "^6.18.2",
-    "babel-loader": "^7.1.2",
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.4",
     "babel-plugin-array-includes": "^2.0.3",
     "babel-preset-es2015": "^6.18.0",
-    "eslint": "^4.10.0",
+    "eslint": "^4.19.1",
     "jaribu": "^2.0.0",
-    "webpack": "^3.8.1"
+    "webpack": "^4.4.0",
+    "webpack-cli": "^2.0.13"
   },
   "dependencies": {
-    "tv4": "^1.2.7",
+    "tv4": "^1.3.0",
     "webfinger.js": "^2.6.6",
     "xhr2": "^0.1.4"
   }
