@@ -167,7 +167,7 @@ BaseClient.prototype = {
    * @param {string} path     - Path relative to the module root
    * @param {string|ArrayBuffer|ArrayBufferView} body - Raw data to store
    *
-   * @returns {Promise} A promise for an object
+   * @returns {Promise} A promise for the created/updated revision (ETag)
    */
   storeFile: function (mimeType, path, body) {
     if (typeof(mimeType) !== 'string') {
