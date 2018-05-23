@@ -22,7 +22,8 @@ module.exports = {
     // global export name if needed
     library: 'RemoteStorage',
     libraryTarget: 'umd',
-    umdNamedDefine: true
+    umdNamedDefine: true,
+    globalObject: 'this'
   },
   // the only external dependecy is xmlhttprequest because it is
   // different in browser and in node env so user has to manage with that
