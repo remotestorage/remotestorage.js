@@ -624,6 +624,38 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         },
 
         {
+          desc: "#get correctly recognizes changes in folders",
+          run: function (env, test) {
+            env.connectedClient.get('/').then(function (r) {
+              env.connectedClient.get('/', { ifNoneMatch: r.revision }).then(function (r) {
+                test.assertFail(r.statusCode, 304);
+              });
+              var req = XMLHttpRequest.instances.shift();
+              test.assertFail(req, undefined);
+              req.status = 200;
+              req.responseText = JSON.stringify({
+                entries: [{
+                  '.tag': 'file',
+                  path_lower: 'foo',
+                  rev: '2'
+                }]
+              });
+              req._onload();
+            });
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              entries: [{
+                '.tag': 'file',
+                path_lower: 'foo',
+                rev: '1'
+              }]
+            });
+            req._onload();
+          }
+        },
+
+        {
           desc: "#put causes the revision to propagate down in revCache",
           run: function (env, test) {
             env.connectedClient._revCache.set('/foo/', 'foo');
