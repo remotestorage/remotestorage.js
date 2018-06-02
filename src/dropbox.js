@@ -60,6 +60,8 @@ var getDropboxPath = function (path) {
   return cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
 };
 
+const isPublicPath = path => path.match(/^\/public\/.*[^/]$/);
+
 var compareApiError = function (response, expect) {
   return new RegExp('^' + expect.join('\\/') + '(\\/|$)').test(response.error_summary);
 };
@@ -574,25 +576,51 @@ Dropbox.prototype = {
   },
 
   /**
+   * Retrieve full, absolute URL of an item. Items which are non-public or do
+   * not exist always resolve to undefined.
+   *
+   * @returns {Promise} - resolves to an absolute URL of the item
+   *
+   * @protected
+   */
+  getItemURL: function (path) {
+    if (!isPublicPath(path)) {
+      return Promise.resolve(undefined);
+    }
+
+    let url = this._itemRefs[path];
+    if (url !== undefined) {
+      return Promise.resolve(url);
+    }
+
+    return this._getSharedLink(path).then((link) => {
+      if (link !== undefined) {
+        return link;
+      }
+      return this._share(path);
+    });
+  },
+
+  /**
    * Calls share, if the provided path resides in a public folder.
    *
    * @private
    */
   _shareIfNeeded: function (path) {
-    if (path.match(/^\/public\/.*[^/]$/) && this._itemRefs[path] === undefined) {
-      this.share(path);
+    if (isPublicPath(path) && this._itemRefs[path] === undefined) {
+      this._share(path);
     }
   },
 
   /**
    * Gets a publicly-accessible URL for the path from Dropbox and stores it
-   * in ``_itemRefs``.
+   * in ``_itemRefs``. Resolves to undefined if the path does not exist.
    *
    * @return {Promise} a promise for the URL
    *
    * @private
    */
-  share: function (path) {
+  _share: function (path) {
     var url = 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings';
     var options = {
       body: {path: getDropboxPath(path)}
@@ -614,6 +642,9 @@ Dropbox.prototype = {
       if (response.status === 409) {
         if (compareApiError(body, ['shared_link_already_exists'])) {
           return this._getSharedLink(path);
+        }
+        if (compareApiError(body, ['path', 'not_found'])) {
+          return Promise.resolve(undefined);
         }
 
         return Promise.reject(new Error('API error: ' + body.error_summary));
@@ -978,7 +1009,8 @@ Dropbox.prototype = {
   },
 
   /**
-   * Requests the link for an already-shared file or folder.
+   * Requests the link for a shared file or folder. Resolves to undefined if
+   * the requested file or folder has not bee shared.
    *
    * @param {string} path - path to the file or folder
    *
@@ -1000,7 +1032,8 @@ Dropbox.prototype = {
         return Promise.reject(new Error('Invalid response status: ' + response.status));
       }
 
-      var body;
+      let body;
+      let link;
 
       try {
         body = JSON.parse(response.responseText);
@@ -1009,14 +1042,16 @@ Dropbox.prototype = {
       }
 
       if (response.status === 409) {
+        if (compareApiError(body, ['path', 'not_found'])) {
+          return Promise.resolve(undefined);
+        }
         return Promise.reject(new Error('API error: ' + response.error_summary));
       }
 
-      if (!body.links.length) {
-        return Promise.reject(new Error('No links returned'));
+      if (body.links.length) {
+        link = body.links[0].url;
       }
-
-      return Promise.resolve(body.links[0].url);
+      return Promise.resolve(link);
     }, (error) => {
       error.message = 'Could not get link to a shared file or folder ("' + path + '"): ' + error.message;
       return Promise.reject(error);
@@ -1064,9 +1099,7 @@ function unHookSync(rs) {
 function hookGetItemURL (rs) {
   if (rs._origBaseClientGetItemURL) { return; }
   rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
-  BaseClient.prototype.getItemURL = function (/*path*/) {
-    throw new Error('getItemURL is not implemented for Dropbox yet');
-  };
+  BaseClient.prototype.getItemURL = rs.dropbox.getItemURL.bind(rs.dropbox);
 }
 
 /**

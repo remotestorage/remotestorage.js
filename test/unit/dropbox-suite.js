@@ -792,6 +792,46 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         },
 
         {
+          desc: "#getItemURL returns from cache",
+          run: function (env, test) {
+            env.connectedClient._itemRefs['/public/foo'] = 'http://example.com/public/foo';
+            env.connectedClient.getItemURL('/public/foo').then((itemURL) => {
+              test.assert(itemURL, 'http://example.com/public/foo');
+            });
+          }
+        },
+
+        {
+          desc: "#getItemURL creates shared link if it does not exist",
+          run: function (env, test) {
+            env.connectedClient.getItemURL('/public/foo').then((itemURL) => {
+              test.assert(itemURL, 'http://example.com/public/foo');
+            });
+
+            setTimeout(() => {
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  links: []
+                })
+              });
+            }, 10);
+
+            setTimeout(() => {
+              test.assertAnd(getMockRequestUrl(), 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings');
+
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  '.tag': 'file',
+                  url: 'http://example.com/public/foo',
+                })
+              });
+            }, 20);
+          }
+        },
+
+        {
           desc: "requests are aborted if they aren't responded after the configured timeout",
           timeout: 2000,
           run: function (env, test) {
