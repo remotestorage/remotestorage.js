@@ -4,6 +4,12 @@ All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases)
 at GitHub.
 
+## Master
+
+### Bugfixes
+
+Sync remote Dropbox changes to local cache (#1128)
+
 ## 1.0.3 (March 2018)
 
 ### Bugfixes
