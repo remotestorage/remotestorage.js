@@ -375,6 +375,11 @@ Dropbox.prototype = {
     var url = 'https://content.dropboxapi.com/2/files/download';
     var self = this;
 
+    //use _getFolder for folders
+    if (path.substr(-1) === '/') {
+      return this._getFolder(path, options);
+    }
+
     var savedRev = this._revCache.get(path);
     if (savedRev === null) {
       // file was deleted server side
@@ -384,11 +389,6 @@ Dropbox.prototype = {
        savedRev && (savedRev === options.ifNoneMatch)) {
       // nothing changed.
       return Promise.resolve({statusCode: 304});
-    }
-
-    //use _getFolder for folders
-    if (path.substr(-1) === '/') {
-      return this._getFolder(path, options);
     }
 
     var params = {
