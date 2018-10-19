@@ -174,6 +174,9 @@ RemoteStorage.prototype = {
   /**
    * Initiate the OAuth authorization flow.
    *
+   * This function is usually not called by an app directly, but rather from a
+   * custom storage backend implementation (e.g. Dropbox or Google Drive).
+   *
    * @param {object} options
    * @param {string} options.authURL - URL of the authorization endpoint
    * @param {string} [options.scope] - access scope
