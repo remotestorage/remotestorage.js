@@ -7,7 +7,7 @@ const Authorize = require('./authorize');
 const config = require('./config');
 
 /**
- * This file exposes a get/put/delete interface on top of XMLHttpRequest.
+ * This file exposes a get/put/delete interface on top of fetch() or XMLHttpRequest.
  * It requires to be configured with parameters about the remotestorage server to
  * connect to.
  * Each instance of WireClient is always associated with a single remotestorage
@@ -490,8 +490,81 @@ WireClient.prototype = {
 WireClient.isArrayBufferView = isArrayBufferView;
 
 // Shared request function used by WireClient, GoogleDrive and Dropbox.
-// TODO: Should we use fetch ?
 WireClient.request = function (method, url, options) {
+  if (typeof fetch !== 'undefined') {
+    return WireClient._fetchRequest(method, url, options);
+  } else if (typeof XMLHttpRequest !== 'undefined') {
+    return WireClient._xhrRequest(method, url, options);
+  } else {
+    log('[WireClient] no support for HTTP requests');
+    return Promise.reject('[WireClient] no support for HTTP requests');
+  }
+};
+
+/** options includes body, headers and responseType */
+WireClient._fetchRequest = function (method, url, options) {
+  var syntheticXhr;
+  var responseHeaders = {};
+  var abortController;
+  if (typeof AbortController === 'function') {
+    abortController = new AbortController();
+  }
+  var networkPromise = fetch(url, {
+    method: method,
+    headers: options.headers,
+    body: options.body,
+    signal: abortController ? abortController.signal : undefined
+  }).then(function (response) {
+    log('[WireClient fetch]', response);
+
+    response.headers.forEach(function (value, headerName) {
+      responseHeaders[headerName.toUpperCase()] = value;
+    });
+
+    syntheticXhr = {
+      readyState: 4,
+      status: response.status,
+      statusText: response.statusText,
+      response: undefined,
+      getResponseHeader: function (headerName) {
+        return responseHeaders[headerName.toUpperCase()] || null;
+      },
+      // responseText: 'foo',
+      responseType: options.responseType,
+      responseURL: url,
+    };
+    switch (options.responseType) {
+      case 'arraybuffer':
+        return response.arrayBuffer();
+      case 'blob':
+        return response.blob();
+      case 'json':
+        return response.json();
+      case '':
+      case 'text':
+        return response.text();
+      default:   // document
+        throw new Error("responseType 'document' is not currently supported using fetch");
+    }
+  }).then(function (processedBody) {
+    syntheticXhr.response = processedBody;
+    return syntheticXhr;
+  });
+
+  var timeoutPromise = new Promise(function (resolve, reject) {
+    setTimeout(function () {
+      log('[WireClient] request timed out', url);
+      reject('timeout');
+      if (abortController) {
+        abortController.abort();
+      }
+    }, config.requestTimeout);
+  });
+
+  return Promise.race([networkPromise, timeoutPromise]);
+};
+
+WireClient._xhrRequest = function (method, url, options) {
   return new Promise ((resolve, reject) => {
 
     log('[WireClient]', method, url);
@@ -554,7 +627,7 @@ WireClient._rs_init = function (remoteStorage) {
 };
 
 WireClient._rs_supported = function () {
-  return !! XMLHttpRequest;
+  return typeof fetch !== 'undefined' || typeof XMLHttpRequest !== 'undefined';
 };
 
 WireClient._rs_cleanup = function () {
