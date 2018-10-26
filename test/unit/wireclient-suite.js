@@ -22,34 +22,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         content: str
       };
     };
-    global.XMLHttpRequest = function() {
-      XMLHttpRequest.instances.push(this);
-      this._headers = {};
-      this._responseHeaders = {};
-    };
-    XMLHttpRequest.instances = [];
-    XMLHttpRequest.prototype = {
-      open: function() {
-        this._open = Array.prototype.slice.call(arguments);
-      },
-      send: function() {
-        this._send = Array.prototype.slice.call(arguments);
-      },
-      setRequestHeader: function(key, value) {
-        this._headers[key] = value;
-      },
-      getResponseHeader: function(key) {
-        return this._responseHeaders[key];
-      }
-    };
-    ['load', 'abort', 'error'].forEach(function(cb) {
-      Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
-        configurable: true,
-        set: function(f) {
-          this['_on' + cb] = f;
-        }
-      });
-    });
+
     env.rs = new RemoteStorage();
     eventHandling(env.rs, 'error', 'wire-busy', 'wire-done', 'network-offline',
                   'network-online');
@@ -76,8 +49,167 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
     test.done();
   }
 
+  function beforeEachXHR(env, test) {
+    beforeEach(env, test);
+
+    global.XMLHttpRequest = function () {
+      XMLHttpRequest.instances.push(this);
+      this._headers = {};
+      this._responseHeaders = {};
+    };
+    XMLHttpRequest.instances = [];
+    XMLHttpRequest.prototype = {
+      open: function () {
+       this._open = Array.prototype.slice.call(arguments);
+      },
+      send: function () {
+       this._send = Array.prototype.slice.call(arguments);
+      },
+      setRequestHeader: function (key, value) {
+       this._headers[key] = value;
+      },
+      getResponseHeader: function (key) {
+       return this._responseHeaders[key] || null;
+      }
+    };
+    ['load', 'abort', 'error'].forEach(function (cb) {
+      Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
+        configurable: true,
+        set: function (f) {
+         this['_on' + cb] = f;
+        }
+      });
+    });
+
+    global.getMockRequestMethod = function() {
+      var request = XMLHttpRequest.instances[0];
+      return request._open[0];
+    };
+
+    global.getMockRequestUrl = function() {
+      var request = XMLHttpRequest.instances[0];
+      return request._open[1];
+    };
+
+    global.getMockRequestHeader = function (headerName) {
+      var req = XMLHttpRequest.instances[0];
+      return req._headers[headerName];
+    };
+
+    global.getMockRequestBody = function () {
+      var request = XMLHttpRequest.instances[0];
+      return request._send[0];
+    };
+
+    global.mockRequestSuccess = function (param) {
+      var req = XMLHttpRequest.instances.shift();
+      req._responseHeaders = param.responseHeaders || {};
+      req.status = param.status;
+      req.response = param.arrayBuffer;
+      req._onload();
+    };
+
+    global.mockRequestFail = function (errMsg) {
+      var req = XMLHttpRequest.instances.shift();
+      req._onerror(errMsg);
+    };
+  }
+
+  function beforeEachFetch(env, test) {
+    beforeEach(env, test);
+
+    var fetchesData = [];
+
+    global.fetch = function (url, init) {
+      init = init || {};
+      return new Promise(function (resolve, reject) {
+        fetchesData.push({
+          url: url,
+          method: init.method || 'GET',
+          requestHeaders: init.headers || {},
+          requestBody: init.body,
+          resolve: resolve,
+          reject: reject});
+      });
+    };
+
+    global.getMockRequestMethod = function() {
+      var fetchData = fetchesData[0];
+      return fetchData.method;
+    };
+
+    global.getMockRequestUrl = function() {
+      var fetchData = fetchesData[0];
+      return fetchData.url;
+    };
+
+    global.getMockRequestHeader = function (headerName) {
+      var fetchData = fetchesData[0];
+      return fetchData.requestHeaders[headerName];
+    };
+
+    global.getMockRequestBody = function () {
+      var fetchData = fetchesData[0];
+      return fetchData.requestBody;
+    };
+
+    global.mockRequestSuccess = function (param) {
+      var fetchData = fetchesData.shift();
+
+      var responseHeaders = {   // mock Headers obj
+        _headers: param.responseHeaders || {},   // POJSO
+        forEach: function (callback, thisArg) {
+          var thisObj = thisArg || responseHeaders;
+          for (headerName in responseHeaders._headers) {
+            callback.call(thisObj, responseHeaders._headers[headerName], headerName, responseHeaders);
+          }
+        }
+      };
+      var response = {   // mock Response obj
+        headers: responseHeaders,
+        ok: param.status >= 200 && param.status < 300,
+        redirected: false,
+        status: param.status,
+        statusText: param.statusText || '',
+        type: param.corsResponseType || 'basic',
+        url: fetchData.url,
+        useFinalURL: true,
+        body: function () {   // getter for ReadableStream
+          throw new Error("not implemented in mock");
+        },
+        bodyUsed: false,
+        arrayBuffer: function () {
+          return Promise.resolve(param.arrayBuffer);
+        },
+        blob: function () {
+          throw new Error("not implemented in mock");
+        },
+        text: function () {
+          throw new Error("not implemented in mock");
+        },
+        json: function () {
+          throw new Error("not implemented in mock");
+        }
+      };
+
+      fetchData.resolve(response);
+    };
+
+    global.mockRequestFail = function (errMsg) {
+      var fetchData = fetchesData.shift();
+      fetchData.reject(errMsg);
+    };
+  }
+
   function afterEach(env, test) {
     delete global.XMLHttpRequest;
+    delete global.fetch;
+    delete global.getMockRequestMethod;
+    delete global.getMockRequestUrl;
+    delete global.getMockRequestHeader;
+    delete global.getMockRequestBody;
+    delete global.mockRequestSuccess;
+    delete global.mockRequestFail;
     delete global.Blob;
     delete global.FileReader;
     delete env.client;
@@ -96,12 +228,28 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
   });
 
   suites.push({
-    name: "WireClient",
-    desc: "Low-level remotestorage client based on XMLHttpRequest",
+    name: "WireClient without fetch() or XMLHttpRequest",
+    desc: "determines whether it is supported, without throwing an exception",
     setup: setup,
     beforeEach: beforeEach,
     afterEach: afterEach,
     tests: [
+      {
+        desc: "reports it is not supported here",
+        run: function(env,test){
+          test.assert(WireClient._rs_supported(), false);
+        }
+      }
+    ]
+  });
+
+  var tests = [
+      {
+        desc: "reports that it is supported by this HTTP request API",
+        run: function(env,test){
+          test.assert(WireClient._rs_supported(), true);
+        }
+      },
       {
         desc: "#get fails if not connected",
         willFail: true,
@@ -134,11 +282,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.done();
           });
           setTimeout(function () {
-            var req = XMLHttpRequest.instances.shift();
-            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req.status = 200;
-            req.response = new ArrayBufferMock('response-body');
-            req._onload();
+            mockRequestSuccess({
+                responseHeaders: {'Content-Type': 'text/plain; charset=UTF-8'},
+                status: 200,
+                arrayBuffer: new ArrayBufferMock('response-body')
+            });
           }, 10);
         }
       },
@@ -153,8 +301,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.done();
           });
           setTimeout(function () {
-            var req = XMLHttpRequest.instances.shift();
-            req._onerror('something went wrong at the XHR level');
+            mockRequestFail('something went wrong at the HTTP request level');
           }, 10);
 
         }
@@ -170,8 +317,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.done();
           });
           setTimeout(function () {
-            var req = XMLHttpRequest.instances.shift();
-            req._onerror('something went wrong at the XHR level');
+            mockRequestFail('something went wrong at the HTTP request level');
           }, 10);
         }
       },
@@ -186,8 +332,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.done();
           });
           setTimeout(function () {
-            var req = XMLHttpRequest.instances.shift();
-            req._onerror('something went wrong at the XHR level');
+            mockRequestFail('something went wrong at the HTTP request level');
           }, 10);
         }
       },
@@ -201,11 +346,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.done();
           });
           setTimeout(function () {
-            var req = XMLHttpRequest.instances.shift();
-            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req.status = 200;
-            req.response = new ArrayBufferMock('response-body');
-            req._onload();
+            mockRequestSuccess({
+              responseHeaders: {'Content-Type': 'text/plain; charset=UTF-8'},
+              status: 200,
+              arrayBuffer: new ArrayBufferMock('response-body')
+            });
           }, 10);
         }
       },
@@ -219,11 +364,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.done();
           });
           setTimeout(function () {
-            var req = XMLHttpRequest.instances.shift();
-            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req.status = 200;
-            req.response = new ArrayBufferMock('response-body');
-            req._onload();
+            mockRequestSuccess({
+              responseHeaders: {'Content-Type': 'text/plain; charset=UTF-8'},
+              status: 200,
+              arrayBuffer: new ArrayBufferMock('response-body')
+            });
           }, 10);
         }
       },
@@ -239,11 +384,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.assertAnd(env.connectedClient.online, true);
             test.done();
           });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-          req.status = 200;
-          req.response = new ArrayBufferMock(JSON.stringify({'@context':'http://remotestorage.io/spec/folder-description', items: {}}));
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'Content-Type': 'text/plain; charset=UTF-8'},
+            status: 200,
+            arrayBuffer: new ArrayBufferMock(JSON.stringify({'@context':'http://remotestorage.io/spec/folder-description', items: {}}))
+          });
         }
       },
 
@@ -257,8 +402,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
-          var req = XMLHttpRequest.instances.shift();
-          req._onerror('something went wrong at the XHR level');
+          mockRequestFail('something went wrong at the HTTP request level');
         }
       },
 
@@ -270,11 +414,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-          req.status = 200;
-          req.response = new ArrayBufferMock('response-body');
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'Content-Type': 'text/plain; charset=UTF-8'},
+            status: 200,
+            arrayBuffer: new ArrayBufferMock('response-body')
+          });
         }
       },
 
@@ -287,8 +431,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
-          var req = XMLHttpRequest.instances.shift();
-          req._onerror('something went wrong at the XHR level');
+          mockRequestFail('something went wrong at the HTTP request level');
         }
       },
 
@@ -300,11 +443,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-          req.status = 200;
-          req.response = new ArrayBufferMock('response-body');
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'Content-Type': 'text/plain; charset=UTF-8'},
+            status: 200,
+            arrayBuffer: new ArrayBufferMock('response-body')
+          });
         }
       },
 
@@ -317,8 +460,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
-          var req = XMLHttpRequest.instances.shift();
-          req._onerror('something went wrong at the XHR level');
+          mockRequestFail('something went wrong at the HTTP request level');
         }
       },
 
@@ -405,19 +547,9 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         desc: "#get opens a CORS request",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          test.assertTypeAnd(request, 'object');
-          test.assert(request._open,
-                      ['GET', 'https://example.com/storage/test/foo/bar', true]);
-        }
-      },
-
-      {
-        desc: "#get sends the request",
-        run: function(env, test) {
-          env.connectedClient.get('/foo/bar');
-          var req = XMLHttpRequest.instances.shift();
-          test.assertType(req._send, 'object');
+          test.assertAnd(getMockRequestMethod(), 'GET');
+          test.assertAnd(getMockRequestUrl(), 'https://example.com/storage/test/foo/bar');
+          test.done();
         }
       },
 
@@ -425,8 +557,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         desc: "#get strips duplicate slashes from the path",
         run: function(env, test) {
           env.connectedClient.get('/foo//baz');
-          var request = XMLHttpRequest.instances.shift();
-          test.assert(request._open[1], 'https://example.com/storage/test/foo/baz');
+          test.assert(getMockRequestUrl(), 'https://example.com/storage/test/foo/baz');
         }
       },
 
@@ -437,9 +568,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             storageApi: 'draft-dejong-remotestorage-01'
           });
           env.connectedClient.get('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          var hasIfNoneMatchHeader = request._headers.hasOwnProperty('If-None-Match');
-          test.assert(hasIfNoneMatchHeader, false);
+          test.assert(getMockRequestHeader('If-None-Match'), undefined);
         }
       },
 
@@ -450,8 +579,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             storageApi: 'draft-dejong-remotestorage-01'
           });
           env.connectedClient.get('/foo/bar', { ifNoneMatch: 'something' });
-          var request = XMLHttpRequest.instances.shift();
-          test.assert(request._headers['If-None-Match'], '"something"');
+          test.assert(getMockRequestHeader('If-None-Match'), '"something"');
         }
       },
 
@@ -462,8 +590,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             storageApi: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple'
           });
           env.connectedClient.get('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          test.assertType(request._headers['If-None-Match'], 'undefined');
+          test.assert(getMockRequestHeader('If-None-Match'), undefined);
         }
       },
 
@@ -474,8 +601,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             storageApi: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple'
           });
           env.connectedClient.get('/foo/bar', { ifNoneMatch: 'something' });
-          var request = XMLHttpRequest.instances.shift();
-          test.assertType(request._headers['If-None-Match'], 'undefined');
+          test.assert(getMockRequestHeader('If-None-Match'), undefined);
         }
       },
 
@@ -483,8 +609,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         desc: "#get sets the 'Authorization' header correctly",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          test.assert(request._headers['Authorization'], 'Bearer ' + env.token);
+          test.assert(getMockRequestHeader('Authorization'), 'Bearer ' + env.token);
         }
       },
 
@@ -498,17 +623,6 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
       },
 
       {
-        desc: "#get installs onload and onerror handlers on the request",
-        run: function(env, test) {
-          env.connectedClient.get('/foo/bar/');
-          var req = XMLHttpRequest.instances.shift();
-          test.assertTypeAnd(req._onload, 'function');
-          test.assertTypeAnd(req._onerror, 'function');
-          test.done();
-        }
-      },
-
-      {
         desc: "#get rejects the promise, if onerror is called",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar/').
@@ -517,7 +631,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             }, function(error) {
               test.assert('my-error', error);
             });
-          XMLHttpRequest.instances.shift()._onerror('my-error');
+          mockRequestFail('my-error');
         }
       },
 
@@ -530,9 +644,9 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
 
           env.connectedClient.get('/foo/bar');
 
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 401;
-          req._onload();
+          mockRequestSuccess({
+            status: 401,
+          });
         }
       },
 
@@ -547,11 +661,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             });
 
           setTimeout(function () {
-            var req = XMLHttpRequest.instances.shift();
-            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req.status = 200;
-            req.response = new ArrayBufferMock('response-body');
-            req._onload();
+            mockRequestSuccess({
+              responseHeaders: {'Content-Type': 'text/plain; charset=UTF-8'},
+              status: 200,
+              arrayBuffer: new ArrayBufferMock('response-body')
+            });
           }, 10);
         }
       },
@@ -566,11 +680,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assert(r.contentType, 'application/json; charset=UTF-8');
             });
 
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
-          req.status = 200;
-          req.response = new ArrayBufferMock('{"response":"body"}');
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'Content-Type': 'application/json; charset=UTF-8'},
+            status: 200,
+            arrayBuffer: new ArrayBufferMock('{"response":"body"}')
+          });
         }
       },
 
@@ -583,11 +697,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertAnd(r.body, {'a': {'ETag': 'qwer'}, 'b/': {'ETag': 'asdf'}});
               test.assert(r.contentType, 'application/json; charset=UTF-8');
             });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
-          req.status = 200;
-          req.response = new ArrayBufferMock('{"a":"qwer","b/":"asdf"}');
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'Content-Type': 'application/json; charset=UTF-8'},
+            status: 200,
+            arrayBuffer: new ArrayBufferMock('{"a":"qwer","b/":"asdf"}')
+          });
         }
       },
 
@@ -604,25 +718,25 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               });
               test.assert(r.contentType, 'application/json; charset=UTF-8');
             });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
-          req.status = 200;
-          req.response = new ArrayBufferMock(JSON.stringify({
-            "@context": "http://remotestorage.io/spec/folder-description",
-            items: {
-              a: {
-                "ETag": "qwer",
-                "Content-Length": 5,
-                "Content-Type": "text/html"
-              },
-              "b/": {
-                "ETag": "asdf",
-                "Content-Type":"application/json",
-                "Content-Length": 137
+          mockRequestSuccess({
+            responseHeaders: {'Content-Type': 'application/json; charset=UTF-8'},
+            status: 200,
+            arrayBuffer: new ArrayBufferMock(JSON.stringify({
+              "@context": "http://remotestorage.io/spec/folder-description",
+              items: {
+                a: {
+                  "ETag": "qwer",
+                  "Content-Length": 5,
+                  "Content-Type": "text/html"
+                },
+                "b/": {
+                  "ETag": "asdf",
+                  "Content-Type":"application/json",
+                  "Content-Length": 137
+                }
               }
-            }
-          }));
-          req._onload();
+            }))
+          });
         }
       },
 
@@ -703,15 +817,24 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
       },
 
       {
+        desc: "#put uses the PUT method and sends the request body",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', 'bla', 'text/plain');
+          test.assertAnd(getMockRequestMethod(), 'PUT');
+          test.assertAnd(getMockRequestUrl(), 'https://example.com/storage/test/foo/bar');
+          test.assertAnd(getMockRequestHeader('Content-Type'), 'text/plain');
+          test.assert(getMockRequestBody(), 'bla');
+        }
+      },
+
+      {
         desc: "#put doesn't set the 'If-None-Match' when revisions are supported and no rev given",
         run: function(env, test) {
           env.connectedClient.configure({
             storageApi: 'draft-dejong-remotestorage-01'
           });
           env.connectedClient.put('/foo/bar', 'baz', 'text/plain');
-          var request = XMLHttpRequest.instances.shift();
-          var hasIfNoneMatchHeader = request._headers.hasOwnProperty('If-None-Match');
-          test.assert(hasIfNoneMatchHeader, false);
+          test.assert(getMockRequestHeader('If-None-Match'), undefined);
         }
       },
 
@@ -722,9 +845,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             storageApi: 'draft-dejong-remotestorage-01'
           });
           env.connectedClient.put('/foo/bar', 'baz', 'text/plain');
-          var request = XMLHttpRequest.instances.shift();
-          var hasIfMatchHeader = request._headers.hasOwnProperty('If-Match');
-          test.assert(hasIfMatchHeader, false);
+          test.assert(getMockRequestHeader('If-Match'), undefined);
         }
       },
 
@@ -735,9 +856,8 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             storageApi: 'draft-dejong-remotestorage-01'
           });
           env.connectedClient.delete('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          var hasIfMatchHeader = request._headers.hasOwnProperty('If-Match');
-          test.assert(hasIfMatchHeader, false);
+          test.assertAnd(getMockRequestMethod(), 'DELETE');
+          test.assert(getMockRequestHeader('If-Match'), undefined);
         }
       },
 
@@ -781,11 +901,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               });
               test.assert(r.contentType, 'application/octet-stream; charset=binary');
             });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
-          req.status = 200;
-          req.response = new ArrayBufferMock('response-body');
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'Content-Type': 'application/octet-stream; charset=binary'},
+            status: 200,
+            arrayBuffer: new ArrayBufferMock('response-body')
+          });
         }
       },
 
@@ -793,9 +913,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         desc: "PUTs of ArrayBuffers get a binary charset added",
         run: function(env, test) {
           env.connectedClient.put('/foo/bar', new ArrayBuffer('bla', 'UTF-8'), 'image/jpeg', {});
-          var request = XMLHttpRequest.instances.shift();
-          var contentTypeHeader = request._headers['Content-Type'];
-          test.assert(contentTypeHeader, 'image/jpeg; charset=binary');
+          test.assert(getMockRequestHeader('Content-Type'), 'image/jpeg; charset=binary');
         }
       },
 
@@ -803,9 +921,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         desc: "PUTs of ArrayBuffers get no second binary charset added",
         run: function(env, test) {
           env.connectedClient.put('/foo/bar', new ArrayBuffer('bla', 'UTF-8'), 'image/jpeg; charset=custom', {});
-          var request = XMLHttpRequest.instances.shift();
-          var contentTypeHeader = request._headers['Content-Type'];
-          test.assert(contentTypeHeader, 'image/jpeg; charset=custom');
+          test.assert(getMockRequestHeader('Content-Type'), 'image/jpeg; charset=custom');
         }
       },
 
@@ -813,9 +929,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         desc: "PUTs of strings get no charset added",
         run: function(env, test) {
           env.connectedClient.put('/foo/bar', 'bla', 'text/html', {});
-          var request = XMLHttpRequest.instances.shift();
-          var contentTypeHeader = request._headers['Content-Type'];
-          test.assert(contentTypeHeader, 'text/html');
+          test.assert(getMockRequestHeader('Content-Type'), 'text/html');
         }
       },
 
@@ -823,9 +937,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         desc: "PUTs of strings have UTF-8 charset preserved",
         run: function(env, test) {
           env.connectedClient.put('/foo/bar', 'bla', 'text/html; charset=UTF-8', {});
-          var request = XMLHttpRequest.instances.shift();
-          var contentTypeHeader = request._headers['Content-Type'];
-          test.assert(contentTypeHeader, 'text/html; charset=UTF-8');
+          test.assert(getMockRequestHeader('Content-Type'), 'text/html; charset=UTF-8');
         }
       },
 
@@ -833,9 +945,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         desc: "PUTs of strings have custom charset preserved",
         run: function(env, test) {
           env.connectedClient.put('/foo/bar', 'bla', 'text/html; charset=myown', {});
-          var request = XMLHttpRequest.instances.shift();
-          var contentTypeHeader = request._headers['Content-Type'];
-          test.assert(contentTypeHeader, 'text/html; charset=myown');
+          test.assert(getMockRequestHeader('Content-Type'), 'text/html; charset=myown');
         }
       },
 
@@ -848,10 +958,10 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertAnd(r.body, 'response-body');
               test.done();
             });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 200;
-          req.response = new ArrayBufferMock('response-body');
-          req._onload();
+          mockRequestSuccess({
+            status: 200,
+            arrayBuffer: new ArrayBufferMock('response-body')
+          });
         }
       },
 
@@ -865,10 +975,10 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertTypeAnd(r.contentType, 'undefined');
               test.done();
             });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 404;
-          req.response = '';
-          req._onload();
+          mockRequestSuccess({
+            status: 404,
+            arrayBuffer: new ArrayBufferMock('')
+          });
         }
       },
 
@@ -882,10 +992,10 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertTypeAnd(r.contentType, 'undefined');
               test.done();
             });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 404;
-          req.response = '';
-          req._onload();
+          mockRequestSuccess({
+            status: 404,
+            arrayBuffer: new ArrayBufferMock('')
+          });
         }
       },
 
@@ -899,10 +1009,10 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertTypeAnd(r.contentType, 'undefined');
               test.done();
             });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 412;
-          req.response = '';
-          req._onload();
+          mockRequestSuccess({
+            status: 412,
+            arrayBuffer: new ArrayBufferMock('')
+          });
         }
       },
 
@@ -917,11 +1027,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertAnd(r.revision, 'foo');
               test.done();
             });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['ETag'] = '"foo"';
-          req.status = 304;
-          req.response = '';
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'ETag': '"foo"'},
+            status: 304,
+            arrayBuffer: new ArrayBufferMock('')
+          });
         }
       },
 
@@ -936,11 +1046,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertAnd(r.revision, 'foo');
               test.done();
             });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['ETag'] = '"foo"';
-          req.status = 204;
-          req.response = '';
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'ETag': '"foo"'},
+            status: 204,
+            arrayBuffer: new ArrayBufferMock('')
+          });
         }
       },
 
@@ -955,11 +1065,11 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertAnd(r.revision, 'foo');
               test.done();
             });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['ETag'] = '"foo"';
-          req.status = 200;
-          req.response = '';
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'ETag': '"foo"'},
+            status: 200,
+            arrayBuffer: new ArrayBufferMock('')
+          });
         }
       },
 
@@ -971,13 +1081,13 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertAnd(r.statusCode, 200);
               test.assertTypeAnd(r.body, 'undefined');
               test.assertTypeAnd(r.contentType, 'undefined');
-              test.assertTypeAnd(r.revision, 'undefined');
+              test.assertAnd(r.revision, null);
               test.done();
             });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 200;
-          req.response = '';
-          req._onload();
+          mockRequestSuccess({
+            status: 200,
+            arrayBuffer: new ArrayBufferMock('')
+          });
         }
       },
 
@@ -992,15 +1102,56 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
               test.assertAnd(r.revision, 'foo');
               test.done();
             });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['ETag'] = '"foo"';
-          req.status = 200;
-          req.response = '';
-          req._onload();
+          mockRequestSuccess({
+            responseHeaders: {'ETag': '"foo"'},
+            status: 200,
+            arrayBuffer: new ArrayBufferMock('')
+          });
         }
       }
-    ]
-  });
+    ];
+
+    var xhrTests = tests.concat([
+      {
+        desc: "#get sends the request",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar');
+          var req = XMLHttpRequest.instances.shift();
+          test.assertType(req._send, 'object');
+        }
+      },
+
+      {
+        desc: "#get installs onload and onerror handlers on the request",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar/');
+          var req = XMLHttpRequest.instances.shift();
+          test.assertTypeAnd(req._onload, 'function');
+          test.assertTypeAnd(req._onerror, 'function');
+          test.done();
+        }
+      },
+    ]);
+    suites.push({
+       name: "WireClient (using XMLHttpRequest)",
+       desc: "Low-level remotestorage client",
+       setup: setup,
+       beforeEach: beforeEachXHR,
+       afterEach: afterEach,
+       tests: xhrTests
+    });
+
+    var fetchTests = tests.concat([
+
+    ]);
+    suites.push({
+       name: "WireClient (using fetch)",
+       desc: "Low-level remotestorage client",
+       setup: setup,
+       beforeEach: beforeEachFetch,
+       afterEach: afterEach,
+       tests: fetchTests
+    });
 
   return suites;
 });
