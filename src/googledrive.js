@@ -103,7 +103,7 @@ function googleDrivePath (path) {
  * @private
  */
 function removeQuotes (string) {
-  return string.substring(1, string.length-1);
+  return string.replace(/^["'](.*)["']$/, "$1");
 }
 
 /**
