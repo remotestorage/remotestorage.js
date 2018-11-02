@@ -174,14 +174,16 @@ RemoteStorage.prototype = {
   /**
    * Initiate the OAuth authorization flow.
    *
-   * This function is usually not called by an app directly, but rather from a
-   * custom storage backend implementation (e.g. Dropbox or Google Drive).
+   * This function is called by custom storage backend implementations
+   * (e.g. Dropbox or Google Drive).
    *
    * @param {object} options
    * @param {string} options.authURL - URL of the authorization endpoint
    * @param {string} [options.scope] - access scope
    * @param {string} [options.clientId] - client identifier (defaults to the
    *                                      origin of the redirectUri)
+   *
+   * @private
    */
   authorize: function authorize (options) {
     this.access.setStorageType(this.remote.storageApi);
