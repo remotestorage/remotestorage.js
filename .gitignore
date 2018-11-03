@@ -9,5 +9,3 @@ server-state
 doc/code
 doc/_build
 /remotestorage*.js
-.idea/
-remotestorage.js.iml

@@ -208,7 +208,36 @@ define(['./src/wireclient', './src/remotestorage'], function (WireClient, Remote
           arrayBuffer: string2ArrayBuffer('response content')
         });
       }
-    }
+    },
+
+    {
+      desc: "GET requests for HTML data respond with the proper content (and don't throw an error)",
+      run: function(env, test) {
+        function string2ArrayBuffer(str) {
+          var buf = new ArrayBuffer(str.length); // assuming str only contains 1-byte UTF characters
+          var bufView = new Uint8Array(buf);
+          for (var i=0, strLen=str.length; i<strLen; i++) {
+            bufView[i] = str.charCodeAt(i);
+          }
+          return buf;
+        }
+
+        env.connectedClient.get('/foo/bar').
+        then(function (r) {
+          test.assertAnd(r.statusCode, 200);
+          test.assertAnd(r.body, '<html><head></head><body><h1>Hello, World!</h1></body></html>');
+          test.assert(r.contentType, 'text/html');
+        }, function (err) {
+          test.result(false, err);
+        });
+
+        mockRequestSuccess({
+          responseHeaders: {'Content-Type': 'text/html'},
+          status: 200,
+          arrayBuffer: string2ArrayBuffer('<html><head></head><body><h1>Hello, World!</h1></body></html>')
+        });
+      }
+    },
   ];
 
   suites.push({

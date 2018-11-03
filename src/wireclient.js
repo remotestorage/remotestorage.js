@@ -491,9 +491,9 @@ WireClient.isArrayBufferView = isArrayBufferView;
 
 // Shared request function used by WireClient, GoogleDrive and Dropbox.
 WireClient.request = function (method, url, options) {
-  if (typeof fetch !== 'undefined') {
+  if (typeof fetch === 'function') {
     return WireClient._fetchRequest(method, url, options);
-  } else if (typeof XMLHttpRequest !== 'undefined') {
+  } else if (typeof XMLHttpRequest === 'function') {
     return WireClient._xhrRequest(method, url, options);
   } else {
     log('[WireClient] no support for HTTP requests');
@@ -627,7 +627,7 @@ WireClient._rs_init = function (remoteStorage) {
 };
 
 WireClient._rs_supported = function () {
-  return typeof fetch !== 'undefined' || typeof XMLHttpRequest !== 'undefined';
+  return typeof fetch === 'function' || typeof XMLHttpRequest === 'function';
 };
 
 WireClient._rs_cleanup = function () {
