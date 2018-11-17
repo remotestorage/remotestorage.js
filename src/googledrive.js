@@ -32,6 +32,7 @@ const isFolder = util.isFolder;
 const cleanPath = util.cleanPath;
 const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
 const readBinaryData = util.readBinaryData;
+const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
 
 let hasLocalStorage;
 
@@ -93,6 +94,18 @@ function googleDrivePath (path) {
 }
 
 /**
+ * Remove surrounding quotes from a string.
+ *
+ * @param {string} string - string with surrounding quotes
+ * @returns {string} string without surrounding quotes
+ *
+ * @private
+ */
+function removeQuotes (string) {
+  return string.replace(/^["'](.*)["']$/, "$1");
+}
+
+/**
  * Internal cache object for storing Google file IDs.
  *
  * @param {number} maxAge - Maximum age (in seconds) the content should be cached for
@@ -129,12 +142,7 @@ const GoogleDrive = function (remoteStorage, clientId) {
   hasLocalStorage = util.localStorageAvailable();
 
   if (hasLocalStorage){
-    let settings;
-    try {
-      settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-    } catch(e) {
-      // no settings stored
-    }
+    const settings = getJSONFromLocalStorage(SETTINGS_KEY);
     if (settings) {
       this.configure(settings);
     }
@@ -258,7 +266,7 @@ GoogleDrive.prototype = {
     function putDone(response) {
       if (response.status >= 200 && response.status < 300) {
         const meta = JSON.parse(response.responseText);
-        const etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+        const etagWithoutQuotes = removeQuotes(meta.etag);
         return Promise.resolve({statusCode: 200, contentType: meta.mimeType, revision: etagWithoutQuotes});
       } else if (response.status === 412) {
         return Promise.resolve({statusCode: 412, revision: 'conflict'});
@@ -302,7 +310,7 @@ GoogleDrive.prototype = {
       return this._getMeta(id).then((meta) => {
         let etagWithoutQuotes;
         if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
-          etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          etagWithoutQuotes = removeQuotes(meta.etag);
         }
         if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
           return {statusCode: 412, revision: etagWithoutQuotes};
@@ -430,14 +438,13 @@ GoogleDrive.prototype = {
       return this._getMeta(id).then((meta) => {
         let etagWithoutQuotes;
         if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
-          etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          etagWithoutQuotes = removeQuotes(meta.etag);
         }
 
         if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
           return Promise.resolve({statusCode: 304});
         }
 
-        const options2 = {};
         if (!meta.downloadUrl) {
           if (meta.exportLinks && meta.exportLinks['text/html']) {
             // Documents that were generated inside GoogleDocs have no
@@ -450,7 +457,7 @@ GoogleDrive.prototype = {
           }
         }
 
-        return this._request('GET', meta.downloadUrl, options2).then((response) => {
+        return this._request('GET', meta.downloadUrl, {}).then((response) => {
           let body = response.response;
           if (meta.mimeType.match(/^application\/json/)) {
             try {
@@ -514,7 +521,7 @@ GoogleDrive.prototype = {
 
         itemsMap = {};
         for (const item of data.items) {
-          etagWithoutQuotes = item.etag.substring(1, item.etag.length-1);
+          etagWithoutQuotes = removeQuotes(item.etag);
           if (item.mimeType === GD_DIR_MIME_TYPE) {
             this._fileIdCache.set(path + item.title + '/', item.id);
             itemsMap[item.title + '/'] = {

@@ -46,6 +46,7 @@ const isFolder = util.isFolder;
 const cleanPath = util.cleanPath;
 const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
 const readBinaryData = util.readBinaryData;
+const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
 
 /**
  * Map a local path to a path in Dropbox.
@@ -180,16 +181,11 @@ var Dropbox = function (rs) {
   hasLocalStorage = util.localStorageAvailable();
 
   if (hasLocalStorage){
-    var settings;
-    try {
-      settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-    } catch(e) { /* ok to ignore, probably no data in localStorage */ }
+    const settings = getJSONFromLocalStorage(SETTINGS_KEY);
     if (settings) {
       this.configure(settings);
     }
-    try {
-      this._itemRefs = JSON.parse(localStorage.getItem(SETTINGS_KEY+':shares')) || {};
-    } catch(e) { /* ok to ignore, no shares in localStorage */ }
+    this._itemRefs = getJSONFromLocalStorage(`${SETTINGS_KEY}:shares`) || {};
   }
   if (this.connected) {
     setTimeout(this._emit.bind(this), 0, 'connected');

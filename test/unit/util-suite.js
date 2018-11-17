@@ -151,6 +151,34 @@ define(['./src/util'], function (util) {
 
           test.assert(util.localStorageAvailable(), false);
         }
+      },
+
+      {
+        desc: "getJSONFromLocalStorage returns the object for the given key",
+        run: function(env, test) {
+
+          global.localStorage = {
+            getItem: function() {
+              return '{ "foo": "bar" }';
+            }
+          };
+
+          test.assert(util.getJSONFromLocalStorage('somekey'), { foo: 'bar' });
+        }
+      },
+
+      {
+        desc: "getJSONFromLocalStorage returns null when there is no object for the given key",
+        run: function(env, test) {
+
+          global.localStorage = {
+            getItem: function() {
+              return null;
+            }
+          };
+
+          test.assert(util.getJSONFromLocalStorage('somekey'), null);
+        }
       }
 
     ]
