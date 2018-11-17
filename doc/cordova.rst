@@ -55,6 +55,19 @@ or as config when creating your rs instance:
 No further action is needed and you can now use remoteStorage.js as with
 any other web app.
 
+Google Drive config
+-------------------
+
+If you wish to use the optional Google Drive adapter, you need to configure a
+different user agent for your app. Otherwise the authorization page will show
+an error to the user.
+
+In case you haven't set your own UA string already, here's how you can do it:
+
+.. code:: xml
+
+   <preference name="OverrideUserAgent" value="Mozilla/5.0 remoteStorage" />
+
 .. rubric:: Footnotes
 
 .. [#f1] Taken from https://cordova.apache.org/docs/en/latest/guide/overview/index.html
