@@ -36,8 +36,24 @@ function extractParams(url) {
   }, {});
 }
 
+function buildOAuthURL (authURL, redirectUri, scope, clientId) {
+  const hashPos = redirectUri.indexOf('#');
+  let url = authURL;
 
-var Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
+  url += authURL.indexOf('?') > 0 ? '&' : '?';
+  url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
+  url += '&scope=' + encodeURIComponent(scope);
+  url += '&client_id=' + encodeURIComponent(clientId);
+
+  if (hashPos !== - 1 && hashPos+1 !== redirectUri.length) {
+    url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
+  }
+  url += '&response_type=token';
+
+  return url;
+}
+
+const Authorize = function (remoteStorage, { authURL, scope, redirectUri, clientId }) {
   log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
 
   // keep track of the discovery data during redirect if we can't save it in localStorage
@@ -55,15 +71,7 @@ var Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) 
     redirectUri += 'rsDiscovery=' + btoa(JSON.stringify(discoveryData));
   }
 
-  var url = authURL, hashPos = redirectUri.indexOf('#');
-  url += authURL.indexOf('?') > 0 ? '&' : '?';
-  url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
-  url += '&scope=' + encodeURIComponent(scope);
-  url += '&client_id=' + encodeURIComponent(clientId);
-  if (hashPos !== - 1 && hashPos+1 !== redirectUri.length) {
-    url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
-  }
-  url += '&response_type=token';
+  const url = buildOAuthURL(authURL, redirectUri, scope, clientId);
 
   if (util.globalContext.cordova) {
     return Authorize.openWindow(url, redirectUri, 'location=yes,clearsessioncache=yes,clearcache=yes')

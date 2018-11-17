@@ -51,14 +51,14 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       {
         desc: "Authorize redirects to the provider's OAuth location",
         run: function(env, test) {
-          var authUrl = 'http://storage.provider.com/oauth';
+          var authURL = 'http://storage.provider.com/oauth';
           var scope = 'contacts:r';
           var redirectUri = 'http://awesome.app.com/#custom/path';
           var clientId = 'http://awesome.app.com/';
 
           this.localStorageAvailable = function() { return true; };
 
-          Authorize(this, authUrl, scope, redirectUri, clientId);
+          Authorize(this, {authURL, scope, redirectUri, clientId});
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&state=custom%2Fpath&response_type=token';
           test.assert(document.location.href, expectedUrl);
@@ -68,14 +68,14 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       {
         desc: "Authorize redirects to the provider's OAuth location with empty fragment",
         run: function(env, test) {
-          var authUrl = 'http://storage.provider.com/oauth';
+          var authURL = 'http://storage.provider.com/oauth';
           var scope = 'contacts:r';
           var redirectUri = 'http://awesome.app.com/#';
           var clientId = 'http://awesome.app.com/';
 
           this.localStorageAvailable = function() { return true; };
 
-          Authorize(this, authUrl, scope, redirectUri, clientId);
+          Authorize(this, {authURL, scope, redirectUri, clientId});
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&response_type=token';
           test.assert(document.location.href, expectedUrl);
@@ -86,7 +86,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         desc: "Authorize doesn't redirect, but opens an in-app-browser window",
         run: function(env, test) {
           document.location.href = 'file:///some/cordova/path';
-          var authUrl = 'http://storage.provider.com/oauth';
+          var authURL = 'http://storage.provider.com/oauth';
           var scope = 'contacts:r';
           var redirectUri = 'http://awesome.app.com/#';
           var clientId = 'http://awesome.app.com/';
@@ -97,10 +97,11 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
 
           Authorize.openWindow = function(url, uri) {
             test.assertAnd(uri, redirectUri);
+            delete global.cordova;
             test.done();
           };
 
-          Authorize(this, authUrl, scope, redirectUri, clientId);
+          Authorize(this, {authURL, scope, redirectUri, clientId});
 
           test.assertAnd(document.location.href, 'file:///some/cordova/path');
         }

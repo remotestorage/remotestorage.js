@@ -648,7 +648,97 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
 
           test.assertAnd(env.rs._syncTimer, undefined);
         }
-      }
+      },
+
+      {
+        desc: "#authorize redirects to the OAuth provider",
+        run: function (env, test) {
+          global.document = {
+            location: {
+              href: 'https://app.com:5000/foo/bar',
+              toString: function() { return this.href; }
+            }
+          };
+
+          const authURL = 'https://provider.com/oauth';
+          env.rs.access.claim('contacts', 'r');
+
+          env.rs.authorize({ authURL });
+
+          test.assert(document.location.href, 'https://provider.com/oauth?redirect_uri=https%3A%2F%2Fapp.com%3A5000%2Ffoo%2Fbar&scope=contacts%3Ar&client_id=https%3A%2F%2Fapp.com%3A5000&response_type=token');
+
+          delete global.document;
+        }
+      },
+
+      {
+        desc: "#authorize uses the given scope",
+        run: function (env, test) {
+          global.document = {
+            location: {
+              href: 'https://app.com:5000/foo/bar',
+              toString: function() { return this.href; }
+            }
+          };
+
+          const authURL = 'https://provider.com/oauth';
+
+          env.rs.authorize({ authURL, scope: 'custom-scope' });
+
+          test.assert(document.location.href, 'https://provider.com/oauth?redirect_uri=https%3A%2F%2Fapp.com%3A5000%2Ffoo%2Fbar&scope=custom-scope&client_id=https%3A%2F%2Fapp.com%3A5000&response_type=token');
+
+          delete global.document;
+        }
+      },
+
+      {
+        desc: "#authorize uses the cordovaRedirectUri when in Cordova",
+        run: function (env, test) {
+          global.document = {
+            location: {
+              href: 'https://app.com:5000/foo/bar',
+              toString: function() { return this.href; }
+            }
+          };
+
+          global.cordova = { foo: 'bar' }; // Pretend we run in Cordova
+
+          global.Authorize.openWindow = function(url, redirectUri) {
+            test.assertAnd(url, 'https://provider.com/oauth?redirect_uri=https%3A%2F%2Fmy.custom-redirect.url&scope=contacts%3Ar&client_id=https%3A%2F%2Fmy.custom-redirect.url&response_type=token');
+            test.assertAnd(redirectUri, 'https://my.custom-redirect.url');
+            delete global.cordova;
+            delete global.document;
+            test.done();
+          };
+
+          const authURL = 'https://provider.com/oauth';
+
+          env.rs.access.claim('contacts', 'r');
+          env.rs.setCordovaRedirectUri('https://my.custom-redirect.url');
+          env.rs.authorize({ authURL });
+        }
+      },
+
+      {
+        desc: "#authorize uses the given clientId",
+        run: function (env, test) {
+          global.document = {
+            location: {
+              href: 'https://app.com:5000/foo/bar',
+              toString: function() { return this.href; }
+            }
+          };
+
+          const authURL = 'https://provider.com/oauth';
+          env.rs.access.claim('contacts', 'r');
+
+          env.rs.authorize({ authURL, clientId: 'my-client-id' });
+
+          test.assert(document.location.href, 'https://provider.com/oauth?redirect_uri=https%3A%2F%2Fapp.com%3A5000%2Ffoo%2Fbar&scope=contacts%3Ar&client_id=my-client-id&response_type=token');
+
+          delete global.document;
+        }
+      },
     ]
   });
 
