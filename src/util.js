@@ -35,10 +35,10 @@ var util = {
     }
   },
 
-  globalContext: (typeof(window) !== 'undefined' ? window : global),
+  globalContext: (typeof(window) !== 'undefined' ? window : (typeof self === 'object' ? self : global)),
 
   getGlobalContext () {
-    return (typeof(window) !== 'undefined' ? window : global);
+    return (typeof(window) !== 'undefined' ? window : (typeof self === 'object' ? self : global));
   },
 
   extend (target) {
