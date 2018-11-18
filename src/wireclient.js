@@ -492,8 +492,8 @@ WireClient.request = function (method, url, options) {
   } else if (typeof XMLHttpRequest === 'function') {
     return WireClient._xhrRequest(method, url, options);
   } else {
-    log('[WireClient] no support for HTTP requests');
-    return Promise.reject('[WireClient] no support for HTTP requests');
+    log('[WireClient] add a polyfill for fetch or XMLHttpRequest');
+    return Promise.reject('[WireClient] add a polyfill for fetch or XMLHttpRequest');
   }
 };
 
@@ -549,7 +549,6 @@ WireClient._fetchRequest = function (method, url, options) {
 
   var timeoutPromise = new Promise(function (resolve, reject) {
     setTimeout(function () {
-      log('[WireClient] request timed out', url);
       reject('timeout');
       if (abortController) {
         abortController.abort();
