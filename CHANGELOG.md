@@ -4,11 +4,20 @@ All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases)
 at GitHub.
 
-## Master
+## 1.1.0 (November 2018)
 
 ### Bugfixes
 
-Sync remote Dropbox changes to local cache (#1128)
+* Fix remote Dropbox changes not being synced (#1128)
+* Fix error when using in WebWorker (#1126)
+* Fix error when minified via Uglify.js/create-react-app (#1133)
+
+### Enhancements
+
+* Use Fetch API for HTTP requests (with fallback to XHR) (#1132)
+* Document usage with Cordova apps (#1138)
+* Update dependencies and build setup
+* Source code refactoring
 
 ## 1.0.3 (March 2018)
 
