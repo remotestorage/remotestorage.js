@@ -610,6 +610,8 @@ Object.defineProperty(WireClient.prototype, 'storageType', {
     if (this.storageApi) {
       var spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
       return spec ? spec[1] : '2012.04';
+    } else {
+      return undefined;
     }
   }
 });
