@@ -30,6 +30,9 @@ Release checklist
     * Go to https://github.com/remotestorage/remotestorage.js/tags and click "Add release notes"
     * Use version string as title and changelog items as description
     * For RCs and betas, tick the "This is a pre-release" option on the bottom
+    * These notes will automatically be posted `to the community forums
+      <https://community.remotestorage.io/t/release-updates-for-rs-libraries/433>`
+      after a while
 
 * Publish to npm (https://www.npmjs.org/package/remotestoragejs)::
 
@@ -43,13 +46,7 @@ Release checklist
     * ``git push origin``
     * ``git push 5apps master``
 
-* Announce release on community forums: create a new topic in "remoteStorage.js
-  Core", similar to this one:
-  http://community.remotestorage.io/t/remotestorage-js-0-8-3-released/95
+* Link release announcement on Mastodon (remoteStorage@kosmos.social). This
+  will automatically cross-post to Twitter and IRC.
 
-* Link release announcement on
-
-    * Unhosted mailing list
-    * Mastodon/Fediverse
-    * Twitter
-    * IRC
+* If it's an important release, also notify the Unhosted mailing list
