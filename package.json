@@ -16,6 +16,7 @@
     "lint": "eslint --quiet src/",
     "build": "NODE_ENV=production webpack --mode=production",
     "dev": "webpack -w --mode=development",
+    "postshrinkwrap": "if [ \"`uname`\" = \"Darwin\" ]; then sed -i '' -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; else sed -i -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; fi",
     "doc": "cd doc; sphinx-autobuild -i '*~' -i '*.sw*' -i '#*#' . _build/html",
     "preversion": "npm test",
     "version": "npm run build && git add release/ && npm run update-bower-version && git add bower.json && npm run update-doc-version && git add doc/version.py",
