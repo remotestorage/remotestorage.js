@@ -1,13 +1,12 @@
 language: node_js
+sudo: false
 node_js:
-  - "6"
-  - "node"
   - "lts/*"
+  - "node"
+script:
+  - npm test
+  - npm run lint
 branches:
   only:
     - master
     - stable
-sudo: false
-script:
-    - npm test
-    - npm run lint
