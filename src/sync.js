@@ -1,15 +1,9 @@
-const util = require('./util');
+const { isFolder, isDocument, equal, deepClone, pathsFromRoot } = require('./util');
 const Env = require('./env');
 const eventHandling = require('./eventhandling');
 const log = require('./log');
 const Authorize = require('./authorize');
 const config = require('./config');
-
-const isFolder = util.isFolder;
-const isDocument = util.isDocument;
-const equal = util.equal;
-const deepClone = util.deepClone;
-const pathsFromRoot = util.pathsFromRoot;
 
 function taskFor (action, path, promise) {
   return {
