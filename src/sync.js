@@ -82,24 +82,24 @@ function handleVisibility (rs) {
  * comes in, it gives information about all the documents it contains (this is
  * the `markChildren` function).
  **/
-const Sync = function (remoteStorage, setLocal, setRemote, setAccess, setCaching) {
-  this.remoteStorage = remoteStorage;
-  this.local = setLocal;
-  this.local.onDiff(function (path) {
-    this.addTask(path);
-    this.doTasks();
-  }.bind(this));
-  this.remote = setRemote;
-  this.access = setAccess;
-  this.caching = setCaching;
-  this._tasks = {};
-  this._running = {};
+const Sync = function (remoteStorage) {
+  this.rs = remoteStorage;
+
+  this._tasks       = {};
+  this._running     = {};
   this._timeStarted = {};
-  eventHandling(this, 'done', 'req-done');
-  this.caching.onActivate(function (path) {
+
+  this.rs.local.onDiff(path => {
     this.addTask(path);
     this.doTasks();
-  }.bind(this));
+  });
+
+  this.rs.caching.onActivate(path => {
+    this.addTask(path);
+    this.doTasks();
+  });
+
+  eventHandling(this, 'done', 'req-done');
 };
 
 Sync.prototype = {
@@ -110,13 +110,13 @@ Sync.prototype = {
 
   queueGetRequest: function (path) {
     return new Promise((resolve, reject) => {
-      if (!this.remote.connected) {
+      if (!this.rs.remote.connected) {
         reject('cannot fulfill maxAge requirement - remote is not connected');
-      } else if (!this.remote.online) {
+      } else if (!this.rs.remote.online) {
         reject('cannot fulfill maxAge requirement - remote is not online');
       } else {
         this.addTask(path, function () {
-          this.local.get(path).then(function (r) {
+          this.rs.local.get(path).then(function (r) {
             return resolve(r);
           });
         }.bind(this));
@@ -204,7 +204,7 @@ Sync.prototype = {
   collectDiffTasks: function () {
     var num = 0;
 
-    return this.local.forAllNodes(function (node) {
+    return this.rs.local.forAllNodes(node => {
       if (num > 100) { return; }
 
       if (this.isCorrupt(node)) {
@@ -213,15 +213,15 @@ Sync.prototype = {
           this.addTask(node.path);
           num++;
         }
-      } else if (this.needsFetch(node) && this.access.checkPathPermission(node.path, 'r')) {
+      } else if (this.needsFetch(node) && this.rs.access.checkPathPermission(node.path, 'r')) {
         this.addTask(node.path);
         num++;
       } else if (isDocument(node.path) && this.needsPush(node) &&
-                 this.access.checkPathPermission(node.path, 'rw')) {
+                 this.rs.access.checkPathPermission(node.path, 'rw')) {
         this.addTask(node.path);
         num++;
       }
-    }.bind(this)).then(function () {
+    }).then(function () {
       return num;
     }, function (err) {
       throw err;
@@ -307,7 +307,7 @@ Sync.prototype = {
   },
 
   collectRefreshTasks: function () {
-    return this.local.forAllNodes(function (node) {
+    return this.rs.local.forAllNodes(node => {
       var parentPath;
       if (this.needsRefresh(node)) {
         try {
@@ -315,23 +315,21 @@ Sync.prototype = {
         } catch(e) {
           // node.path is already '/', can't take parentPath
         }
-        if (parentPath && this.access.checkPathPermission(parentPath, 'r')) {
+        if (parentPath && this.rs.access.checkPathPermission(parentPath, 'r')) {
           this.addTask(parentPath);
-        } else if (this.access.checkPathPermission(node.path, 'r')) {
+        } else if (this.rs.access.checkPathPermission(node.path, 'r')) {
           this.addTask(node.path);
         }
       }
-    }.bind(this)).then(function () {
-      this.deleteChildPathsFromTasks();
-    }.bind(this), function (err) {
-      throw err;
-    });
+    }).then(() => { this.deleteChildPathsFromTasks(); },
+            err => { throw err; });
   },
 
   flush: function (nodes) {
     for (var path in nodes) {
       // Strategy is 'FLUSH' and no local changes exist
-      if (this.caching.checkPath(path) === 'FLUSH' && nodes[path] && !nodes[path].local) {
+      if (this.rs.caching.checkPath(path) === 'FLUSH' &&
+          nodes[path] && !nodes[path].local) {
         log('[Sync] Flushing', path);
         nodes[path] = undefined; // Cause node to be flushed from cache
       }
@@ -340,22 +338,22 @@ Sync.prototype = {
   },
 
   doTask: function (path) {
-    return this.local.getNodes([path]).then(function (nodes) {
+    return this.rs.local.getNodes([path]).then(nodes => {
       var node = nodes[path];
       // First fetch:
       if (typeof(node) === 'undefined') {
-        return taskFor('get', path, this.remote.get(path));
+        return taskFor('get', path, this.rs.remote.get(path));
       }
       // Fetch known-stale child:
       else if (isStaleChild(node)) {
-        return taskFor('get', path, this.remote.get(path));
+        return taskFor('get', path, this.rs.remote.get(path));
       }
       // Push PUT:
       else if (this.needsRemotePut(node)) {
         node.push = deepClone(node.local);
         node.push.timestamp = this.now();
 
-        return this.local.setNodes(this.flush(nodes)).then(function () {
+        return this.rs.local.setNodes(this.flush(nodes)).then(() => {
           var options;
           if (hasCommonRevision(node)) {
             options = { ifMatch: node.common.revision };
@@ -365,34 +363,34 @@ Sync.prototype = {
           }
 
           return taskFor('put', path,
-            this.remote.put(path, node.push.body, node.push.contentType, options)
+            this.rs.remote.put(path, node.push.body, node.push.contentType, options)
           );
-        }.bind(this));
+        });
       }
       // Push DELETE:
       else if (this.needsRemoteDelete(node)) {
         node.push = { body: false, timestamp: this.now() };
 
-        return this.local.setNodes(this.flush(nodes)).then(function () {
+        return this.rs.local.setNodes(this.flush(nodes)).then(() => {
           if (hasCommonRevision(node)) {
             return taskFor('delete', path,
-              this.remote.delete(path, { ifMatch: node.common.revision })
+              this.rs.remote.delete(path, { ifMatch: node.common.revision })
             );
           } else { // Ascertain current common or remote revision first
-            return taskFor('get', path, this.remote.get(path));
+            return taskFor('get', path, this.rs.remote.get(path));
           }
-        }.bind(this));
+        });
       }
       // Conditional refresh:
       else if (hasCommonRevision(node)) {
         return taskFor('get', path,
-          this.remote.get(path, { ifNoneMatch: node.common.revision })
+          this.rs.remote.get(path, { ifNoneMatch: node.common.revision })
         );
       }
       else {
-        return taskFor('get', path, this.remote.get(path));
+        return taskFor('get', path, this.rs.remote.get(path));
       }
-    }.bind(this));
+    });
   },
 
   autoMergeFolder: function (node) {
@@ -427,7 +425,7 @@ Sync.prototype = {
       // keep/revert:
       log('[Sync] Emitting keep/revert');
 
-      this.local._emitChange({
+      this.rs.local._emitChange({
         origin:         'conflict',
         path:           node.path,
         oldValue:       node.local.body,
@@ -474,7 +472,7 @@ Sync.prototype = {
               newContentType: node.remote.contentType
             };
             if (change.oldValue || change.newValue) {
-              this.local._emitChange(change);
+              this.rs.local._emitChange(change);
             }
 
             if (!node.remote.body) { // no remote, so delete/don't create
@@ -488,7 +486,7 @@ Sync.prototype = {
       }
     } else {
       if (node.common.body) {
-        this.local._emitChange({
+        this.rs.local._emitChange({
           origin:   'remote',
           path:     node.path,
           oldValue: node.common.body,
@@ -504,12 +502,14 @@ Sync.prototype = {
   },
 
   updateCommonTimestamp: function (path, revision) {
-    return this.local.getNodes([path]).then(function (nodes) {
-      if (nodes[path] && nodes[path].common && nodes[path].common.revision === revision) {
+    return this.rs.local.getNodes([path]).then(nodes => {
+      if (nodes[path] &&
+          nodes[path].common &&
+          nodes[path].common.revision === revision) {
         nodes[path].common.timestamp = this.now();
       }
-      return this.local.setNodes(this.flush(nodes));
-    }.bind(this));
+      return this.rs.local.setNodes(this.flush(nodes));
+    });
   },
 
   markChildren: function (path, itemsMap, changedNodes, missingChildren) {
@@ -525,7 +525,7 @@ Sync.prototype = {
       paths.push(path+childName);
     }
 
-    return this.local.getNodes(paths).then(function (nodes) {
+    return this.rs.local.getNodes(paths).then(nodes => {
       var cachingStrategy;
       var node;
 
@@ -543,7 +543,7 @@ Sync.prototype = {
               changedNodes[nodePath] = this.autoMerge(changedNodes[nodePath]);
             }
           } else {
-            cachingStrategy = this.caching.checkPath(nodePath);
+            cachingStrategy = this.rs.caching.checkPath(nodePath);
             if (cachingStrategy === 'ALL') {
               changedNodes[nodePath] = {
                 path: nodePath,
@@ -599,10 +599,11 @@ Sync.prototype = {
         }
       }
 
-      return this.deleteRemoteTrees(Object.keys(recurse), changedNodes).then(function (changedObjs2) {
-        return this.local.setNodes(this.flush(changedObjs2));
-      }.bind(this));
-    }.bind(this));
+      return this.deleteRemoteTrees(Object.keys(recurse), changedNodes)
+        .then(changedObjs2 => {
+          return this.rs.local.setNodes(this.flush(changedObjs2));
+        });
+    });
   },
 
   deleteRemoteTrees: function (paths, changedNodes) {
@@ -610,7 +611,7 @@ Sync.prototype = {
       return Promise.resolve(changedNodes);
     }
 
-    return this.local.getNodes(paths).then(function (nodes) {
+    return this.rs.local.getNodes(paths).then(nodes => {
       var subPaths = {};
 
       var collectSubPaths = function (folder, path) {
@@ -645,10 +646,11 @@ Sync.prototype = {
       }
 
       // Recurse whole tree depth levels at once:
-      return this.deleteRemoteTrees(Object.keys(subPaths), changedNodes).then(function (changedNodes2) {
-        return this.local.setNodes(this.flush(changedNodes2));
-      }.bind(this));
-    }.bind(this));
+      return this.deleteRemoteTrees(Object.keys(subPaths), changedNodes)
+        .then(changedNodes2 => {
+          return this.rs.local.setNodes(this.flush(changedNodes2));
+        });
+    });
   },
 
   completeFetch: function (path, bodyOrItemsMap, contentType, revision) {
@@ -663,7 +665,7 @@ Sync.prototype = {
       paths = [path, parentPath];
     }
 
-    return this.local.getNodes(paths).then(function (nodes) {
+    return this.rs.local.getNodes(paths).then(nodes => {
       var itemName;
       var missingChildren = {};
       var node = nodes[path];
@@ -679,12 +681,10 @@ Sync.prototype = {
         }
       };
 
-      if (typeof(node) !== 'object'  || node.path !== path ||
+      if (typeof(node) !== 'object'  ||
+          node.path !== path ||
           typeof(node.common) !== 'object') {
-        node = {
-          path: path,
-          common: {}
-        };
+        node = { path: path, common: {} };
         nodes[path] = node;
       }
 
@@ -720,11 +720,11 @@ Sync.prototype = {
         toBeSaved:       nodes,
         missingChildren: missingChildren
       };
-    }.bind(this));
+    });
   },
 
   completePush: function (path, action, conflict, revision) {
-    return this.local.getNodes([path]).then(function (nodes) {
+    return this.rs.local.getNodes([path]).then(nodes => {
       var node = nodes[path];
 
       if (!node.push) {
@@ -769,17 +769,17 @@ Sync.prototype = {
         }
       }
 
-      return this.local.setNodes(this.flush(nodes));
-    }.bind(this));
+      return this.rs.local.setNodes(this.flush(nodes));
+    });
   },
 
   dealWithFailure: function (path/*, action, statusMeaning*/) {
-    return this.local.getNodes([path]).then(function (nodes) {
+    return this.rs.local.getNodes([path]).then(nodes => {
       if (nodes[path]) {
         delete nodes[path].push;
-        return this.local.setNodes(this.flush(nodes));
+        return this.rs.local.setNodes(this.flush(nodes));
       }
-    }.bind(this));
+    });
   },
 
   interpretStatus: function (statusCode) {
@@ -796,7 +796,7 @@ Sync.prototype = {
     return {
       successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
       conflict:   (statusCode === 412),
-      unAuth:     ((statusCode === 401 && this.remote.token !== Authorize.IMPLIED_FAKE_TOKEN) ||
+      unAuth:     ((statusCode === 401 && this.rs.remote.token !== Authorize.IMPLIED_FAKE_TOKEN) ||
                    statusCode === 402 || statusCode === 403),
       notFound:   (statusCode === 404),
       changed:    (statusCode !== 304),
@@ -814,31 +814,30 @@ Sync.prototype = {
     }
 
     if (status.changed) {
-      return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function (dataFromFetch) {
-        if (isFolder(path)) {
-          if (this.corruptServerItemsMap(bodyOrItemsMap)) {
-            log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
-            return false;
+      return this.completeFetch(path, bodyOrItemsMap, contentType, revision)
+        .then(dataFromFetch => {
+          if (isFolder(path)) {
+            if (this.corruptServerItemsMap(bodyOrItemsMap)) {
+              log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
+              return false;
+            } else {
+              return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren)
+                .then(() => { return true; });
+            }
           } else {
-            return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function () {
-              return true;
-            });
+            return this.rs.local.setNodes(this.flush(dataFromFetch.toBeSaved))
+              .then(() => { return true; });
           }
-        } else {
-          return this.local.setNodes(this.flush(dataFromFetch.toBeSaved)).then(function () {
-            return true;
-          });
-        }
-      }.bind(this));
+        });
     } else {
-      return this.updateCommonTimestamp(path, revision).then(function () {
-        return true;
-      });
+      return this.updateCommonTimestamp(path, revision)
+        .then(() => { return true; });
     }
   },
 
   handleResponse: function (path, action, r) {
     var status = this.interpretStatus(r.statusCode);
+
     if (status.successful) {
       if (action === 'get') {
         return this.handleGetResponse(path, status, r.body, r.contentType, r.revision);
@@ -860,8 +859,8 @@ Sync.prototype = {
         error = new Error('HTTP response code ' + status.statusCode + ' received.');
       }
 
-      return this.dealWithFailure(path, action, status).then(function () {
-        this.remoteStorage._emit('error', error);
+      return this.dealWithFailure(path, action, status).then(() => {
+        this.rs._emit('error', error);
         throw error;
       });
     }
@@ -895,7 +894,7 @@ Sync.prototype = {
           }
         }
 
-        this.remoteStorage._emit('sync-req-done');
+        this.rs._emit('sync-req-done');
 
         this.collectTasks(false).then(() => {
           // See if there are any more tasks that are not refresh tasks
@@ -903,7 +902,7 @@ Sync.prototype = {
             log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
             if (!this.done) {
               this.done = true;
-              this.remoteStorage._emit('sync-done');
+              this.rs._emit('sync-done');
             }
           } else {
             // Use a 10ms timeout to let the JavaScript runtime catch its breath
@@ -916,18 +915,18 @@ Sync.prototype = {
         log('[Sync] Error', err);
         delete this._timeStarted[task.path];
         delete this._running[task.path];
-        this.remoteStorage._emit('sync-req-done');
+        this.rs._emit('sync-req-done');
         if (!this.done) {
           this.done = true;
-          this.remoteStorage._emit('sync-done');
+          this.rs._emit('sync-done');
         }
       });
   },
 
   doTasks: function () {
     let numToHave, numAdded = 0, numToAdd, path;
-    if (this.remote.connected) {
-      if (this.remote.online) {
+    if (this.rs.remote.connected) {
+      if (this.rs.remote.online) {
         numToHave = this.numThreads;
       } else {
         numToHave = 1;
@@ -958,15 +957,13 @@ Sync.prototype = {
       return Promise.resolve();
     }
 
-    return this.collectDiffTasks().then(function (numDiffs) {
+    return this.collectDiffTasks().then(numDiffs => {
       if (numDiffs || alsoCheckRefresh === false) {
         return Promise.resolve();
       } else {
         return this.collectRefreshTasks();
       }
-    }.bind(this), function (err) {
-      throw err;
-    });
+    }, function (err) { throw err; });
   },
 
   addTask: function (path, cb) {
@@ -985,13 +982,13 @@ Sync.prototype = {
     this.done = false;
 
     if (!this.doTasks()) {
-      return this.collectTasks().then(function () {
+      return this.collectTasks().then(() => {
         try {
           this.doTasks();
         } catch(e) {
           log('[Sync] doTasks error', e);
         }
-      }.bind(this), function (e) {
+      }, function (e) {
         log('[Sync] Sync error', e);
         throw new Error('Local cache unavailable');
       });
@@ -1007,15 +1004,11 @@ Sync._rs_init = function (remoteStorage) {
   syncCycleCb = function () {
     // if (!config.cache) return false
     log('[Sync] syncCycleCb calling syncCycle');
-    if (Env.isBrowser()) {
-      handleVisibility.bind(remoteStorage)();
-    }
+    if (Env.isBrowser()) { handleVisibility(remoteStorage); }
 
     if (!remoteStorage.sync) {
       // Call this now that all other modules are also ready:
-      remoteStorage.sync = new Sync(remoteStorage,
-          remoteStorage.local, remoteStorage.remote, remoteStorage.access,
-          remoteStorage.caching);
+      remoteStorage.sync = new Sync(remoteStorage);
 
       if (remoteStorage.syncStopped) {
         log('[Sync] Instantiating sync stopped');

@@ -5,15 +5,6 @@ if (typeof(define) !== 'function') {
 define(['require', 'test/helpers/mocks'], function(require, mocks) {
   var suites = [];
 
-  function flatten(array){
-    var flat = [];
-    for (var i = 0, l = array.length; i < l; i++){
-      var type = Object.prototype.toString.call(array[i]).split(' ').pop().split(']').shift().toLowerCase();
-      if (type) { flat = flat.concat(/^(array|collection|arguments|object)$/.test(type) ? flatten(array[i]) : array[i]); }
-    }
-    return flat;
-  }
-
   suites.push({
     name: "Sync Suite",
     desc: "testing the sync adapter instance",
@@ -21,7 +12,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
     setup: function(env, test){
       mocks.defineMocks(env);
 
-      global.RemoteStorage = function(){
+      global.RemoteStorage = function() {
         eventHandling(this, 'sync-req-done', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
       };
       global.RemoteStorage.log = function() {};
@@ -41,13 +32,13 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
       test.done();
     },
 
-    beforeEach: function(env, test){
+    beforeEach: function(env, test) {
       env.rs = new RemoteStorage();
-      env.rs.local = new InMemoryStorage(env.rs);
+      env.rs.local = new InMemoryStorage();
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
-      env.rs.sync = new Sync(env.rs, env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
+      env.rs.sync = new Sync(env.rs);
       global.remoteStorage = env.rs;
 
       env.rs.sync.numThreads = 5;
@@ -339,8 +330,8 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
             });
           };
           env.rs.sync.numThreads = 5;
-          env.rs.sync.remote.connected = true;
-          env.rs.sync.remote.online = true;
+          env.rs.sync.rs.remote.connected = true;
+          env.rs.sync.rs.remote.online = true;
           env.rs.sync._tasks = {
             '/foo1/': true,
             '/foo2/': true,
@@ -390,8 +381,8 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
             });
           };
           env.rs.sync.numThreads = 5;
-          env.rs.sync.remote.connected = true;
-          env.rs.sync.remote.online = false;
+          env.rs.sync.rs.remote.connected = true;
+          env.rs.sync.rs.remote.online = false;
           env.rs.sync._tasks = {
             '/foo1/': true,
             '/foo2/': true,
@@ -1057,7 +1048,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
           };
           var otherDone = false;
 
-          env.rs.sync.local._emitChange = function(changeEvent) {
+          env.rs.sync.rs.local._emitChange = function(changeEvent) {
             test.assertAnd(changeEvent, {
               origin: 'remote',
               path: 'foo',
@@ -1091,7 +1082,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
             remote: { body: false, revision: 'null' }
           };
           var otherDone = false;
-          env.rs.sync.local._emitChange = function(obj) {
+          env.rs.sync.rs.local._emitChange = function(obj) {
             test.assertAnd(obj, {
               origin: 'remote',
               path: 'foo',
@@ -1124,7 +1115,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
             common: {},
             remote: { body: false, revision: 'null' }
           };
-          env.rs.sync.local._emitChange = function(obj) {
+          env.rs.sync.rs.local._emitChange = function(obj) {
             test.result(false, 'should not have emitted '+JSON.stringify(obj));
           };
           var result = env.rs.sync.autoMerge(node);
@@ -1138,10 +1129,10 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
       {
         desc: "completePush of a conflict sets revision to the incoming revision, or to 'conflict' if null",
         run: function(env, test) {
-          var getNodes = env.rs.sync.local.getNodes,
-           setNodes = env.rs.sync.local.setNodes;
+          var getNodes = env.rs.sync.rs.local.getNodes,
+              setNodes = env.rs.sync.rs.local.setNodes;
           env.rs.caching._responses['foo'] = 'ALL';
-          env.rs.sync.local.getNodes = function(paths) {
+          env.rs.sync.rs.local.getNodes = function(paths) {
             test.assertAnd(paths, ['foo']);
             return Promise.resolve({
               foo: {
@@ -1152,7 +1143,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
               }
             });
           };
-          env.rs.sync.local.setNodes = function(nodes) {
+          env.rs.sync.rs.local.setNodes = function(nodes) {
             test.assert(nodes, {
               foo: {
                 path: 'foo',
