@@ -70,25 +70,25 @@ function handleVisibility() {
   });
 }
 
-
 /**
  * Class: RemoteStorage.Sync
  *
- * What this class does is basically six things:
- * - retrieving the remote version of relevant documents and folders
+ * This class basically does six things:
+ *
+ * - retrieve the remote version of relevant documents and folders
  * - add all local and remote documents together into one tree
  * - push local documents out if they don't exist remotely
- * - push local changes out to remote documents (conditionally, to
- *      avoid race conditions where both have changed)
- * - adopt the local version of a document to its remote version if
- *      both exist and they differ
+ * - push local changes out to remote documents (conditionally, to avoid race
+ *   conditions where both have changed)
+ * - adopt the local version of a document to its remote version if both exist
+ *   and they differ
  * - delete the local version of a document if it was deleted remotely
- * - if any get requests were waiting for remote data, resolve them once
- *      this data comes in.
+ * - if any GET requests were waiting for remote data, resolve them once this
+ *   data comes in.
  *
- * It does this using requests to documents, and to folders. Whenever a
- * folder GET comes in, it gives information about all the documents it
- * contains (this is the `markChildren` function).
+ * It does this using requests to documents and folders. Whenever a folder GET
+ * comes in, it gives information about all the documents it contains (this is
+ * the `markChildren` function).
  **/
 const Sync = function (remoteStorage, setLocal, setRemote, setAccess, setCaching) {
   this.remoteStorage = remoteStorage;
