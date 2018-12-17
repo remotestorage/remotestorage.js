@@ -4,6 +4,13 @@ All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases)
 at GitHub.
 
+## 1.2.0 (December 2018)
+
+### Enhancements
+
+* Use Fetch API for Webfinger requests (with fallback to XHR) (#1142)
+* Update dependency locking, ensure HTTPS URLs (#1144)
+
 ## 1.1.0 (November 2018)
 
 ### Bugfixes
