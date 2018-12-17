@@ -11,7 +11,7 @@ const equal = util.equal;
 const deepClone = util.deepClone;
 const pathsFromRoot = util.pathsFromRoot;
 
-function taskFor(action, path, promise) {
+function taskFor (action, path, promise) {
   return {
     action:  action,
     path:    path,
@@ -19,20 +19,20 @@ function taskFor(action, path, promise) {
   };
 }
 
-function nodeChanged(node, etag) {
+function nodeChanged (node, etag) {
   return node.common.revision !== etag &&
          (!node.remote || node.remote.revision !== etag);
 }
 
-function isStaleChild(node) {
+function isStaleChild (node) {
   return node.remote && node.remote.revision && !node.remote.itemsMap && !node.remote.body;
 }
 
-function hasCommonRevision(node) {
+function hasCommonRevision (node) {
   return node.common && node.common.revision;
 }
 
-function hasNoRemoteChanges(node) {
+function hasNoRemoteChanges (node) {
   if (node.remote && node.remote.revision &&
       node.remote.revision !== node.common.revision) {
     return false;
@@ -42,7 +42,7 @@ function hasNoRemoteChanges(node) {
      node.remote.contentType === node.common.contentType);
 }
 
-function mergeMutualDeletion(node) {
+function mergeMutualDeletion (node) {
   if (node.remote && node.remote.body === false &&
       node.local && node.local.body === false) {
     delete node.local;
@@ -50,24 +50,16 @@ function mergeMutualDeletion(node) {
   return node;
 }
 
-function handleVisibility() {
-  let rs = this;
-
-  function handleVisibilityChange(fg) {
+function handleVisibility (rs) {
+  function handleChange(isForeground) {
     var oldValue, newValue;
     oldValue = rs.getCurrentSyncInterval();
-    config.isBackground = !fg;
+    config.isBackground = !isForeground;
     newValue = rs.getCurrentSyncInterval();
     rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
   }
-
-  Env.on("background", function () {
-    handleVisibilityChange(false);
-  });
-
-  Env.on("foreground", function () {
-    handleVisibilityChange(true);
-  });
+  Env.on('background', () => handleChange(false));
+  Env.on('foreground', () => handleChange(true));
 }
 
 /**
