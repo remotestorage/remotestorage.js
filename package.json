@@ -14,6 +14,7 @@
   "scripts": {
     "test": "bash scripts/test-all.sh && npm run lint",
     "lint": "eslint --quiet src/",
+    "format": "esformatter --config esformatter-config.json -i src/sync.js",
     "build": "NODE_ENV=production webpack --mode=production",
     "dev": "webpack -w --mode=development",
     "postshrinkwrap": "if [ \"`uname`\" = \"Darwin\" ]; then sed -i '' -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; else sed -i -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; fi",

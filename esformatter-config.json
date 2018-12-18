@@ -1,0 +1,18 @@
+{
+  "lineBreak": {
+    "before": {
+      "FunctionDeclaration": ">=2",
+      "FunctionDeclarationOpeningBrace": 0,
+      "FunctionDeclarationClosingBrace": 1,
+      "MethodDefinition": ">=2",
+      "ClassDeclaration": ">=2",
+      "ExportNamedDeclaration": 2
+    },
+    "after": {
+      "FunctionDeclaration": ">=2",
+      "FunctionDeclarationOpeningBrace": 1,
+      "MethodDefinitionClosingBrace": ">=2",
+      "ClassClosingBrace": ">=2"
+    }
+  }
+}
