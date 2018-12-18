@@ -5,6 +5,8 @@ const log = require('./log');
 const Authorize = require('./authorize');
 const config = require('./config');
 
+let syncCycleCb, syncOnConnect;
+
 function taskFor (action, path, promise) {
   return {
     action:  action,
@@ -76,33 +78,34 @@ function handleVisibility (rs) {
  * comes in, it gives information about all the documents it contains (this is
  * the `markChildren` function).
  **/
-const Sync = function (remoteStorage) {
-  this.rs = remoteStorage;
+class Sync {
+  constructor (remoteStorage) {
+    this.rs = remoteStorage;
 
-  this._tasks       = {};
-  this._running     = {};
-  this._timeStarted = {};
+    this._tasks       = {};
+    this._running     = {};
+    this._timeStarted = {};
 
-  this.rs.local.onDiff(path => {
-    this.addTask(path);
-    this.doTasks();
-  });
+    this.numThreads = 10;
 
-  this.rs.caching.onActivate(path => {
-    this.addTask(path);
-    this.doTasks();
-  });
+    this.rs.local.onDiff(path => {
+      this.addTask(path);
+      this.doTasks();
+    });
 
-  eventHandling(this, 'done', 'req-done');
-};
+    this.rs.caching.onActivate(path => {
+      this.addTask(path);
+      this.doTasks();
+    });
 
-Sync.prototype = {
+    eventHandling(this, 'done', 'req-done');
+  }
 
-  now: function () {
+  now () {
     return new Date().getTime();
-  },
+  }
 
-  queueGetRequest: function (path) {
+  queueGetRequest (path) {
     return new Promise((resolve, reject) => {
       if (!this.rs.remote.connected) {
         reject('cannot fulfill maxAge requirement - remote is not connected');
@@ -118,9 +121,10 @@ Sync.prototype = {
         this.doTasks();
       }
     });
-  },
+  }
 
-  corruptServerItemsMap: function (itemsMap, force02) {
+  // FIXME force02 sounds like rs spec 02, thus could be removed
+  corruptServerItemsMap (itemsMap, force02) {
     if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
       return true;
     }
@@ -154,9 +158,9 @@ Sync.prototype = {
     }
 
     return false;
-  },
+  }
 
-  corruptItemsMap: function (itemsMap) {
+  corruptItemsMap (itemsMap) {
     if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
       return true;
     }
@@ -168,9 +172,9 @@ Sync.prototype = {
     }
 
     return false;
-  },
+  }
 
-  corruptRevision: function (rev) {
+  corruptRevision (rev) {
     return ((typeof(rev) !== 'object') ||
             (Array.isArray(rev)) ||
             (rev.revision && typeof(rev.revision) !== 'string') ||
@@ -179,9 +183,9 @@ Sync.prototype = {
             (rev.contentLength && typeof(rev.contentLength) !== 'number') ||
             (rev.timestamp && typeof(rev.timestamp) !== 'number') ||
             (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
-  },
+  }
 
-  isCorrupt: function (node) {
+  isCorrupt (node) {
     return ((typeof(node) !== 'object') ||
             (Array.isArray(node)) ||
             (typeof(node.path) !== 'string') ||
@@ -189,13 +193,13 @@ Sync.prototype = {
             (node.local && this.corruptRevision(node.local)) ||
             (node.remote && this.corruptRevision(node.remote)) ||
             (node.push && this.corruptRevision(node.push)));
-  },
+  }
 
-  hasTasks: function () {
+  hasTasks () {
     return Object.getOwnPropertyNames(this._tasks).length > 0;
-  },
+  }
 
-  collectDiffTasks: function () {
+  collectDiffTasks () {
     var num = 0;
 
     return this.rs.local.forAllNodes(node => {
@@ -220,14 +224,14 @@ Sync.prototype = {
     }, function (err) {
       throw err;
     });
-  },
+  }
 
-  inConflict: function (node) {
+  inConflict (node) {
     return (node.local && node.remote &&
             (node.remote.body !== undefined || node.remote.itemsMap));
-  },
+  }
 
-  needsRefresh: function (node) {
+  needsRefresh (node) {
     if (node.common) {
       if (!node.common.timestamp) {
         return true;
@@ -235,9 +239,9 @@ Sync.prototype = {
       return (this.now() - node.common.timestamp > config.syncInterval);
     }
     return false;
-  },
+  }
 
-  needsFetch: function (node) {
+  needsFetch (node) {
     if (this.inConflict(node)) {
       return true;
     }
@@ -252,26 +256,26 @@ Sync.prototype = {
       return true;
     }
     return false;
-  },
+  }
 
-  needsPush: function (node) {
+  needsPush (node) {
     if (this.inConflict(node)) {
       return false;
     }
     if (node.local && !node.push) {
       return true;
     }
-  },
+  }
 
-  needsRemotePut: function (node) {
+  needsRemotePut (node) {
     return node.local && node.local.body;
-  },
+  }
 
-  needsRemoteDelete: function (node) {
+  needsRemoteDelete (node) {
     return node.local && node.local.body === false;
-  },
+  }
 
-  getParentPath: function (path) {
+  getParentPath (path) {
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
 
     if (parts) {
@@ -279,9 +283,9 @@ Sync.prototype = {
     } else {
       throw new Error('Not a valid path: "'+path+'"');
     }
-  },
+  }
 
-  deleteChildPathsFromTasks: function () {
+  deleteChildPathsFromTasks () {
     for (var path in this._tasks) {
       var paths = pathsFromRoot(path);
 
@@ -298,9 +302,9 @@ Sync.prototype = {
         }
       }
     }
-  },
+  }
 
-  collectRefreshTasks: function () {
+  collectRefreshTasks () {
     return this.rs.local.forAllNodes(node => {
       var parentPath;
       if (this.needsRefresh(node)) {
@@ -317,9 +321,9 @@ Sync.prototype = {
       }
     }).then(() => { this.deleteChildPathsFromTasks(); },
             err => { throw err; });
-  },
+  }
 
-  flush: function (nodes) {
+  flush (nodes) {
     for (var path in nodes) {
       // Strategy is 'FLUSH' and no local changes exist
       if (this.rs.caching.checkPath(path) === 'FLUSH' &&
@@ -329,9 +333,9 @@ Sync.prototype = {
       }
     }
     return nodes;
-  },
+  }
 
-  doTask: function (path) {
+  doTask (path) {
     return this.rs.local.getNodes([path]).then(nodes => {
       var node = nodes[path];
       // First fetch:
@@ -385,9 +389,9 @@ Sync.prototype = {
         return taskFor('get', path, this.rs.remote.get(path));
       }
     });
-  },
+  }
 
-  autoMergeFolder: function (node) {
+  autoMergeFolder (node) {
     if (node.remote.itemsMap) {
       node.common = node.remote;
       delete node.remote;
@@ -409,9 +413,9 @@ Sync.prototype = {
       }
     }
     return node;
-  },
+  }
 
-  autoMergeDocument: function (node) {
+  autoMergeDocument (node) {
     if (hasNoRemoteChanges(node)) {
       node = mergeMutualDeletion(node);
       delete node.remote;
@@ -439,9 +443,9 @@ Sync.prototype = {
       delete node.local;
     }
     return node;
-  },
+  }
 
-  autoMerge: function (node) {
+  autoMerge (node) {
     if (node.remote) {
       if (node.local) {
         if (isFolder(node.path)) {
@@ -493,9 +497,9 @@ Sync.prototype = {
       return undefined;
     }
     return node;
-  },
+  }
 
-  updateCommonTimestamp: function (path, revision) {
+  updateCommonTimestamp (path, revision) {
     return this.rs.local.getNodes([path]).then(nodes => {
       if (nodes[path] &&
           nodes[path].common &&
@@ -504,9 +508,9 @@ Sync.prototype = {
       }
       return this.rs.local.setNodes(this.flush(nodes));
     });
-  },
+  }
 
-  markChildren: function (path, itemsMap, changedNodes, missingChildren) {
+  markChildren (path, itemsMap, changedNodes, missingChildren) {
     var paths = [];
     var meta = {};
     var recurse = {};
@@ -598,9 +602,9 @@ Sync.prototype = {
           return this.rs.local.setNodes(this.flush(changedObjs2));
         });
     });
-  },
+  }
 
-  deleteRemoteTrees: function (paths, changedNodes) {
+  deleteRemoteTrees (paths, changedNodes) {
     if (paths.length === 0) {
       return Promise.resolve(changedNodes);
     }
@@ -645,9 +649,9 @@ Sync.prototype = {
           return this.rs.local.setNodes(this.flush(changedNodes2));
         });
     });
-  },
+  }
 
-  completeFetch: function (path, bodyOrItemsMap, contentType, revision) {
+  completeFetch (path, bodyOrItemsMap, contentType, revision) {
     var paths;
     var parentPath;
     var pathsFromRootArr = pathsFromRoot(path);
@@ -715,9 +719,9 @@ Sync.prototype = {
         missingChildren: missingChildren
       };
     });
-  },
+  }
 
-  completePush: function (path, action, conflict, revision) {
+  completePush (path, action, conflict, revision) {
     return this.rs.local.getNodes([path]).then(nodes => {
       var node = nodes[path];
 
@@ -765,40 +769,51 @@ Sync.prototype = {
 
       return this.rs.local.setNodes(this.flush(nodes));
     });
-  },
+  }
 
-  dealWithFailure: function (path/*, action, statusMeaning*/) {
+  dealWithFailure (path) {
     return this.rs.local.getNodes([path]).then(nodes => {
       if (nodes[path]) {
         delete nodes[path].push;
         return this.rs.local.setNodes(this.flush(nodes));
       }
     });
-  },
+  }
 
-  interpretStatus: function (statusCode) {
+  interpretStatus (statusCode) {
+    const status = {
+      statusCode:      statusCode,
+      successful:      undefined,
+      conflict:        undefined,
+      unAuth:          undefined,
+      notFound:        undefined,
+      changed:         undefined,
+      networkProblems: undefined
+    };
+
     if (statusCode === 'offline' || statusCode === 'timeout') {
-      return {
-        successful:      false,
-        networkProblems: true,
-        statusCode: statusCode
-      };
+      status.successful = false;
+      status.networkProblems = true;
+      return status;
     }
 
     let series = Math.floor(statusCode / 100);
 
-    return {
-      successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
-      conflict:   (statusCode === 412),
-      unAuth:     ((statusCode === 401 && this.rs.remote.token !== Authorize.IMPLIED_FAKE_TOKEN) ||
-                   statusCode === 402 || statusCode === 403),
-      notFound:   (statusCode === 404),
-      changed:    (statusCode !== 304),
-      statusCode: statusCode
-    };
-  },
+    status.successful = (series === 2 ||
+                         statusCode === 304 ||
+                         statusCode === 412 ||
+                         statusCode === 404),
+    status.conflict   = (statusCode === 412);
+    status.unAuth     = ((statusCode === 401 && this.rs.remote.token !== Authorize.IMPLIED_FAKE_TOKEN) ||
+                         statusCode === 402 ||
+                         statusCode === 403);
+    status.notFound   = (statusCode === 404);
+    status.changed    = (statusCode !== 304);
 
-  handleGetResponse: function (path, status, bodyOrItemsMap, contentType, revision) {
+    return status;
+  }
+
+  handleGetResponse (path, status, bodyOrItemsMap, contentType, revision) {
     if (status.notFound) {
       if (isFolder(path)) {
         bodyOrItemsMap = {};
@@ -827,9 +842,9 @@ Sync.prototype = {
       return this.updateCommonTimestamp(path, revision)
         .then(() => { return true; });
     }
-  },
+  }
 
-  handleResponse: function (path, action, r) {
+  handleResponse (path, action, r) {
     var status = this.interpretStatus(r.statusCode);
 
     if (status.successful) {
@@ -840,7 +855,7 @@ Sync.prototype = {
           return true;
         });
       } else {
-        throw new Error('cannot handle response for unknown action', action);
+        throw new Error(`cannot handle response for unknown action ${action}`);
       }
     } else {
     // Unsuccessful
@@ -853,16 +868,14 @@ Sync.prototype = {
         error = new Error('HTTP response code ' + status.statusCode + ' received.');
       }
 
-      return this.dealWithFailure(path, action, status).then(() => {
+      return this.dealWithFailure(path).then(() => {
         this.rs._emit('error', error);
         throw error;
       });
     }
-  },
+  }
 
-  numThreads: 10,
-
-  finishTask: function (task) {
+  finishTask (task) {
     if (task.action === undefined) {
       delete this._running[task.path];
       return;
@@ -915,9 +928,9 @@ Sync.prototype = {
           this.rs._emit('sync-done');
         }
       });
-  },
+  }
 
-  doTasks: function () {
+  doTasks () {
     let numToHave, numAdded = 0, numToAdd, path;
     if (this.rs.remote.connected) {
       if (this.rs.remote.online) {
@@ -944,9 +957,9 @@ Sync.prototype = {
       }
     }
     return (numAdded >= numToAdd);
-  },
+  }
 
-  collectTasks: function (alsoCheckRefresh) {
+  collectTasks (alsoCheckRefresh) {
     if (this.hasTasks() || this.stopped) {
       return Promise.resolve();
     }
@@ -958,21 +971,21 @@ Sync.prototype = {
         return this.collectRefreshTasks();
       }
     }, function (err) { throw err; });
-  },
+  }
 
-  addTask: function (path, cb) {
+  addTask (path, cb) {
     if (!this._tasks[path]) {
       this._tasks[path] = [];
     }
     if (typeof(cb) === 'function') {
       this._tasks[path].push(cb);
     }
-  },
+  }
 
   /**
    * Method: sync
    **/
-  sync: function () {
+  sync () {
     this.done = false;
 
     if (!this.doTasks()) {
@@ -989,63 +1002,63 @@ Sync.prototype = {
     } else {
       return Promise.resolve();
     }
-  },
-};
-
-var syncCycleCb, syncOnConnect;
-Sync._rs_init = function (remoteStorage) {
-
-  syncCycleCb = function () {
-    // if (!config.cache) return false
-    log('[Sync] syncCycleCb calling syncCycle');
-    if (Env.isBrowser()) { handleVisibility(remoteStorage); }
-
-    if (!remoteStorage.sync) {
-      // Call this now that all other modules are also ready:
-      remoteStorage.sync = new Sync(remoteStorage);
-
-      if (remoteStorage.syncStopped) {
-        log('[Sync] Instantiating sync stopped');
-        remoteStorage.sync.stopped = true;
-        delete remoteStorage.syncStopped;
-      }
-    }
-
-    log('[Sync] syncCycleCb calling syncCycle');
-    remoteStorage.syncCycle();
-  };
-
-  syncOnConnect = function() {
-    remoteStorage.removeEventListener('connected', syncOnConnect);
-    remoteStorage.startSync();
-  };
-
-  remoteStorage.on('ready', syncCycleCb);
-  remoteStorage.on('connected', syncOnConnect);
-};
-
-Sync._rs_cleanup = function (remoteStorage) {
-  remoteStorage.stopSync();
-  remoteStorage.removeEventListener('ready', syncCycleCb);
-  remoteStorage.removeEventListener('connected', syncOnConnect);
-
-  remoteStorage.sync = undefined;
-  delete remoteStorage.sync;
-};
-
-Sync.SyncError = function(originalError) {
-  this.name = 'SyncError';
-  var msg = 'Sync failed: ';
-  if (typeof(originalError) === 'object' && 'message' in originalError) {
-    msg += originalError.message;
-    this.stack = originalError.stack;
-    this.originalError = originalError;
-  } else {
-    msg += originalError;
   }
-  this.message = msg;
+
+  static _rs_init (remoteStorage) {
+    syncCycleCb = function () {
+      // if (!config.cache) return false
+      log('[Sync] syncCycleCb calling syncCycle');
+      if (Env.isBrowser()) { handleVisibility(remoteStorage); }
+
+      if (!remoteStorage.sync) {
+        // Call this now that all other modules are also ready:
+        remoteStorage.sync = new Sync(remoteStorage);
+
+        if (remoteStorage.syncStopped) {
+          log('[Sync] Instantiating sync stopped');
+          remoteStorage.sync.stopped = true;
+          delete remoteStorage.syncStopped;
+        }
+      }
+
+      log('[Sync] syncCycleCb calling syncCycle');
+      remoteStorage.syncCycle();
+    };
+
+    syncOnConnect = function() {
+      remoteStorage.removeEventListener('connected', syncOnConnect);
+      remoteStorage.startSync();
+    };
+
+    remoteStorage.on('ready', syncCycleCb);
+    remoteStorage.on('connected', syncOnConnect);
+  }
+
+  static _rs_cleanup (remoteStorage) {
+    remoteStorage.stopSync();
+    remoteStorage.removeEventListener('ready', syncCycleCb);
+    remoteStorage.removeEventListener('connected', syncOnConnect);
+
+    remoteStorage.sync = undefined;
+    delete remoteStorage.sync;
+  }
+
+}
+
+Sync.SyncError = class extends Error {
+  constructor (originalError) {
+    super();
+    this.name = 'SyncError';
+    let msg = 'Sync failed: ';
+    if (typeof(originalError) === 'object' && 'message' in originalError) {
+      msg += originalError.message;
+      this.stack = originalError.stack;
+      this.originalError = originalError;
+    } else {
+      msg += originalError;
+    }
+    this.message = msg;
+  }
 };
-Sync.SyncError.prototype = Object.create(Error.prototype);
-Sync.SyncError.prototype.constructor = Sync.SyncError;
 
 module.exports = Sync;
