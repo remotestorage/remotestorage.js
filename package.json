@@ -30,8 +30,8 @@
     "@babel/preset-env": "^7.1.6",
     "babel-loader": "^8.0.4",
     "eslint": "^5.9.0",
-    "jaribu": "^2.2.1",
-    "webpack": "^4.25.1",
+    "jaribu": "^2.2.2",
+    "webpack": "^4.27.1",
     "webpack-cli": "^3.1.2"
   },
   "dependencies": {
