@@ -9,7 +9,11 @@ at GitHub.
 ### Enhancements
 
 * Use Fetch API for Webfinger requests (with fallback to XHR) (#1142)
+
+### Security
+
 * Update dependency locking, ensure HTTPS URLs (#1144)
+* Update dependencies (#1044, #1048)
 
 ## 1.1.0 (November 2018)
 
