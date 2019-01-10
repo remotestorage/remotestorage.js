@@ -34,38 +34,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
     }
 
     function beforeEach(env, test) {
-      global.XMLHttpRequest = function () {
-        XMLHttpRequest.instances.push(this);
-        this._headers = {};
-        this._responseHeaders = {};
-      };
-      XMLHttpRequest.instances = [];
-      XMLHttpRequest.callbacks = [];
-      XMLHttpRequest.prototype = {
-        open: function () {
-          this._open = Array.prototype.slice.call(arguments);
-        },
-        send: function () {
-          this._send = Array.prototype.slice.call(arguments);
-
-          if (XMLHttpRequest.callbacks.length)
-            XMLHttpRequest.callbacks.shift()(this);
-        },
-        setRequestHeader: function (key, value) {
-          this._headers[key] = value;
-        },
-        getResponseHeader: function (key) {
-          return this._responseHeaders[key];
-        }
-      };
-      ['load', 'abort', 'error'].forEach(function (cb) {
-        Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
-          configurable: true,
-          set: function (f) {
-            this['_on' + cb] = f;
-          }
-        });
-      });
+   
       env.rs = new RemoteStorage();
       env.rs.apiKeys = { dropbox: {appKey: 'testkey'} };
 
@@ -96,18 +65,24 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
       test.done();
     }
 
+    function beforeEachXHR(env, test) {
+      beforeEach(env, test);
+      mocks.defineXMLHttpRequestMock(env);
+    }
+  
+    function beforeEachFetch(env, test) {
+      beforeEach(env, test);
+      mocks.defineFetchMock(env);
+    }    
+
     function afterEach(env, test) {
-      delete global.XMLHttpRequest;
-      delete global.Blob;
-      delete global.FileReader;
+      mocks.undefineMocks(env);
       delete env.client;
-      delete env.blob;
-      delete env.fileReaderResult;
       test.done();
     }
 
     suites.push({
-      name: "DropboxClient",
+      name: "Dropbox",
       desc: "backend behavior",
       setup: setup,
       beforeEach: beforeEach,
@@ -115,13 +90,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
       tests: backend.behavior
     });
 
-    suites.push({
-      name: "DropboxClient",
-      desc: "Low-level Dropbox client based on XMLHttpRequest",
-      setup: setup,
-      beforeEach: beforeEach,
-      afterEach: afterEach,
-      tests: [
+    var tests = [
         {
           desc: "#get fails if not connected",
           willFail: true,
@@ -155,8 +124,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               test.done();
             });
             setTimeout(function() {
-              var req = XMLHttpRequest.instances.shift();
-              req._onerror('something went wrong at the XHR level');
+              mockRequestFail('something went wrong at the HTTP request level');
             }, 10);
           }
         },
@@ -171,8 +139,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               test.done();
             });
             setTimeout(function() {
-              var req = XMLHttpRequest.instances.shift();
-              req._onerror('something went wrong at the XHR level');
+              mockRequestFail('something went wrong at the HTTP request level');
             }, 10);
           }
         },
@@ -186,14 +153,14 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               test.done();
             });
             setTimeout(function() {
-              var req = XMLHttpRequest.instances.shift();
-              req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-              req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
-                rev: 'rev'
+              mockRequestSuccess({
+                responseHeaders: {
+                  'Content-Type': 'text/plain; charset=UTF-8',
+                  'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
+                },
+                status: 200,
+                responseText: '{"foo":"response-body"}'
               });
-              req.status = 200;
-              req.responseText = '{"foo":"response-body"}';
-              req._onload();
             }, 10);
           }
         },
@@ -207,14 +174,14 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               test.done();
             });
             setTimeout(function() {
-              var req = XMLHttpRequest.instances.shift();
-              req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-              req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
-                rev: 'rev'
-              });
-              req.status = 200;
-              req.responseText = '{"foo":"response-body"}';
-              req._onload();
+              mockRequestSuccess({
+                responseHeaders: {
+                  'Content-Type': 'text/plain; charset=UTF-8',
+                  'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
+                },
+                status: 200,
+                responseText: '{"foo":"response-body"}'
+              });              
             }, 10);
           }
         },
@@ -228,14 +195,14 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               test.done();
             });
             setTimeout(function() {
-              var req = XMLHttpRequest.instances.shift();
-              req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-              req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
-                rev: 'rev'
-              });
-              req.status = 200;
-              req.responseText = '{"foo":"response-body"}';
-              req._onload();
+              mockRequestSuccess({
+                responseHeaders: {
+                  'Content-Type': 'text/plain; charset=UTF-8',
+                  'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
+                },
+                status: 200,
+                responseText: '{"foo":"response-body"}'
+              });              
             }, 10);
           }
         },
@@ -250,8 +217,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               test.done();
             });
             setTimeout(function() {
-              var req = XMLHttpRequest.instances.shift();
-              req._onerror('something went wrong at the XHR level');
+              mockRequestFail('something went wrong at the HTTP request level');
             }, 10);
           }
         },
@@ -278,12 +244,12 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
             });
 
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 200;
-              req.responseText = JSON.stringify({
-                "email": "john.doe@example.com"
-              });
-              req._onload();
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  "email": "john.doe@example.com"
+                })
+              });              
             }, 10);
           }
         },
@@ -310,8 +276,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
             });
 
             setTimeout(function() {
-              var req = XMLHttpRequest.instances.shift();
-              req._onerror('something went wrong at the XHR level');
+              mockRequestFail('something went wrong at the HTTP request level');
             }, 10);
           }
         },
@@ -360,9 +325,9 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
             });
 
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 200;
-              req.responseText = JSON.stringify({
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
                 "referral_link": "https://db.tt/QjJhCJr1",
                 "display_name": "John Doe",
                 "uid": 123456,
@@ -383,8 +348,8 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                   "given_name": "John"
                 },
                 "email": "john.doe@example.com"
-              });
-              req._onload();
+              })
+            });
             }, 10);
           }
         },
@@ -393,19 +358,9 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
           desc: "#get opens a CORS request",
           run: function (env, test) {
             env.connectedClient.get('/foo/bar');
-            var req = XMLHttpRequest.instances.shift();
-            test.assertTypeAnd(req, 'object');
-            test.assert(req._open,
-                        ['GET', 'https://content.dropboxapi.com/2/files/download', true]);
-          }
-        },
-
-        {
-          desc: "#get sends the request",
-          run: function (env, test) {
-            env.connectedClient.get('/foo/bar');
-            var req = XMLHttpRequest.instances.shift();
-            test.assertType(req._send, 'object');
+            test.assertAnd(getMockRequestMethod(), 'GET');
+            test.assertAnd(getMockRequestUrl(), 'https://content.dropboxapi.com/2/files/download');
+            test.done();
           }
         },
 
@@ -413,8 +368,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
           desc: "#get sets the 'Authorization' header correctly",
           run: function (env, test) {
             env.connectedClient.get('/foo/bar');
-            var request = XMLHttpRequest.instances.shift();
-            test.assert(request._headers['Authorization'], 'Bearer ' + env.token);
+            test.assert(getMockRequestHeader('Authorization'), 'Bearer ' + env.token);
           }
         },
 
@@ -428,17 +382,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         },
 
         {
-          desc: "#get installs onload and onerror handlers on the request",
-          run: function (env, test) {
-            env.connectedClient.get('/foo/bar/');
-            var req = XMLHttpRequest.instances.shift();
-            test.assertTypeAnd(req._onload, 'function');
-            test.assertTypeAnd(req._onerror, 'function');
-            test.done();
-          }
-        },
-
-        {
           desc: "#get rejects the promise, if onerror is called",
           run: function (env, test) {
             env.connectedClient.get('/foo/bar/').
@@ -447,7 +390,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               }, function (error) {
                 test.assert('my-error', error);
               });
-            XMLHttpRequest.instances.shift()._onerror('my-error');
+            mockRequestFail('my-error');            
           }
         },
 
@@ -455,11 +398,11 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
           desc: "#get behaves when calling /",
           run: function (env, test) {
             env.connectedClient.get('/').then(test.done, test.fail);
-            var req = XMLHttpRequest.instances.shift();
-            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req.status = 200;
-            req.responseText = '{"entries":[]}';
-            req._onload();
+            mockRequestSuccess({
+              responseHeaders: {'Content-Type': 'text/plain; charset=UTF-8'},
+              status: 200,
+              responseText: '{"entries":[]}'
+            });
           }
         },
 
@@ -472,14 +415,16 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assertAnd(r.body, 'response-body');
                 test.assert(r.contentType, 'text/plain; charset=UTF-8');
               });
-            var req = XMLHttpRequest.instances.shift();
-            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
-              rev: 'rev'
-            });
-            req.status = 200;
-            req.responseText = 'response-body';
-            req._onload();
+            setTimeout(function() {
+              mockRequestSuccess({
+                responseHeaders: {
+                  'Content-Type': 'text/plain; charset=UTF-8',
+                  'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
+                },
+                status: 200,
+                responseText: 'response-body'
+              });              
+            }, 10);            
           }
         },
 
@@ -492,14 +437,16 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assertAnd(r.body, { response: 'body' });
                 test.assert(r.contentType, 'application/json; charset=UTF-8');
               });
-            var req = XMLHttpRequest.instances.shift();
-            req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
-            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
-              rev: 'rev'
-            });
-            req.status = 200;
-            req.responseText = '{"response":"body"}';
-            req._onload();
+            setTimeout(function() {
+              mockRequestSuccess({
+                responseHeaders: {
+                  'Content-Type': 'application/json; charset=UTF-8',
+                  'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
+                },
+                status: 200,
+                responseText: '{"response":"body"}'
+              });              
+            }, 10);
           }
         },
 
@@ -521,9 +468,9 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               then(function (r) {
                 test.assert(r.statusCode, 401);
               });
-            var req = XMLHttpRequest.instances.shift();
-            req.status = 401;
-            req._onload();
+            mockRequestSuccess({
+              status: 401,
+            });
           }
         },
 
@@ -534,12 +481,12 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               then(function (r) {
                 test.assert(r.statusCode, 404);
               });
-            var req = XMLHttpRequest.instances.shift();
-            req.status = 409;
-            req.responseText = JSON.stringify({
-              error_summary: 'path/not_found/...'
+            mockRequestSuccess({
+              status: 409,
+              responseText: JSON.stringify({
+                error_summary: 'path/not_found/...'
+              })
             });
-            req._onload();
           }
         },
 
@@ -556,26 +503,23 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               });
             }
 
-            XMLHttpRequest.callbacks.push(function (req) {
-              req.status = 200;
-              req.responseText = makePayload(1, true);
-              req._onload();
+            addMockRequestCallback(function(req) {
+              mockRequestSuccess({
+                status: 200,
+                responseText: makePayload(1, true)
+              });
             });
-
-            XMLHttpRequest.callbacks.push(function (req) {
-              req.status = 200;
-              req.responseText = makePayload(2, true);
-              req._onload();
-
-              test.assertAnd(JSON.parse(req._send).cursor, 'cur1');
+            addMockRequestCallback(function(req) {
+              mockRequestSuccess({
+                status: 200,
+                responseText: makePayload(2, true)
+              });
             });
-
-            XMLHttpRequest.callbacks.push(function (req) {
-              req.status = 200;
-              req.responseText = makePayload(3, false);
-              req._onload();
-
-              test.assertAnd(JSON.parse(req._send).cursor, 'cur2');
+            addMockRequestCallback(function(req) {
+              mockRequestSuccess({
+                status: 200,
+                responseText: makePayload(3, false)
+              });              
             });
 
             env.connectedClient.get('/foo/').
@@ -584,6 +528,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assertAnd((r.body.file2 || {}).ETag, 'rev2');
                 test.assert((r.body.file3 || {}).ETag, 'rev3');
               });
+
           }
         },
 
@@ -595,13 +540,12 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assertAnd(r.statusCode, 200);
                 test.assert(Object.keys(r.body).length, 0);
               });
-
-            var req = XMLHttpRequest.instances.shift();
-            req.status = 409;
-            req.responseText = JSON.stringify({
-              error_summary: 'path/not_found/..'
+            mockRequestSuccess({
+              status: 409,
+              responseText: JSON.stringify({
+                error_summary: 'path/not_found/..'
+              })
             });
-            req._onload();
           }
         },
 
@@ -613,13 +557,12 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assertAnd(r.statusCode, 200);
                 test.assert(Object.keys(r.body).length, 0);
               });
-
-            var req = XMLHttpRequest.instances.shift();
-            req.status = 409;
-            req.responseText = JSON.stringify({
-              error_summary: 'path/not_found/..'
+            mockRequestSuccess({
+              status: 409,
+              responseText: JSON.stringify({
+                error_summary: 'path/not_found/..'
+              })
             });
-            req._onload();
           }
         },
 
@@ -630,28 +573,27 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               env.connectedClient.get('/', { ifNoneMatch: r.revision }).then(function (r) {
                 test.assertFail(r.statusCode, 304);
               });
-              var req = XMLHttpRequest.instances.shift();
-              test.assertFail(req, undefined);
-              req.status = 200;
-              req.responseText = JSON.stringify({
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  entries: [{
+                    '.tag': 'file',
+                    path_lower: 'foo',
+                    rev: '2'
+                  }]
+                })
+              });
+            });
+            mockRequestSuccess({
+              status: 200,
+              responseText: JSON.stringify({
                 entries: [{
                   '.tag': 'file',
                   path_lower: 'foo',
-                  rev: '2'
+                  rev: '1'
                 }]
-              });
-              req._onload();
-            });
-            var req = XMLHttpRequest.instances.shift();
-            req.status = 200;
-            req.responseText = JSON.stringify({
-              entries: [{
-                '.tag': 'file',
-                path_lower: 'foo',
-                rev: '1'
-              }]
-            });
-            req._onload();
+              })
+            });            
           }
         },
 
@@ -666,13 +608,13 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assert(env.connectedClient._revCache.get('/foo/bar'), 'bar');
               });
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 200;
-              req.responseText = JSON.stringify({
-                path: '/remotestorage/foo/bar',
-                rev: 'bar'
-              });
-              req._onload();
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  path: '/remotestorage/foo/bar',
+                  rev: 'bar'
+                })
+              });            
             }, 100);
           }
         },
@@ -694,12 +636,12 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assert(r.revision, 'bar');
               });
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 200;
-              req.responseText = JSON.stringify({
-                rev: 'bar'
-              });
-              req._onload();
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  rev: 'bar'
+                })
+              });              
             }, 100);
           }
         },
@@ -720,13 +662,13 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assert(r.revision, 'foo');
               });
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 200;
-              req.responseText = JSON.stringify({
-                hash: 'hash123',
-                rev: 'foo'
-              });
-              req._onload();
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  hash: 'hash123',
+                  rev: 'foo'
+                })
+              });              
             }, 100);
           }
         },
@@ -739,12 +681,12 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assert(r.statusCode, 200);
               });
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 200;
-              req.responseText = JSON.stringify({
-                path: '/remotestorage/foo/bar'
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  path: '/remotestorage/foo/bar'
+                })
               });
-              req._onload();
             }, 100);
           }
         },
@@ -757,13 +699,13 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assert(r.revision, 'some-revision');
               });
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 200;
-              req.responseText = JSON.stringify({
-                path: '/remotestorage/foo/bar',
-                rev: 'some-revision'
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  path: '/remotestorage/foo/bar',
+                  rev: 'some-revision'
+                })
               });
-              req._onload();
             }, 100);
           }
         },
@@ -776,9 +718,9 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assert(r.statusCode, 401);
               });
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 401;
-              req._onload();
+              mockRequestSuccess({
+                status: 401,
+              });              
             }, 100);
           }
         },
@@ -800,13 +742,13 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assert(r.revision, 'bar');
               });
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 200;
-              req.responseText = JSON.stringify({
-                hash: 'hash123',
-                rev: 'bar'
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  hash: 'hash123',
+                  rev: 'bar'
+                })
               });
-              req._onload();
             }, 100);
           }
         },
@@ -820,14 +762,16 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assertAnd(r.statusCode, 200);
                 test.assert(env.connectedClient._revCache.get('/foo/bar'), 'rev');
               });
+              test.assertAnd(getMockRequestMethod(), 'POST');
+              test.assertAnd(getMockRequestUrl(), 'https://api.dropboxapi.com/2/files/delete');
+              test.assertAnd(JSON.parse(getMockRequestBody()).path, '/remotestorage/foo/bar');
+    
 
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 200;
-              req.responseText = '{}';
-              test.assertAnd(req._open, ['POST', 'https://api.dropboxapi.com/2/files/delete', true]);
-              test.assertAnd(JSON.parse(req._send).path, '/remotestorage/foo/bar');
-              req._onload();
+              mockRequestSuccess({
+                status: 200,
+                responseText: '{}'
+              });
             }, 100);
           }
         },
@@ -840,9 +784,9 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assert(r.statusCode, 401);
               });
             setTimeout(function () {
-              var req = XMLHttpRequest.instances.shift();
-              req.status = 401;
-              req._onload();
+              mockRequestSuccess({
+                status: 401,
+              });
             }, 100);
           }
         },
@@ -880,14 +824,14 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assertAnd(r.body, env.fileReaderResult);
                 test.assert(r.contentType, 'application/octet-stream; charset=binary');
               });
-            var req = XMLHttpRequest.instances.shift();
-            req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
-            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
-              rev: 'rev'
-            });
-            req.status = 200;
-            req.response = 'response-body';
-            req._onload();
+              mockRequestSuccess({
+                responseHeaders: {
+                  'Content-Type': 'application/octet-stream; charset=binary',
+                  'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
+                },
+                status: 200,
+                responseText: 'response-body'
+              });
           }
         },
 
@@ -897,16 +841,16 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
             env.connectedClient.get('/foo/bar').
               then(function (r) {
                 test.assertAnd(r.statusCode, 200);
-                test.assertAnd(r.body, env.fileReaderResult);
+                test.assertAnd(r.body, 'response-body');
                 test.done();
               });
-            var req = XMLHttpRequest.instances.shift();
-            req._responseHeaders['Dropbox-API-Result'] = JSON.stringify({
-              rev: 'rev'
+            mockRequestSuccess({
+              responseHeaders: {
+                'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
+              },
+              status: 200,
+              responseText: 'response-body'
             });
-            req.status = 200;
-            req.response = 'response-body';
-            req._onload();
           }
         },
 
@@ -919,10 +863,10 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 test.assertTypeAnd(r.body, 'undefined');
                 test.done();
               });
-            var req = XMLHttpRequest.instances.shift();
-            req.status = 404;
-            req.response = 'response-body';
-            req._onload();
+            mockRequestSuccess({
+              status: 404,
+              response: 'response-body'
+            });  
           }
         },
 
@@ -966,37 +910,48 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
           }
         },
 
-        //FIXME: fix this test
-        /*
         {
           desc: "share gets called after getting a public path without touching the fullfilments",
           run: function (env, test) {
-            env.connectedClient.get('/public/foo').then(function (status, body, contentType, rev){
-              console.log('get fulfilled promise')
-              test.assertAnd(r.statusCode, 200, 'status = '+status);
-              test.assertAnd(r.revision, 'rev',rev)
-              test.assertAnd(body, 'response-body', 'body = '+ body);
+            oldShare = env.connectedClient.share;
+            env.connectedClient.share = function(path) {
+              oldShare.bind(env.connectedClient)(path)
+                .then(function (r) {
+                  test.assert(env.connectedClient._itemRefs['/public/foo'],'http://dropbox.shareing/url');
+                  test.done();
+                })
+                .catch(function (err) {
+                  test.fail(err);
+                });
+              env.connectedClient.share = oldShare;
+            };
 
-              //test.assert(env.connectedClient._itemRefs['/public/foo'],'http://dropbox.shareing/url');
+            addMockRequestCallback(function (req) {
+              mockRequestSuccess({
+                status: 200,
+                responseHeaders: {
+                  'Content-Type': 'text/plain; charset=UTF-8',
+                  'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
+                },
+                responseText: 'response-body'
+              });
+            });
+            addMockRequestCallback(function (req) {
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify( {
+                  url: 'http://dropbox.shareing/url'
+                })
+              });  
+            });
+            env.connectedClient.get('/public/foo').then(function (r){
+              test.assertAnd(r.statusCode, 200, 'status = '+r.statusCode);
+              test.assertAnd(r.revision, 'rev',r.revision)
+              test.assertAnd(r.body, 'response-body', 'body = '+ r.body);            
             })
-            var getReq = XMLHttpRequest.instances.shift();
-            getReq._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
-              rev: 'rev'
-            })
-            getReq.status = 200;
-            getReq.responseText = 'response-body';
-            getReq._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-            getReq._onload();
-            setTimeout(function (){
-              var shareReq =  XMLHttpRequest.instances.shift();
-              shareReq.responseText = JSON.stringify( {
-                url: 'http://dropbox.shareing/url'
-              } );
-              shareReq._onload();
-            }, 100);
           }
         },
-        */
+        
 
         {
           desc: "Dropbox adapter hooks itself into sync cycle when activated",
@@ -1024,8 +979,47 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
             env.rs.sync.sync();
           }
         }
-      ]
+    ];
+
+    var xhrTests = tests.concat([
+      {
+        desc: "#get sends the request",
+        run: function (env, test) {
+          env.connectedClient.get('/foo/bar');
+          var req = XMLHttpRequest.instances.shift();
+          test.assertType(req._send, 'object');
+        }
+      },
+      {
+        desc: "#get installs onload and onerror handlers on the request",
+        run: function (env, test) {
+          env.connectedClient.get('/foo/bar/');
+          var req = XMLHttpRequest.instances.shift();
+          test.assertTypeAnd(req._onload, 'function');
+          test.assertTypeAnd(req._onerror, 'function');
+          test.done();
+        }
+      }
+    ]);
+
+    suites.push({
+        name: "Dropbox (XMLHttpRequest)",
+        desc: "Low-level Dropbox client based on XMLHttpRequest",
+        setup: setup,
+        beforeEach: beforeEachXHR,
+        afterEach: afterEach,
+        tests: xhrTests      
     });
+
+    suites.push({
+      name: "Dropbox (fetch)",
+      desc: "Low-level Dropbox client based on fetch",
+      setup: setup,
+      beforeEach: beforeEachFetch,
+      afterEach: afterEach,
+      tests: tests      
+    });
+
 
     return suites;
   }
