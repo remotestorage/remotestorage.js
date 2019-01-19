@@ -536,6 +536,7 @@ WireClient._fetchRequest = function (method, url, options) {
         return response.blob();
       case 'json':
         return response.json();
+      case undefined:
       case '':
       case 'text':
         return response.text();
@@ -544,6 +545,9 @@ WireClient._fetchRequest = function (method, url, options) {
     }
   }).then(function (processedBody) {
     syntheticXhr.response = processedBody;
+    if (!options.responseType || options.responseType === 'text') {
+      syntheticXhr.responseText = processedBody;
+    }
     return syntheticXhr;
   });
 

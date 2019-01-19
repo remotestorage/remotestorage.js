@@ -51,170 +51,17 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
 
   function beforeEachXHR(env, test) {
     beforeEach(env, test);
-
-    global.XMLHttpRequest = function () {
-      XMLHttpRequest.instances.push(this);
-      this._headers = {};
-      this._responseHeaders = {};
-    };
-    XMLHttpRequest.instances = [];
-    XMLHttpRequest.prototype = {
-      open: function () {
-       this._open = Array.prototype.slice.call(arguments);
-      },
-      send: function () {
-       this._send = Array.prototype.slice.call(arguments);
-      },
-      setRequestHeader: function (key, value) {
-       this._headers[key] = value;
-      },
-      getResponseHeader: function (key) {
-       return this._responseHeaders[key] || null;
-      }
-    };
-    ['load', 'abort', 'error'].forEach(function (cb) {
-      Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
-        configurable: true,
-        set: function (f) {
-         this['_on' + cb] = f;
-        }
-      });
-    });
-
-    global.getMockRequestMethod = function() {
-      var request = XMLHttpRequest.instances[0];
-      return request._open[0];
-    };
-
-    global.getMockRequestUrl = function() {
-      var request = XMLHttpRequest.instances[0];
-      return request._open[1];
-    };
-
-    global.getMockRequestHeader = function (headerName) {
-      var req = XMLHttpRequest.instances[0];
-      return req._headers[headerName];
-    };
-
-    global.getMockRequestBody = function () {
-      var request = XMLHttpRequest.instances[0];
-      return request._send[0];
-    };
-
-    global.mockRequestSuccess = function (param) {
-      var req = XMLHttpRequest.instances.shift();
-      req._responseHeaders = param.responseHeaders || {};
-      req.status = param.status;
-      req.response = param.arrayBuffer;
-      req._onload();
-    };
-
-    global.mockRequestFail = function (errMsg) {
-      var req = XMLHttpRequest.instances.shift();
-      req._onerror(errMsg);
-    };
+    mocks.defineXMLHttpRequestMock(env);
   }
 
   function beforeEachFetch(env, test) {
     beforeEach(env, test);
-
-    var fetchesData = [];
-
-    global.fetch = function (url, init) {
-      init = init || {};
-      return new Promise(function (resolve, reject) {
-        fetchesData.push({
-          url: url,
-          method: init.method || 'GET',
-          requestHeaders: init.headers || {},
-          requestBody: init.body,
-          resolve: resolve,
-          reject: reject});
-      });
-    };
-
-    global.getMockRequestMethod = function() {
-      var fetchData = fetchesData[0];
-      return fetchData.method;
-    };
-
-    global.getMockRequestUrl = function() {
-      var fetchData = fetchesData[0];
-      return fetchData.url;
-    };
-
-    global.getMockRequestHeader = function (headerName) {
-      var fetchData = fetchesData[0];
-      return fetchData.requestHeaders[headerName];
-    };
-
-    global.getMockRequestBody = function () {
-      var fetchData = fetchesData[0];
-      return fetchData.requestBody;
-    };
-
-    global.mockRequestSuccess = function (param) {
-      var fetchData = fetchesData.shift();
-
-      var responseHeaders = {   // mock Headers obj
-        _headers: param.responseHeaders || {},   // POJSO
-        forEach: function (callback, thisArg) {
-          var thisObj = thisArg || responseHeaders;
-          for (headerName in responseHeaders._headers) {
-            callback.call(thisObj, responseHeaders._headers[headerName], headerName, responseHeaders);
-          }
-        }
-      };
-      var response = {   // mock Response obj
-        headers: responseHeaders,
-        ok: param.status >= 200 && param.status < 300,
-        redirected: false,
-        status: param.status,
-        statusText: param.statusText || '',
-        type: param.corsResponseType || 'basic',
-        url: fetchData.url,
-        useFinalURL: true,
-        body: function () {   // getter for ReadableStream
-          throw new Error("not implemented in mock");
-        },
-        bodyUsed: false,
-        arrayBuffer: function () {
-          return Promise.resolve(param.arrayBuffer);
-        },
-        blob: function () {
-          throw new Error("not implemented in mock");
-        },
-        text: function () {
-          throw new Error("not implemented in mock");
-        },
-        json: function () {
-          throw new Error("not implemented in mock");
-        }
-      };
-
-      fetchData.resolve(response);
-    };
-
-    global.mockRequestFail = function (errMsg) {
-      var fetchData = fetchesData.shift();
-      fetchData.reject(errMsg);
-    };
+    mocks.defineFetchMock(env);
   }
 
   function afterEach(env, test) {
-    delete global.XMLHttpRequest;
-    delete global.fetch;
-    delete global.getMockRequestMethod;
-    delete global.getMockRequestUrl;
-    delete global.getMockRequestHeader;
-    delete global.getMockRequestBody;
-    delete global.mockRequestSuccess;
-    delete global.mockRequestFail;
-    delete global.Blob;
-    delete global.FileReader;
+    mocks.undefineMocks(env);
     delete env.client;
-    delete env.blob;
-    delete env.fileReaderResult;
     test.done();
   }
 
@@ -1108,7 +955,26 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
             arrayBuffer: new ArrayBufferMock('')
           });
         }
-      }
+      },
+
+      {
+        desc: "#Wireclient.request with success fulfills its promise with text response if responseType is not set",
+        run: function(env, test) {
+          WireClient.request('GET','/foo/bar', {}).
+            then(function (r) {
+              test.assertAnd(r.status, 200);
+              test.assertAnd(r.responseText, 'response-body');
+              test.done();
+            });
+
+          setTimeout(function () {
+            mockRequestSuccess({
+              status: 200,
+              responseText: 'response-body'
+            });
+          }, 10);
+        }
+      },    
     ];
 
     var xhrTests = tests.concat([
