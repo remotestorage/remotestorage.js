@@ -4,6 +4,13 @@ All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases)
 at GitHub.
 
+## 1.2.1 (January 2019)
+
+### Bugfixes
+
+* Fix Dropbox and Google Drive adapters failing with Fetch API (#1152, by
+  @iLiviu)
+
 ## 1.2.0 (December 2018)
 
 ### Enhancements
