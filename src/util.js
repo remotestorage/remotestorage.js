@@ -223,8 +223,8 @@ var util = {
   },
 
   /**
-   * Decide if data should be treated as binary based on the content
-   * and content-type.
+   * Decide if data should be treated as binary based on the content (presence of non-printable characters
+   * or replacement character) and content-type.
    *
    * @param {string} content - The data
    * @param {string} mimeType - The data's content-type
@@ -233,7 +233,7 @@ var util = {
    */
   shouldBeTreatedAsBinary (content, mimeType) {
     // eslint-disable-next-line no-control-regex
-    return (mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x1F]/.test(content);
+    return (mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x08\x0E-\x1F\uFFFD]/.test(content);
   },
 
   /**
