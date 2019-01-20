@@ -406,51 +406,50 @@ Dropbox.prototype = {
       meta = resp.getResponseHeader('Dropbox-API-Result');
       //first encode the response as text, and later check if 
       //text appears to actually be binary data
-      return getTextFromArrayBuffer(resp.response, 'UTF-8')
-        .then(function (responseText) {
-          body = responseText;
-            if (status === 409) {
-              meta = body;
-            }
+      return getTextFromArrayBuffer(resp.response, 'UTF-8').then(function (responseText) {
+        body = responseText;
+        if (status === 409) {
+          meta = body;
+        }
 
-            try {
-              meta = JSON.parse(meta);
-            } catch(e) {
-              return Promise.reject(e);
-            }
+        try {
+          meta = JSON.parse(meta);
+        } catch(e) {
+          return Promise.reject(e);
+        }
 
-            if (status === 409) {
-              if (compareApiError(meta, ['path', 'not_found'])) {
-                return {statusCode: 404};
-              }
-              return Promise.reject(new Error('API error while downloading file ("' + path + '"): ' + meta.error_summary));
-            }
+        if (status === 409) {
+          if (compareApiError(meta, ['path', 'not_found'])) {
+            return {statusCode: 404};
+          }
+          return Promise.reject(new Error('API error while downloading file ("' + path + '"): ' + meta.error_summary));
+        }
 
-            mime = resp.getResponseHeader('Content-Type');
-            rev = meta.rev;
-            self._revCache.set(path, rev);
-            self._shareIfNeeded(path);
+        mime = resp.getResponseHeader('Content-Type');
+        rev = meta.rev;
+        self._revCache.set(path, rev);
+        self._shareIfNeeded(path);
 
-            if (shouldBeTreatedAsBinary(responseText, mime)) {
-              //return unprocessed response 
-              body = resp.response;
-            } else {
-              // handling json (always try)
-              try {
-                body = JSON.parse(body);
-                mime = 'application/json; charset=UTF-8';
-              } catch(e) {
-                //Failed parsing Json, assume it is something else then
-              }
-            }
+        if (shouldBeTreatedAsBinary(responseText, mime)) {
+          //return unprocessed response 
+          body = resp.response;
+        } else {
+          // handling json (always try)
+          try {
+            body = JSON.parse(body);
+            mime = 'application/json; charset=UTF-8';
+          } catch(e) {
+            //Failed parsing Json, assume it is something else then
+          }
+        }
 
-            return {
-              statusCode: status, 
-              body: body, 
-              contentType: mime, 
-              revision: rev
-            }; 
-        });  
+        return {
+          statusCode: status, 
+          body: body, 
+          contentType: mime, 
+          revision: rev
+        }; 
+      });  
     });
   },
 

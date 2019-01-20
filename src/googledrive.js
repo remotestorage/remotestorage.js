@@ -463,24 +463,23 @@ GoogleDrive.prototype = {
         return this._request('GET', meta.downloadUrl, params).then((response) => {
           //first encode the response as text, and later check if 
           //text appears to actually be binary data
-          return getTextFromArrayBuffer(response.response, 'UTF-8')
-            .then(function (responseText) { 
-              let body = responseText;
-              if (meta.mimeType.match(/^application\/json/)) {
-                try {
-                  body = JSON.parse(body);
-                } catch(e) {
-                  // body couldn't be parsed as JSON, so we'll just return it as is
-                }
-              } else {
-                if (shouldBeTreatedAsBinary(responseText, meta.mimeType)) {
-                  //return unprocessed response 
-                  body = response.response;
-                }
+          return getTextFromArrayBuffer(response.response, 'UTF-8').then(function (responseText) { 
+            let body = responseText;
+            if (meta.mimeType.match(/^application\/json/)) {
+              try {
+                body = JSON.parse(body);
+              } catch(e) {
+                // body couldn't be parsed as JSON, so we'll just return it as is
               }
+            } else {
+              if (shouldBeTreatedAsBinary(responseText, meta.mimeType)) {
+                //return unprocessed response 
+                body = response.response;
+              }
+            }
 
-              return {statusCode: 200, body: body, contentType: meta.mimeType, revision: etagWithoutQuotes};
-            });
+            return {statusCode: 200, body: body, contentType: meta.mimeType, revision: etagWithoutQuotes};
+          });
         });
       });
     });
