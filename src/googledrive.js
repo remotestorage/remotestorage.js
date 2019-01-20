@@ -31,8 +31,8 @@ const RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 const isFolder = util.isFolder;
 const cleanPath = util.cleanPath;
 const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
-const readBinaryData = util.readBinaryData;
 const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
+const getTextFromArrayBuffer = util.getTextFromArrayBuffer;
 
 let hasLocalStorage;
 
@@ -457,28 +457,30 @@ GoogleDrive.prototype = {
           }
         }
 
-        return this._request('GET', meta.downloadUrl, {}).then((response) => {
-          let body = response.response;
-          if (meta.mimeType.match(/^application\/json/)) {
-            try {
-              body = JSON.parse(body);
-            } catch(e) {
-              // body couldn't be parsed as JSON, so we'll just return it as is
-            }
-          } else {
-            if (shouldBeTreatedAsBinary(body, meta.mimeType)) {
-              return readBinaryData(body, meta.mimeType).then((result) => {
-                return {
-                  statusCode: 200,
-                  body: result,
-                  contentType: meta.mimeType,
-                  revision: etagWithoutQuotes
-                };
-              });
-            }
-          }
+        var params = {
+          responseType: 'arraybuffer'
+        };        
+        return this._request('GET', meta.downloadUrl, params).then((response) => {
+          //first encode the response as text, and later check if 
+          //text appears to actually be binary data
+          return getTextFromArrayBuffer(response.response, 'UTF-8')
+            .then(function (responseText) { 
+              let body = responseText;
+              if (meta.mimeType.match(/^application\/json/)) {
+                try {
+                  body = JSON.parse(body);
+                } catch(e) {
+                  // body couldn't be parsed as JSON, so we'll just return it as is
+                }
+              } else {
+                if (shouldBeTreatedAsBinary(responseText, meta.mimeType)) {
+                  //return unprocessed response 
+                  body = response.response;
+                }
+              }
 
-          return Promise.resolve({statusCode: 200, body: body, contentType: meta.mimeType, revision: etagWithoutQuotes});
+              return {statusCode: 200, body: body, contentType: meta.mimeType, revision: etagWithoutQuotes};
+            });
         });
       });
     });

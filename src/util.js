@@ -267,7 +267,45 @@ var util = {
       }
       reader.readAsArrayBuffer(blob);
     });
+  },
+
+  /**
+   * Read data from an ArrayBuffer and return it as a string
+   * @param {ArrayBuffer} arrayBuffer 
+   * @param {string} encoding 
+   * @returns {Promise} Resolves with a string containing the data
+   */
+  getTextFromArrayBuffer(arrayBuffer, encoding) {
+    return new Promise((resolve/*, reject*/) => {
+      if (typeof Blob === 'undefined') {
+        var buffer = new Buffer(new Uint8Array(arrayBuffer));
+        resolve(buffer.toString(encoding));
+      } else {
+        var blob;
+        util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
+        if (typeof util.globalContext.BlobBuilder !== 'undefined') {
+          var bb = new global.BlobBuilder();
+          bb.append(arrayBuffer);
+          blob = bb.getBlob();
+        } else {
+          blob = new Blob([arrayBuffer]);
+        }
+  
+        var fileReader = new FileReader();
+        if (typeof fileReader.addEventListener === 'function') {
+          fileReader.addEventListener('loadend', function (evt) {
+            resolve(evt.target.result);
+          });
+        } else {
+          fileReader.onloadend = function(evt) {
+            resolve(evt.target.result);
+          };
+        }
+        fileReader.readAsText(blob, encoding);
+      }
+    });
   }
+  
 
 };
 

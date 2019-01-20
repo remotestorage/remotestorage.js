@@ -159,7 +159,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                   'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
                 },
                 status: 200,
-                responseText: '{"foo":"response-body"}'
+                arrayBuffer: new ArrayBufferMock('{"foo":"response-body"}')
               });
             }, 10);
           }
@@ -180,7 +180,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                   'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
                 },
                 status: 200,
-                responseText: '{"foo":"response-body"}'
+                arrayBuffer: new ArrayBufferMock('{"foo":"response-body"}')
               });              
             }, 10);
           }
@@ -201,7 +201,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                   'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
                 },
                 status: 200,
-                responseText: '{"foo":"response-body"}'
+                arrayBuffer: new ArrayBufferMock('{"foo":"response-body"}')
               });              
             }, 10);
           }
@@ -422,7 +422,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                   'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
                 },
                 status: 200,
-                responseText: 'response-body'
+                arrayBuffer: new ArrayBufferMock('response-body')
               });              
             }, 10);            
           }
@@ -444,7 +444,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                   'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
                 },
                 status: 200,
-                responseText: '{"response":"body"}'
+                arrayBuffer: new ArrayBufferMock('{"response":"body"}')
               });              
             }, 10);
           }
@@ -483,9 +483,9 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               });
             mockRequestSuccess({
               status: 409,
-              responseText: JSON.stringify({
+              arrayBuffer: new ArrayBufferMock(JSON.stringify({
                 error_summary: 'path/not_found/...'
-              })
+              }))
             });
           }
         },
@@ -809,28 +809,24 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         },
 
         {
-          desc: "responses with the charset set to 'binary' are read using a FileReader, after constructing a Blob",
+          desc: "responses with binary data are returned as an ArrayBuffer",
           run: function (env, test) {
             env.connectedClient.get('/foo/bar').
               then(function (r) {
-                // check Blob
-                test.assertTypeAnd(env.blob, 'object');
-                test.assertAnd(env.blob.input, ['response-body']);
-                test.assertAnd(env.blob.options, {
-                  type: 'application/octet-stream; charset=binary'
-                });
-
                 test.assertAnd(r.statusCode, 200);
-                test.assertAnd(r.body, env.fileReaderResult);
-                test.assert(r.contentType, 'application/octet-stream; charset=binary');
+                test.assertAnd(r.body, {
+                  iAmA: 'ArrayBufferMock',
+                  content: "\x00"
+                });
+                test.done();
               });
               mockRequestSuccess({
                 responseHeaders: {
-                  'Content-Type': 'application/octet-stream; charset=binary',
+                  'Content-Type': 'application/octet-stream',
                   'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
                 },
                 status: 200,
-                responseText: 'response-body'
+                arrayBuffer: new ArrayBufferMock("\x00")
               });
           }
         },
@@ -849,7 +845,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                 'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
               },
               status: 200,
-              responseText: 'response-body'
+              arrayBuffer: new ArrayBufferMock('response-body')
             });
           }
         },
@@ -933,7 +929,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
                   'Content-Type': 'text/plain; charset=UTF-8',
                   'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
                 },
-                responseText: 'response-body'
+                arrayBuffer: new ArrayBufferMock('response-body')
               });
             });
             addMockRequestCallback(function (req) {
