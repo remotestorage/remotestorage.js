@@ -237,39 +237,6 @@ var util = {
   },
 
   /**
-   * Read binary data and return it as ArrayBuffer.
-   *
-   * @param {string} content - The data
-   * @param {string} mimeType - The data's content-type
-   * @returns {Promise} Resolves with an ArrayBuffer containing the data
-   */
-  readBinaryData (content, mimeType) {
-    return new Promise((resolve) => {
-      let blob;
-      util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
-      if (typeof util.globalContext.BlobBuilder !== 'undefined') {
-        const bb = new global.BlobBuilder();
-        bb.append(content);
-        blob = bb.getBlob(mimeType);
-      } else {
-        blob = new Blob([content], { type: mimeType });
-      }
-
-      const reader = new FileReader();
-      if (typeof reader.addEventListener === 'function') {
-        reader.addEventListener('loadend', function () {
-          resolve(reader.result); // reader.result contains the contents of blob as a typed array
-        });
-      } else {
-        reader.onloadend = function() {
-          resolve(reader.result); // reader.result contains the contents of blob as a typed array
-        };
-      }
-      reader.readAsArrayBuffer(blob);
-    });
-  },
-
-  /**
    * Read data from an ArrayBuffer and return it as a string
    * @param {ArrayBuffer} arrayBuffer 
    * @param {string} encoding 
