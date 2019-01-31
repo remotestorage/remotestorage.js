@@ -4,6 +4,13 @@ All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases)
 at GitHub.
 
+## Master
+
+### Bugfixes
+
+* Fix retrieval of binary files from Dropbox and Google Drive (#1155,
+  by @iLiviu)
+
 ## 1.2.1 (January 2019)
 
 ### Bugfixes
