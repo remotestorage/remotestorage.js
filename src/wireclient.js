@@ -76,6 +76,7 @@ const isFolder = util.isFolder;
 const cleanPath = util.cleanPath;
 const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
 const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
+const getTextFromArrayBuffer = util.getTextFromArrayBuffer;
 
 function addQuotes(str) {
   if (typeof(str) !== 'string') {
@@ -94,37 +95,6 @@ function stripQuotes(str) {
   }
 
   return str.replace(/^["']|["']$/g, '');
-}
-
-function getTextFromArrayBuffer(arrayBuffer, encoding) {
-  return new Promise((resolve/*, reject*/) => {
-    if (typeof Blob === 'undefined') {
-      var buffer = new Buffer(new Uint8Array(arrayBuffer));
-      resolve(buffer.toString(encoding));
-    } else {
-      var blob;
-      util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
-      if (typeof util.globalContext.BlobBuilder !== 'undefined') {
-        var bb = new global.BlobBuilder();
-        bb.append(arrayBuffer);
-        blob = bb.getBlob();
-      } else {
-        blob = new Blob([arrayBuffer]);
-      }
-
-      var fileReader = new FileReader();
-      if (typeof fileReader.addEventListener === 'function') {
-        fileReader.addEventListener('loadend', function (evt) {
-          resolve(evt.target.result);
-        });
-      } else {
-        fileReader.onloadend = function(evt) {
-          resolve(evt.target.result);
-        };
-      }
-      fileReader.readAsText(blob, encoding);
-    }
-  });
 }
 
 function determineCharset(mimeType) {

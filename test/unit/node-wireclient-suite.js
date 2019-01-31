@@ -3,16 +3,12 @@ if (typeof define !== 'function') {
 }
 define(['./src/wireclient', './src/remotestorage'], function (WireClient, RemoteStorage) {
   var suites = [];
-	var oldReadBinaryData;
 
   function setup(env, test) {
     test.assertType(RemoteStorage, 'function');
   }
 
   function takedown(env, test) {
-    if (typeof WireClient !== 'undefined') {
-      WireClient.readBinaryData = oldReadBinaryData;
-    }
     test.done();
   }
 

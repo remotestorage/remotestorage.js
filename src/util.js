@@ -223,8 +223,8 @@ var util = {
   },
 
   /**
-   * Decide if data should be treated as binary based on the content
-   * and content-type.
+   * Decide if data should be treated as binary based on the content (presence of non-printable characters
+   * or replacement character) and content-type.
    *
    * @param {string} content - The data
    * @param {string} mimeType - The data's content-type
@@ -233,41 +233,46 @@ var util = {
    */
   shouldBeTreatedAsBinary (content, mimeType) {
     // eslint-disable-next-line no-control-regex
-    return (mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x1F]/.test(content);
+    return (mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x08\x0E-\x1F\uFFFD]/.test(content);
   },
 
   /**
-   * Read binary data and return it as ArrayBuffer.
-   *
-   * @param {string} content - The data
-   * @param {string} mimeType - The data's content-type
-   * @returns {Promise} Resolves with an ArrayBuffer containing the data
+   * Read data from an ArrayBuffer and return it as a string
+   * @param {ArrayBuffer} arrayBuffer 
+   * @param {string} encoding 
+   * @returns {Promise} Resolves with a string containing the data
    */
-  readBinaryData (content, mimeType) {
-    return new Promise((resolve) => {
-      let blob;
-      util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
-      if (typeof util.globalContext.BlobBuilder !== 'undefined') {
-        const bb = new global.BlobBuilder();
-        bb.append(content);
-        blob = bb.getBlob(mimeType);
+  getTextFromArrayBuffer(arrayBuffer, encoding) {
+    return new Promise((resolve/*, reject*/) => {
+      if (typeof Blob === 'undefined') {
+        var buffer = new Buffer(new Uint8Array(arrayBuffer));
+        resolve(buffer.toString(encoding));
       } else {
-        blob = new Blob([content], { type: mimeType });
+        var blob;
+        util.globalContext.BlobBuilder = util.globalContext.BlobBuilder || util.globalContext.WebKitBlobBuilder;
+        if (typeof util.globalContext.BlobBuilder !== 'undefined') {
+          var bb = new global.BlobBuilder();
+          bb.append(arrayBuffer);
+          blob = bb.getBlob();
+        } else {
+          blob = new Blob([arrayBuffer]);
+        }
+  
+        var fileReader = new FileReader();
+        if (typeof fileReader.addEventListener === 'function') {
+          fileReader.addEventListener('loadend', function (evt) {
+            resolve(evt.target.result);
+          });
+        } else {
+          fileReader.onloadend = function(evt) {
+            resolve(evt.target.result);
+          };
+        }
+        fileReader.readAsText(blob, encoding);
       }
-
-      const reader = new FileReader();
-      if (typeof reader.addEventListener === 'function') {
-        reader.addEventListener('loadend', function () {
-          resolve(reader.result); // reader.result contains the contents of blob as a typed array
-        });
-      } else {
-        reader.onloadend = function() {
-          resolve(reader.result); // reader.result contains the contents of blob as a typed array
-        };
-      }
-      reader.readAsArrayBuffer(blob);
     });
   }
+  
 
 };
 

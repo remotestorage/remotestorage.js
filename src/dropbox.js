@@ -45,8 +45,8 @@ const PATH_PREFIX = '/remotestorage';
 const isFolder = util.isFolder;
 const cleanPath = util.cleanPath;
 const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
-const readBinaryData = util.readBinaryData;
 const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
+const getTextFromArrayBuffer = util.getTextFromArrayBuffer;
 
 /**
  * Map a local path to a path in Dropbox.
@@ -389,8 +389,9 @@ Dropbox.prototype = {
 
     var params = {
       headers: {
-        'Dropbox-API-Arg': JSON.stringify({path: getDropboxPath(path)})
-      }
+        'Dropbox-API-Arg': JSON.stringify({path: getDropboxPath(path)}),
+      },
+      responseType: 'arraybuffer'
     };
     if (options && options.ifNoneMatch) {
       params.headers['If-None-Match'] = options.ifNoneMatch;
@@ -403,51 +404,52 @@ Dropbox.prototype = {
         return Promise.resolve({statusCode: status});
       }
       meta = resp.getResponseHeader('Dropbox-API-Result');
-      body = resp.responseText;
-
-      if (status === 409) {
-        meta = body;
-      }
-
-      try {
-        meta = JSON.parse(meta);
-      } catch(e) {
-        return Promise.reject(e);
-      }
-
-      if (status === 409) {
-        if (compareApiError(meta, ['path', 'not_found'])) {
-          return Promise.resolve({statusCode: 404});
+      //first encode the response as text, and later check if 
+      //text appears to actually be binary data
+      return getTextFromArrayBuffer(resp.response, 'UTF-8').then(function (responseText) {
+        body = responseText;
+        if (status === 409) {
+          meta = body;
         }
-        return Promise.reject(new Error('API error while downloading file ("' + path + '"): ' + meta.error_summary));
-      }
 
-      mime = resp.getResponseHeader('Content-Type');
-      rev = meta.rev;
-      self._revCache.set(path, rev);
-      self._shareIfNeeded(path);
+        try {
+          meta = JSON.parse(meta);
+        } catch(e) {
+          return Promise.reject(e);
+        }
 
-      // handling binary
-      if (shouldBeTreatedAsBinary(resp.response, mime)) {
-        return readBinaryData(resp.response, mime).then((result) => {
-          return {
-            statusCode: status,
-            body: result,
-            contentType: mime,
-            revision: rev
-          };
-        });
-      }
+        if (status === 409) {
+          if (compareApiError(meta, ['path', 'not_found'])) {
+            return {statusCode: 404};
+          }
+          return Promise.reject(new Error('API error while downloading file ("' + path + '"): ' + meta.error_summary));
+        }
 
-      // handling json (always try)
-      try {
-        body = JSON.parse(body);
-        mime = 'application/json; charset=UTF-8';
-      } catch(e) {
-        //Failed parsing Json, assume it is something else then
-      }
+        mime = resp.getResponseHeader('Content-Type');
+        rev = meta.rev;
+        self._revCache.set(path, rev);
+        self._shareIfNeeded(path);
 
-      return Promise.resolve({statusCode: status, body: body, contentType: mime, revision: rev});
+        if (shouldBeTreatedAsBinary(responseText, mime)) {
+          //return unprocessed response 
+          body = resp.response;
+        } else {
+          // handling json (always try)
+          try {
+            body = JSON.parse(body);
+            mime = 'application/json; charset=UTF-8';
+          } catch(e) {
+            //Failed parsing Json, assume it is something else then
+          }
+        }
+
+        return {
+          statusCode: status, 
+          body: body, 
+          contentType: mime, 
+          revision: rev
+        }; 
+      });  
     });
   },
 

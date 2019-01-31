@@ -485,7 +485,70 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
             test.assert('timeout', error);
           });
         }
-      }
+      },
+
+      {
+        desc: "response from reading a binary file is returned as an ArrayBuffer",
+        run: function (env, test) {
+          env.connectedClient._fileIdCache.set('/remotestorage/foo/bar', 'abcd');
+          addMockRequestCallback(function() {
+            mockRequestSuccess({
+              status: 200,
+              responseText: JSON.stringify({
+                etag: '"foo"',
+                downloadUrl: '/download/foo',
+                mimeType: 'application/octet-stream'
+              })
+            })
+          });
+          addMockRequestCallback(function() {
+            mockRequestSuccess({
+              status: 200,
+              arrayBuffer: new ArrayBufferMock("\x00")
+            })
+          });
+          env.connectedClient.get('/foo/bar').
+            then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, {
+                iAmA: 'ArrayBufferMock',
+                content: "\x00"
+              });
+              test.done();
+            });
+        }
+      },
+
+      {
+        desc: "response from reading a text file is returned as a string",
+        run: function (env, test) {
+          env.connectedClient._fileIdCache.set('/remotestorage/foo/bar', 'abcd');
+          addMockRequestCallback(function() {
+            mockRequestSuccess({
+              status: 200,
+              responseText: JSON.stringify({
+                etag: '"foo"',
+                downloadUrl: '/download/foo',
+                mimeType: 'application/octet-stream'
+              })
+            })
+          });
+          addMockRequestCallback(function() {
+            mockRequestSuccess({
+              status: 200,
+              arrayBuffer: new ArrayBufferMock("response-body")
+            })
+          });
+          env.connectedClient.get('/foo/bar').
+            then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, 'response-body');
+              test.done();
+            });
+        }
+      },
+    
+
 
   ];
 

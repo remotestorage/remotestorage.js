@@ -16,13 +16,6 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
   }
 
   function beforeEach(env, test) {
-    global.ArrayBufferMock = function(str) {
-      return {
-        iAmA: 'ArrayBufferMock',
-        content: str
-      };
-    };
-
     env.rs = new RemoteStorage();
     eventHandling(env.rs, 'error', 'wire-busy', 'wire-done', 'network-offline',
                   'network-online');

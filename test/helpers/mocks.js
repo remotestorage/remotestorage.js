@@ -97,6 +97,13 @@ define([], function() {
         this._responses = {};
       };
 
+      global.ArrayBufferMock = function(str) {
+        return {
+          iAmA: 'ArrayBufferMock',
+          content: str
+        };
+      };  
+
     },
 
     undefineMocks(env) {
