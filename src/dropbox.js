@@ -3,7 +3,7 @@ var BaseClient = require('./baseclient');
 var WireClient = require('./wireclient');
 var util = require('./util');
 var eventHandling = require('./eventhandling');
-var Sync = require('./sync');
+var RevisionCache = require('./revisioncache');
 
 /**
  * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
@@ -69,101 +69,6 @@ const isBinaryData = function (data) {
 };
 
 /**
- * A cache which automatically converts all keys to lower case and can
- * propagate changes up to parent folders.
- *
- * By default the set and delete methods are aliased to justSet and justDelete.
- *
- * @param defaultValue {string} the value that is returned for all keys that don't exist
- *                              in the cache
- *
- * @class
- *
- */
-function LowerCaseCache(defaultValue){
-  this.defaultValue = defaultValue;
-  this._storage = { };
-  this.set = this.justSet;
-  this.delete = this.justDelete;
-}
-
-LowerCaseCache.prototype = {
-  /**
-   * Get a value from the cache or defaultValue, if the key is not in the
-   * cache.
-   *
-   * @protected
-   */
-  get: function (key) {
-    key = key.toLowerCase();
-    var stored = this._storage[key];
-    if (typeof stored === 'undefined'){
-      stored = this.defaultValue;
-      this._storage[key] = stored;
-    }
-    return stored;
-  },
-
-  /**
-   * Set a value and also update the parent folders with that value.
-   */
-  propagateSet: function (key, value) {
-    key = key.toLowerCase();
-    if (this._storage[key] === value) {
-      return value;
-    }
-    this._propagate(key, value);
-    this._storage[key] = value;
-    return value;
-  },
-
-  /**
-   * Delete a value and propagate the changes to the parent folders.
-   */
-  propagateDelete: function (key) {
-    key = key.toLowerCase();
-    this._propagate(key, this._storage[key]);
-    return delete this._storage[key];
-  },
-
-  _activatePropagation: function (){
-    this.set = this.propagateSet;
-    this.delete = this.propagateDelete;
-    return true;
-  },
-
-  /**
-   * Set a value without propagating.
-   */
-  justSet: function (key, value) {
-    key = key.toLowerCase();
-    this._storage[key] = value;
-    return value;
-  },
-
-  /**
-   * Delete a key without propagating.
-   */
-  justDelete: function (key) {
-    key = key.toLowerCase();
-    return delete this._storage[key];
-  },
-
-  _propagate: function (key, rev){
-    var folders = key.split('/').slice(0,-1);
-    var path = '';
-
-    for (var i = 0, len = folders.length; i < len; i++){
-      path += folders[i]+'/';
-      if (!rev) {
-        rev = this._storage[path]+1;
-      }
-      this._storage[path] =  rev;
-    }
-  }
-};
-
-/**
  * @class
  */
 var Dropbox = function (rs) {
@@ -171,11 +76,13 @@ var Dropbox = function (rs) {
   this.rs = rs;
   this.connected = false;
   this.rs = rs;
+  this._initialFetchDone = false;
 
   eventHandling(this, 'connected', 'not-connected');
 
   this.clientId = rs.apiKeys.dropbox.appKey;
-  this._revCache = new LowerCaseCache('rev');
+  this._revCache = new RevisionCache('rev');
+  this._fetchDeltaCursor = null;
   this._itemRefs = {};
 
   hasLocalStorage = util.localStorageAvailable();
@@ -317,6 +224,7 @@ Dropbox.prototype = {
           map[itemName] = { ETag: revCache.get(path+itemName) };
         } else {
           map[itemName] = { ETag: item.rev };
+          self._revCache.set(path+itemName, item.rev);
         }
         return map;
       }, {});
@@ -371,21 +279,26 @@ Dropbox.prototype = {
     var url = 'https://content.dropboxapi.com/2/files/download';
     var self = this;
 
-    //use _getFolder for folders
-    if (path.substr(-1) === '/') {
-      return this._getFolder(path, options);
-    }
-
     var savedRev = this._revCache.get(path);
     if (savedRev === null) {
       // file was deleted server side
       return Promise.resolve({statusCode: 404});
     }
-    if (options && options.ifNoneMatch &&
-       savedRev && (savedRev === options.ifNoneMatch)) {
-      // nothing changed.
-      return Promise.resolve({statusCode: 304});
+    if (options && options.ifNoneMatch) {
+      //we must wait for local revision cache to be initialized before checking if local revision is outdated
+      if (! this._initialFetchDone) { return Promise.reject("not initialized yet (path: " + path + ")"); }
+     
+      if (savedRev && (savedRev === options.ifNoneMatch)) {
+        // nothing changed.
+        return Promise.resolve({statusCode: 304});
+      }
     }
+
+    //use _getFolder for folders
+    if (path.substr(-1) === '/') {
+      return this._getFolder(path, options);
+    }
+
 
     var params = {
       headers: {
@@ -779,20 +692,29 @@ Dropbox.prototype = {
           }
         }
 
+        if (!cursor) {
+          //we are doing a complete fetch, so propagation would introduce unnecessary overhead
+          self._revCache.deactivatePropagation();
+        }
+
         responseBody.entries.forEach(function (entry) {
           var path = entry.path_lower.substr(PATH_PREFIX.length);
 
           if (entry['.tag'] === 'deleted') {
             // there's no way to know whether the entry was a file or a folder
-            self._revCache.set(path, null);
-            self._revCache.set(path + '/', null);
+            self._revCache.delete(path);
+            self._revCache.delete(path + '/');
           } else if (entry['.tag'] === 'file') {
             self._revCache.set(path, entry.rev);
           }
         });
 
+        self._fetchDeltaCursor = responseBody.cursor;
         if (responseBody.has_more) {
           return fetch(responseBody.cursor);
+        } else {
+          self._revCache.activatePropagation();        
+          self._initialFetchDone = true;
         }
       }).catch((error) => {
         if (error === 'timeout' || error instanceof ProgressEvent) {
@@ -803,11 +725,7 @@ Dropbox.prototype = {
         }
       });
     };
-
-    // Dropbox will always send the complete file list
-    self._revCache = new LowerCaseCache('rev');
-
-    return fetch().then(undefined, function (error) {
+    return fetch(self._fetchDeltaCursor).then(undefined, function (error) {
       if (typeof(error) === 'object' && 'message' in error) {
         error.message = 'Dropbox: fetchDelta: ' + error.message;
       } else {
@@ -815,9 +733,6 @@ Dropbox.prototype = {
       }
       return Promise.reject(error);
     }).then(function () {
-      if (self._revCache) {
-        self._revCache._activatePropagation();
-      }
       return Promise.resolve(args);
     });
   },
@@ -924,7 +839,7 @@ Dropbox.prototype = {
         return Promise.reject(new Error('API error: ' + body.error_summary));
       }
 
-      this._revCache.propagateSet(params.path, body.rev);
+      this._revCache.set(params.path, body.rev);
 
       return Promise.resolve({ statusCode: response.status, revision: body.rev });
     });
@@ -1035,7 +950,6 @@ function hookSync(rs) {
   rs.sync.sync = function () {
     return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
       then(rs._dropboxOrigSync, function (err) {
-        rs._emit('error', new Sync.SyncError(err));
         return Promise.reject(err);
       });
   }.bind(rs);
