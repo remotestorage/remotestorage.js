@@ -32,8 +32,13 @@ function getLatest(node) {
       return node.common;
     }
   } else {
-    if (node.local && node.local.body && node.local.contentType) {
-      return node.local;
+    if (node.local) {
+      if (node.local.body && node.local.contentType) {
+        return node.local;
+      }
+      if (node.local.body === false) {
+        return;
+      }
     }
     if (node.common && node.common.body && node.common.contentType) {
       return node.common;
