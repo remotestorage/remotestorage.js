@@ -1,16 +1,14 @@
-
 /**
- * A cache which can propagate changes up to parent folders and generate new revision 
- * ids for them. The generated revision id is consistent across different sessions.
- * The keys for the cache are case-insensitive.
+ * A cache which can propagate changes up to parent folders and generate new
+ * revision ids for them. The generated revision id is consistent across
+ * different sessions.  The keys for the cache are case-insensitive.
  *
- * @param defaultValue {string} the value that is returned for all keys that don't exist
- *                              in the cache
+ * @param defaultValue {string} the value that is returned for all keys that
+ *                              don't exist in the cache
  *
- * 
  * @class
  */
-function RevisionCache(defaultValue){
+function RevisionCache (defaultValue) {
   this.defaultValue = defaultValue;
   this._canPropagate = false;
   this._storage = { };
@@ -21,12 +19,12 @@ function RevisionCache(defaultValue){
 RevisionCache.prototype = {
   /**
    * Get a value from the cache or defaultValue, if the key is not in the
-   * cache. 
+   * cache
    */
-  get: function (key) {
+  get (key) {
     key = key.toLowerCase();
-    var stored = this._storage[key];
-    if (typeof stored === 'undefined'){
+    let stored = this._storage[key];
+    if (typeof stored === 'undefined') {
       stored = this.defaultValue;
       this._storage[key] = stored;
     }
@@ -34,9 +32,9 @@ RevisionCache.prototype = {
   },
 
   /**
-   * Set a value 
+   * Set a value
    */
-  set: function (key, value) {
+  set (key, value) {
     key = key.toLowerCase();
     if (this._storage[key] === value) {
       return value;
@@ -62,7 +60,7 @@ RevisionCache.prototype = {
   /**
    * Disables automatic update of folder revisions when a key value is updated
    */
-  deactivatePropagation: function () {
+  deactivatePropagation () {
     this._canPropagate = false;
     return true;
   },
@@ -71,7 +69,7 @@ RevisionCache.prototype = {
    * Enables automatic update of folder revisions when a key value is updated
    * and refreshes the folder revision ids for entire tree.
    */
-  activatePropagation: function (){
+  activatePropagation () {
     if (this._canPropagate) {
       return true;
     }
@@ -83,8 +81,8 @@ RevisionCache.prototype = {
   /**
    * Returns a hash code for a string.
    */
-  _hashCode: function(str) {
-    var hash = 0, i, chr;
+  _hashCode (str) {
+    let hash = 0, i, chr;
     if (str.length === 0) {
       return hash;
     }
@@ -101,23 +99,24 @@ RevisionCache.prototype = {
   /**
    * Takes an array of strings and returns a hash of the items
    */
-  _generateHash(items) {
-    //we sort the items before joining them to ensure correct hash generation every time
-    var files = items.sort().join('|');
-    var hash = ""+this._hashCode(files);
+  _generateHash (items) {
+    // We sort the items before joining them to ensure correct hash generation
+    // every time
+    const files = items.sort().join('|');
+    const hash = ""+this._hashCode(files);
     return hash;
   },
-  
+
   /**
    * Update the revision of a key in it's parent folder data
    */
-  _updateParentFolderItemRev(key, rev) {
-    if (key !== '/') { 
-      var parentFolder = this._getParentFolder(key);
+  _updateParentFolderItemRev (key, rev) {
+    if (key !== '/') {
+      const parentFolder = this._getParentFolder(key);
       if (!this._itemsRev[parentFolder]) {
         this._itemsRev[parentFolder] = {};
       }
-      var parentFolderItemsRev = this._itemsRev[parentFolder];
+      const parentFolderItemsRev = this._itemsRev[parentFolder];
       if (!rev) {
         delete parentFolderItemsRev[key];
       } else {
@@ -128,38 +127,39 @@ RevisionCache.prototype = {
     }
   },
 
-  _getParentFolder(key) {
+  _getParentFolder (key) {
     return key.substr(0, key.lastIndexOf("/",key.length - 2) + 1);
   },
 
   /**
-   * Propagate the changes to the parent folders and generate new
-   * revision ids for them
+   * Propagate the changes to the parent folders and generate new revision ids
+   * for them
    */
-  _propagate: function (key){
-    if (key !== '/') {            
-      var parentFolder = this._getParentFolder(key);
-      var parentFolderItemsRev = this._itemsRev[parentFolder];
-      var hashItems = [];
-      for (var path in parentFolderItemsRev) {
-        hashItems.push(parentFolderItemsRev[path]);        
+  _propagate (key) {
+    if (key !== '/') {
+      const parentFolder = this._getParentFolder(key);
+      const parentFolderItemsRev = this._itemsRev[parentFolder];
+      const hashItems = [];
+      for (let path in parentFolderItemsRev) {
+        hashItems.push(parentFolderItemsRev[path]);
       }
-      var newRev = this._generateHash(hashItems);
+      const newRev = this._generateHash(hashItems);
       this.set(parentFolder, newRev);
     }
   },
 
   /**
-   * Generate revision id for a folder and it's subfolders, by hashing it's listing
+   * Generate revision id for a folder and it's subfolders, by hashing it's
+   * listing
    */
-  _generateFolderRev(folder) {
-    var itemsRev = this._itemsRev[folder];
-    var hash = this.defaultValue;
+  _generateFolderRev (folder) {
+    const itemsRev = this._itemsRev[folder];
+    let hash = this.defaultValue;
     if (itemsRev) {
-      var hashItems = [];
-      for (var path in itemsRev) {
-        var isDir = path.substr(-1) === '/';
-        var hashItem;
+      const hashItems = [];
+      for (let path in itemsRev) {
+        const isDir = path.substr(-1) === '/';
+        let hashItem;
         if (isDir) {
           hashItem = this._generateFolderRev(path);
         } else {
