@@ -725,7 +725,7 @@ Dropbox.prototype = {
         }
       });
     };
-    return fetch(self._fetchDeltaCursor).then(undefined, function (error) {
+    return fetch(self._fetchDeltaCursor).catch(function (error) {
       if (typeof(error) === 'object' && 'message' in error) {
         error.message = 'Dropbox: fetchDelta: ' + error.message;
       } else {
