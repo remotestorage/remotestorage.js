@@ -4,6 +4,7 @@ var WireClient = require('./wireclient');
 var util = require('./util');
 var eventHandling = require('./eventhandling');
 var RevisionCache = require('./revisioncache');
+var Sync = require('./sync');
 
 /**
  * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
@@ -950,7 +951,8 @@ function hookSync(rs) {
   rs.sync.sync = function () {
     return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
       then(rs._dropboxOrigSync, function (err) {
-        return Promise.reject(err);
+        rs._emit('error', new Sync.SyncError(err));
+        rs._emit('sync-done');
       });
   }.bind(rs);
 }
@@ -964,6 +966,36 @@ function unHookSync(rs) {
   if (! rs._dropboxOrigSync) { return; } // not hooked
   rs.sync.sync = rs._dropboxOrigSync;
   delete rs._dropboxOrigSync;
+}
+
+/**
+ * Hook RemoteStorage.syncCycle as it's the first function called
+ * after RemoteStorage.sync is initialized, so we can then hook
+ * the sync function
+ * @param {object} rs RemoteStorage instance
+ */
+function hookSyncCycle(rs) {
+  if (rs._dropboxOrigSyncCycle) { return; } // already hooked
+  rs._dropboxOrigSyncCycle = rs.syncCycle;
+  rs.syncCycle = () => {
+    if (rs.sync) {
+      hookSync(rs);
+      rs._dropboxOrigSyncCycle(arguments);
+      unHookSyncCycle(rs);
+    } else {
+      throw new Error('expected sync to be initialized by now');
+    }
+  };
+}
+
+/**
+ * Restore RemoteStorage's syncCycle original implementation
+ * @param {object} rs RemoteStorage instance
+ */
+function unHookSyncCycle(rs) {
+  if (!rs._dropboxOrigSyncCycle) { return; } // not hooked
+  rs.syncCycle = rs._dropboxOrigSyncCycle;
+  delete rs._dropboxOrigSyncCycle;
 }
 
 /**
@@ -1023,13 +1055,9 @@ function hookIt(rs){
   if (rs.sync) {
     hookSync(rs);
   } else {
-    // when sync is not available yet, we wait for the remote to be connected,
-    // at which point sync should be available as well
-    rs.on('connected', function() {
-      if (rs.sync) {
-        hookSync(rs);
-      }
-    });
+    // when sync is not available yet, we hook the syncCycle function which is called
+    // right after sync is initialized
+    hookSyncCycle(rs);
   }
   hookGetItemURL(rs);
 }
@@ -1041,6 +1069,7 @@ function unHookIt(rs){
   unHookRemote(rs);
   unHookSync(rs);
   unHookGetItemURL(rs);
+  unHookSyncCycle(rs);
 }
 
 /**
