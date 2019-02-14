@@ -947,49 +947,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         },
 
         {
-          desc: "share gets called after getting a public path without touching the fullfilments",
-          run: function (env, test) {
-            oldShare = env.connectedClient.share;
-            env.connectedClient.share = function(path) {
-              oldShare.bind(env.connectedClient)(path)
-                .then(function (r) {
-                  test.assert(env.connectedClient._itemRefs['/public/foo'],'http://dropbox.shareing/url');
-                  test.done();
-                })
-                .catch(function (err) {
-                  test.fail(err);
-                });
-              env.connectedClient.share = oldShare;
-            };
-
-            addMockRequestCallback(function (req) {
-              mockRequestSuccess({
-                status: 200,
-                responseHeaders: {
-                  'Content-Type': 'text/plain; charset=UTF-8',
-                  'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
-                },
-                arrayBuffer: new ArrayBufferMock('response-body')
-              });
-            });
-            addMockRequestCallback(function (req) {
-              mockRequestSuccess({
-                status: 200,
-                responseText: JSON.stringify( {
-                  url: 'http://dropbox.shareing/url'
-                })
-              });  
-            });
-            env.connectedClient.get('/public/foo').then(function (r){
-              test.assertAnd(r.statusCode, 200, 'status = '+r.statusCode);
-              test.assertAnd(r.revision, 'rev',r.revision)
-              test.assertAnd(r.body, 'response-body', 'body = '+ r.body);            
-            })
-          }
-        },
-        
-
-        {
           desc: "Dropbox adapter hooks itself into sync cycle when activated",
           run: function (env, test){
             var fetchDeltaCalled = false;
