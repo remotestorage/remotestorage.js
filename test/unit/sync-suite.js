@@ -331,7 +331,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
           };
           env.rs.sync.numThreads = 5;
           env.rs.sync.rs.remote.connected = true;
-          env.rs.sync.rs.remote.online = true;
+          env.rs.remote.online = true;
           env.rs.sync._tasks = {
             '/foo1/': true,
             '/foo2/': true,
