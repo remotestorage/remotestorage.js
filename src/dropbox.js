@@ -1,22 +1,22 @@
-var Authorize = require('./authorize');
-var BaseClient = require('./baseclient');
-var WireClient = require('./wireclient');
-var util = require('./util');
-var eventHandling = require('./eventhandling');
-var RevisionCache = require('./revisioncache');
+const Authorize = require('./authorize');
+const BaseClient = require('./baseclient');
+const WireClient = require('./wireclient');
+const eventHandling = require('./eventhandling');
+const RevisionCache = require('./revisioncache');
+const util = require('./util');
 
 /**
- * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
+ * Dropbox backend for remoteStorage.js
  *
- * Dropbox backend for RemoteStorage.js
- * This file exposes a get/put/delete interface which is compatible with
+ * This file exposes a GET/PUT/DELETE interface which is compatible with
  * <WireClient>.
  *
- * When remoteStorage.backend is set to 'dropbox', this backend will
- * initialize and replace remoteStorage.remote with remoteStorage.dropbox.
+ * When remoteStorage.backend is set to 'dropbox', this backend will initialize
+ * and replace remoteStorage.remote with remoteStorage.dropbox.
  *
- * In order to ensure compatibility with the public folder, <BaseClient.getItemURL>
- * gets hijacked to return the Dropbox public share URL.
+ * In order to ensure compatibility with the public folder,
+ * <BaseClient.getItemURL> gets hijacked to return the Dropbox public share
+ * URL.
  *
  * To use this backend, you need to specify the Dropbox app key like so:
  *
@@ -38,6 +38,7 @@ var RevisionCache = require('./revisioncache');
  */
 
 let hasLocalStorage;
+
 const AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const PATH_PREFIX = '/remotestorage';
@@ -56,23 +57,28 @@ const getTextFromArrayBuffer = util.getTextFromArrayBuffer;
  *
  * @private
  */
-var getDropboxPath = function (path) {
+function getDropboxPath (path) {
   return cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
-};
+}
 
-var compareApiError = function (response, expect) {
+/**
+ * @private
+ */
+function compareApiError (response, expect) {
   return new RegExp('^' + expect.join('\\/') + '(\\/|$)').test(response.error_summary);
-};
+}
 
-const isBinaryData = function (data) {
+/**
+ * @private
+ */
+function isBinaryData (data) {
   return data instanceof ArrayBuffer || WireClient.isArrayBufferView(data);
-};
+}
 
 /**
  * @class
  */
-var Dropbox = function (rs) {
-
+function Dropbox (rs) {
   this.rs = rs;
   this.connected = false;
   this.rs = rs;
@@ -87,7 +93,7 @@ var Dropbox = function (rs) {
 
   hasLocalStorage = util.localStorageAvailable();
 
-  if (hasLocalStorage){
+  if (hasLocalStorage) {
     const settings = getJSONFromLocalStorage(SETTINGS_KEY);
     if (settings) {
       this.configure(settings);
@@ -97,7 +103,7 @@ var Dropbox = function (rs) {
   if (this.connected) {
     setTimeout(this._emit.bind(this), 0, 'connected');
   }
-};
+}
 
 Dropbox.prototype = {
   online: true,
@@ -106,7 +112,7 @@ Dropbox.prototype = {
    * Set the backed to 'dropbox' and start the authentication flow in order
    * to obtain an API token from Dropbox.
    */
-  connect: function () {
+  connect () {
     // TODO handling when token is already present
     this.rs.setBackend('dropbox');
     if (this.token){
@@ -125,27 +131,27 @@ Dropbox.prototype = {
    *
    * @protected
    **/
-  configure: function (settings) {
+  configure (settings) {
     // We only update this.userAddress if settings.userAddress is set to a string or to null:
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
     // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
     if (typeof settings.token !== 'undefined') { this.token = settings.token; }
 
-    var writeSettingsToCache = function() {
+    function writeSettingsToCache () {
       if (hasLocalStorage) {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify({
           userAddress: this.userAddress,
           token: this.token
         }));
       }
-    };
+    }
 
-    var handleError = function() {
+    function handleError () {
       this.connected = false;
       if (hasLocalStorage) {
         localStorage.removeItem(SETTINGS_KEY);
       }
-    };
+    }
 
     if (this.token) {
       this.connected = true;
@@ -172,7 +178,7 @@ Dropbox.prototype = {
    *
    * @protected
    */
-  stopWaitingForToken: function () {
+  stopWaitingForToken () {
     if (!this.connected) {
       this._emit('not-connected');
     }
@@ -190,7 +196,7 @@ Dropbox.prototype = {
    *
    * @private
    */
-  _getFolder: function (path) {
+  _getFolder (path) {
     var url = 'https://api.dropboxapi.com/2/files/list_folder';
     var revCache = this._revCache;
     var self = this;
@@ -238,27 +244,28 @@ Dropbox.prototype = {
       return Promise.resolve(listing);
     };
 
-    const loadNext = function (cursor) {
+    function loadNext (cursor) {
       const continueURL = 'https://api.dropboxapi.com/2/files/list_folder/continue';
       const params = {
         body: { cursor: cursor }
       };
 
       return self._request('POST', continueURL, params).then(processResponse);
-    };
+    }
 
     return this._request('POST', url, {
       body: {
         path: getDropboxPath(path)
       }
-    }).then(processResponse).then(function (listing) {
-      return Promise.resolve({
-        statusCode: 200,
-        body: listing,
-        contentType: 'application/json; charset=UTF-8',
-        revision: revCache.get(path)
+    }).then(processResponse)
+      .then(listing => {
+        return Promise.resolve({
+          statusCode: 200,
+          body: listing,
+          contentType: 'application/json; charset=UTF-8',
+          revision: revCache.get(path)
+        });
       });
-    });
   },
 
   /**
@@ -274,10 +281,12 @@ Dropbox.prototype = {
    *
    * @protected
    */
-  get: function (path, options) {
-    if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
-    var url = 'https://content.dropboxapi.com/2/files/download';
-    var self = this;
+  get (path, options) {
+    if (! this.connected) {
+      return Promise.reject("not connected (path: " + path + ")");
+    }
+    const url = 'https://content.dropboxapi.com/2/files/download';
+    const self = this;
 
     var savedRev = this._revCache.get(path);
     if (savedRev === null) {
@@ -285,41 +294,43 @@ Dropbox.prototype = {
       return Promise.resolve({statusCode: 404});
     }
     if (options && options.ifNoneMatch) {
-      //we must wait for local revision cache to be initialized before checking if local revision is outdated
-      if (! this._initialFetchDone) { return Promise.reject("not initialized yet (path: " + path + ")"); }
-     
+      // We must wait for local revision cache to be initialized before
+      // checking if local revision is outdated
+      if (! this._initialFetchDone) {
+        return Promise.reject("not initialized yet (path: " + path + ")");
+      }
+
       if (savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
         return Promise.resolve({statusCode: 304});
       }
     }
 
-    //use _getFolder for folders
-    if (path.substr(-1) === '/') {
-      return this._getFolder(path, options);
-    }
+    // Use _getFolder for folders
+    if (isFolder(path)) { return this._getFolder(path, options); }
 
-
-    var params = {
+    const params = {
       headers: {
-        'Dropbox-API-Arg': JSON.stringify({path: getDropboxPath(path)}),
+        'Dropbox-API-Arg': JSON.stringify({ path: getDropboxPath(path) }),
       },
       responseType: 'arraybuffer'
     };
+
     if (options && options.ifNoneMatch) {
       params.headers['If-None-Match'] = options.ifNoneMatch;
     }
 
-    return this._request('GET', url, params).then(function (resp) {
-      var status = resp.status;
-      var meta, body, mime, rev;
+    return this._request('GET', url, params).then(resp => {
+      const status = resp.status;
+      let meta, body, mime, rev;
+
       if (status !== 200 && status !== 409) {
-        return Promise.resolve({statusCode: status});
+        return Promise.resolve({ statusCode: status });
       }
       meta = resp.getResponseHeader('Dropbox-API-Result');
-      //first encode the response as text, and later check if 
-      //text appears to actually be binary data
-      return getTextFromArrayBuffer(resp.response, 'UTF-8').then(function (responseText) {
+      // First encode the response as text, and later check if text appears to
+      // actually be binary data
+      return getTextFromArrayBuffer(resp.response, 'UTF-8').then(responseText => {
         body = responseText;
         if (status === 409) {
           meta = body;
@@ -344,25 +355,25 @@ Dropbox.prototype = {
         self._shareIfNeeded(path);
 
         if (shouldBeTreatedAsBinary(responseText, mime)) {
-          //return unprocessed response 
+          // Return unprocessed response
           body = resp.response;
         } else {
-          // handling json (always try)
+          // Handling json (always try)
           try {
             body = JSON.parse(body);
             mime = 'application/json; charset=UTF-8';
-          } catch(e) {
-            //Failed parsing Json, assume it is something else then
+          } catch (e) {
+            // Failed parsing JSON, assume it is something else then
           }
         }
 
         return {
-          statusCode: status, 
-          body: body, 
-          contentType: mime, 
+          statusCode: status,
+          body: body,
+          contentType: mime,
           revision: rev
-        }; 
-      });  
+        };
+      });
     });
   },
 
@@ -382,15 +393,15 @@ Dropbox.prototype = {
    *                    content-type and revision
    * @protected
    */
-  put: function (path, body, contentType, options) {
-    var self = this;
+  put (path, body, contentType, options) {
+    const self = this;
 
-    if (!this.connected) {
+    if (! this.connected) {
       throw new Error("not connected (path: " + path + ")");
     }
 
     //check if file has changed and return 412
-    var savedRev = this._revCache.get(path);
+    const savedRev = this._revCache.get(path);
     if (options && options.ifMatch &&
         savedRev && (savedRev !== options.ifMatch)) {
       return Promise.resolve({statusCode: 412, revision: savedRev});
@@ -409,9 +420,9 @@ Dropbox.prototype = {
       return Promise.reject(new Error("Cannot upload file larger than 150MB"));
     }
 
-    var result;
-    var needsMetadata = options && (options.ifMatch || (options.ifNoneMatch === '*'));
-    var uploadParams = {
+    let result;
+    const needsMetadata = options && (options.ifMatch || (options.ifNoneMatch === '*'));
+    const uploadParams = {
       body: body,
       contentType: contentType,
       path: path
@@ -459,13 +470,13 @@ Dropbox.prototype = {
    *
    * @protected
    */
-  'delete': function (path, options) {
+  'delete' (path, options) {
     if (!this.connected) {
       throw new Error("not connected (path: " + path + ")");
     }
 
     //check if file has changed and return 412
-    var savedRev = this._revCache.get(path);
+    const savedRev = this._revCache.get(path);
     if (options && options.ifMatch && savedRev && (options.ifMatch !== savedRev)) {
       return Promise.resolve({ statusCode: 412, revision: savedRev });
     }
@@ -491,7 +502,7 @@ Dropbox.prototype = {
    *
    * @private
    */
-  _shareIfNeeded: function (path) {
+  _shareIfNeeded (path) {
     if (path.match(/^\/public\/.*[^/]$/) && this._itemRefs[path] === undefined) {
       this.share(path);
     }
@@ -505,9 +516,9 @@ Dropbox.prototype = {
    *
    * @private
    */
-  share: function (path) {
-    var url = 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings';
-    var options = {
+  share (path) {
+    const url = 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings';
+    const options = {
       body: {path: getDropboxPath(path)}
     };
 
@@ -516,7 +527,7 @@ Dropbox.prototype = {
         return Promise.reject(new Error('Invalid response status:' + response.status));
       }
 
-      var body;
+      let body;
 
       try {
         body = JSON.parse(response.responseText);
@@ -554,11 +565,11 @@ Dropbox.prototype = {
    *
    * @protected
    */
-  info: function () {
-    var url = 'https://api.dropboxapi.com/2/users/get_current_account';
+  info () {
+    const url = 'https://api.dropboxapi.com/2/users/get_current_account';
 
     return this._request('POST', url, {}).then(function (response) {
-      var info = response.responseText;
+      let info = response.responseText;
 
       try {
         info = JSON.parse(info);
@@ -582,8 +593,8 @@ Dropbox.prototype = {
    *
    * @private
    */
-  _request: function (method, url, options) {
-    var self = this;
+  _request (method, url, options) {
+    const self = this;
 
     if (!options.headers) {
       options.headers = {};
@@ -643,11 +654,11 @@ Dropbox.prototype = {
    *
    * @private
    */
-  fetchDelta: function () {
-    var args = Array.prototype.slice.call(arguments);
-    var self = this;
+  fetchDelta () {
+    const args = Array.prototype.slice.call(arguments);
+    const self = this;
 
-    var fetch = function (cursor) {
+    const fetch = function (cursor) {
       let url = 'https://api.dropboxapi.com/2/files/list_folder';
       let requestBody;
 
@@ -698,7 +709,7 @@ Dropbox.prototype = {
         }
 
         responseBody.entries.forEach(function (entry) {
-          var path = entry.path_lower.substr(PATH_PREFIX.length);
+          const path = entry.path_lower.substr(PATH_PREFIX.length);
 
           if (entry['.tag'] === 'deleted') {
             // there's no way to know whether the entry was a file or a folder
@@ -746,7 +757,7 @@ Dropbox.prototype = {
    *
    * @private
    */
-  _getMetadata: function (path) {
+  _getMetadata (path) {
     const url = 'https://api.dropboxapi.com/2/files/get_metadata';
     const requestBody = {
       path: getDropboxPath(path)
@@ -796,9 +807,9 @@ Dropbox.prototype = {
    *
    * @private
    */
-  _uploadSimple: function (params) {
-    var url = 'https://content.dropboxapi.com/2/files/upload';
-    var args = {
+  _uploadSimple (params) {
+    const url = 'https://content.dropboxapi.com/2/files/upload';
+    const args = {
       path: getDropboxPath(params.path),
       mode: {'.tag': 'overwrite'},
       mute: true
@@ -814,12 +825,14 @@ Dropbox.prototype = {
         'Content-Type': 'application/octet-stream',
         'Dropbox-API-Arg': JSON.stringify(args)
       }
-    }).then((response) => {
+    }).then(response => {
       if (response.status !== 200 && response.status !== 409) {
-        return Promise.resolve({statusCode: response.status});
+        return Promise.resolve({
+          statusCode: response.status
+        });
       }
 
-      var body = response.responseText;
+      let body = response.responseText;
 
       try {
         body = JSON.parse(body);
@@ -829,7 +842,7 @@ Dropbox.prototype = {
 
       if (response.status === 409) {
         if (compareApiError(body, ['path', 'conflict'])) {
-          return this._getMetadata(params.path).then(function (metadata) {
+          return this._getMetadata(params.path).then(metadata => {
             return Promise.resolve({
               statusCode: 412,
               revision: metadata.rev
@@ -841,7 +854,10 @@ Dropbox.prototype = {
 
       this._revCache.set(params.path, body.rev);
 
-      return Promise.resolve({ statusCode: response.status, revision: body.rev });
+      return Promise.resolve({
+        statusCode: response.status,
+        revision: body.rev
+      });
     });
   },
 
@@ -855,16 +871,16 @@ Dropbox.prototype = {
    *
    * @private
    */
-  _deleteSimple: function (path) {
+  _deleteSimple (path) {
     const url = 'https://api.dropboxapi.com/2/files/delete';
     const requestBody = { path: getDropboxPath(path) };
 
-    return this._request('POST', url, { body: requestBody }).then((response) => {
+    return this._request('POST', url, { body: requestBody }).then(response => {
       if (response.status !== 200 && response.status !== 409) {
         return Promise.resolve({statusCode: response.status});
       }
 
-      var responseBody = response.responseText;
+      let responseBody = response.responseText;
 
       try {
         responseBody = JSON.parse(responseBody);
@@ -901,9 +917,9 @@ Dropbox.prototype = {
    *
    * @private
    */
-  _getSharedLink: function (path) {
-    var url = 'https://api.dropbox.com/2/sharing/list_shared_links';
-    var options = {
+  _getSharedLink (path) {
+    const url = 'https://api.dropbox.com/2/sharing/list_shared_links';
+    const options = {
       body: {
         path: getDropboxPath(path),
         direct_only: true
