@@ -84,6 +84,7 @@ var Dropbox = function (rs) {
   this.clientId = rs.apiKeys.dropbox.appKey;
   this._revCache = new RevisionCache('rev');
   this._fetchDeltaCursor = null;
+  this._fetchDeltaPromise = null;
   this._itemRefs = {};
 
   hasLocalStorage = util.localStorageAvailable();
@@ -286,8 +287,13 @@ Dropbox.prototype = {
       return Promise.resolve({statusCode: 404});
     }
     if (options && options.ifNoneMatch) {
-      //we must wait for local revision cache to be initialized before checking if local revision is outdated
-      if (! this._initialFetchDone) { return Promise.reject("not initialized yet (path: " + path + ")"); }
+      // We must wait for local revision cache to be initialized before
+      // checking if local revision is outdated
+      if (! this._initialFetchDone) {
+        return this.fetchDelta().then(() => {
+          return this.get(path, options);
+        });
+      }
      
       if (savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
@@ -645,6 +651,12 @@ Dropbox.prototype = {
    * @private
    */
   fetchDelta: function () {
+    // If fetchDelta was already called, and didn't finish, return the existing
+    // promise instead of calling Dropbox API again
+    if (this._fetchDeltaPromise) {
+      return this._fetchDeltaPromise;
+    }
+
     var args = Array.prototype.slice.call(arguments);
     var self = this;
 
@@ -726,16 +738,20 @@ Dropbox.prototype = {
         }
       });
     };
-    return fetch(self._fetchDeltaCursor).catch(function (error) {
+    this._fetchDeltaPromise = fetch(self._fetchDeltaCursor).catch((error) => {
       if (typeof(error) === 'object' && 'message' in error) {
         error.message = 'Dropbox: fetchDelta: ' + error.message;
       } else {
         error = `Dropbox: fetchDelta: ${error}`;
       }
+      this._fetchDeltaPromise = null;
       return Promise.reject(error);
-    }).then(function () {
+    }).then(() => {
+      this._fetchDeltaPromise = null;
       return Promise.resolve(args);
     });
+
+    return this._fetchDeltaPromise;
   },
 
   /**
