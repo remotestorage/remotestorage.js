@@ -54,6 +54,13 @@ define(['require', './src/util', './src/config', './src/inmemorystorage'], funct
             body:        'asdf',
             contentType: 'text/plain'
           };
+          deletedLocalNode = {
+            path:   '/a/b',
+            local:  { body: false },
+            common: { body: 'b', contentType: 'c' },
+            push:   { foo: 'bar' },
+            remote: { foo: 'bar' }
+          }
 
           test.assertAnd(getLatest(undefined), undefined);
           test.assertAnd(getLatest({local: { revision: 1, timestamp: 1 }}), undefined);
@@ -63,6 +70,7 @@ define(['require', './src/util', './src/config', './src/inmemorystorage'], funct
           test.assertAnd(getLatest(commonNode).contentType, 'c');
           test.assertAnd(getLatest(legacyNode).body, 'asdf');
           test.assertAnd(getLatest(legacyNode).contentType, 'text/plain');
+          test.assertAnd(getLatest(deletedLocalNode), undefined);
           test.done();
         }
       },
