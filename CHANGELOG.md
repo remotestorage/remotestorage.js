@@ -4,12 +4,15 @@ All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases)
 at GitHub.
 
-## Master
+## 1.2.2 (March 2019)
+
+Many thanks to @iLiviu for contributing all fixes in this release!
 
 ### Bugfixes
 
-* Fix retrieval of binary files from Dropbox and Google Drive (#1155,
-  by @iLiviu)
+* Fix retrieval of binary files from Dropbox and Google Drive (#1155)
+* Fix BaseClient.remove not working correctly while offline (#1160)
+* Fix detecting changes in subfolders for Dropbox (#1161)
 
 ## 1.2.1 (January 2019)
 
