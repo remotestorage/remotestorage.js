@@ -42,6 +42,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
       util.localStorageAvailable = function() { return true; };
       env.client = new Dropbox(env.rs);
       env.connectedClient = new Dropbox(env.rs);
+      env.connectedClient._initialFetchDone = true;
       util.localStorageAvailable = oldLocalStorageAvailable;
       env.baseURI = 'https://example.com/storage/test';
       env.token = 'foobarbaz';
@@ -111,6 +112,15 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
           willFail: true,
           run: function (env, test) {
             env.client.delete('/foo');
+          }
+        },
+
+        {
+          desc: "#get fails if initial call to fetchDelta is not yet complete",
+          willFail: true,
+          run: function (env, test) {
+            env.connectedClient._initialFetchDone = false;
+            return env.client.get('/foo');
           }
         },
 
@@ -567,19 +577,45 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         },
 
         {
-          desc: "#get correctly recognizes changes in folders",
+          desc: "changes in subfolders are recognized after sync",
           run: function (env, test) {
             env.connectedClient.get('/').then(function (r) {
-              env.connectedClient.get('/', { ifNoneMatch: r.revision }).then(function (r) {
-                test.assertFail(r.statusCode, 304);
+              env.connectedClient.fetchDelta().then(function (fetchResponse) {
+                env.connectedClient.get('/', { ifNoneMatch: r.revision }).then(function (r) {
+                  test.assertFail(r.statusCode, 304);
+                  test.assertFail(env.connectedClient._revCache.get('/foo/'), 'rev');
+                });
+                mockRequestSuccess({
+                  status: 200,
+                  responseText: JSON.stringify({
+                    entries: [{
+                      '.tag': 'file',
+                      path_lower: '/remotestorage/file',
+                      rev: '1'
+                    },
+                    {
+                      '.tag': 'folder',
+                      path_lower: '/remotestorage/foo',
+                    }]
+                  })
+                });
               });
               mockRequestSuccess({
                 status: 200,
                 responseText: JSON.stringify({
                   entries: [{
-                    '.tag': 'file',
-                    path_lower: 'foo',
-                    rev: '2'
+                      '.tag': 'file',
+                      path_lower: '/remotestorage/file',
+                      rev: '1'
+                    },
+                    {
+                      '.tag': 'folder',
+                      path_lower: '/remotestorage/foo',
+                    },                    
+                    {
+                      '.tag': 'file',
+                      path_lower: '/remotestorage/foo/bar',
+                      rev: '1'
                   }]
                 })
               });
@@ -588,10 +624,14 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
               status: 200,
               responseText: JSON.stringify({
                 entries: [{
-                  '.tag': 'file',
-                  path_lower: 'foo',
-                  rev: '1'
-                }]
+                    '.tag': 'file',
+                    path_lower: '/remotestorage/file',
+                    rev: '1'
+                  }, 
+                  {
+                    '.tag': 'folder',
+                    path_lower: '/remotestorage/foo',
+                  }]
               })
             });            
           }
@@ -600,11 +640,13 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         {
           desc: "#put causes the revision to propagate down in revCache",
           run: function (env, test) {
+            env.connectedClient._revCache.set('/', 'foo');
             env.connectedClient._revCache.set('/foo/', 'foo');
             env.connectedClient._revCache.set('/foo/bar', 'foo');
             env.connectedClient.put('/foo/bar', 'data', 'text/plain').
               then(function (r) {
-                test.assertAnd(env.connectedClient._revCache.get('/foo/'), 'bar');
+                test.assertFail(env.connectedClient._revCache.get('/foo/'), 'foo');
+                test.assertFail(env.connectedClient._revCache.get('/'), 'foo');
                 test.assert(env.connectedClient._revCache.get('/foo/bar'), 'bar');
               });
             setTimeout(function () {
@@ -760,7 +802,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
             env.connectedClient.delete('/foo/bar').
               then(function (r) {
                 test.assertAnd(r.statusCode, 200);
-                test.assert(env.connectedClient._revCache.get('/foo/bar'), 'rev');
+                test.assert(env.connectedClient._revCache.get('/foo/bar'), null);
               });
               test.assertAnd(getMockRequestMethod(), 'POST');
               test.assertAnd(getMockRequestUrl(), 'https://api.dropboxapi.com/2/files/delete');
