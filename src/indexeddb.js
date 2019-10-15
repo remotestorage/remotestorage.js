@@ -403,11 +403,24 @@ IndexedDB._rs_supported = function () {
 
     // Detect browsers with known IndexedDb issues (e.g. Android pre-4.4)
     var poorIndexedDbSupport = false;
-    if (typeof navigator !== 'undefined' &&
-        navigator.userAgent.match(/Android (2|3|4\.[0-3])/)) {
-      // Chrome and Firefox support IndexedDB
-      if (!navigator.userAgent.match(/Chrome|Firefox/)) {
-        poorIndexedDbSupport = true;
+
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent;
+
+      if (ua.match(/Android (2|3|4\.[0-3])/)) {
+        // Chrome and Firefox support IndexedDB
+        if (!ua.match(/Chrome|Firefox/)) {
+          poorIndexedDbSupport = true;
+        }
+      }
+
+      // iOS 12 and 13 have serious bugs (see #1168)
+      if (ua.match(/(ipod|iphone|ipad)/i)) {
+        const versionMatch = ua.match(/os (\d+([_\s]\d+)*) like mac os x/i);
+        const version = (versionMatch && versionMatch.length > 0 && versionMatch[1]) || '';
+        if (version.match(/^1[2|3]/)) {
+          poorIndexedDbSupport = true;
+        }
       }
     }
 

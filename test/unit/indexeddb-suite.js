@@ -167,6 +167,35 @@ define(['./src/indexeddb', './src/config'], function (IndexedDB, config) {
         }
       },
 
+      {
+        desc: "#_rs_supported is false on iOS 13",
+        run: function(env, test) {
+          let originalIndexedDB = global.indexedDB;
+          let originalNavigator = global.navigator;
+
+          if (!global.indexedDB) {
+            global.indexedDB = {};
+          }
+          global.indexedDB.open = function () {
+            test.result(false, 'tried to access indexedDB');
+          };
+
+          if (!global.navigator) {
+            global.navigator = {};
+          }
+          global.navigator.userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
+
+          IndexedDB._rs_supported().then(() => {
+            test.result(false, 'should not use indexedDB on iOS 13');
+          }).catch(() => {
+            test.result(true);
+          }).finally(() => {
+            global.navigator= originalNavigator;
+            global.indexedDB = originalIndexedDB;
+          });
+        }
+      },
+
       /* TODO: mock indexeddb with some nodejs library
       {
         desc: "getNodes, setNodes",
