@@ -246,7 +246,7 @@ IndexedDB.prototype = {
           // hacky!
           this.db = other;
         }
-        if (typeof callback === 'function') { callback(self); }
+        if (typeof callback === 'function') { callback(this); }
       });
     });
   },
