@@ -745,9 +745,15 @@ RemoteStorage.prototype = {
       console.warn('Nothing to sync, because caching is disabled.');
       return Promise.resolve();
     }
-    this.sync.stopped = false;
+
     this.syncStopped = false;
-    return this.sync.sync();
+
+    if (this.sync) {
+      this.sync.stopped = false;
+      return this.sync.sync();
+    } else {
+      return Promise.reject('No sync class initialized');
+    }
   },
 
   /**
