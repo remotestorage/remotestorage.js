@@ -57,7 +57,8 @@ var options = {
     ],
     "no-multi-str": 2,
     "semi": 2,
-    "arrow-spacing": 2
+    "arrow-spacing": 2,
+    "no-prototype-builtins": 1
   }
 };
 
