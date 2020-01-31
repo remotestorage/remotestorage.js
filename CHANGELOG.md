@@ -4,6 +4,17 @@ All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases)
 at GitHub.
 
+## 1.2.3 (January 2020)
+
+### Enhancements
+
+* Update dependencies (#1172)
+
+### Bugfixes
+
+* Fix wrong comparison in Sync class (#1164)
+
+
 ## 1.2.2 (March 2019)
 
 Many thanks to @iLiviu for contributing all fixes in this release!
