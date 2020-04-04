@@ -8,11 +8,9 @@ import * as config from './config';
  * (In node.js you can also enable logging during remoteStorage object
  * creation. See: {@link RemoteStorage}).
  */
-function log() {
+export default function log(...args: any) {
   if (config.logging) {
     // eslint-disable-next-line no-console
     console.log.apply(console, arguments);
   }
 }
-
-module.exports = log;
