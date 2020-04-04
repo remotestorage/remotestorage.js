@@ -31,6 +31,7 @@
     "@babel/preset-env": "^7.8.4",
     "@types/node": "13.11.0",
     "babel-loader": "^8.0.6",
+    "esformatter": "^0.11.3",
     "eslint": "^6.8.0",
     "jaribu": "^2.2.2",
     "typescript": "^3.8.3",
