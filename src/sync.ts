@@ -79,12 +79,14 @@ function handleVisibility (rs) {
  * the `markChildren` function).
  **/
 class Sync {
+  // TODO remove when RS is defined, or if unnecessary
   rs: { [propName: string]: any }
 
   numThreads: number
   done: boolean
   stopped: boolean
 
+  // TODO define in more detail
   _tasks: object
   _running: object
   _timeStarted: object
@@ -111,11 +113,11 @@ class Sync {
     eventHandling(this, 'done', 'req-done');
   }
 
-  public now () {
+  public now (): number {
     return new Date().getTime();
   }
 
-  public queueGetRequest (path) {
+  public queueGetRequest (path: string): object {
     return new Promise((resolve, reject) => {
       if (!this.rs.remote.connected) {
         reject('cannot fulfill maxAge requirement - remote is not connected');
@@ -134,7 +136,7 @@ class Sync {
   }
 
   // FIXME force02 sounds like rs spec 02, thus could be removed
-  public corruptServerItemsMap (itemsMap, force02?: boolean) {
+  public corruptServerItemsMap (itemsMap, force02?: boolean): boolean {
     if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
       return true;
     }
@@ -170,7 +172,7 @@ class Sync {
     return false;
   }
 
-  public corruptItemsMap (itemsMap) {
+  public corruptItemsMap (itemsMap): boolean {
     if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
       return true;
     }
@@ -184,7 +186,7 @@ class Sync {
     return false;
   }
 
-  public corruptRevision (rev) {
+  public corruptRevision (rev): boolean {
     return ((typeof(rev) !== 'object') ||
             (Array.isArray(rev)) ||
             (rev.revision && typeof(rev.revision) !== 'string') ||
@@ -195,7 +197,7 @@ class Sync {
             (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
   }
 
-  public isCorrupt (node) {
+  public isCorrupt (node): boolean {
     return ((typeof(node) !== 'object') ||
             (Array.isArray(node)) ||
             (typeof(node.path) !== 'string') ||
@@ -205,7 +207,7 @@ class Sync {
             (node.push && this.corruptRevision(node.push)));
   }
 
-  public hasTasks () {
+  public hasTasks (): boolean {
     return Object.getOwnPropertyNames(this._tasks).length > 0;
   }
 
@@ -229,19 +231,17 @@ class Sync {
         this.addTask(node.path);
         num++;
       }
-    }).then(function () {
-      return num;
-    }, function (err) {
-      throw err;
-    });
+    })
+    .then((): number => num)
+    .catch(e => { throw e; })
   }
 
-  public inConflict (node) {
+  public inConflict (node): boolean {
     return (node.local && node.remote &&
             (node.remote.body !== undefined || node.remote.itemsMap));
   }
 
-  public needsRefresh (node) {
+  public needsRefresh (node): boolean {
     if (node.common) {
       if (!node.common.timestamp) {
         return true;
@@ -251,7 +251,7 @@ class Sync {
     return false;
   }
 
-  public needsFetch (node) {
+  public needsFetch (node): boolean {
     if (this.inConflict(node)) {
       return true;
     }
@@ -268,7 +268,7 @@ class Sync {
     return false;
   }
 
-  public needsPush (node) {
+  public needsPush (node): boolean {
     if (this.inConflict(node)) {
       return false;
     }
@@ -277,15 +277,15 @@ class Sync {
     }
   }
 
-  public needsRemotePut (node) {
+  public needsRemotePut (node): boolean {
     return node.local && node.local.body;
   }
 
-  public needsRemoteDelete (node) {
+  public needsRemoteDelete (node): boolean {
     return node.local && node.local.body === false;
   }
 
-  public getParentPath (path) {
+  public getParentPath (path: string): string {
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
 
     if (parts) {
@@ -295,7 +295,7 @@ class Sync {
     }
   }
 
-  public deleteChildPathsFromTasks () {
+  public deleteChildPathsFromTasks (): void {
     for (var path in this._tasks) {
       var paths = pathsFromRoot(path);
 
@@ -329,8 +329,9 @@ class Sync {
           this.addTask(node.path);
         }
       }
-    }).then(() => { this.deleteChildPathsFromTasks(); },
-            err => { throw err; });
+    })
+    .then(() => { this.deleteChildPathsFromTasks(); })
+    .catch(e => { throw e; });
   }
 
   public flush (nodes) {
@@ -509,7 +510,7 @@ class Sync {
     return node;
   }
 
-  public updateCommonTimestamp (path, revision) {
+  public updateCommonTimestamp (path: string, revision: string) {
     return this.rs.local.getNodes([path]).then(nodes => {
       if (nodes[path] &&
           nodes[path].common &&
@@ -781,7 +782,7 @@ class Sync {
     });
   }
 
-  public dealWithFailure (path) {
+  public dealWithFailure (path: string) {
     return this.rs.local.getNodes([path]).then(nodes => {
       if (nodes[path]) {
         delete nodes[path].push;
@@ -995,7 +996,7 @@ class Sync {
   /**
    * Method: sync
    **/
-  public sync () {
+  public sync (): Promise<void> {
     this.done = false;
 
     if (!this.doTasks()) {
@@ -1014,8 +1015,8 @@ class Sync {
     }
   }
 
-  static _rs_init (remoteStorage) {
-    syncCycleCb = function () {
+  static _rs_init (remoteStorage): void {
+    syncCycleCb = function (): void {
       // if (!config.cache) return false
       log('[Sync] syncCycleCb calling syncCycle');
       if (Env.isBrowser()) { handleVisibility(remoteStorage); }
@@ -1035,7 +1036,7 @@ class Sync {
       remoteStorage.syncCycle();
     };
 
-    syncOnConnect = function() {
+    syncOnConnect = function (): void {
       remoteStorage.removeEventListener('connected', syncOnConnect);
       remoteStorage.startSync();
     };
@@ -1044,7 +1045,7 @@ class Sync {
     remoteStorage.on('connected', syncOnConnect);
   }
 
-  static _rs_cleanup (remoteStorage) {
+  static _rs_cleanup (remoteStorage): void {
     remoteStorage.stopSync();
     remoteStorage.removeEventListener('ready', syncCycleCb);
     remoteStorage.removeEventListener('connected', syncOnConnect);
