@@ -15,20 +15,20 @@ function taskFor (action, path, promise) {
   };
 }
 
-function nodeChanged (node, etag) {
+function nodeChanged (node, etag): boolean {
   return node.common.revision !== etag &&
          (!node.remote || node.remote.revision !== etag);
 }
 
-function isStaleChild (node) {
+function isStaleChild (node): boolean {
   return node.remote && node.remote.revision && !node.remote.itemsMap && !node.remote.body;
 }
 
-function hasCommonRevision (node) {
+function hasCommonRevision (node): boolean {
   return node.common && node.common.revision;
 }
 
-function hasNoRemoteChanges (node) {
+function hasNoRemoteChanges (node): boolean {
   if (node.remote && node.remote.revision &&
       node.remote.revision !== node.common.revision) {
     return false;
