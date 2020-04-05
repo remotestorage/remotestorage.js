@@ -23,7 +23,7 @@ interface Nodes {
   [key: string]: string;
 }
 
-export default class Localstorage {
+export default class LocalStorage {
   /**
    * Initialize the LocalStorage backend.
    *
@@ -115,7 +115,3 @@ export default class Localstorage {
     return Promise.resolve();
   }
 }
-
-
-
-
