@@ -10,13 +10,12 @@ import * as util from './util';
 const NODES_PREFIX = "remotestorage:cache:nodes:";
 const CHANGES_PREFIX = "remotestorage:cache:changes:";
 
-
-function isRemoteStorageKey(key): boolean {
+function isRemoteStorageKey(key: string): boolean {
   return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX ||
     key.substr(0, CHANGES_PREFIX.length) === CHANGES_PREFIX;
 }
 
-function isNodeKey(key): boolean {
+function isNodeKey(key: string): boolean {
   return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX;
 }
 
