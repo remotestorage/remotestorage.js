@@ -1,5 +1,5 @@
 import * as cachingLayer from './cachinglayer';
-import log from './log';
+import * as log from './log';
 import * as eventHandling from './eventhandling';
 import * as util from './util';
 
@@ -29,7 +29,7 @@ export default class LocalStorage {
    *
    * @protected
    */
-  protected _rs_init() {
+  protected static _rs_init() {
   }
 
 
@@ -40,7 +40,7 @@ export default class LocalStorage {
    *
    * @protected
    */
-  protected _rs_supported() {
+  protected static _rs_supported() {
     return util.localStorageAvailable();
   };
 
@@ -51,7 +51,7 @@ export default class LocalStorage {
    *
    * TODO: tests missing!
    */
-  protected _rs_cleanup() {
+  protected static _rs_cleanup() {
     const keys = [];
 
     for (let i = 0, len = localStorage.length; i < len; i++) {
@@ -102,8 +102,8 @@ export default class LocalStorage {
     for (let i = 0, len = localStorage.length; i < len; i++) {
       if(isNodeKey(localStorage.key(i))) {
         try {
-          // TODO check where this is coming from
-          // node = this.migrate(JSON.parse(localStorage[localStorage.key(i)]));
+          // NOTE: this is coming from caching layer todo fix via interface or similar
+          node = this.migrate(JSON.parse(localStorage[localStorage.key(i)]));
         } catch (e) {
           node = undefined;
         }
@@ -115,3 +115,6 @@ export default class LocalStorage {
     return Promise.resolve();
   }
 }
+
+// TODO should be removed after refactor in favor of adjusting the imports
+module.exports = LocalStorage;

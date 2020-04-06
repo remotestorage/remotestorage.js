@@ -14,3 +14,6 @@ export default function log(...args: any) {
     console.log.apply(console, arguments);
   }
 }
+
+// TODO should be removed after refactor in favor of adjusting the imports
+module.exports = log;
