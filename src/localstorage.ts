@@ -1,7 +1,7 @@
 import * as cachingLayer from './cachinglayer';
 import * as log from './log';
 import * as eventHandling from './eventhandling';
-import * as util from './util';
+import {localStorageAvailable} from './util';
 
 /**
  * localStorage caching adapter. Used when no IndexedDB available.
@@ -41,7 +41,7 @@ export default class LocalStorage {
    * @protected
    */
   protected static _rs_supported() {
-    return util.localStorageAvailable();
+    return localStorageAvailable();
   };
 
   /**
