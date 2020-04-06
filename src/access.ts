@@ -82,15 +82,14 @@ class Access {
    * @param {string} scope - Access scope
    */
   remove(scope: AccessScope) {
-    const savedMap = {};
+    const savedMap: ScopeModeMap = {};
     for (const name in this.scopeModeMap) {
       savedMap[name] = this.scopeModeMap[name];
     }
     this.reset();
     delete savedMap[scope];
     for (const name in savedMap) {
-      // TODO not sure where set is defined
-      // this.set(name, savedMap[name]);
+      this.claim(name as AccessScope, savedMap[name]);
     }
   }
 
