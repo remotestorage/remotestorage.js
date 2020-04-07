@@ -1,7 +1,8 @@
-import * as cachingLayer from './cachinglayer';
 import * as log from './log';
 import * as eventHandling from './eventhandling';
 import {localStorageAvailable} from './util';
+import {RSNodes} from './common-interfaces';
+import {CachingLayerBase} from './cachinglayer-new';
 
 /**
  * localStorage caching adapter. Used when no IndexedDB available.
@@ -19,11 +20,7 @@ function isNodeKey(key: string): boolean {
   return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX;
 }
 
-interface Nodes {
-  [key: string]: string;
-}
-
-export default class LocalStorage {
+export default class LocalStorage extends CachingLayerBase {
   /**
    * Initialize the LocalStorage backend.
    *
@@ -67,13 +64,23 @@ export default class LocalStorage {
     });
   };
 
+
+  // TODO fix this
+  _emit(...args: any[]) {
+  };
+
+  // TODO fix this
+  diffHandler(...args: any[]) {
+  }
+
+
   constructor() {
-    cachingLayer(this);
+    super();
     log('[LocalStorage] Registering events');
     eventHandling(this, 'change', 'local-events-done');
   }
 
-  getNodes(paths: string[]): Promise<Nodes> {
+  getNodes(paths: string[]): Promise<RSNodes> {
     const nodes = {};
 
     for (let i = 0, len = paths.length; i < len; i++) {
@@ -87,7 +94,7 @@ export default class LocalStorage {
     return Promise.resolve(nodes);
   }
 
-  setNodes(nodes: Nodes): Promise<void> {
+  setNodes(nodes: RSNodes): Promise<void> {
     for (const path in nodes) {
       // TODO shouldn't we use getItem/setItem?
       localStorage[NODES_PREFIX + path] = JSON.stringify(nodes[path]);

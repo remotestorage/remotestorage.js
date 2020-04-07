@@ -1,24 +1,8 @@
 import * as log from './log';
 import * as config from './config';
 import {deepClone, equal, isDocument, isFolder, pathsFromRoot} from './util';
+import {ChangeObj, ContentType, QueuedRequestResponse, RSEvent, RSNode, RSNodes} from './common-interfaces';
 
-interface Node {
-  [key: string]: any;
-}
-
-interface Nodes {
-  [key: string]: string;
-}
-
-interface RemoteStorageEvent {
-  [key: string]: string;
-}
-
-interface ChangeObj {
-  [key: string]: any;
-}
-
-type ContentType = any;
 
 /**
  * This module defines functions that are mixed into remoteStorage.local when
@@ -35,99 +19,41 @@ type ContentType = any;
  */
 
 
-// TODO figure out interface for node
-function getLatest(node: Node) {
-  if(typeof (node) !== 'object' || typeof (node.path) !== 'string') {
-    return;
-  }
-  if(isFolder(node.path)) {
-    if(node.local && node.local.itemsMap) {
-      return node.local;
-    }
-    if(node.common && node.common.itemsMap) {
-      return node.common;
-    }
-  } else {
-    if(node.local) {
-      if(node.local.body && node.local.contentType) {
-        return node.local;
-      }
-      if(node.local.body === false) {
-        return;
-      }
-    }
-    if(node.common && node.common.body && node.common.contentType) {
-      return node.common;
-    }
-    // Migration code! Once all apps use at least this version of the lib, we
-    // can publish clean-up code that migrates over any old-format data, and
-    // stop supporting it. For now, new apps will support data in both
-    // formats, thanks to this:
-    if(node.body && node.contentType) {
-      return {
-        body: node.body,
-        contentType: node.contentType
-      };
-    }
-  }
-}
-
-function isOutdated(nodes: Node[], maxAge: number): boolean {
-  for (const path in nodes) {
-    if(nodes[path] && nodes[path].remote) {
-      return true;
-    }
-    const nodeVersion = getLatest(nodes[path]);
-    if(nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
-      return false;
-    } else if(!nodeVersion) {
-      return true;
-    }
-  }
-  return true;
-}
+export abstract class CachingLayerBase {
+  // FIXME
+  // this process of updating nodes needs to be heavily documented first, then
+  // refactored. Right now it's almost impossible to refactor as there's no
+  // explanation of why things are implemented certain ways or what the goal(s)
+  // of the behavior are. -slvrbckt (+1 -les)
+  _updateNodesRunning = false;
+  _updateNodesQueued = [];
 
 
-function makeNode(path: string): Node {
-  const node: Node = {path: path, common: {}};
+  // functions that will be overwritten
+  // ----------------------------------
+  abstract getNodes(paths: string[]): Promise<RSNodes>;
 
-  if(isFolder(path)) {
-    node.common.itemsMap = {};
-  }
-  return node;
-}
+  abstract diffHandler(...args: any[]);
 
-function updateFolderNodeWithItemName(node: Node, itemName: string) {
-  if(!node.common) {
-    node.common = {
-      itemsMap: {}
-    };
-  }
-  if(!node.common.itemsMap) {
-    node.common.itemsMap = {};
-  }
-  if(!node.local) {
-    node.local = deepClone(node.common);
-  }
-  if(!node.local.itemsMap) {
-    node.local.itemsMap = node.common.itemsMap;
-  }
-  node.local.itemsMap[itemName] = true;
+  abstract _emit(...args: any[]): void;
 
-  return node;
-}
+  abstract forAllNodes(cb: (node) => any): Promise<void>;
 
-const methods = {
+  abstract setNodes(nodes: RSNodes): Promise<void>;
+
+
+  // --------------------------------------------------
 
   // TODO: improve our code structure so that this function
   // could call sync.queueGetRequest directly instead of needing
   // this hacky third parameter as a callback
-  get: function (path: string, maxAge: number, queueGetRequest: (path: string) => void): { statusCode: number; body: object; contentType: ContentType } {
-    const self = this;
+  get(path: string, maxAge: number, queueGetRequest: (path: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
+
     if(typeof (maxAge) === 'number') {
-      return self.getNodes(pathsFromRoot(path))
-        .then(function (objs) {
-          const node: Node = getLatest(objs[path]);
+
+      return this.getNodes(pathsFromRoot(path))
+        .then((objs) => {
+          const node: RSNode = getLatest(objs[path]);
           if(isOutdated(objs, maxAge)) {
             return queueGetRequest(path);
           } else if(node) {
@@ -137,12 +63,12 @@ const methods = {
           }
         });
     } else {
-      return self.getNodes([path])
-        .then(function (objs) {
+      return this.getNodes([path])
+        .then((objs) => {
           const node = getLatest(objs[path]);
           if(node) {
             if(isFolder(path)) {
-              for (var i in node.itemsMap) {
+              for (const i in node.itemsMap) {
                 // the hasOwnProperty check here is only because our jshint settings require it:
                 if(node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
                   delete node.itemsMap[i];
@@ -155,14 +81,14 @@ const methods = {
           }
         });
     }
-  },
+  }
 
-  put: function (path: string, body: any, contentType: ContentType): Nodes {
+  put(path: string, body: any, contentType: ContentType): Promise<RSNodes> {
     const paths = pathsFromRoot(path);
 
     function _processNodes(nodePaths, nodes) {
       try {
-        for (var i = 0, len = nodePaths.length; i < len; i++) {
+        for (let i = 0, len = nodePaths.length; i < len; i++) {
           const nodePath = nodePaths[i];
           let node = nodes[nodePath];
           let previous;
@@ -183,7 +109,7 @@ const methods = {
           }
           // Folder
           else {
-            var itemName = nodePaths[i - 1].substring(nodePath.length);
+            const itemName = nodePaths[i - 1].substring(nodePath.length);
             node = updateFolderNodeWithItemName(node, itemName);
           }
         }
@@ -195,9 +121,9 @@ const methods = {
     }
 
     return this._updateNodes(paths, _processNodes);
-  },
+  }
 
-  delete: function (path: string): unknown {
+  delete(path: string): unknown {
     const paths = pathsFromRoot(path);
 
     return this._updateNodes(paths, function (nodePaths, nodes) {
@@ -235,18 +161,18 @@ const methods = {
       }
       return nodes;
     });
-  },
+  }
 
-  flush: function (path: string): unknown {
-    const self = this;
-    return self._getAllDescendentPaths(path).then(function (paths) {
-      return self.getNodes(paths);
-    }).then(function (nodes) {
-      for (var nodePath in nodes) {
+  flush(path: string): unknown {
+
+    return this._getAllDescendentPaths(path).then((paths) => {
+      return this.getNodes(paths);
+    }).then(function (nodes: RSNodes) {
+      for (const nodePath in nodes) {
         const node = nodes[nodePath];
 
         if(node && node.common && node.local) {
-          self._emitChange({
+          this._emitChange({
             path: node.path,
             origin: 'local',
             oldValue: (node.local.body === false ? undefined : node.local.body),
@@ -256,33 +182,27 @@ const methods = {
         nodes[nodePath] = undefined;
       }
 
-      return self.setNodes(nodes);
+      return this.setNodes(nodes);
     });
-  },
+  }
 
-  _emitChange: function (obj: ChangeObj) {
+  _emitChange(obj: ChangeObj) {
     if(config.changeEvents[obj.origin]) {
       this._emit('change', obj);
     }
-  },
+  }
 
-  fireInitial: function () {
+  fireInitial() {
     if(!config.changeEvents.local) {
       return;
     }
-    const self = this;
-    console.log('BEFORE', self.forAllNodes);
 
-    self.forAllNodes(function (node) {
-      console.log(node);
-      console.log('0 isDocument(node.path)', isDocument(node.path), node.path);
+    this.forAllNodes((node) => {
 
       if(isDocument(node.path)) {
         const latest = getLatest(node);
         if(latest) {
-          console.log('1 EMIT');
-
-          self._emitChange({
+          this._emitChange({
             path: node.path,
             origin: 'local',
             oldValue: undefined,
@@ -292,17 +212,17 @@ const methods = {
           });
         }
       }
-    }).then(function () {
-      console.log('2 local-events-done');
-      self._emit('local-events-done');
+    }).then(() => {
+      this._emit('local-events-done');
     });
-  },
+  }
 
-  onDiff: function (diffHandler: unknown) {
+  // TODO add proper type
+  onDiff(diffHandler: any) {
     this.diffHandler = diffHandler;
-  },
+  }
 
-  migrate: function (node: Node): Node {
+  migrate(node: RSNode): RSNode {
     if(typeof (node) === 'object' && !node.common) {
       node.common = {};
       if(typeof (node.path) === 'string') {
@@ -319,38 +239,31 @@ const methods = {
       }
     }
     return node;
-  },
+  }
 
-  // FIXME
-  // this process of updating nodes needs to be heavily documented first, then
-  // refactored. Right now it's almost impossible to refactor as there's no
-  // explanation of why things are implemented certain ways or what the goal(s)
-  // of the behavior are. -slvrbckt (+1 -les)
-  _updateNodesRunning: false,
-  _updateNodesQueued: [],
-  _updateNodes: function (paths: string[], _processNodes) {
-    return new Promise(function (resolve, reject) {
+
+  _updateNodes(paths: string[], _processNodes): Promise<RSNodes> {
+    return new Promise((resolve, reject) => {
       this._doUpdateNodes(paths, _processNodes, {
         resolve: resolve,
         reject: reject
       });
-    }.bind(this));
-  },
-  _doUpdateNodes: function (paths, _processNodes, promise) {
-    const self = this;
+    });
+  }
 
-    if(self._updateNodesRunning) {
-      self._updateNodesQueued.push({
+  _doUpdateNodes(paths, _processNodes, promise) {
+    if(this._updateNodesRunning) {
+      this._updateNodesQueued.push({
         paths: paths,
         cb: _processNodes,
         promise: promise
       });
       return;
     } else {
-      self._updateNodesRunning = true;
+      this._updateNodesRunning = true;
     }
 
-    self.getNodes(paths).then(function (nodes) {
+    this.getNodes(paths).then((nodes) => {
       const existingNodes = deepClone(nodes);
       const changeEvents = [];
 
@@ -379,78 +292,142 @@ const methods = {
         }
       }
 
-      self.setNodes(nodes).then(function () {
-        self._emitChangeEvents(changeEvents);
+      this.setNodes(nodes).then(() => {
+        this._emitChangeEvents(changeEvents);
         promise.resolve({statusCode: 200});
       });
-    }).then(function () {
+    }).then(() => {
       return Promise.resolve();
-    }, function (err) {
+    }, (err) => {
       promise.reject(err);
-    }).then(function () {
-      self._updateNodesRunning = false;
-      const nextJob = self._updateNodesQueued.shift();
+    }).then(() => {
+      this._updateNodesRunning = false;
+      const nextJob = this._updateNodesQueued.shift();
       if(nextJob) {
-        self._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
+        this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
       }
     });
-  },
+  }
 
-  _emitChangeEvents: function (events: RemoteStorageEvent[]) {
+  _emitChangeEvents(events: RSEvent[]) {
     for (let i = 0, len = events.length; i < len; i++) {
       this._emitChange(events[i]);
       if(this.diffHandler) {
         this.diffHandler(events[i].path);
       }
     }
-  },
+  }
 
-  _getAllDescendentPaths: function (path: string) {
-    const self = this;
+  _getAllDescendentPaths(path: string) {
     if(isFolder(path)) {
-      return self.getNodes([path]).then(function (nodes) {
+      return this.getNodes([path]).then((nodes) => {
         const allPaths = [path];
         const latest = getLatest(nodes[path]);
 
         const itemNames = Object.keys(latest.itemsMap);
-        const calls = itemNames.map(function (itemName) {
-          return self._getAllDescendentPaths(path + itemName).then(function (paths) {
+        const calls = itemNames.map((itemName) => {
+          return this._getAllDescendentPaths(path + itemName).then((paths) => {
             for (let i = 0, len = paths.length; i < len; i++) {
               allPaths.push(paths[i]);
             }
           });
         });
-        return Promise.all(calls).then(function () {
+        return Promise.all(calls).then(() => {
           return allPaths;
         });
       });
     } else {
       return Promise.resolve([path]);
     }
-  },
+  }
 
-  _getInternals: function () {
+  _getInternals() {
     return {
       getLatest: getLatest,
       makeNode: makeNode,
       isOutdated: isOutdated
     };
   }
-};
+}
 
-/**
- * Mixes common caching layer functionality into an object.
- * @param {Object} object - the object to be extended
- *
- * @example
- * var MyConstructor = function () {
- *   cachingLayer(this);
- * };
- */
-const cachingLayer = function (object) {
-  for (const key in methods) {
-    object[key] = methods[key];
+
+function getLatest(node: RSNode) {
+  if(typeof (node) !== 'object' || typeof (node.path) !== 'string') {
+    return;
   }
-};
+  if(isFolder(node.path)) {
+    if(node.local && node.local.itemsMap) {
+      return node.local;
+    }
+    if(node.common && node.common.itemsMap) {
+      return node.common;
+    }
+  } else {
+    if(node.local) {
+      if(node.local.body && node.local.contentType) {
+        return node.local;
+      }
+      if(node.local.body === false) {
+        return;
+      }
+    }
+    if(node.common && node.common.body && node.common.contentType) {
+      return node.common;
+    }
+    // Migration code! Once all apps use at least this version of the lib, we
+    // can publish clean-up code that migrates over any old-format data, and
+    // stop supporting it. For now, new apps will support data in both
+    // formats, thanks to this:
+    if(node.body && node.contentType) {
+      return {
+        body: node.body,
+        contentType: node.contentType
+      };
+    }
+  }
+}
 
-module.exports = cachingLayer;
+function isOutdated(nodes: RSNodes, maxAge: number): boolean {
+  for (const path in nodes) {
+    if(nodes[path] && nodes[path].remote) {
+      return true;
+    }
+    const nodeVersion = getLatest(nodes[path]);
+    if(nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
+      return false;
+    } else if(!nodeVersion) {
+      return true;
+    }
+  }
+  return true;
+}
+
+
+function makeNode(path: string): RSNode {
+  const node: RSNode = {path: path, common: {}};
+
+  if(isFolder(path)) {
+    node.common.itemsMap = {};
+  }
+  return node;
+}
+
+function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
+  if(!node.common) {
+    node.common = {
+      itemsMap: {}
+    };
+  }
+  if(!node.common.itemsMap) {
+    node.common.itemsMap = {};
+  }
+  if(!node.local) {
+    node.local = deepClone(node.common);
+  }
+  if(!node.local.itemsMap) {
+    node.local.itemsMap = node.common.itemsMap;
+  }
+  node.local.itemsMap[itemName] = true;
+
+  return node;
+}
