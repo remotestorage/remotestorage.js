@@ -25,8 +25,8 @@ export abstract class CachingLayerBase {
   // refactored. Right now it's almost impossible to refactor as there's no
   // explanation of why things are implemented certain ways or what the goal(s)
   // of the behavior are. -slvrbckt (+1 -les)
-  _updateNodesRunning = false;
-  _updateNodesQueued = [];
+  private _updateNodesRunning = false;
+  private _updateNodesQueued = [];
 
 
   // functions that will be overwritten
@@ -186,7 +186,7 @@ export abstract class CachingLayerBase {
     });
   }
 
-  _emitChange(obj: ChangeObj) {
+  private _emitChange(obj: ChangeObj) {
     if(config.changeEvents[obj.origin]) {
       this._emit('change', obj);
     }
@@ -242,7 +242,7 @@ export abstract class CachingLayerBase {
   }
 
 
-  _updateNodes(paths: string[], _processNodes): Promise<RSNodes> {
+  private _updateNodes(paths: string[], _processNodes): Promise<RSNodes> {
     return new Promise((resolve, reject) => {
       this._doUpdateNodes(paths, _processNodes, {
         resolve: resolve,
@@ -251,7 +251,7 @@ export abstract class CachingLayerBase {
     });
   }
 
-  _doUpdateNodes(paths, _processNodes, promise) {
+  private _doUpdateNodes(paths, _processNodes, promise) {
     if(this._updateNodesRunning) {
       this._updateNodesQueued.push({
         paths: paths,
@@ -309,7 +309,7 @@ export abstract class CachingLayerBase {
     });
   }
 
-  _emitChangeEvents(events: RSEvent[]) {
+  private _emitChangeEvents(events: RSEvent[]) {
     for (let i = 0, len = events.length; i < len; i++) {
       this._emitChange(events[i]);
       if(this.diffHandler) {
@@ -318,7 +318,7 @@ export abstract class CachingLayerBase {
     }
   }
 
-  _getAllDescendentPaths(path: string) {
+  private _getAllDescendentPaths(path: string) {
     if(isFolder(path)) {
       return this.getNodes([path]).then((nodes) => {
         const allPaths = [path];
@@ -341,7 +341,7 @@ export abstract class CachingLayerBase {
     }
   }
 
-  _getInternals() {
+  private _getInternals() {
     return {
       getLatest: getLatest,
       makeNode: makeNode,
