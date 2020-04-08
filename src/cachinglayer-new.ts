@@ -19,7 +19,7 @@ import {ChangeObj, ContentType, QueuedRequestResponse, RSEvent, RSNode, RSNodes}
  */
 
 
-export abstract class CachingLayerBase {
+export abstract class CachingLayer {
   // FIXME
   // this process of updating nodes needs to be heavily documented first, then
   // refactored. Right now it's almost impossible to refactor as there's no

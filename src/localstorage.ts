@@ -2,7 +2,7 @@ import * as log from './log';
 import * as eventHandling from './eventhandling';
 import {localStorageAvailable} from './util';
 import {RSNodes} from './common-interfaces';
-import {CachingLayerBase} from './cachinglayer-new';
+import {CachingLayer} from './cachinglayer-new';
 
 /**
  * localStorage caching adapter. Used when no IndexedDB available.
@@ -20,7 +20,7 @@ function isNodeKey(key: string): boolean {
   return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX;
 }
 
-export default class LocalStorage extends CachingLayerBase {
+export default class LocalStorage extends CachingLayer {
   /**
    * Initialize the LocalStorage backend.
    *
