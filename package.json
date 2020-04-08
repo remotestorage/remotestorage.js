@@ -12,7 +12,7 @@
   },
   "homepage": "https://remotestorage.io",
   "scripts": {
-    "test": "bash scripts/test-all.sh && npm run lint",
+    "test": "bash scripts/test-all.sh",
     "lint": "eslint --quiet src/",
     "format": "esformatter --config esformatter-config.json -i src/sync.js",
     "build": "NODE_ENV=production webpack --mode=production",
