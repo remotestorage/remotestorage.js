@@ -1,4 +1,4 @@
-import * as log from './log';
+const log = require('./log');
 import * as eventHandling from './eventhandling';
 import {localStorageAvailable} from './util';
 import {RSNodes} from './common-interfaces';

@@ -1,4 +1,4 @@
-import * as log from './log';
+const log = require('./log');
 import * as config from './config';
 import {deepClone, equal, isDocument, isFolder, pathsFromRoot} from './util';
 import {ChangeObj, ContentType, QueuedRequestResponse, RSEvent, RSNode, RSNodes} from './common-interfaces';

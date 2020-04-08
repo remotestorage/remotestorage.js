@@ -4,8 +4,8 @@
  * Holds/manages caching configuration.
  **/
 
-import * as log from './log';
 import {containingFolder, isFolder} from './util';
+const log = require('./log');
 
 type CachingStrategy = 'ALL' | 'SEEN' | 'FLUSH';
 
@@ -137,5 +137,4 @@ export default class Caching {
   }
 }
 
-// TODO should be removed after refactor in favor of adjusting the imports
 module.exports = Caching;

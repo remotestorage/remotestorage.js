@@ -15,5 +15,4 @@ export default function log(...args: any) {
   }
 }
 
-// TODO should be removed after refactor in favor of adjusting the imports
 module.exports = log;
