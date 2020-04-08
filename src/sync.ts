@@ -4,6 +4,7 @@ const eventHandling = require('./eventhandling');
 const log = require('./log');
 const Authorize = require('./authorize');
 const config = require('./config');
+require('./sync-error');
 
 let syncCycleCb, syncOnConnect;
 
@@ -1054,23 +1055,5 @@ class Sync {
     delete remoteStorage.sync;
   }
 };
-
-class SyncError extends Error {
-  originalError: Error
-
-  constructor (originalError) {
-    super()
-    this.name = 'SyncError';
-    let msg = 'Sync failed: ';
-    if (typeof(originalError) === 'object' && 'message' in originalError) {
-      msg += originalError.message;
-      this.stack = originalError.stack;
-      this.originalError = originalError;
-    } else {
-      msg += originalError;
-    }
-    this.message = msg;
-  }
-}
 
 module.exports = Sync;

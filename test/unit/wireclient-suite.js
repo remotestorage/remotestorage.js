@@ -1,8 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandling', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
-       function(Sync, WireClient, Authorize, eventHandling, config, backend, mocks, undefined) {
+define(['./src/sync', './src/sync-error', './src/wireclient', './src/authorize', './src/eventhandling', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
+       function(Sync, SyncError, WireClient, Authorize, eventHandling, config, backend, mocks, undefined) {
 
   var suites = [];
 
@@ -705,7 +705,7 @@ define(['./src/sync', './src/wireclient', './src/authorize', './src/eventhandlin
         desc: "WireClient is not marked offline after SyncError",
         run: function(env, test){
           env.connectedClient.online = true;
-          env.rs._emit('error', new Sync.SyncError());
+          env.rs._emit('error', new SyncError('Houston, we have a problem.'));
           setTimeout(function() {
             test.assert(env.connectedClient.online, true);
           }, 100);
