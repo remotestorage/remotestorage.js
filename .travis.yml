@@ -7,7 +7,7 @@ node_js:
 script:
   - tsc
   - npm test
-  - npm run lint
+  # - npm run lint
 branches:
   only:
     - master
