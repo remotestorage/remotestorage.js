@@ -167,7 +167,7 @@ export abstract class CachingLayer {
 
     return this._getAllDescendentPaths(path).then((paths) => {
       return this.getNodes(paths);
-    }).then(function (nodes: RSNodes) {
+    }).then((nodes: RSNodes) => {
       for (const nodePath in nodes) {
         const node = nodes[nodePath];
 
