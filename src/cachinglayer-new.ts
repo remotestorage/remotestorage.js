@@ -341,7 +341,8 @@ export abstract class CachingLayer {
     }
   }
 
-  private _getInternals() {
+  // treated as private but made public for unit testing
+  _getInternals() {
     return {
       getLatest: getLatest,
       makeNode: makeNode,
