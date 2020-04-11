@@ -1,8 +1,7 @@
 const log = require('./log');
 import * as config from './config';
-import {deepClone, equal, isDocument, isFolder, pathsFromRoot} from './util';
-import {ChangeObj, ContentType, QueuedRequestResponse, RSEvent, RSNode, RSNodes} from './common-interfaces';
-
+import { deepClone, equal, isDocument, isFolder, pathsFromRoot } from './util';
+import { ChangeObj, ContentType, QueuedRequestResponse, RSEvent, RSNode, RSNodes } from './common-interfaces';
 
 /**
  * This module defines functions that are mixed into remoteStorage.local when
@@ -17,7 +16,6 @@ import {ChangeObj, ContentType, QueuedRequestResponse, RSEvent, RSNode, RSNodes}
  * @interface
  *
  */
-
 
 export abstract class CachingLayer {
   // FIXME
@@ -47,7 +45,7 @@ export abstract class CachingLayer {
   // TODO: improve our code structure so that this function
   // could call sync.queueGetRequest directly instead of needing
   // this hacky third parameter as a callback
-  get(path: string, maxAge: number, queueGetRequest: (path: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
+  get (path: string, maxAge: number, queueGetRequest: (path: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
 
     if(typeof (maxAge) === 'number') {
 
@@ -269,7 +267,7 @@ export abstract class CachingLayer {
 
       nodes = _processNodes(paths, nodes);
 
-      for (let path in nodes) {
+      for (const path in nodes) {
         const node = nodes[path];
         if(equal(node, existingNodes[path])) {
           delete nodes[path];
@@ -352,7 +350,7 @@ export abstract class CachingLayer {
 }
 
 
-function getLatest(node: RSNode) {
+function getLatest(node: RSNode): any {
   if(typeof (node) !== 'object' || typeof (node.path) !== 'string') {
     return;
   }

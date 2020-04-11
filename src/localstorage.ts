@@ -26,7 +26,8 @@ export default class LocalStorage extends CachingLayer {
    *
    * @protected
    */
-  protected static _rs_init() {
+  protected static _rs_init(): void {
+    return;
   }
 
 
@@ -52,7 +53,7 @@ export default class LocalStorage extends CachingLayer {
     const keys = [];
 
     for (let i = 0, len = localStorage.length; i < len; i++) {
-      let key = localStorage.key(i);
+      const key = localStorage.key(i);
       if(isRemoteStorageKey(key)) {
         keys.push(key);
       }
@@ -66,13 +67,14 @@ export default class LocalStorage extends CachingLayer {
 
 
   // TODO fix this
-  _emit(...args: any[]) {
+  _emit (...args: any[]): void {
+    return;
   };
 
   // TODO fix this
-  diffHandler(...args: any[]) {
+  diffHandler(...args: any[]): void {
+    return;
   }
-
 
   constructor() {
     super();

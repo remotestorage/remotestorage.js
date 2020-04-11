@@ -4,7 +4,7 @@ const eventHandling = require('./eventhandling');
 const log = require('./log');
 const Authorize = require('./authorize');
 const config = require('./config');
-require('./sync-error');
+import SyncError from './sync-error';
 
 let syncCycleCb, syncOnConnect;
 
@@ -47,12 +47,11 @@ function mergeMutualDeletion (node) {
   return node;
 }
 
-function handleVisibility (rs) {
-  function handleChange(isForeground) {
-    var oldValue, newValue;
-    oldValue = rs.getCurrentSyncInterval();
+function handleVisibility (rs): void {
+  function handleChange (isForeground): void {
+    const oldValue = rs.getCurrentSyncInterval();
     config.isBackground = !isForeground;
-    newValue = rs.getCurrentSyncInterval();
+    const newValue = rs.getCurrentSyncInterval();
     rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
   }
   Env.on('background', () => handleChange(false));
@@ -142,8 +141,8 @@ class Sync {
       return true;
     }
 
-    for (var itemName in itemsMap) {
-      var item = itemsMap[itemName];
+    for (const itemName in itemsMap) {
+      const item = itemsMap[itemName];
 
       if (typeof(item) !== 'object') {
         return true;
@@ -178,8 +177,8 @@ class Sync {
       return true;
     }
 
-    for (var itemName in itemsMap) {
-      if (typeof(itemsMap[itemName]) !== 'boolean') {
+    for (const item of itemsMap) {
+      if (typeof item !== 'boolean') {
         return true;
       }
     }
@@ -213,7 +212,7 @@ class Sync {
   }
 
   public collectDiffTasks () {
-    var num = 0;
+    let num = 0;
 
     return this.rs.local.forAllNodes(node => {
       if (num > 100) { return; }
@@ -234,7 +233,7 @@ class Sync {
       }
     })
     .then((): number => num)
-    .catch(e => { throw e; })
+    .catch(e => { throw e; });
   }
 
   public inConflict (node): boolean {
@@ -287,7 +286,7 @@ class Sync {
   }
 
   public getParentPath (path: string): string {
-    var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+    const parts = path.match(/^(.*\/)([^\/]+\/?)$/);
 
     if (parts) {
       return parts[1];
@@ -297,10 +296,10 @@ class Sync {
   }
 
   public deleteChildPathsFromTasks (): void {
-    for (var path in this._tasks) {
-      var paths = pathsFromRoot(path);
+    for (const path in this._tasks) {
+      const paths = pathsFromRoot(path);
 
-      for (var i=1; i<paths.length; i++) {
+      for (let i=1; i<paths.length; i++) {
         if (this._tasks[paths[i]]) {
           // move pending promises to parent task
           if (Array.isArray(this._tasks[path]) && this._tasks[path].length) {
@@ -317,7 +316,7 @@ class Sync {
 
   public collectRefreshTasks () {
     return this.rs.local.forAllNodes(node => {
-      var parentPath;
+      let parentPath;
       if (this.needsRefresh(node)) {
         try {
           parentPath = this.getParentPath(node.path);
@@ -336,7 +335,7 @@ class Sync {
   }
 
   public flush (nodes) {
-    for (var path in nodes) {
+    for (const path in nodes) {
       // Strategy is 'FLUSH' and no local changes exist
       if (this.rs.caching.checkPath(path) === 'FLUSH' &&
           nodes[path] && !nodes[path].local) {
@@ -349,7 +348,7 @@ class Sync {
 
   public doTask (path) {
     return this.rs.local.getNodes([path]).then(nodes => {
-      var node = nodes[path];
+      const node = nodes[path];
       // First fetch:
       if (typeof(node) === 'undefined') {
         return taskFor('get', path, this.rs.remote.get(path));
@@ -364,7 +363,7 @@ class Sync {
         node.push.timestamp = this.now();
 
         return this.rs.local.setNodes(this.flush(nodes)).then(() => {
-          var options;
+          let options;
           if (hasCommonRevision(node)) {
             options = { ifMatch: node.common.revision };
           } else {
@@ -409,7 +408,7 @@ class Sync {
       delete node.remote;
 
       if (node.common.itemsMap) {
-        for (var itemName in node.common.itemsMap) {
+        for (const itemName in node.common.itemsMap) {
           if (!node.local.itemsMap[itemName]) {
             // Indicates the node is either newly being fetched
             // has been deleted locally (whether or not leading to conflict);
@@ -473,7 +472,7 @@ class Sync {
           }
         } else {
           if (node.remote.body !== undefined) {
-            var change = {
+            const change = {
               origin:   'remote',
               path:     node.path,
               oldValue: (node.common.body === false ? undefined : node.common.body),
@@ -523,23 +522,23 @@ class Sync {
   }
 
   public markChildren (path, itemsMap, changedNodes, missingChildren) {
-    var paths = [];
-    var meta = {};
-    var recurse = {};
+    const paths = [];
+    const meta = {};
+    const recurse = {};
 
-    for (var item in itemsMap) {
+    for (const item in itemsMap) {
       paths.push(path+item);
       meta[path+item] = itemsMap[item];
     }
-    for (var childName in missingChildren) {
+    for (const childName in missingChildren) {
       paths.push(path+childName);
     }
 
     return this.rs.local.getNodes(paths).then(nodes => {
-      var cachingStrategy;
-      var node;
+      let cachingStrategy;
+      let node;
 
-      for (var nodePath in nodes) {
+      for (const nodePath in nodes) {
         node = nodes[nodePath];
 
         if (meta[nodePath]) {
@@ -577,13 +576,13 @@ class Sync {
           }
         } else if (missingChildren[nodePath.substring(path.length)] && node && node.common) {
           if (node.common.itemsMap) {
-            for (var commonItem in node.common.itemsMap) {
+            for (const commonItem in node.common.itemsMap) {
               recurse[nodePath+commonItem] = true;
             }
           }
 
           if (node.local && node.local.itemsMap) {
-            for (var localItem in node.local.itemsMap) {
+            for (const localItem in node.local.itemsMap) {
               recurse[nodePath+localItem] = true;
             }
           }
@@ -594,9 +593,9 @@ class Sync {
             changedNodes[nodePath] = this.autoMerge(node);
 
             if (typeof changedNodes[nodePath] === 'undefined') {
-              var parentPath = this.getParentPath(nodePath);
-              var parentNode = changedNodes[parentPath];
-              var itemName = nodePath.substring(path.length);
+              const parentPath = this.getParentPath(nodePath);
+              const parentNode = changedNodes[parentPath];
+              const itemName = nodePath.substring(path.length);
               if (parentNode && parentNode.local) {
                 delete parentNode.local.itemsMap[itemName];
 
@@ -622,18 +621,18 @@ class Sync {
     }
 
     return this.rs.local.getNodes(paths).then(nodes => {
-      var subPaths = {};
+      const subPaths = {};
 
-      var collectSubPaths = function (folder, path) {
+      function collectSubPaths (folder, path): void {
         if (folder && folder.itemsMap) {
-          for (var itemName in folder.itemsMap) {
+          for (const itemName in folder.itemsMap) {
             subPaths[path+itemName] = true;
           }
         }
       };
 
-      for (var path in nodes) {
-        var node = nodes[path];
+      for (const path in nodes) {
+        const node = nodes[path];
 
         // TODO Why check for the node here? I don't think this check ever applies
         if (!node) {
@@ -664,9 +663,9 @@ class Sync {
   }
 
   public completeFetch (path, bodyOrItemsMap, contentType, revision) {
-    var paths;
-    var parentPath;
-    var pathsFromRootArr = pathsFromRoot(path);
+    let paths;
+    let parentPath;
+    const pathsFromRootArr = pathsFromRoot(path);
 
     if (isFolder(path)) {
       paths = [path];
@@ -676,12 +675,12 @@ class Sync {
     }
 
     return this.rs.local.getNodes(paths).then(nodes => {
-      var itemName;
-      var missingChildren = {};
-      var node = nodes[path];
-      var parentNode;
+      let itemName;
+      let node = nodes[path];
+      let parentNode;
+      const missingChildren = {};
 
-      var collectMissingChildren = function (folder) {
+      function collectMissingChildren (folder): void {
         if (folder && folder.itemsMap) {
           for (itemName in folder.itemsMap) {
             if (!bodyOrItemsMap[itemName]) {
@@ -735,7 +734,7 @@ class Sync {
 
   public completePush (path, action, conflict, revision) {
     return this.rs.local.getNodes([path]).then(nodes => {
-      var node = nodes[path];
+      const node = nodes[path];
 
       if (!node.push) {
         this.stopped = true;
@@ -801,7 +800,7 @@ class Sync {
       notFound:        undefined,
       changed:         undefined,
       networkProblems: undefined
-    }
+    };
 
     if (statusCode === 'offline' || statusCode === 'timeout') {
       status.successful = false;
@@ -809,7 +808,7 @@ class Sync {
       return status;
     }
 
-    let series = Math.floor(statusCode / 100);
+    const series = Math.floor(statusCode / 100);
 
     status.successful = (series === 2 ||
                          statusCode === 304 ||
@@ -857,7 +856,7 @@ class Sync {
   }
 
   public handleResponse (path, action, r) {
-    var status = this.interpretStatus(r.statusCode);
+    const status = this.interpretStatus(r.statusCode);
 
     if (status.successful) {
       if (action === 'get') {
@@ -871,7 +870,7 @@ class Sync {
       }
     } else {
     // Unsuccessful
-      var error;
+      let error;
       if (status.unAuth) {
         error = new Authorize.Unauthorized();
       } else if (status.networkProblems) {
@@ -906,7 +905,7 @@ class Sync {
 
         if (completed) {
           if (this._tasks[task.path]) {
-            for (var i=0; i < this._tasks[task.path].length; i++) {
+            for (let i=0; i < this._tasks[task.path].length; i++) {
               this._tasks[task.path][i]();
             }
             delete this._tasks[task.path];
@@ -943,7 +942,7 @@ class Sync {
   }
 
   public doTasks () {
-    let numToHave, numAdded = 0, numToAdd, path;
+    let numToHave, numAdded = 0, path;
     if (this.rs.remote.connected) {
       if (this.rs.remote.online) {
         numToHave = this.numThreads;
@@ -953,7 +952,7 @@ class Sync {
     } else {
       numToHave = 0;
     }
-    numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
+    const numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
     if (numToAdd <= 0) {
       return true;
     }

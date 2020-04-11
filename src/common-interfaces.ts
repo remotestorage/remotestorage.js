@@ -1,4 +1,3 @@
-// TODO figure out interface for node
 export interface RSNode {
   [key: string]: any;
 }
@@ -18,7 +17,7 @@ export interface ChangeObj {
 export interface QueuedRequestResponse {
   statusCode: number;
   body?: object;
-  contentType?: ContentType
+  contentType?: ContentType;
 }
 
 export type ContentType = any;

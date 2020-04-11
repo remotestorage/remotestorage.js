@@ -1,8 +1,8 @@
-class SyncError extends Error {
+export default class SyncError extends Error {
   originalError: Error
 
   constructor (originalError: string | Error) {
-    super()
+    super();
     this.name = 'SyncError';
     this.message = 'Sync failed: ';
     if (typeof originalError === 'string') {

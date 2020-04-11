@@ -1,7 +1,7 @@
 // TODO maybe move to common interfaces & types file
 // also worth considering enums
 type AccessMode = 'r' | 'rw';
-type AccessScope = 'contacts' | 'calendar' | '*';
+type AccessScope = string;
 
 interface ScopeEntry {
   name: string;
@@ -10,7 +10,7 @@ interface ScopeEntry {
 
 interface ScopeModeMap {
   // NOTE: key is actually AccessScope
-  [key: string]: AccessMode
+  [key: string]: AccessMode;
 }
 
 /**
@@ -23,7 +23,9 @@ class Access {
   rootPaths: string[];
   storageType: string;
 
-  static _rs_init() {
+  // TODO create custom type for init function
+  static _rs_init(): void {
+    return;
   }
 
   constructor() {
@@ -54,7 +56,7 @@ class Access {
    * @param {string} scope - An access scope, such as "contacts" or "calendar"
    * @param {string} mode - Access mode. Either "r" for read-only or "rw" for read/write
    */
-  claim(scope: AccessScope, mode: AccessMode) {
+  claim(scope: AccessScope, mode: AccessMode): void {
     if(typeof (scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
       throw new Error('Scope should be a non-empty string without forward slashes');
     }
@@ -81,7 +83,7 @@ class Access {
    *
    * @param {string} scope - Access scope
    */
-  remove(scope: AccessScope) {
+  remove(scope: AccessScope): void {
     const savedMap: ScopeModeMap = {};
     for (const name in this.scopeModeMap) {
       savedMap[name] = this.scopeModeMap[name];
@@ -127,7 +129,7 @@ class Access {
   /**
    * Reset all access permissions.
    */
-  reset() {
+  reset(): void {
     this.rootPaths = [];
     this.scopeModeMap = {};
   }
@@ -148,7 +150,7 @@ class Access {
   /**
    * TODO: document
    */
-  private _adjustRootPaths(newScope: AccessScope) {
+  private _adjustRootPaths(newScope: AccessScope): void {
     if('*' in this.scopeModeMap || newScope === '*') {
       this.rootPaths = ['/'];
     } else if(!(newScope in this.scopeModeMap)) {
@@ -178,7 +180,7 @@ class Access {
    *
    * @param {string} type - Storage type
    */
-  setStorageType(type: string) {
+  setStorageType(type: string): void {
     this.storageType = type;
   }
 }
