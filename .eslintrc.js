@@ -1,17 +1,22 @@
-var options = {
+module.exports = {
+  parser: "@typescript-eslint/parser",
   parserOptions: {
-    ecmaVersion: 6,
-    sourceType: 'module',
+    ecmaVersion: 2019
   },
+  extends: [
+    "plugin:@typescript-eslint/recommended"
+  ],
   env: {
     browser: true,
-    node: true,
-    es6: true
+    node: true
   }, globals: {
     "ArrayBuffer": true,
-    "ArrayBufferView": true
+    "ArrayBufferView": true,
+    "Promise": true,
+    "NodeJS": true,
+    "Int8Array": true,
+    "Uint8Array": true
   },
-  extends: "eslint:recommended",
   rules: {
     "complexity": ["warn"],
     "max-statements": ["warn"],
@@ -26,7 +31,6 @@ var options = {
     "curly": 2,
     "eqeqeq": 2,
     "no-eval": 2,
-    // "no-use-before-define": 2,
     "no-loop-func": 0,
     "no-caller": 2,
     "no-script-url": 2,
@@ -58,8 +62,13 @@ var options = {
     "no-multi-str": 2,
     "semi": 2,
     "arrow-spacing": 2,
-    "no-prototype-builtins": 1
-  }
+    "no-prototype-builtins": 1,
+    "@typescript-eslint/camelcase": 0,
+    "@typescript-eslint/no-var-requires": 1,
+    "@typescript-eslint/no-use-before-define": 1
+  },
+  "ignorePatterns": [
+    "*.js",
+    "node_modules/"
+  ]
 };
-
-module.exports = options;
