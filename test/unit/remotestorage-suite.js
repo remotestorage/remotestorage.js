@@ -72,6 +72,7 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
       // global.Discover = require('./src/discover');
       global.SyncedGetPutDelete = require('./src/syncedgetputdelete');
       global.Authorize = require('./src/authorize');
+      global.UnauthorizedError = require('./src/unauthorized-error');
       global.Sync = require('./src/sync');
       global.config = require('./src/config');
       global.log = require('./src/log');
@@ -107,7 +108,7 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
           var success = false;
 
           env.rs.on('error', function (e) {
-            if (e instanceof Authorize.Unauthorized) {
+            if (e instanceof UnauthorizedError) {
               success = true;
             }
           });
@@ -123,7 +124,7 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
         run: function(env, test) {
           var success = false;
           env.rs.on('error', function(e) {
-            if (e instanceof Authorize.Unauthorized) {
+            if (e instanceof UnauthorizedError) {
               success = true;
             }
           });
@@ -138,7 +139,7 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
         run: function (env, test) {
           var success = false;
           env.rs.on('error', function (e) {
-            if (e instanceof Authorize.Unauthorized) {
+            if (e instanceof UnauthorizedError) {
               success = true;
             }
           });

@@ -7,7 +7,9 @@ const Discover = require('./discover');
 const BaseClient = require('./baseclient');
 const config = require('./config');
 const Authorize = require('./authorize');
+const UnauthorizedError = require('./unauthorized-error');
 const Sync = require('./sync');
+const SyncError = require('./sync-error');
 const log = require('./log');
 const Features = require('./features');
 const globalContext = util.getGlobalContext();
@@ -19,7 +21,7 @@ var hasLocalStorage;
 // TODO document and/or refactor (seems weird)
 function emitUnauthorized(r) {
   if (r.statusCode === 403  || r.statusCode === 401) {
-    this._emit('error', new Authorize.Unauthorized());
+    this._emit('error', new UnauthorizedError());
   }
   return Promise.resolve(r);
 }
@@ -153,8 +155,8 @@ var RemoteStorage = function (cfg) {
 // export setAuthURL / getAuthURL from RemoteStorage prototype
 RemoteStorage.Authorize = Authorize;
 
-RemoteStorage.SyncError = Sync.SyncError;
-RemoteStorage.Unauthorized = Authorize.Unauthorized;
+RemoteStorage.SyncError = SyncError;
+RemoteStorage.Unauthorized = UnauthorizedError;
 RemoteStorage.DiscoveryError = Discover.DiscoveryError;
 
 RemoteStorage.prototype = {
@@ -182,7 +184,7 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  authorize: function authorize (options) {
+  authorize (options) {
     this.access.setStorageType(this.remote.storageApi);
     if (typeof options.scope === 'undefined') {
       options.scope = this.access.scopeParameter;
@@ -194,7 +196,7 @@ RemoteStorage.prototype = {
       options.clientId = options.redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
     }
 
-    Authorize(this, options);
+    Authorize.authorize(this, options);
   },
 
   /**

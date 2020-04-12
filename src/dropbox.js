@@ -1,10 +1,11 @@
-var Authorize = require('./authorize');
-var BaseClient = require('./baseclient');
-var WireClient = require('./wireclient');
-var util = require('./util');
-var eventHandling = require('./eventhandling');
-var RevisionCache = require('./revisioncache');
-var Sync = require('./sync');
+const Authorize = require('./authorize');
+const BaseClient = require('./baseclient');
+const WireClient = require('./wireclient');
+const util = require('./util');
+const eventHandling = require('./eventhandling');
+const RevisionCache = require('./revisioncache');
+const Sync = require('./sync');
+const UnauthorizedError = require('./unauthorized-error');
 
 /**
  * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
@@ -677,7 +678,7 @@ Dropbox.prototype = {
 
       return self._request('POST', url, { body: requestBody }).then(function (response) {
         if (response.status === 401) {
-          self.rs._emit('error', new Authorize.Unauthorized());
+          self.rs._emit('error', new UnauthorizedError());
           return Promise.resolve(args);
         }
 

@@ -17,6 +17,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
       };
       global.RemoteStorage.log = function() {};
       global.Authorize = require('./src/authorize');
+      global.UnauthorizedError = require('./src/unauthorized-error');
       global.config = require('./src/config');
       global.eventHandling = require('./src/eventhandling');
       global.Sync = require('./src/sync');
@@ -920,7 +921,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
         desc: "handleResponse emits Unauthorized error for status 401",
         run: function(env, test) {
           env.rs.on('error', function(err) {
-            if (err instanceof Authorize.Unauthorized) {
+            if (err instanceof UnauthorizedError) {
               test.result(true, "handleResponse() emitted Unauthorized error");
             } else {
               test.result(false);

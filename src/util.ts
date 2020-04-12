@@ -27,7 +27,7 @@ function _fixArrayBuffers(srcObj: object, dstObj: object) {
   }
 }
 
-export const logError = (error: any) => {
+export const logError = (error: string | Error): void => {
   if(typeof (error) === 'string') {
     console.error(error);
   } else {
@@ -277,4 +277,16 @@ export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding: strin
   });
 };
 
-
+/**
+ * Encode string in base64
+ * @param {String} str
+ * @returns {String} base64-encoded string
+ */
+export const toBase64 = (str: string): string => {
+  const context = getGlobalContext();
+  if('btoa' in context) {
+    return context['btoa'](str);
+  } else {
+    return Buffer.from(str).toString('base64');
+  }
+};

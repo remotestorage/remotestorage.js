@@ -3,6 +3,7 @@ const Env = require('./env');
 const eventHandling = require('./eventhandling');
 const log = require('./log');
 const Authorize = require('./authorize');
+const UnauthorizedError = require('./unauthorized-error');
 const config = require('./config');
 import SyncError from './sync-error';
 
@@ -872,7 +873,7 @@ class Sync {
     // Unsuccessful
       let error;
       if (status.unAuth) {
-        error = new Authorize.Unauthorized();
+        error = new UnauthorizedError();
       } else if (status.networkProblems) {
         error = new SyncError('Network request failed.');
       } else {

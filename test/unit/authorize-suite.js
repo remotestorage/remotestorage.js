@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define([ 'require', './src/authorize', './src/config'], function(require, Authorize, config) {
+define([ 'require', './src/authorize', './src/unauthorized-error', './src/config'], function(require, Authorize, UnauthorizedError, config) {
   var suites = [];
 
   suites.push({
@@ -49,7 +49,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
 
     tests: [
       {
-        desc: "Authorize redirects to the provider's OAuth location",
+        desc: "#authorize redirects to the provider's OAuth location",
         run: function(env, test) {
           var authURL = 'http://storage.provider.com/oauth';
           var scope = 'contacts:r';
@@ -58,7 +58,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
 
           this.localStorageAvailable = function() { return true; };
 
-          Authorize(this, {authURL, scope, redirectUri, clientId});
+          Authorize.authorize(this, {authURL, scope, redirectUri, clientId});
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&state=custom%2Fpath&response_type=token';
           test.assert(document.location.href, expectedUrl);
@@ -66,7 +66,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       },
 
       {
-        desc: "Authorize redirects to the provider's OAuth location with empty fragment",
+        desc: "#authorize redirects to the provider's OAuth location with empty fragment",
         run: function(env, test) {
           var authURL = 'http://storage.provider.com/oauth';
           var scope = 'contacts:r';
@@ -75,7 +75,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
 
           this.localStorageAvailable = function() { return true; };
 
-          Authorize(this, {authURL, scope, redirectUri, clientId});
+          Authorize.authorize(this, {authURL, scope, redirectUri, clientId});
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&response_type=token';
           test.assert(document.location.href, expectedUrl);
@@ -83,7 +83,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       },
 
       {
-        desc: "Authorize doesn't redirect, but opens an in-app-browser window",
+        desc: "#authorize doesn't redirect, but opens an in-app-browser window",
         run: function(env, test) {
           document.location.href = 'file:///some/cordova/path';
           var authURL = 'http://storage.provider.com/oauth';
@@ -101,7 +101,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
             test.done();
           };
 
-          Authorize(this, {authURL, scope, redirectUri, clientId});
+          Authorize.authorize(this, {authURL, scope, redirectUri, clientId});
 
           test.assertAnd(document.location.href, 'file:///some/cordova/path');
         }
@@ -275,7 +275,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       {
         desc: "the Unauthorized error accepts an error code",
         run: function(env, test) {
-          let error = new Authorize.Unauthorized('error message', { code: 'error_code' });
+          let error = new UnauthorizedError('error message', { code: 'error_code' });
           test.assertAnd(error.message, 'error message');
           test.assert(error.code, 'error_code');
         }

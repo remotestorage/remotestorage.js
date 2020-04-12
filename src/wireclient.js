@@ -4,6 +4,7 @@ const log = require('./log');
 const util = require('./util');
 const eventHandling = require('./eventhandling');
 const Authorize = require('./authorize');
+const UnauthorizedError = require('./unauthorized-error');
 const config = require('./config');
 
 /**
@@ -231,7 +232,7 @@ WireClient.prototype = {
         }
 
         if (response.status === 401) {
-          self.rs._emit('error', new Authorize.Unauthorized());
+          self.rs._emit('error', new UnauthorizedError());
         }
 
         return Promise.resolve({statusCode: response.status, revision: revision});
