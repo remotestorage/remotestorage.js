@@ -1,8 +1,7 @@
 const log = require('./log');
 import * as eventHandling from './eventhandling';
-import {localStorageAvailable} from './util';
-import {RSNodes} from './common-interfaces';
-import {CachingLayer} from './cachinglayer-new';
+import { localStorageAvailable } from './util';
+import { CachingLayer } from './cachinglayer-new';
 
 /**
  * localStorage caching adapter. Used when no IndexedDB available.

@@ -1,7 +1,6 @@
 const log = require('./log');
 import * as config from './config';
 import { deepClone, equal, isDocument, isFolder, pathsFromRoot } from './util';
-import { ChangeObj, ContentType, QueuedRequestResponse, RSEvent, RSNode, RSNodes } from './common-interfaces';
 
 /**
  * This module defines functions that are mixed into remoteStorage.local when
@@ -81,7 +80,7 @@ export abstract class CachingLayer {
     }
   }
 
-  put(path: string, body: any, contentType: ContentType): Promise<RSNodes> {
+  put(path: string, body: any, contentType: string): Promise<RSNodes> {
     const paths = pathsFromRoot(path);
 
     function _processNodes(nodePaths, nodes) {
