@@ -1,5 +1,5 @@
 const log = require('./log');
-import * as config from './config';
+const config = require('./config');
 import { deepClone, equal, isDocument, isFolder, pathsFromRoot } from './util';
 
 /**
