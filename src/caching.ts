@@ -14,20 +14,7 @@ export default class Caching {
   // TODO add correct type
   activateHandler: Function;
 
-  // TODO add correct type for remoteStorage
-  private _remoteStorage: any;
   private _rootPaths: object;
-
-  /**
-   * Setup function that is called on initialization.
-   *
-   * @private
-   **/
-  // TODO this is not really private, isn't it?
-  // -> The private here refers to not being a public API for app developers -raucao
-  public _rs_init (remoteStorage): void {
-    this._remoteStorage = remoteStorage;
-  };
 
   constructor () {
     this.reset();
@@ -48,10 +35,11 @@ export default class Caching {
     if(!isFolder(path)) {
       throw new Error('path should be a folder');
     }
-    if(this._remoteStorage && this._remoteStorage.access &&
-      !this._remoteStorage.access.checkPathPermission(path, 'r')) {
-      throw new Error('No access to path "' + path + '". You have to claim access to it first.');
-    }
+    // FIXME We need to get to the access instance somehow.  But I'm not sure
+    // this check is even necessary in the first place. -raucao
+    // if(!this._remoteStorage.access.checkPathPermission(path, 'r')) {
+    //   throw new Error('No access to path "' + path + '". You have to claim access to it first.');
+    // }
     if(!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
       throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
     }
@@ -126,7 +114,15 @@ export default class Caching {
    **/
   reset (): void {
     this._rootPaths = {};
-    this._remoteStorage = null;
+  }
+
+  /**
+   * Setup function that is called on initialization.
+   *
+   * @private
+   **/
+  static _rs_init (/*remoteStorage*/): void {
+    return;
   }
 }
 
