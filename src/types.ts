@@ -37,8 +37,8 @@ class Types {
 
   /**
    * Called via public function BaseClient.declareType()
-   *
-   * @private (though not really)
+   * ! Not intended to be used as public API !
+   * @private
    */
   declare(moduleName, alias, uri, schema): void {
     const fullAlias = moduleName + '/' + alias;
