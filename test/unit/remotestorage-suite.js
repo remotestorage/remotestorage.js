@@ -376,6 +376,8 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
           // Sync._rs_init = function Sync_rs_init() {};
           // Sync._rs_cleanup = function Sync_rs_cleanup() {};
 
+          // TODO Please someone document this test. It is incomprehensible as is.
+
           var loadedHandler = function() {
             initsCalled++;
 
