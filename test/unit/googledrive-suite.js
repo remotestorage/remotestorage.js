@@ -451,6 +451,65 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
       },
 
       {
+        desc: "#put responds with success when uploading a file in a folder with special characters",
+        run: function (env, test) {          
+          //response for call to "/drive/v2/files" request in _getFolder for path "/"
+          addMockRequestCallback(function() {
+            mockRequestSuccess({
+              status: 200,
+              responseText: JSON.stringify({ items: [
+                { etag: 't1', id: '1', title: 'remotestorage', mimeType: 'application/vnd.google-apps.folder' }
+              ] })
+            })
+          });
+
+          //response for call to "/drive/v2/files" request in _getFolder for path "/remotestorage/"
+          addMockRequestCallback(function() {
+            mockRequestSuccess({
+              status: 200,
+              responseText: JSON.stringify({ items: [
+                { etag: 't2', id: '2', title: 'some folder', mimeType: 'application/vnd.google-apps.folder' }
+              ] })
+            })
+          });
+
+          // response for call to "/drive/v2/files" request in _getFolder for path "/remotestorage/some folder"
+          addMockRequestCallback(function() {
+            mockRequestSuccess({
+              status: 200,
+              responseText: JSON.stringify({ items: [ ] })
+            })
+          });
+
+          // response for call to "/upload/drive/v2/files?uploadType=resumable" request in in _createFile
+          addMockRequestCallback(function() {
+            mockRequestSuccess({
+              status: 200,
+              responseHeaders: { 'Location': '/' },
+              responseText: JSON.stringify( { t:true})
+            })
+          });
+
+          // response to file body upload request in _createFile
+          addMockRequestCallback(function() {
+            mockRequestSuccess({
+              status: 200,
+              responseText: JSON.stringify( {
+                etag: '"1234"',
+                mimeType: 'text/plain',
+                title: 'file'
+              })
+            })
+          });
+
+          env.connectedClient.put('/some folder/file', 'data', 'text/plain').
+            then(function (r) {
+              test.assert(r.revision, '1234');
+            });
+        }
+      },   
+
+      {
         desc: "#delete responds with 412 if ifMatch condition fails",
         run: function (env, test) {
           env.connectedClient._fileIdCache.set('/remotestorage/foo', 'foo_id');
