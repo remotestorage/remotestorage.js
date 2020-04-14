@@ -417,7 +417,7 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
             mockRequestSuccess({
               status: 200,
               responseText: JSON.stringify({ items: [
-                { etag: '"1234"' }
+                { etag: '"1234"', title: 'bar' }
               ] })
             });
           }, 10);
