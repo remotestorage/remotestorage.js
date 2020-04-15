@@ -221,7 +221,7 @@ Dropbox.prototype = {
 
       listing = body.entries.reduce(function (map, item) {
         var isDir = item['.tag'] === 'folder';
-        var itemName = item.path_lower.split('/').slice(-1)[0] + (isDir ? '/' : '');
+        var itemName = item.path_display.split('/').slice(-1)[0] + (isDir ? '/' : '');
         if (isDir){
           map[itemName] = { ETag: revCache.get(path+itemName) };
         } else {
@@ -711,7 +711,7 @@ Dropbox.prototype = {
         }
 
         responseBody.entries.forEach(function (entry) {
-          var path = entry.path_lower.substr(PATH_PREFIX.length);
+          var path = entry.path_display.substr(PATH_PREFIX.length);
 
           if (entry['.tag'] === 'deleted') {
             // there's no way to know whether the entry was a file or a folder
