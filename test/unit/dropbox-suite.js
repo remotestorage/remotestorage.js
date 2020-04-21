@@ -834,6 +834,46 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         },
 
         {
+          desc: "#getItemURL returns from cache",
+          run: function (env, test) {
+            env.connectedClient._itemRefs['/public/foo'] = 'http://example.com/public/foo';
+            env.connectedClient.getItemURL('/public/foo').then((itemURL) => {
+              test.assert(itemURL, 'http://example.com/public/foo');
+            });
+          }
+        },
+
+        {
+          desc: "#getItemURL creates shared link if it does not exist",
+          run: function (env, test) {
+            env.connectedClient.getItemURL('/public/foo').then((itemURL) => {
+              test.assert(itemURL, 'http://example.com/public/foo');
+            });
+
+            setTimeout(() => {
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  links: []
+                })
+              });
+            }, 10);
+
+            setTimeout(() => {
+              test.assertAnd(getMockRequestUrl(), 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings');
+
+              mockRequestSuccess({
+                status: 200,
+                responseText: JSON.stringify({
+                  '.tag': 'file',
+                  url: 'http://example.com/public/foo',
+                })
+              });
+            }, 20);
+          }
+        },
+
+        {
           desc: "requests are aborted if they aren't responded after the configured timeout",
           timeout: 2000,
           run: function (env, test) {
@@ -947,49 +987,6 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
             });
           }
         },
-
-        {
-          desc: "share gets called after getting a public path without touching the fullfilments",
-          run: function (env, test) {
-            oldShare = env.connectedClient.share;
-            env.connectedClient.share = function(path) {
-              oldShare.bind(env.connectedClient)(path)
-                .then(function (r) {
-                  test.assert(env.connectedClient._itemRefs['/public/foo'],'http://dropbox.shareing/url');
-                  test.done();
-                })
-                .catch(function (err) {
-                  test.fail(err);
-                });
-              env.connectedClient.share = oldShare;
-            };
-
-            addMockRequestCallback(function (req) {
-              mockRequestSuccess({
-                status: 200,
-                responseHeaders: {
-                  'Content-Type': 'text/plain; charset=UTF-8',
-                  'Dropbox-API-Result': JSON.stringify({rev: 'rev'})
-                },
-                arrayBuffer: new ArrayBufferMock('response-body')
-              });
-            });
-            addMockRequestCallback(function (req) {
-              mockRequestSuccess({
-                status: 200,
-                responseText: JSON.stringify( {
-                  url: 'http://dropbox.shareing/url'
-                })
-              });  
-            });
-            env.connectedClient.get('/public/foo').then(function (r){
-              test.assertAnd(r.statusCode, 200, 'status = '+r.statusCode);
-              test.assertAnd(r.revision, 'rev',r.revision)
-              test.assertAnd(r.body, 'response-body', 'body = '+ r.body);            
-            })
-          }
-        },
-        
 
         {
           desc: "Dropbox adapter hooks itself into sync cycle when activated",

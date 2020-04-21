@@ -49,7 +49,7 @@ Known issues
 * Listing and deleting folders with more than 10000 files will cause problems
 * Content-Type is not fully supported due to limitations of the Dropbox API
 * Dropbox preserves cases but is not case-sensitive
-* ``getItemURL`` is not implemented yet (see issue :issue:`1052`)
+* ``getItemURL`` works only for files which exist and are public
 
 Google Drive
 ------------

@@ -430,9 +430,9 @@ Other functions
   :short-name:
 
   .. WARNING::
-     This method currently only works for remoteStorage
-     backends. The issues for implementing it for Dropbox and Google
-     Drive can be found at :issue:`1052` and :issue:`1054`.
+     This method currently only works for remoteStorage and Dropbox backends.
+     The issue for implementing it for Google Drive can be found at
+     :issue:`1054`.
 
 .. autofunction:: BaseClient#scope(path)
   :short-name:

@@ -289,18 +289,18 @@ BaseClient.prototype = {
    * URL of an item in the ``/public`` folder.
    *
    * @param {string} path - Path relative to the module root.
-   * @returns {string} The full URL of the item, including the storage origin
+   * @returns {Promise} Resolves to t he full URL of the item, including the storage origin.
    */
   getItemURL: function (path) {
     if (typeof(path) !== 'string') {
-      throw 'Argument \'path\' of baseClient.getItemURL must be a string';
+      return Promise.reject('Argument \'path\' of baseClient.getItemURL must be a string');
     }
+    let url;
     if (this.storage.connected) {
       path = this._cleanPath( this.makePath(path) );
-      return this.storage.remote.href + path;
-    } else {
-      return undefined;
+      url = this.storage.remote.href + path;
     }
+    return Promise.resolve(url);
   },
 
   /**
