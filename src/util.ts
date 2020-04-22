@@ -234,9 +234,9 @@ export const getJSONFromLocalStorage = (key: string): object => {
  *
  * @returns {boolean}
  */
-export const shouldBeTreatedAsBinary = (content: string, mimeType: string): boolean => {
+export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType: string): boolean => {
   // eslint-disable-next-line no-control-regex
-  return !!((mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x08\x0E-\x1F\uFFFD]/.test(content));
+  return !!((mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x08\x0E-\x1F\uFFFD]/.test(content as string));
 };
 
 /**
