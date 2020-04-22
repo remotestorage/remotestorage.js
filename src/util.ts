@@ -41,6 +41,8 @@ export const getGlobalContext = (): Window | Global => {
   return (typeof (window) !== 'undefined' ? window : (typeof self === 'object' ? self : global));
 };
 
+// TODO Remove in favor of modern JS:
+// `const mergedObject = { ...obj1, ..obj2 }`
 export const extend = (...args): unknown => {
   const target = args[0];
   const sources = Array.prototype.slice.call(args, 1);
