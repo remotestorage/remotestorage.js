@@ -78,7 +78,7 @@ const Features = {
    *
    */
   hasFeature (feature) {
-    for (var i = this.features.length - 1; i >= 0; i--) {
+    for (let i = this.features.length - 1; i >= 0; i--) {
       if (this.features[i].name === feature) {
         return this.features[i].supported;
       }
@@ -89,7 +89,7 @@ const Features = {
 
   loadFeature (featureName) {
     const feature = this.featureModules[featureName];
-    let supported = !feature._rs_supported || feature._rs_supported();
+    const supported = !feature._rs_supported || feature._rs_supported();
 
     log(`[RemoteStorage] [FEATURE ${featureName}] initializing ...`);
 

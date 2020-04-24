@@ -33,11 +33,9 @@ export default class LocalStorage extends CachingLayer {
   /**
    * Inform about the availability of the LocalStorage backend.
    *
-   * @returns {Boolean}
-   *
    * @protected
    */
-  protected static _rs_supported() {
+  protected static _rs_supported(): boolean {
     return localStorageAvailable();
   };
 
@@ -48,7 +46,7 @@ export default class LocalStorage extends CachingLayer {
    *
    * TODO: tests missing!
    */
-  protected static _rs_cleanup() {
+  protected static _rs_cleanup(): void {
     const keys = [];
 
     for (let i = 0, len = localStorage.length; i < len; i++) {
