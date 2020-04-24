@@ -1,5 +1,4 @@
-const eventHandling2 = require('./eventhandling');
-const log = require('./log');
+import {eventHandlingMixedIn} from './eventhandling-new';
 import {CachingLayer} from './cachinglayer-new';
 
 /**
@@ -9,7 +8,7 @@ import {CachingLayer} from './cachinglayer-new';
  * @class
  **/
 
-export class InMemoryStorage extends CachingLayer {
+class InMemoryStorageBase extends CachingLayer {
 
   /**
    * Initialize the InMemoryStorage backend.
@@ -18,7 +17,7 @@ export class InMemoryStorage extends CachingLayer {
    *
    * @protected
    */
-  protected static _rs_init() {
+  protected static _rs_init(): void {
     // empty
   }
 
@@ -39,17 +38,15 @@ export class InMemoryStorage extends CachingLayer {
    *
    * @protected
    */
-  protected static _rs_cleanup() {
+  protected static _rs_cleanup(): void {
     // empty
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _storage: { [key: string]: any } = {};
 
   constructor() {
     super();
-    log('[InMemoryStorage] Registering events');
-    // TODO fix once we can
-    eventHandling2(this, 'change', 'local-events-done');
   }
 
 
@@ -82,7 +79,9 @@ export class InMemoryStorage extends CachingLayer {
     return Promise.resolve();
   }
 
+  // NOTE: will be overwritten by eventHandlingMíxin
   _emit(...args): void {
+    throw new Error('Should never be called');
     // empty
   }
 
@@ -91,5 +90,7 @@ export class InMemoryStorage extends CachingLayer {
   }
 }
 
+// Also add event handling class
+const InMemoryStorage = eventHandlingMixedIn(InMemoryStorageBase, ['change', 'local-events-done']);
 
 module.exports = InMemoryStorage;
