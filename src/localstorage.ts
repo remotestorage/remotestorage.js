@@ -1,7 +1,8 @@
+import {eventHandlingMixedIn} from './eventhandling-new';
+import {localStorageAvailable} from './util';
+import {CachingLayer} from './cachinglayer-new';
+
 const log = require('./log');
-import * as eventHandling from './eventhandling';
-import { localStorageAvailable } from './util';
-import { CachingLayer } from './cachinglayer-new';
 
 /**
  * localStorage caching adapter. Used when no IndexedDB available.
@@ -19,7 +20,7 @@ function isNodeKey(key: string): boolean {
   return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX;
 }
 
-export default class LocalStorage extends CachingLayer {
+class LocalStorageBase extends CachingLayer {
   /**
    * Initialize the LocalStorage backend.
    *
@@ -64,7 +65,7 @@ export default class LocalStorage extends CachingLayer {
 
 
   // TODO fix this
-  _emit (...args: any[]): void {
+  _emit(...args: any[]): void {
     return;
   };
 
@@ -75,8 +76,6 @@ export default class LocalStorage extends CachingLayer {
 
   constructor() {
     super();
-    log('[LocalStorage] Registering events');
-    eventHandling(this, 'change', 'local-events-done');
   }
 
   getNodes(paths: string[]): Promise<RSNodes> {
@@ -122,5 +121,7 @@ export default class LocalStorage extends CachingLayer {
   }
 }
 
-// TODO should be removed after refactor in favor of adjusting the imports
+// Also add event handling class
+const LocalStorage = eventHandlingMixedIn(LocalStorageBase, ['change', 'local-events-done']);
+
 module.exports = LocalStorage;
