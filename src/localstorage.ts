@@ -66,7 +66,7 @@ class LocalStorageBase extends CachingLayer {
 
   // TODO fix this
   // NOTE: will be overwritten by eventHandlingMíxin
-  _emit(...args: any[]): void {
+  _emit(...args: any[]): never {
     throw new Error('Should never be called');
   };
 
