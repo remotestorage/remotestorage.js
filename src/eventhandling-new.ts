@@ -3,8 +3,10 @@ const log = require('./log');
 // wew use the mixin approach as described here:
 // https://mariusschulz.com/blog/mixin-classes-in-typescript
 type Constructor<T = {}> = new (...args: any[]) => T;
+
+// TODO add real type for event
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type EventHandler = (event?: any) => void;
+type EventHandler = (event?: unknown) => void;
 
 export function eventHandlingMixedIn<TBase extends Constructor>(Base: TBase, additionalEvents: string[] = []) {
   return class extends Base {
@@ -23,10 +25,10 @@ export function eventHandlingMixedIn<TBase extends Constructor>(Base: TBase, add
      * Install an event handler for the given event name
      */
     addEventListener(eventName: string, handler: EventHandler): void {
-      if(typeof (eventName) !== 'string') {
+      if (typeof (eventName) !== 'string') {
         throw new Error('Argument eventName should be a string');
       }
-      if(typeof (handler) !== 'function') {
+      if (typeof (handler) !== 'function') {
         throw new Error('Argument handler should be a function');
       }
       log('[Eventhandling] Adding event listener', eventName);
@@ -45,7 +47,7 @@ export function eventHandlingMixedIn<TBase extends Constructor>(Base: TBase, add
       this._validateEvent(eventName);
       const hl = this._handlers[eventName].length;
       for (let i = 0; i < hl; i++) {
-        if(this._handlers[eventName][i] === handler) {
+        if (this._handlers[eventName][i] === handler) {
           this._handlers[eventName].splice(i, 1);
           return;
         }
@@ -64,7 +66,7 @@ export function eventHandlingMixedIn<TBase extends Constructor>(Base: TBase, add
     }
 
     _validateEvent(eventName: string): void {
-      if(!(eventName in this._handlers)) {
+      if (!(eventName in this._handlers)) {
         throw new Error("Unknown event: " + eventName);
       }
     }

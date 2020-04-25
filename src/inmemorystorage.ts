@@ -1,5 +1,5 @@
-import {eventHandlingMixedIn} from './eventhandling-new';
-import {CachingLayer} from './cachinglayer-new';
+import { eventHandlingMixedIn } from './eventhandling-new';
+import { CachingLayer } from './cachinglayer-new';
 
 /**
  * In-memory caching adapter. Used when no IndexedDB or localStorage
@@ -62,7 +62,7 @@ class InMemoryStorageBase extends CachingLayer {
 
   setNodes(nodes: RSNodes): Promise<void> {
     for (const path in nodes) {
-      if(nodes[path] === undefined) {
+      if (nodes[path] === undefined) {
         delete this._storage[path];
       } else {
         this._storage[path] = nodes[path];

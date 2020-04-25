@@ -1,6 +1,6 @@
-import {eventHandlingMixedIn} from './eventhandling-new';
-import {localStorageAvailable} from './util';
-import {CachingLayer} from './cachinglayer-new';
+import { eventHandlingMixedIn } from './eventhandling-new';
+import { localStorageAvailable } from './util';
+import { CachingLayer } from './cachinglayer-new';
 
 const log = require('./log');
 
