@@ -80,7 +80,7 @@ class InMemoryStorageBase extends CachingLayer {
   }
 
   // NOTE: will be overwritten by eventHandlingMíxin
-  _emit(...args): void {
+  _emit(...args): never {
     throw new Error('Should never be called');
     // empty
   }
