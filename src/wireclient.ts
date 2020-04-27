@@ -67,14 +67,14 @@ let isArrayBufferView;
 
 if (typeof ((global || window as any).ArrayBufferView) === 'function') {
   isArrayBufferView = function (object) {
-    return object && (object instanceof (window as any).ArrayBufferView);
+    return object && (object instanceof (global || window as any).ArrayBufferView);
   };
 } else {
   const arrayBufferViews = [
     Int8Array, Uint8Array, Int16Array, Uint16Array,
     Int32Array, Uint32Array, Float32Array, Float64Array
   ];
-  isArrayBufferView = function (object) {
+  isArrayBufferView = function (object): boolean {
     for (let i = 0; i < 8; i++) {
       if (object instanceof arrayBufferViews[i]) {
         return true;
@@ -84,8 +84,21 @@ if (typeof ((global || window as any).ArrayBufferView) === 'function') {
   };
 }
 
+// TODO double check
+interface WireClientSettings {
+  userAddress: string;
+  href: string;
+  storageApi: unknown;
+  token: string;
+  properties: unknown;
+}
 
-function addQuotes(str) {
+interface WireRequestResponse {
+  statusCode: number;
+  revision: string | undefined;
+}
+
+function addQuotes(str: string): string {
   if (typeof (str) !== 'string') {
     return str;
   }
@@ -96,7 +109,7 @@ function addQuotes(str) {
   return '"' + str + '"';
 }
 
-function stripQuotes(str) {
+function stripQuotes(str: string): string {
   if (typeof (str) !== 'string') {
     return str;
   }
@@ -104,7 +117,7 @@ function stripQuotes(str) {
   return str.replace(/^["']|["']$/g, '');
 }
 
-function determineCharset(mimeType) {
+function determineCharset(mimeType: string): string {
   let charset = 'UTF-8';
   let charsetMatch;
 
@@ -117,16 +130,16 @@ function determineCharset(mimeType) {
   return charset;
 }
 
-function isFolderDescription(body) {
+function isFolderDescription(body: object): boolean {
   return ((body['@context'] === 'http://remotestorage.io/spec/folder-description')
     && (typeof (body['items']) === 'object'));
 }
 
-function isSuccessStatus(status) {
+function isSuccessStatus(status: number): boolean {
   return [201, 204, 304].indexOf(status) >= 0;
 }
 
-function isErrorStatus(status) {
+function isErrorStatus(status: number): boolean {
   return [401, 403, 404, 412].indexOf(status) >= 0;
 }
 
@@ -197,12 +210,12 @@ WireClient.prototype = {
    *   // -> 'draft-dejong-remotestorage-01'
    */
 
-  _request: function (method, uri, token, headers, body, getEtag, fakeRevision) {
+  _request: function (method: string, uri: string, token: string, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
     if ((method === 'PUT' || method === 'DELETE') && uri[uri.length - 1] === '/') {
       return Promise.reject('Don\'t ' + method + ' on directories!');
     }
 
-    let revision;
+    let revision: string | undefined;
 
     if (token !== Authorize.IMPLIED_FAKE_TOKEN) {
       headers['Authorization'] = 'Bearer ' + token;
@@ -217,7 +230,7 @@ WireClient.prototype = {
       body: body,
       headers: headers,
       responseType: 'arraybuffer'
-    }).then((response) => {
+    }).then((response: (XMLHttpRequest)): Promise<WireRequestResponse> => {
       if (!this.online) {
         this.online = true;
         this.rs._emit('network-online');
@@ -251,7 +264,7 @@ WireClient.prototype = {
         if (getEtag) {
           revision = stripQuotes(response.getResponseHeader('ETag'));
         } else {
-          revision = response.status === 200 ? fakeRevision : undefined;
+          revision = (response.status === 200) ? fakeRevision : undefined;
         }
 
         const charset = determineCharset(mimeType);
@@ -313,7 +326,7 @@ WireClient.prototype = {
    *              the user disconnected their storage, or you found that the
    *              token you have has expired, simply set that field to `null`.
    */
-  configure: function (settings) {
+  configure: function (settings: WireClientSettings): void {
     if (typeof settings !== 'object') {
       throw new Error('WireClient configure settings parameter should be an object');
     }
@@ -355,19 +368,17 @@ WireClient.prototype = {
     }
   },
 
-  stopWaitingForToken: function () {
+  stopWaitingForToken: function (): void {
     if (!this.connected) {
       this._emit('not-connected');
     }
   },
 
-  get: function (path, options) {
+  get: function (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
-    if (!options) {
-      options = {};
-    }
+
     const headers = {};
     if (this.supportsRevs) {
       if (options.ifNoneMatch) {
@@ -421,12 +432,9 @@ WireClient.prototype = {
       });
   },
 
-  put: function (path, body, contentType, options) {
+  put: function (path: string, body: unknown, contentType: string, options: { ifMatch?: string, ifNoneMatch?: string } = {}) {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
-    }
-    if (!options) {
-      options = {};
     }
     if ((!contentType.match(/charset=/)) && (body instanceof ArrayBuffer || isArrayBufferView(body))) {
       contentType += '; charset=binary';
@@ -444,7 +452,7 @@ WireClient.prototype = {
       headers, body, this.supportsRevs);
   },
 
-  'delete': function (path, options) {
+  'delete': function (path: string, options: { ifMatch?: string } = {}) {
     if (!this.connected) {
       throw new Error('not connected (path: ' + path + ')');
     }
@@ -466,8 +474,9 @@ WireClient.prototype = {
 // Shared isArrayBufferView used by WireClient and Dropbox
 WireClient.isArrayBufferView = isArrayBufferView;
 
+// TODO add proper definition for options
 // Shared request function used by WireClient, GoogleDrive and Dropbox.
-WireClient.request = function (method, url, options) {
+WireClient.request = function (method: string, url: string, options: unknown): Promise<XMLHttpRequest | Response> {
   if (typeof fetch === 'function') {
     return WireClient._fetchRequest(method, url, options);
   } else if (typeof XMLHttpRequest === 'function') {
@@ -479,14 +488,14 @@ WireClient.request = function (method, url, options) {
 };
 
 /** options includes body, headers and responseType */
-WireClient._fetchRequest = function (method, url, options) {
+WireClient._fetchRequest = function (method: string, url: string, options): Promise<Response> {
   let syntheticXhr;
   const responseHeaders = {};
   let abortController;
   if (typeof AbortController === 'function') {
     abortController = new AbortController();
   }
-  const networkPromise = fetch(url, {
+  const networkPromise: Promise<Response> = fetch(url, {
     method: method,
     headers: options.headers,
     body: options.body,
@@ -494,7 +503,7 @@ WireClient._fetchRequest = function (method, url, options) {
   }).then((response) => {
     log('[WireClient fetch]', response);
 
-    response.headers.forEach(function (value, headerName) {
+    response.headers.forEach((value: string, headerName: string) => {
       responseHeaders[headerName.toUpperCase()] = value;
     });
 
@@ -503,7 +512,7 @@ WireClient._fetchRequest = function (method, url, options) {
       status: response.status,
       statusText: response.statusText,
       response: undefined,
-      getResponseHeader: function (headerName) {
+      getResponseHeader: (headerName: string): unknown => {
         return responseHeaders[headerName.toUpperCase()] || null;
       },
       // responseText: 'foo',
@@ -532,7 +541,7 @@ WireClient._fetchRequest = function (method, url, options) {
     return syntheticXhr;
   });
 
-  const timeoutPromise = new Promise((resolve, reject) => {
+  const timeoutPromise: Promise<Response> = new Promise((resolve, reject) => {
     setTimeout(() => {
       reject('timeout');
       if (abortController) {
@@ -544,7 +553,7 @@ WireClient._fetchRequest = function (method, url, options) {
   return Promise.race([networkPromise, timeoutPromise]);
 };
 
-WireClient._xhrRequest = function (method, url, options) {
+WireClient._xhrRequest = function (method, url, options): Promise<XMLHttpRequest> {
   return new Promise((resolve, reject) => {
 
     log('[WireClient]', method, url);
@@ -569,7 +578,7 @@ WireClient._xhrRequest = function (method, url, options) {
       }
     }
 
-    xhr.onload = () => {
+    xhr.onload = (): void => {
       if (timedOut) {
         return;
       }
@@ -577,7 +586,7 @@ WireClient._xhrRequest = function (method, url, options) {
       resolve(xhr);
     };
 
-    xhr.onerror = (error) => {
+    xhr.onerror = (error): void => {
       if (timedOut) {
         return;
       }
@@ -606,17 +615,17 @@ Object.defineProperty(WireClient.prototype, 'storageType', {
 });
 
 
-WireClient._rs_init = function (remoteStorage) {
+WireClient._rs_init = function (remoteStorage): void {
   hasLocalStorage = localStorageAvailable();
   remoteStorage.remote = new WireClient(remoteStorage);
   this.online = true;
 };
 
-WireClient._rs_supported = function () {
+WireClient._rs_supported = function (): boolean {
   return typeof fetch === 'function' || typeof XMLHttpRequest === 'function';
 };
 
-WireClient._rs_cleanup = function () {
+WireClient._rs_cleanup = function (): void {
   if (hasLocalStorage) {
     delete localStorage[SETTINGS_KEY];
   }
