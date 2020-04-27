@@ -434,7 +434,7 @@ WireClient.prototype = {
       });
   },
 
-  put: function (path: string, body: unknown, contentType: string, options: { ifMatch?: string, ifNoneMatch?: string } = {}) {
+  put: function (path: string, body: unknown, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
