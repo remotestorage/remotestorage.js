@@ -1,9 +1,12 @@
-import { eventHandlingMixedIn } from './eventhandling-new';
+import { eventHandling } from './eventhandling-new';
 import { CachingLayer } from './cachinglayer-new';
 
 /**
  * In-memory caching adapter. Used when no IndexedDB or localStorage
  * available.
+ *
+ * NOTE: has the suffix base to underline that it doesn't get exported directly,
+ * but only with the eventHandlingMixin applied.
  *
  * @class
  **/
@@ -91,6 +94,6 @@ class InMemoryStorageBase extends CachingLayer {
 }
 
 // Also add event handling class
-const InMemoryStorage = eventHandlingMixedIn(InMemoryStorageBase, ['change', 'local-events-done']);
+const InMemoryStorage = eventHandling(InMemoryStorageBase, ['change', 'local-events-done']);
 
 module.exports = InMemoryStorage;

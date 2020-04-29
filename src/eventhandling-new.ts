@@ -8,7 +8,7 @@ type Constructor<T = {}> = new (...args: any[]) => T;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventHandler = (event?: unknown) => void;
 
-export function eventHandlingMixedIn<TBase extends Constructor>(Base: TBase, additionalEvents: string[] = []) {
+export function eventHandling<TBase extends Constructor>(Base: TBase, additionalEvents: string[] = []) {
   return class extends Base {
 
     _handlers: { [key: string]: EventHandler[] } = {};

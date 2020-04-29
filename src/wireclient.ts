@@ -71,9 +71,7 @@ if (typeof ((global || window as any).ArrayBufferView) === 'function') {
   };
 } else {
   const arrayBufferViews = [
-    // eslint-disable-next-line no-undef
     Int8Array, Uint8Array, Int16Array, Uint16Array,
-    // eslint-disable-next-line no-undef
     Int32Array, Uint32Array, Float32Array, Float64Array
   ];
   isArrayBufferView = function (object): boolean {

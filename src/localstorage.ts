@@ -1,4 +1,4 @@
-import { eventHandlingMixedIn } from './eventhandling-new';
+import { eventHandling } from './eventhandling-new';
 import { localStorageAvailable } from './util';
 import { CachingLayer } from './cachinglayer-new';
 
@@ -123,6 +123,6 @@ class LocalStorageBase extends CachingLayer {
 }
 
 // Also add event handling class
-const LocalStorage = eventHandlingMixedIn(LocalStorageBase, ['change', 'local-events-done']);
+const LocalStorage = eventHandling(LocalStorageBase, ['change', 'local-events-done']);
 
 module.exports = LocalStorage;
