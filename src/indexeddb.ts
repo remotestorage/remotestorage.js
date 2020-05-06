@@ -32,10 +32,11 @@
  * @interface
  */
 
+
 const log = require('./log');
 const cachingLayer = require('./cachinglayer');
 const eventHandling = require('./eventhandling');
-const util = require('./util');
+import {getGlobalContext, deepClone} from './util';
 
 const DB_VERSION = 2;
 
@@ -90,9 +91,9 @@ IndexedDB.prototype = {
     const misses = [], fromCache = {};
     for (let i = 0, len = paths.length; i < len; i++) {
       if (this.changesQueued[paths[i]] !== undefined) {
-        fromCache[paths[i]] = util.deepClone(this.changesQueued[paths[i]] || undefined);
+        fromCache[paths[i]] = deepClone(this.changesQueued[paths[i]] || undefined);
       } else if (this.changesRunning[paths[i]] !== undefined) {
-        fromCache[paths[i]] = util.deepClone(this.changesRunning[paths[i]] || undefined);
+        fromCache[paths[i]] = deepClone(this.changesRunning[paths[i]] || undefined);
       } else {
         misses.push(paths[i]);
       }
@@ -407,7 +408,7 @@ IndexedDB._rs_init = function (remoteStorage: unknown): Promise<unknown> {
 IndexedDB._rs_supported = function (): Promise<void> {
   return new Promise((resolve, reject) => {
 
-    const context = util.getGlobalContext();
+    const context = getGlobalContext();
 
     // FIXME: this is causing an error in chrome
     // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
