@@ -524,12 +524,12 @@ GoogleDrive.prototype = {
         for (const item of data.items) {
           etagWithoutQuotes = removeQuotes(item.etag);
           if (item.mimeType === GD_DIR_MIME_TYPE) {
-            this._fileIdCache.set(path + item.title + '/', item.id);
+            this._fileIdCache.set(path + cleanPath(item.title) + '/', item.id);
             itemsMap[item.title + '/'] = {
               ETag: etagWithoutQuotes
             };
           } else {
-            this._fileIdCache.set(path + item.title, item.id);
+            this._fileIdCache.set(path + cleanPath(item.title), item.id);
             itemsMap[item.title] = {
               ETag: etagWithoutQuotes,
               'Content-Type': item.mimeType,
