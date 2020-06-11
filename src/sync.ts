@@ -178,8 +178,8 @@ class Sync {
       return true;
     }
 
-    for (const item of itemsMap) {
-      if (typeof item !== 'boolean') {
+    for (const path in itemsMap) {
+      if (typeof itemsMap[path] !== 'boolean') {
         return true;
       }
     }
