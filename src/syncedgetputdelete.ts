@@ -1,5 +1,3 @@
-import log from './log';
-
 function shareFirst(path: string): boolean {
   return ( this.backend === 'dropbox' &&
            !!path.match(/^\/public\/.*[^\/]$/) );
@@ -10,7 +8,8 @@ function defaultMaxAge(context): false | number {
       context.remote.connected && context.remote.online) {
     return 2 * context.getSyncInterval();
   } else {
-    log('Not setting default maxAge, because remote is offline or not connected');
+    // FIXME re-enable when modules are ES modules
+    // log('Not setting default maxAge, because remote is offline or not connected');
     return false;
   }
 }

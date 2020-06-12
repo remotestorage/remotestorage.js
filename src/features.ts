@@ -2,8 +2,8 @@
 
 const util = require('./util');
 const log = require('./log');
-const SyncedGetPutDelete = require('./syncedgetputdelete');
 const config = require('./config');
+const SGPD = require('./syncedgetputdelete');
 
 const Features = {
   features: [],
@@ -194,7 +194,7 @@ const Features = {
     // RS.prototype
 
     if (this.local && this.remote) {
-      this._setGPD(SyncedGetPutDelete, this);
+      this._setGPD(SGPD, this);
       this._bindChange(this.local);
     } else if (this.remote) {
       this._setGPD(this.remote, this.remote);
