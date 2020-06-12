@@ -71,7 +71,8 @@ module.exports = {
     "no-prototype-builtins": 1,
     "@typescript-eslint/camelcase": 0,
     "@typescript-eslint/no-var-requires": 1,
-    "@typescript-eslint/no-use-before-define": 1
+    "@typescript-eslint/no-use-before-define": 1,
+    "@typescript-eslint/no-var-requires": 0
   },
   "ignorePatterns": [
     "*.js",
