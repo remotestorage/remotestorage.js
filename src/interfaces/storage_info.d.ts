@@ -1,6 +1,7 @@
 declare interface StorageInfo {
   href: string;
   storageApi: string; // TODO define allowed strings,
-  authUrl: string;
+  authURL: string;
   properties: object; // TODO define Webfinger link properties
+  userAddress?: string;
 }
