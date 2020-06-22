@@ -32,11 +32,14 @@
  * @interface
  */
 
-
 const log = require('./log');
-const cachingLayer = require('./cachinglayer');
-const eventHandling = require('./eventhandling');
-import {getGlobalContext, deepClone} from './util';
+
+import { eventHandling } from './eventhandling-new';
+import CachingLayer from './cachinglayer';
+import {
+  deepClone,
+  getGlobalContext
+} from './util';
 
 const DB_VERSION = 2;
 
@@ -45,49 +48,59 @@ const DEFAULT_DB_NAME = 'remotestorage';
 // TODO very weird that this is re-assigned
 let DEFAULT_DB;
 
-// Renamed because naming it as the
-const IndexedDB = function (database) {
-  this.db = database || DEFAULT_DB;
+class IndexedDB extends CachingLayer {
 
-  if (!this.db) {
-    log("[IndexedDB] Failed to open DB");
-    return undefined;
+  db: any;
+  getsRunning: number;
+  putsRunning: number;
+  changesQueued: { [key: string]: unknown };
+  changesRunning: { [key: string]: unknown };
+  commitSlownessWarning: any; // TODO null | number (but node's setInterval returns an unknown type)
+
+  constructor(database) {
+    super();
+
+    this.db = database || DEFAULT_DB;
+
+    if (!this.db) {
+      // TODO shouldn't this throw an error?
+      log("[IndexedDB] Failed to open DB");
+      return undefined;
+    }
+
+    this.getsRunning = 0;
+    this.putsRunning = 0;
+
+    /**
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * changesQueued stores changes for which no IndexedDB transaction has
+     * been started yet.
+     */
+    this.changesQueued = {};
+
+    /**
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * At any time there is at most one IndexedDB transaction running.
+     * changesRunning stores the changes that are included in that currently
+     * running IndexedDB transaction, or if none is running, of the last one
+     * that ran.
+     */
+    this.changesRunning = {};
+
+    // TODO document
+    this.commitSlownessWarning = null;
   }
 
-  cachingLayer(this);
-  eventHandling(this, 'change', 'local-events-done');
-
-  this.getsRunning = 0;
-  this.putsRunning = 0;
-
-  /**
-   * Given a node for which uncommitted changes exist, this cache
-   * stores either the entire uncommitted node, or false for a deletion.
-   * The node's path is used as the key.
-   *
-   * changesQueued stores changes for which no IndexedDB transaction has
-   * been started yet.
-   */
-  this.changesQueued = {};
-
-  /**
-   * Given a node for which uncommitted changes exist, this cache
-   * stores either the entire uncommitted node, or false for a deletion.
-   * The node's path is used as the key.
-   *
-   * At any time there is at most one IndexedDB transaction running.
-   * changesRunning stores the changes that are included in that currently
-   * running IndexedDB transaction, or if none is running, of the last one
-   * that ran.
-   */
-  this.changesRunning = {};
-};
-
-IndexedDB.prototype = {
   /**
    * TODO: Document
    */
-  getNodes(paths: string[]): Promise<RSNodes> {
+  async getNodes (paths: string[]): Promise<RSNodes> {
     const misses = [], fromCache = {};
     for (let i = 0, len = paths.length; i < len; i++) {
       if (this.changesQueued[paths[i]] !== undefined) {
@@ -108,38 +121,38 @@ IndexedDB.prototype = {
     } else {
       return Promise.resolve(fromCache);
     }
-  },
+  }
 
   /**
    * TODO: Document
    */
-  setNodes: function (nodes: RSNodes): Promise<void> {
+  async setNodes (nodes: RSNodes): Promise<void> {
     for (const i in nodes) {
       this.changesQueued[i] = nodes[i] || false;
     }
     this.maybeFlush();
     return Promise.resolve();
-  },
+  }
 
   /**
    * TODO: Document
    */
-  maybeFlush: function (): void {
+  maybeFlush (): void {
     if (this.putsRunning === 0) {
       this.flushChangesQueued();
     } else {
       if (!this.commitSlownessWarning) {
-        this.commitSlownessWarning = setInterval(function () {
+        this.commitSlownessWarning = global.setInterval(function () {
           console.warn('WARNING: waited more than 10 seconds for previous commit to finish');
         }, 10000);
       }
     }
-  },
+  }
 
   /**
    * TODO: Document
    */
-  flushChangesQueued: function (): void {
+  flushChangesQueued (): void {
     if (this.commitSlownessWarning) {
       clearInterval(this.commitSlownessWarning);
       this.commitSlownessWarning = null;
@@ -149,12 +162,12 @@ IndexedDB.prototype = {
       this.changesQueued = {};
       this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
     }
-  },
+  }
 
   /**
    * TODO: Document
    */
-  getNodesFromDb: function (paths: string[]): Promise<RSNodes> {
+  getNodesFromDb (paths: string[]): Promise<RSNodes> {
     return new Promise((resolve, reject) => {
 
       const transaction = this.db.transaction(['nodes'], 'readonly');
@@ -180,12 +193,12 @@ IndexedDB.prototype = {
       };
 
     });
-  },
+  }
 
   /**
    * TODO: Document
    */
-  setNodesInDb: function (nodes: RSNodes): Promise<void> {
+  async setNodesInDb (nodes: { [key: string]: unknown }): Promise<void> {
     return new Promise((resolve, reject) => {
 
       const transaction = this.db.transaction(['nodes'], 'readwrite');
@@ -232,13 +245,13 @@ IndexedDB.prototype = {
       };
 
     });
-  },
+  }
 
   /**
    * TODO: Document
    */
   // TODO add real types once known
-  reset: function (callback: (p: unknown) => unknown): void {
+  reset (callback: (p: unknown) => unknown): void {
     const dbName = this.db.name;
 
     this.db.close();
@@ -256,13 +269,13 @@ IndexedDB.prototype = {
         }
       });
     });
-  },
+  }
 
   /**
    * TODO: Document
    */
   // TODO add real types once known
-  forAllNodes: function (cb: (p: unknown) => unknown): Promise<void> {
+  async forAllNodes (cb: (p: unknown) => unknown): Promise<void> {
     return new Promise((resolve/*, reject*/) => {
 
       const transaction = this.db.transaction(['nodes'], 'readonly');
@@ -279,9 +292,9 @@ IndexedDB.prototype = {
         }
       };
     });
-  },
+  }
 
-  closeDB: function (): void {
+  closeDB (): void {
     if (this.putsRunning === 0) { // check if we are currently writing to the DB
       this.db.close();
     } else {
@@ -289,181 +302,189 @@ IndexedDB.prototype = {
     }
   }
 
-};
+  /**
+   * TODO: Document
+   */
+  // TODO add real types once known
+  static open (name: string, callback: (p: unknown, p2?: unknown) => unknown) {
+    const timer = setTimeout(function () {
+      callback("timeout trying to open db");
+    }, 10000);
 
-/**
- * TODO: Document
- */
-// TODO add real types once known
-IndexedDB.open = function (name: string, callback: (p: unknown, p2?: unknown) => unknown) {
-  const timer = setTimeout(function () {
-    callback("timeout trying to open db");
-  }, 10000);
+    try {
+      const req = indexedDB.open(name, DB_VERSION);
 
-  try {
-    const req = indexedDB.open(name, DB_VERSION);
+      req.onerror = function () {
+        log('[IndexedDB] Opening DB failed', req);
 
-    req.onerror = function () {
-      log('[IndexedDB] Opening DB failed', req);
+        clearTimeout(timer);
+        callback(req.error);
+      };
+
+      req.onupgradeneeded = function (event) {
+        const db = req.result;
+
+        log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
+
+        if (event.oldVersion !== 1) {
+          log("[IndexedDB] Creating object store: nodes");
+          db.createObjectStore('nodes', {keyPath: 'path'});
+        }
+
+        log("[IndexedDB] Creating object store: changes");
+
+        db.createObjectStore('changes', {keyPath: 'path'});
+      };
+
+      req.onsuccess = function () {
+        clearTimeout(timer);
+
+        // check if all object stores exist
+        const db = req.result;
+        if (!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
+          log("[IndexedDB] Missing object store. Resetting the database.");
+          IndexedDB.clean(name, function () {
+            IndexedDB.open(name, callback);
+          });
+          return;
+        }
+
+        callback(null, req.result);
+      };
+    } catch (error) {
+      log("[IndexedDB] Failed to open database: " + error);
+      log("[IndexedDB] Resetting database and trying again.");
 
       clearTimeout(timer);
-      callback(req.error);
-    };
 
-    req.onupgradeneeded = function (event) {
-      const db = req.result;
+      IndexedDB.clean(name, function () {
+        IndexedDB.open(name, callback);
+      });
+    }
+  }
 
-      log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
-
-      if (event.oldVersion !== 1) {
-        log("[IndexedDB] Creating object store: nodes");
-        db.createObjectStore('nodes', {keyPath: 'path'});
-      }
-
-      log("[IndexedDB] Creating object store: changes");
-
-      db.createObjectStore('changes', {keyPath: 'path'});
-    };
+  /**
+   * TODO: Document
+   */
+  static clean (databaseName: string, callback: () => void) {
+    const req = indexedDB.deleteDatabase(databaseName);
 
     req.onsuccess = function () {
-      clearTimeout(timer);
+      log('[IndexedDB] Done removing DB');
+      callback();
+    };
 
-      // check if all object stores exist
-      const db = req.result;
-      if (!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
-        log("[IndexedDB] Missing object store. Resetting the database.");
-        IndexedDB.clean(name, function () {
-          IndexedDB.open(name, callback);
-        });
-        return;
+    // TODO check if this does anything as onabort does not exist on type according to ts
+    req.onerror = (req as any).onabort = function (evt) {
+      console.error('Failed to remove database "' + databaseName + '"', evt);
+    };
+  }
+
+  /**
+   * Initialize the IndexedDB backend.
+   *
+   * @param {Object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
+  // TODO add real type once known
+  static _rs_init (remoteStorage: unknown): Promise<unknown> {
+
+    return new Promise((resolve, reject) => {
+
+      IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
+        if (err) {
+          reject(err);
+        } else {
+          DEFAULT_DB = db;
+          // TODO remove once real type once known
+          (db as any).onerror = () => {
+            (remoteStorage as any)._emit('error', err);
+          };
+          resolve();
+        }
+      });
+
+    });
+  }
+
+  /**
+   * Inform about the availability of the IndexedDB backend.
+   *
+   * @param {Object} rs - RemoteStorage instance
+   * @returns {Boolean}
+   *
+   * @protected
+   */
+  static _rs_supported (): Promise<void> {
+    return new Promise((resolve, reject) => {
+
+      const context = getGlobalContext();
+
+      // FIXME: this is causing an error in chrome
+      // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
+      //                    context.mozIndexedDB || context.oIndexedDB      ||
+      //                    context.msIndexedDB;
+
+      // Detect browsers with known IndexedDb issues (e.g. Android pre-4.4)
+      let poorIndexedDbSupport = false;
+      if (typeof navigator !== 'undefined' &&
+        navigator.userAgent.match(/Android (2|3|4\.[0-3])/)) {
+        // Chrome and Firefox support IndexedDB
+        if (!navigator.userAgent.match(/Chrome|Firefox/)) {
+          poorIndexedDbSupport = true;
+        }
       }
 
-      callback(null, req.result);
-    };
-  } catch (error) {
-    log("[IndexedDB] Failed to open database: " + error);
-    log("[IndexedDB] Resetting database and trying again.");
+      if ('indexedDB' in context && !poorIndexedDbSupport) {
+        try {
+          const check = indexedDB.open("rs-check");
+          check.onerror = function (/* event */) {
+            reject();
+          };
+          check.onsuccess = function (/* event */) {
+            check.result.close();
+            indexedDB.deleteDatabase("rs-check");
+            resolve();
+          };
+        } catch (e) {
+          reject();
+        }
+      } else {
+        reject();
+      }
 
-    clearTimeout(timer);
-
-    IndexedDB.clean(name, function () {
-      IndexedDB.open(name, callback);
     });
+  }
+
+  /**
+   * Remove IndexedDB as a backend.
+   *
+   * @param {Object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
+  // TODO add real type once defined
+  static _rs_cleanup (remoteStorage: any) {
+    return new Promise((resolve/*, reject*/) => {
+      if (remoteStorage.local) {
+        remoteStorage.local.closeDB();
+      }
+
+      IndexedDB.clean(DEFAULT_DB_NAME, resolve);
+    });
+  }
+
+  // NOTE: will be overwritten by eventHandlingMixin
+  _emit(...args): never {
+    throw new Error('Should never be called');
+    // empty
+  }
+
+  diffHandler() {
+    // empty
   }
 };
 
-/**
- * TODO: Document
- */
-IndexedDB.clean = function (databaseName: string, callback: () => void) {
-  const req = indexedDB.deleteDatabase(databaseName);
-
-  req.onsuccess = function () {
-    log('[IndexedDB] Done removing DB');
-    callback();
-  };
-
-  // TODO check if this does anything as onabort does not exist on type according to ts
-  req.onerror = (req as any).onabort = function (evt) {
-    console.error('Failed to remove database "' + databaseName + '"', evt);
-  };
-};
-
-/**
- * Initialize the IndexedDB backend.
- *
- * @param {Object} remoteStorage - RemoteStorage instance
- *
- * @protected
- */
-// TODO add real type once known
-IndexedDB._rs_init = function (remoteStorage: unknown): Promise<unknown> {
-
-  return new Promise((resolve, reject) => {
-
-    IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
-      if (err) {
-        reject(err);
-      } else {
-        DEFAULT_DB = db;
-        // TODO remove once real type once known
-        (db as any).onerror = () => {
-          (remoteStorage as any)._emit('error', err);
-        };
-        resolve();
-      }
-    });
-
-  });
-};
-
-/**
- * Inform about the availability of the IndexedDB backend.
- *
- * @param {Object} rs - RemoteStorage instance
- * @returns {Boolean}
- *
- * @protected
- */
-IndexedDB._rs_supported = function (): Promise<void> {
-  return new Promise((resolve, reject) => {
-
-    const context = getGlobalContext();
-
-    // FIXME: this is causing an error in chrome
-    // context.indexedDB = context.indexedDB    || context.webkitIndexedDB ||
-    //                    context.mozIndexedDB || context.oIndexedDB      ||
-    //                    context.msIndexedDB;
-
-    // Detect browsers with known IndexedDb issues (e.g. Android pre-4.4)
-    let poorIndexedDbSupport = false;
-    if (typeof navigator !== 'undefined' &&
-      navigator.userAgent.match(/Android (2|3|4\.[0-3])/)) {
-      // Chrome and Firefox support IndexedDB
-      if (!navigator.userAgent.match(/Chrome|Firefox/)) {
-        poorIndexedDbSupport = true;
-      }
-    }
-
-    if ('indexedDB' in context && !poorIndexedDbSupport) {
-      try {
-        const check = indexedDB.open("rs-check");
-        check.onerror = function (/* event */) {
-          reject();
-        };
-        check.onsuccess = function (/* event */) {
-          check.result.close();
-          indexedDB.deleteDatabase("rs-check");
-          resolve();
-        };
-      } catch (e) {
-        reject();
-      }
-    } else {
-      reject();
-    }
-
-  });
-};
-
-/**
- * Remove IndexedDB as a backend.
- *
- * @param {Object} remoteStorage - RemoteStorage instance
- *
- * @protected
- */
-// TODO add real type once defined
-IndexedDB._rs_cleanup = function (remoteStorage: any) {
-  return new Promise((resolve/*, reject*/) => {
-    if (remoteStorage.local) {
-      remoteStorage.local.closeDB();
-    }
-
-    IndexedDB.clean(DEFAULT_DB_NAME, resolve);
-
-  });
-};
-
-
-module.exports = IndexedDB;
+// eventHandling(this, 'change', 'local-events-done');
+module.exports = eventHandling(IndexedDB, ['change', 'local-events-done']);

@@ -52,7 +52,6 @@ class InMemoryStorageBase extends CachingLayer {
     super();
   }
 
-
   getNodes(paths: string[]): Promise<RSNodes> {
     const nodes: RSNodes = {};
 
