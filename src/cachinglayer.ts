@@ -1,6 +1,12 @@
 const log = require('./log');
 const config = require('./config');
-import { deepClone, equal, isDocument, isFolder, pathsFromRoot } from './util';
+import {
+  deepClone,
+  equal,
+  isDocument,
+  isFolder,
+  pathsFromRoot
+} from './util';
 
 /**
  * This module defines functions that are mixed into remoteStorage.local when
@@ -13,10 +19,9 @@ import { deepClone, equal, isDocument, isFolder, pathsFromRoot } from './util';
  * talk to.
  *
  * @interface
- *
  */
 
-export abstract class CachingLayer {
+export default abstract class CachingLayer {
   // FIXME
   // this process of updating nodes needs to be heavily documented first, then
   // refactored. Right now it's almost impossible to refactor as there's no
@@ -429,3 +434,5 @@ function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
 
   return node;
 }
+
+module.exports = CachingLayer;

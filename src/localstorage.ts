@@ -1,6 +1,6 @@
 import { eventHandling } from './eventhandling-new';
 import { localStorageAvailable } from './util';
-import { CachingLayer } from './cachinglayer-new';
+import CachingLayer from './cachinglayer';
 
 const log = require('./log');
 

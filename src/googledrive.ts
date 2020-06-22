@@ -14,7 +14,7 @@
  * Docs: https://developers.google.com/drive/v3/web/quickstart/js
 **/
 
-const BaseClient = require('./baseclient');
+import BaseClient from './baseclient';
 const WireClient = require('./wireclient');
 const eventHandling = require('./eventhandling');
 import * as util from './util';

@@ -1,4 +1,4 @@
-const BaseClient = require('./baseclient');
+import BaseClient from './baseclient';
 const RemoteStorage = require('./remotestorage');
 
 interface RSModule {

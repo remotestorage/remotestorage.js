@@ -1,14 +1,17 @@
 'use strict';
 
 import log from './log';
+import Access from './access';
+import Authorize from './authorize';
+import BaseClient from './baseclient';
+import Caching from './caching';
 
 const util = require('./util');
 const Dropbox = require('./dropbox');
 const GoogleDrive = require('./googledrive');
 const Discover = require('./discover');
-const BaseClient = require('./baseclient');
+// const BaseClient = require('./baseclient');
 const config = require('./config');
-const Authorize = require('./authorize');
 const UnauthorizedError = require('./unauthorized-error');
 const SyncError = require('./sync-error');
 const Features = require('./features');
@@ -806,7 +809,7 @@ Object.defineProperty(RemoteStorage.prototype, 'connected', {
  *
  * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
 */
-const Access = require('./access');
+// const Access = require('./access');
 Object.defineProperty(RemoteStorage.prototype, 'access', {
   get: function() {
     const access = new Access();
@@ -829,9 +832,7 @@ Object.defineProperty(RemoteStorage.prototype, 'access', {
  *
  * Caching settings. A <RemoteStorage.Caching> instance.
  */
-
 // FIXME Was in rs_init of Caching but don't want to require RemoteStorage from there.
-const Caching = require('./caching');
 Object.defineProperty(RemoteStorage.prototype, 'caching', {
   configurable: true,
   get: function () {

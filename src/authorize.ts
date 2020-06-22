@@ -2,6 +2,13 @@ const log = require('./log');
 import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
 
+interface AuthOptions {
+  authURL: string;
+  scope?: string;
+  clientId?: string;
+  redirectUri: string;
+}
+
 interface AuthResult {
   access_token?: string;
   rsDiscovery?: object;
@@ -68,7 +75,7 @@ function buildOAuthURL (authURL: string, redirectUri: string, scope: string, cli
 export default class Authorize {
   static IMPLIED_FAKE_TOKEN = false;
 
-  static authorize (remoteStorage, { authURL, scope, redirectUri, clientId }): void {
+  static authorize (remoteStorage, { authURL, scope, redirectUri, clientId }: AuthOptions): void {
     log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
 
     // TODO add a test for this

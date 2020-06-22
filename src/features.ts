@@ -5,6 +5,13 @@ const log = require('./log');
 const config = require('./config');
 const SGPD = require('./syncedgetputdelete');
 
+import Access from './access';
+import Authorize from './authorize';
+import BaseClient from './baseclient';
+
+// Caching
+import Caching from './caching';
+
 const Features = {
   features: [],
   featuresDone: 0,
@@ -19,17 +26,17 @@ const Features = {
       'WireClient': require('./wireclient'),
       'Dropbox': require('./dropbox'),
       'GoogleDrive': require('./googledrive'),
-      'Access': require('./access'),
+      'Access': Access,
       'Discover': require('./discover'),
-      'Authorize': require('./authorize'),
-      'BaseClient': require('./baseclient'),
+      'Authorize': Authorize,
+      'BaseClient': BaseClient,
       'Env': require('./env')
     };
 
     // enable caching related modules if needed
     if (config.cache) {
       util.extend( this.featureModules, {
-        'Caching': require('./caching'),
+        'Caching': Caching,
         'IndexedDB': require('./indexeddb'),
         'LocalStorage': require('./localstorage'),
         'InMemoryStorage': require('./inmemorystorage'),

@@ -1,11 +1,13 @@
+import SyncError from './sync-error';
+import Authorize from './authorize';
+
 const { isFolder, isDocument, equal, deepClone, pathsFromRoot } = require('./util');
 const Env = require('./env');
 const eventHandling = require('./eventhandling');
 const log = require('./log');
-const Authorize = require('./authorize');
+// const Authorize = require('./authorize');
 const UnauthorizedError = require('./unauthorized-error');
 const config = require('./config');
-import SyncError from './sync-error';
 
 let syncCycleCb, syncOnConnect;
 

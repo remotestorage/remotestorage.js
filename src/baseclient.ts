@@ -12,7 +12,7 @@ const SchemaNotFound = Types.SchemaNotFound;
  * Provides a high-level interface to access data below a given root path.
  */
 // TODO add type for storage
-const BaseClient = function (storage, base: string) {
+export default function BaseClient (storage, base: string) {
   if (base[base.length - 1] !== '/') {
     throw "Not a folder: " + base;
   }
@@ -463,7 +463,7 @@ BaseClient.prototype = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
-BaseClient._rs_init = function () {
+BaseClient._rs_init = function (): void {
 };
 
 module.exports = BaseClient;

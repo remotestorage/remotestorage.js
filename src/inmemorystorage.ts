@@ -1,5 +1,5 @@
 import { eventHandling } from './eventhandling-new';
-import { CachingLayer } from './cachinglayer-new';
+import CachingLayer from './cachinglayer';
 
 /**
  * In-memory caching adapter. Used when no IndexedDB or localStorage
@@ -75,14 +75,14 @@ class InMemoryStorageBase extends CachingLayer {
     return Promise.resolve();
   }
 
-  forAllNodes(cb: (node) => any): Promise<void> {
+  forAllNodes(cb: (node: RSNode) => Promise<void>): Promise<void> {
     for (const path in this._storage) {
       cb(this.migrate(this._storage[path]));
     }
     return Promise.resolve();
   }
 
-  // NOTE: will be overwritten by eventHandlingMíxin
+  // NOTE: will be overwritten by eventHandlingMixin
   _emit(...args): never {
     throw new Error('Should never be called');
     // empty
