@@ -11,6 +11,9 @@ import BaseClient from './baseclient';
 
 // Caching
 import Caching from './caching';
+import IndexedDB from './indexeddb';
+import LocalStorage from './localstorage';
+import InMemoryStorage from './inmemorystorage';
 
 const Features = {
   features: [],
@@ -35,11 +38,12 @@ const Features = {
 
     // enable caching related modules if needed
     if (config.cache) {
-      util.extend( this.featureModules, {
+      // TODO replace util.extend with modern JS {...object, ...object}
+      util.extend(this.featureModules, {
         'Caching': Caching,
-        'IndexedDB': require('./indexeddb'),
-        'LocalStorage': require('./localstorage'),
-        'InMemoryStorage': require('./inmemorystorage'),
+        'IndexedDB': IndexedDB,
+        'LocalStorage': LocalStorage,
+        'InMemoryStorage': InMemoryStorage,
         'Sync': require('./sync')
       });
     }
@@ -47,12 +51,11 @@ const Features = {
     // disable features set in the config object passed to the RemoteStorage
     // constructor
     // For example: ['IndexedDB']
-    config.disableFeatures.forEach( feature => {
+    config.disableFeatures.forEach(feature => {
       if (this.featureModules[feature]) {
         // this.featureModules[feature] = undefined
         delete this.featureModules[feature];
       }
-
     });
 
     this._allLoaded = false;
@@ -64,8 +67,6 @@ const Features = {
       this.loadFeature(featureName);
     }
   },
-
-
 
   /**
    * Method: hasFeature
@@ -92,7 +93,6 @@ const Features = {
     }
     return false;
   },
-
 
   loadFeature (featureName) {
     const feature = this.featureModules[featureName];
@@ -177,7 +177,6 @@ const Features = {
     });
   },
 
-
   _fireReady() {
     try {
       if (!this.readyFired) {
@@ -246,7 +245,6 @@ const Features = {
       }
     }
   }
-
 };
 
 module.exports = Features;

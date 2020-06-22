@@ -48,7 +48,7 @@ const DEFAULT_DB_NAME = 'remotestorage';
 // TODO very weird that this is re-assigned
 let DEFAULT_DB;
 
-class IndexedDB extends CachingLayer {
+class IndexedDBBase extends CachingLayer {
 
   db: any;
   getsRunning: number;
@@ -256,8 +256,8 @@ class IndexedDB extends CachingLayer {
 
     this.db.close();
 
-    IndexedDB.clean(this.db.name, () => {
-      IndexedDB.open(dbName, (err, other) => {
+    IndexedDBBase.clean(this.db.name, () => {
+      IndexedDBBase.open(dbName, (err, other) => {
         if (err) {
           log('[IndexedDB] Error while resetting local storage', err);
         } else {
@@ -343,8 +343,8 @@ class IndexedDB extends CachingLayer {
         const db = req.result;
         if (!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
           log("[IndexedDB] Missing object store. Resetting the database.");
-          IndexedDB.clean(name, function () {
-            IndexedDB.open(name, callback);
+          IndexedDBBase.clean(name, function () {
+            IndexedDBBase.open(name, callback);
           });
           return;
         }
@@ -357,8 +357,8 @@ class IndexedDB extends CachingLayer {
 
       clearTimeout(timer);
 
-      IndexedDB.clean(name, function () {
-        IndexedDB.open(name, callback);
+      IndexedDBBase.clean(name, function () {
+        IndexedDBBase.open(name, callback);
       });
     }
   }
@@ -392,7 +392,7 @@ class IndexedDB extends CachingLayer {
 
     return new Promise((resolve, reject) => {
 
-      IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
+      IndexedDBBase.open(DEFAULT_DB_NAME, function (err, db) {
         if (err) {
           reject(err);
         } else {
@@ -471,7 +471,7 @@ class IndexedDB extends CachingLayer {
         remoteStorage.local.closeDB();
       }
 
-      IndexedDB.clean(DEFAULT_DB_NAME, resolve);
+      IndexedDBBase.clean(DEFAULT_DB_NAME, resolve);
     });
   }
 
@@ -486,5 +486,6 @@ class IndexedDB extends CachingLayer {
   }
 };
 
-// eventHandling(this, 'change', 'local-events-done');
-module.exports = eventHandling(IndexedDB, ['change', 'local-events-done']);
+const IndexedDB = eventHandling(IndexedDBBase, ['change', 'local-events-done']);
+export default IndexedDB;
+module.exports = IndexedDB;

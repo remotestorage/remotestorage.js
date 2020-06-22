@@ -94,5 +94,5 @@ class InMemoryStorageBase extends CachingLayer {
 
 // Also add event handling class
 const InMemoryStorage = eventHandling(InMemoryStorageBase, ['change', 'local-events-done']);
-
+export default InMemoryStorage;
 module.exports = InMemoryStorage;

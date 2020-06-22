@@ -125,4 +125,5 @@ class LocalStorageBase extends CachingLayer {
 // Also add event handling class
 const LocalStorage = eventHandling(LocalStorageBase, ['change', 'local-events-done']);
 
+export default LocalStorage;
 module.exports = LocalStorage;
