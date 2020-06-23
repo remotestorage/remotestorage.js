@@ -180,4 +180,5 @@ class RevisionCache {
   }
 }
 
+export default RevisionCache;
 module.exports = RevisionCache;
