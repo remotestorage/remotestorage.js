@@ -1,4 +1,4 @@
-const log = require('./log');
+import log from './log';
 
 // wew use the mixin approach as described here:
 // https://mariusschulz.com/blog/mixin-classes-in-typescript

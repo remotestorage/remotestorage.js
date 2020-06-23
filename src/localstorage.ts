@@ -1,8 +1,7 @@
-import { eventHandling } from './eventhandling-new';
-import { localStorageAvailable } from './util';
 import CachingLayer from './cachinglayer';
-
-const log = require('./log');
+import { eventHandling } from './eventhandling-new';
+import log from './log';
+import { localStorageAvailable } from './util';
 
 /**
  * localStorage caching adapter. Used when no IndexedDB available.

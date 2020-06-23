@@ -1,8 +1,8 @@
-const log = require('./log');
 const eventHandling = require('./eventhandling');
 const Authorize = require('./authorize');
 const UnauthorizedError = require('./unauthorized-error');
 import config from './config';
+import log from './log';
 import {
   cleanPath,
   getJSONFromLocalStorage,

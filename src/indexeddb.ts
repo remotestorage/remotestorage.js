@@ -32,10 +32,9 @@
  * @interface
  */
 
-const log = require('./log');
-
 import { eventHandling } from './eventhandling-new';
 import CachingLayer from './cachinglayer';
+import log from './log';
 import {
   deepClone,
   getGlobalContext

@@ -1,9 +1,9 @@
 'use strict';
 
 const util = require('./util');
-const log = require('./log');
 const SGPD = require('./syncedgetputdelete');
 import config from './config';
+import log from './log';
 
 import Access from './access';
 import Authorize from './authorize';

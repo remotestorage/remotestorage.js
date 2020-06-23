@@ -6,7 +6,7 @@
 
 import { containingFolder, isFolder } from './util';
 import { CachingStrategy } from './interfaces/caching';
-const log = require('./log');
+import log from './log';
 
 export default class Caching {
   pendingActivations: string[] = [];
