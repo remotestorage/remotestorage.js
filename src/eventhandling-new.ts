@@ -14,7 +14,7 @@ export function eventHandling<TBase extends Constructor>(Base: TBase, additional
     _handlers: { [key: string]: EventHandler[] } = {};
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    constructor(...args: any[]) {
+    constructor (...args: any[]) {
       super(...args);
 
       log(`[${Base.name}] Registering events`);
@@ -24,7 +24,7 @@ export function eventHandling<TBase extends Constructor>(Base: TBase, additional
     /**
      * Install an event handler for the given event name
      */
-    addEventListener(eventName: string, handler: EventHandler): void {
+    addEventListener (eventName: string, handler: EventHandler): void {
       if (typeof (eventName) !== 'string') {
         throw new Error('Argument eventName should be a string');
       }
@@ -36,14 +36,14 @@ export function eventHandling<TBase extends Constructor>(Base: TBase, additional
       this._handlers[eventName].push(handler);
     }
 
-    on(eventName: string, handler: EventHandler): void {
+    on (eventName: string, handler: EventHandler): void {
       return this.addEventListener(eventName, handler);
     }
 
     /**
      * Remove a previously installed event handler
      */
-    removeEventListener(eventName: string, handler: EventHandler): void {
+    removeEventListener (eventName: string, handler: EventHandler): void {
       this._validateEvent(eventName);
       const hl = this._handlers[eventName].length;
       for (let i = 0; i < hl; i++) {
@@ -54,30 +54,30 @@ export function eventHandling<TBase extends Constructor>(Base: TBase, additional
       }
     }
 
-    off(eventName: string, handler): void {
+    off (eventName: string, handler): void {
       return this.removeEventListener(eventName, handler);
     }
 
-    _emit(eventName: string, ...args): void {
+    _emit (eventName: string, ...args): void {
       this._validateEvent(eventName);
       this._handlers[eventName].slice().forEach((handler) => {
         handler.apply(this, args);
       });
     }
 
-    _validateEvent(eventName: string): void {
+    _validateEvent (eventName: string): void {
       if (!(eventName in this._handlers)) {
         throw new Error("Unknown event: " + eventName);
       }
     }
 
-    _delegateEvent(eventName: string, target): void {
+    _delegateEvent (eventName: string, target): void {
       target.on(eventName, (event) => {
         this._emit(eventName, event);
       });
     }
 
-    _addEvent(eventName: string): void {
+    _addEvent (eventName: string): void {
       this._handlers[eventName] = [];
     }
   };
