@@ -16,14 +16,14 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
         eventHandling(this, 'sync-req-done', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
       };
       global.RemoteStorage.log = function() {};
-      global.Authorize = require('./src/authorize');
-      global.UnauthorizedError = require('./src/unauthorized-error');
-      global.config = require('./src/config');
-      global.eventHandling = require('./src/eventhandling');
-      global.Sync = require('./src/sync');
-      global.InMemoryStorage = require('./src/inmemorystorage');
+      global.Authorize = require('./build/authorize');
+      global.UnauthorizedError = require('./build/unauthorized-error');
+      global.config = require('./build/config');
+      global.eventHandling = require('./build/eventhandling');
+      global.Sync = require('./build/sync');
+      global.InMemoryStorage = require('./build/inmemorystorage');
 
-      var RS = require('./src/remotestorage');
+      var RS = require('./build/remotestorage');
       RemoteStorage.prototype.stopSync = RS.prototype.stopSync;
       RemoteStorage.prototype.startSync = RS.prototype.startSync;
       RemoteStorage.prototype.getSyncInterval = RS.prototype.getSyncInterval;

@@ -1,8 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require', './src/util', './src/dropbox', './src/wireclient',
-  './src/eventhandling', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
+define(['require', './build/util', './build/dropbox', './build/wireclient',
+  './build/eventhandling', './build/config', 'test/behavior/backend', 'test/helpers/mocks'],
   function (require, util, Dropbox, WireClient, eventHandling, config, backend, mocks) {
 
     var suites = [];
@@ -28,7 +28,7 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         return false;
       };
 
-      global.Authorize = require('./src/authorize');
+      global.Authorize = require('./build/authorize');
 
       test.done();
     }

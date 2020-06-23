@@ -1,4 +1,4 @@
-const log = require('./log');
+import log from './log';
 import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
 
@@ -18,7 +18,7 @@ interface AuthResult {
 }
 
 // This is set in _rs_init and needed for removal in _rs_cleanup
-let onFeaturesLoaded;
+let onFeaturesLoaded: Function;
 
 function extractParams (url?: string): AuthResult {
   // FF already decodes the URL fragment in document.location.hash, so use this instead:

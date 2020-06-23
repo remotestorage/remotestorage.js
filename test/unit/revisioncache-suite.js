@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/revisioncache'], function (RevisionCache) {
+define(['./build/revisioncache'], function (RevisionCache) {
   var suites = [];
 
   suites.push({

@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/sync', './src/sync-error', './src/wireclient', './src/authorize', './src/eventhandling', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
+define(['./build/sync', './build/sync-error', './build/wireclient', './build/authorize', './build/eventhandling', './build/config', 'test/behavior/backend', 'test/helpers/mocks'],
        function(Sync, SyncError, WireClient, Authorize, eventHandling, config, backend, mocks, undefined) {
 
   var suites = [];

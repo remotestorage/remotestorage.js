@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['util', 'require', './src/eventhandling', './src/googledrive', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
+define(['util', 'require', './build/eventhandling', './build/googledrive', './build/config', 'test/behavior/backend', 'test/helpers/mocks'],
        function (util, require, eventHandling, GoogleDrive, config, backend, mocks) {
 
   var suites = [];
@@ -21,7 +21,7 @@ define(['util', 'require', './src/eventhandling', './src/googledrive', './src/co
       }
     };
 
-    global.Authorize = require('./src/authorize');
+    global.Authorize = require('./build/authorize');
 
     test.done();
   }

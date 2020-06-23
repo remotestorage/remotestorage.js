@@ -2,7 +2,7 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['./src/config', './src/eventhandling', './src/inmemorystorage', './src/sync', 'require', 'test/helpers/mocks'],
+define(['./build/config', './build/eventhandling', './build/inmemorystorage', './build/sync', 'require', 'test/helpers/mocks'],
        function (config, eventHandling, InMemoryStorage, Sync, require, mocks) {
 
   var suites = [];

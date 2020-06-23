@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventHandling) {
+define(['require', 'tv4', './build/eventhandling'], function (require, tv4, eventHandling) {
   var suites = [];
 
   var consoleLog, fakeLogs;
@@ -69,16 +69,16 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
     setup:  function(env, test) {
       global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
       // global.WebFinger = require('webfinger.js')
-      // global.Discover = require('./src/discover');
-      global.SyncedGetPutDelete = require('./src/syncedgetputdelete');
-      global.Authorize = require('./src/authorize');
-      global.UnauthorizedError = require('./src/unauthorized-error');
-      global.Sync = require('./src/sync');
-      global.config = require('./src/config');
-      global.log = require('./src/log');
-      global.Dropbox = require('./src/dropbox');
+      // global.Discover = require('./build/discover');
+      global.SyncedGetPutDelete = require('./build/syncedgetputdelete');
+      global.Authorize = require('./build/authorize');
+      global.UnauthorizedError = require('./build/unauthorized-error');
+      global.Sync = require('./build/sync');
+      global.config = require('./build/config');
+      global.log = require('./build/log');
+      global.Dropbox = require('./build/dropbox');
 
-      global.RemoteStorage = require('./src/remotestorage');
+      global.RemoteStorage = require('./build/remotestorage');
 
 
       global.Discover = function(userAddress) {
@@ -754,7 +754,7 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
     },
 
     beforeEach: function(env, test) {
-      global.log = require('./src/log');
+      global.log = require('./build/log');
       fakeLogs = [];
       test.done();
     },

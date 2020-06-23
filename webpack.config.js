@@ -14,7 +14,7 @@ const plugins = isProd ? [
 ] : [];
 
 module.exports = {
-  entry: ['./src/remotestorage.js'],
+  entry: ['./build/remotestorage.js'],
   devtool: isProd ? 'source-map' : 'eval',
   output: {
     path: path.resolve(__dirname, 'release'),

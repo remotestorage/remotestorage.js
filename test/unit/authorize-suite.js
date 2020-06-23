@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define([ 'require', './src/authorize', './src/unauthorized-error', './src/config'], function(require, Authorize, UnauthorizedError, config) {
+define([ 'require', './build/authorize', './build/unauthorized-error', './build/config'], function(require, Authorize, UnauthorizedError, config) {
   var suites = [];
 
   suites.push({
