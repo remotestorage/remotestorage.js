@@ -2,7 +2,7 @@
  * The default config, merged with the object passed to the constructor of the
  * RemoteStorage object
  */
-module.exports = {
+const config = {
   cache: true,
   changeEvents: {
     local:    true,
@@ -22,3 +22,6 @@ module.exports = {
   requestTimeout: 30000,
   syncInterval: 10000
 };
+
+export default config;
+module.exports = config;

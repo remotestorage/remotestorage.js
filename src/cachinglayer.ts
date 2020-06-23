@@ -1,5 +1,5 @@
 const log = require('./log');
-const config = require('./config');
+import config from './config';
 import {
   deepClone,
   equal,

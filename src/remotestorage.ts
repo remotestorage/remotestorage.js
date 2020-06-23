@@ -1,17 +1,17 @@
 'use strict';
 
-import log from './log';
 import Access from './access';
 import Authorize from './authorize';
 import BaseClient from './baseclient';
 import Caching from './caching';
+import config from './config';
+import log from './log';
 
 const util = require('./util');
 const Dropbox = require('./dropbox');
 const GoogleDrive = require('./googledrive');
 const Discover = require('./discover');
 // const BaseClient = require('./baseclient');
-const config = require('./config');
 const UnauthorizedError = require('./unauthorized-error');
 const SyncError = require('./sync-error');
 const Features = require('./features');
@@ -785,7 +785,7 @@ RemoteStorage.prototype = {
 *
 * @private
 */
-function isValidInterval(interval: unknown): boolean {
+function isValidInterval(interval: unknown): interval is number {
   return (typeof interval === 'number' &&
           interval > 1000 &&
           interval < 3600000);

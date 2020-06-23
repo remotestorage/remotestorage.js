@@ -2,8 +2,8 @@
 
 const util = require('./util');
 const log = require('./log');
-const config = require('./config');
 const SGPD = require('./syncedgetputdelete');
+import config from './config';
 
 import Access from './access';
 import Authorize from './authorize';
