@@ -56,7 +56,7 @@ export default class Access {
    * @param {string} scope - An access scope, such as "contacts" or "calendar"
    * @param {string} mode - Access mode. Either "r" for read-only or "rw" for read/write
    */
-  claim(scope: AccessScope, mode: AccessMode): void {
+  claim (scope: AccessScope, mode: AccessMode): void {
     if(typeof (scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
       throw new Error('Scope should be a non-empty string without forward slashes');
     }
@@ -73,7 +73,7 @@ export default class Access {
    * @param {string} scope - Access scope
    * @returns {string} Access mode
    */
-  get(scope: AccessScope): AccessMode {
+  get (scope: AccessScope): AccessMode {
     return this.scopeModeMap[scope];
   }
 
@@ -83,7 +83,7 @@ export default class Access {
    *
    * @param {string} scope - Access scope
    */
-  remove(scope: AccessScope): void {
+  remove (scope: AccessScope): void {
     const savedMap: ScopeModeMap = {};
     for (const name in this.scopeModeMap) {
       savedMap[name] = this.scopeModeMap[name];
@@ -95,7 +95,6 @@ export default class Access {
     }
   }
 
-
   /**
    * Verify permission for a given scope.
    *
@@ -103,11 +102,10 @@ export default class Access {
    * @param {string} mode - Access mode
    * @returns {boolean} true if the requested access mode is active, false otherwise
    */
-  checkPermission(scope: AccessScope, mode: AccessMode): boolean {
+  checkPermission (scope: AccessScope, mode: AccessMode): boolean {
     const actualMode = this.get(scope);
     return actualMode && (mode === 'r' || actualMode === 'rw');
   }
-
 
   /**
    * Verify permission for a given path.
@@ -116,7 +114,7 @@ export default class Access {
    * @param {string} mode - Access mode
    * @returns {boolean} true if the requested access mode is active, false otherwise
    */
-  checkPathPermission(path: string, mode: AccessMode): boolean {
+  checkPathPermission (path: string, mode: AccessMode): boolean {
     if(this.checkPermission('*', mode)) {
       return true;
     }
@@ -124,7 +122,6 @@ export default class Access {
     const scope = this._getModuleName(path) as AccessScope;
     return !!this.checkPermission(scope, mode);
   }
-
 
   /**
    * Reset all access permissions.
@@ -134,11 +131,10 @@ export default class Access {
     this.scopeModeMap = {};
   }
 
-
   /**
    * Return the module name for a given path.
    */
-  private _getModuleName(path): string {
+  private _getModuleName (path): string {
     if(path[0] !== '/') {
       throw new Error('Path should start with a slash');
     }
@@ -146,11 +142,10 @@ export default class Access {
     return moduleMatch ? moduleMatch[1] : '*';
   }
 
-
   /**
    * TODO: document
    */
-  private _adjustRootPaths(newScope: AccessScope): void {
+  private _adjustRootPaths (newScope: AccessScope): void {
     if('*' in this.scopeModeMap || newScope === '*') {
       this.rootPaths = ['/'];
     } else if(!(newScope in this.scopeModeMap)) {
@@ -159,11 +154,10 @@ export default class Access {
     }
   }
 
-
   /**
    * TODO: document
    */
-  private _scopeNameForParameter(scope: ScopeEntry): string {
+  private _scopeNameForParameter (scope: ScopeEntry): string {
     if(scope.name === '*' && this.storageType) {
       if(this.storageType === '2012.04') {
         return '';
@@ -174,13 +168,12 @@ export default class Access {
     return scope.name;
   }
 
-
   /**
    * Set the storage type of the remote.
    *
    * @param {string} type - Storage type
    */
-  setStorageType(type: string): void {
+  setStorageType (type: string): void {
     this.storageType = type;
   }
 }
