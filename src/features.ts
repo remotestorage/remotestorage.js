@@ -11,6 +11,7 @@ import Authorize from './authorize';
 import Discover from './discover';
 import BaseClient from './baseclient';
 import GoogleDrive from './googledrive';
+import Dropbox from './dropbox';
 import WireClient from './wireclient';
 import Sync from './sync';
 
@@ -32,7 +33,7 @@ const Features = {
 
     this.featureModules = {
       'WireClient': WireClient,
-      'Dropbox': require('./dropbox'),
+      'Dropbox': Dropbox,
       'GoogleDrive': GoogleDrive,
       'Access': Access,
       'Discover': Discover,
