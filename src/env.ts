@@ -43,6 +43,7 @@ function setVisibility (): void {
 // TODO Only fixes the TS compiler not knowing about mixed in functions.
 // Remove when eventhandling is refactored with TypeScript
 Env._emit = null;
+Env.on = null;
 
 Env.isBrowser = function (): boolean {
   return mode === "browser";
@@ -74,4 +75,5 @@ Env._rs_cleanup = function (/* remoteStorage */): void {
   return;
 };
 
+export default Env;
 module.exports = Env;

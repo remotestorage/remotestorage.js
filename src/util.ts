@@ -37,7 +37,7 @@ export const logError = (error: string | Error): void => {
 
 export const globalContext = (typeof (window) !== 'undefined' ? window : (typeof self === 'object' ? self : global));
 
-export const getGlobalContext = (): Window | Global => {
+export const getGlobalContext = (): any => {
   return (typeof (window) !== 'undefined' ? window : (typeof self === 'object' ? self : global));
 };
 

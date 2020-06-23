@@ -1,23 +1,34 @@
 'use strict';
 
+import config from './config';
+import log from './log';
+import {
+  getGlobalContext,
+  getJSONFromLocalStorage,
+  extend,
+  localStorageAvailable
+} from './util';
+
 import Access from './access';
 import Authorize from './authorize';
 import BaseClient from './baseclient';
 import Caching from './caching';
-import config from './config';
-import log from './log';
+import GoogleDrive from './googledrive';
+import Discover from './discover';
+import SyncError from './sync-error';
+import UnauthorizedError from './unauthorized-error';
+import Features from './features';
 
-const util = require('./util');
-const Dropbox = require('./dropbox');
-const GoogleDrive = require('./googledrive');
-const Discover = require('./discover');
-// const BaseClient = require('./baseclient');
-const UnauthorizedError = require('./unauthorized-error');
-const SyncError = require('./sync-error');
-const Features = require('./features');
-const globalContext = util.getGlobalContext();
+// TODO this is assigned to RemoteStorage.util later; check if still needed
+import * as util from './util';
+
 const eventHandling = require('./eventhandling');
-const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
+const Dropbox = require('./dropbox');
+
+const globalContext = getGlobalContext();
+// declare global {
+//   interface Window { cordova: any };
+// }
 
 let hasLocalStorage: boolean;
 
@@ -44,7 +55,7 @@ const RemoteStorage = function (cfg) {
 
   // Initial configuration property settings.
   if (typeof cfg === 'object') {
-    util.extend(config, cfg);
+    extend(config, cfg);
   }
 
   eventHandling(this,
@@ -93,7 +104,7 @@ const RemoteStorage = function (cfg) {
    */
   this.apiKeys = {};
 
-  hasLocalStorage = util.localStorageAvailable();
+  hasLocalStorage = localStorageAvailable();
 
   if (hasLocalStorage) {
     this.apiKeys = getJSONFromLocalStorage('remotestorage:api-keys') || {};
@@ -809,7 +820,6 @@ Object.defineProperty(RemoteStorage.prototype, 'connected', {
  *
  * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
 */
-// const Access = require('./access');
 Object.defineProperty(RemoteStorage.prototype, 'access', {
   get: function() {
     const access = new Access();

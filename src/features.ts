@@ -1,13 +1,18 @@
 'use strict';
 
-const util = require('./util');
-const SGPD = require('./syncedgetputdelete');
 import config from './config';
+import Env from './env';
 import log from './log';
+import { extend, logError } from './util';
+import SGPD from './syncedgetputdelete';
 
 import Access from './access';
 import Authorize from './authorize';
+import Discover from './discover';
 import BaseClient from './baseclient';
+import GoogleDrive from './googledrive';
+import WireClient from './wireclient';
+import Sync from './sync';
 
 // Caching
 import Caching from './caching';
@@ -26,25 +31,25 @@ const Features = {
     this.readyFired = false;
 
     this.featureModules = {
-      'WireClient': require('./wireclient'),
+      'WireClient': WireClient,
       'Dropbox': require('./dropbox'),
-      'GoogleDrive': require('./googledrive'),
+      'GoogleDrive': GoogleDrive,
       'Access': Access,
-      'Discover': require('./discover'),
+      'Discover': Discover,
       'Authorize': Authorize,
       'BaseClient': BaseClient,
-      'Env': require('./env')
+      'Env': Env
     };
 
     // enable caching related modules if needed
     if (config.cache) {
       // TODO replace util.extend with modern JS {...object, ...object}
-      util.extend(this.featureModules, {
+      extend(this.featureModules, {
         'Caching': Caching,
         'IndexedDB': IndexedDB,
         'LocalStorage': LocalStorage,
         'InMemoryStorage': InMemoryStorage,
-        'Sync': require('./sync')
+        'Sync': Sync
       });
     }
 
@@ -230,7 +235,7 @@ const Features = {
       this._allLoaded = true;
       this._emit('features-loaded');
     } catch(exc) {
-      util.logError(exc);
+      logError(exc);
       this._emit('error', exc);
     }
     this._processPending();
@@ -247,4 +252,5 @@ const Features = {
   }
 };
 
+export default Features;
 module.exports = Features;

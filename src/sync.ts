@@ -1,12 +1,12 @@
 import config from './config';
+import Env from './env';
 import log from './log';
 import Authorize from './authorize';
 import SyncError from './sync-error';
+import UnauthorizedError from './unauthorized-error';
+import { isFolder, isDocument, equal, deepClone, pathsFromRoot } from './util';
 
-const { isFolder, isDocument, equal, deepClone, pathsFromRoot } = require('./util');
-const Env = require('./env');
 const eventHandling = require('./eventhandling');
-const UnauthorizedError = require('./unauthorized-error');
 
 let syncCycleCb, syncOnConnect;
 
@@ -1069,4 +1069,5 @@ class Sync {
   }
 };
 
+export default Sync;
 module.exports = Sync;

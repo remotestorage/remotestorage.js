@@ -15,9 +15,17 @@
 **/
 
 import BaseClient from './baseclient';
-const WireClient = require('./wireclient');
+import WireClient from './wireclient';
+import {
+  isFolder,
+  cleanPath,
+  shouldBeTreatedAsBinary,
+  getJSONFromLocalStorage,
+  getTextFromArrayBuffer,
+  localStorageAvailable
+} from './util';
+
 const eventHandling = require('./eventhandling');
-import * as util from './util';
 
 const BASE_URL = 'https://www.googleapis.com';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -27,12 +35,6 @@ const PATH_PREFIX = '/remotestorage';
 
 const GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
 const RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
-
-const isFolder = util.isFolder;
-const cleanPath = util.cleanPath;
-const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
-const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
-const getTextFromArrayBuffer = util.getTextFromArrayBuffer;
 
 let hasLocalStorage;
 
@@ -142,7 +144,7 @@ const GoogleDrive = function (remoteStorage, clientId) {
 
   this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
 
-  hasLocalStorage = util.localStorageAvailable();
+  hasLocalStorage = localStorageAvailable();
 
   if (hasLocalStorage){
     const settings = getJSONFromLocalStorage(SETTINGS_KEY);
@@ -787,4 +789,5 @@ GoogleDrive._rs_cleanup = function (remoteStorage): void {
   unHookGetItemURL(remoteStorage);
 };
 
+export default GoogleDrive;
 module.exports = GoogleDrive;

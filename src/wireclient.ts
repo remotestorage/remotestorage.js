@@ -1,6 +1,7 @@
 const eventHandling = require('./eventhandling');
-const Authorize = require('./authorize');
-const UnauthorizedError = require('./unauthorized-error');
+
+import Authorize from './authorize';
+import UnauthorizedError from './unauthorized-error';
 import config from './config';
 import log from './log';
 import {
@@ -210,7 +211,7 @@ WireClient.prototype = {
    *   // -> 'draft-dejong-remotestorage-01'
    */
 
-  _request: function (method: string, uri: string, token: string, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
+  _request: async function (method: string, uri: string, token: string | false, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
     if ((method === 'PUT' || method === 'DELETE') && uri[uri.length - 1] === '/') {
       return Promise.reject('Don\'t ' + method + ' on directories!');
     }
@@ -631,4 +632,5 @@ WireClient._rs_cleanup = function (): void {
   }
 };
 
+export default WireClient;
 module.exports = WireClient;

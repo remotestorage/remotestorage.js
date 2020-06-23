@@ -1,8 +1,8 @@
 'use strict';
 
+import WebFinger from 'webfinger.js';
 import log from './log';
-const util = require('./util');
-const WebFinger = require('webfinger.js');
+import { globalContext, localStorageAvailable } from './util';
 
 // feature detection flags
 let haveXMLHttpRequest, hasLocalStorage;
@@ -81,8 +81,8 @@ Discover.DiscoveryError = function(message) {
 Discover.DiscoveryError.prototype = Object.create(Error.prototype);
 Discover.DiscoveryError.prototype.constructor = Discover.DiscoveryError;
 
-Discover._rs_init = function (/*remoteStorage*/) {
-  hasLocalStorage = util.localStorageAvailable();
+Discover._rs_init = function (/*remoteStorage*/): void {
+  hasLocalStorage = localStorageAvailable();
   if (hasLocalStorage) {
     try {
       const settings = JSON.parse(localStorage[SETTINGS_KEY]);
@@ -93,16 +93,17 @@ Discover._rs_init = function (/*remoteStorage*/) {
   }
 };
 
-Discover._rs_supported = function () {
-  haveXMLHttpRequest = !! util.globalContext.XMLHttpRequest;
+Discover._rs_supported = function (): boolean {
+  haveXMLHttpRequest = Object.prototype.hasOwnProperty.call(globalContext, 'XMLHttpRequest');
   return haveXMLHttpRequest;
 };
 
-Discover._rs_cleanup = function () {
+Discover._rs_cleanup = function (): void {
   if (hasLocalStorage) {
     delete localStorage[SETTINGS_KEY];
   }
 };
 
 
+export default Discover;
 module.exports = Discover;
