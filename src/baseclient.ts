@@ -1,18 +1,16 @@
-import { CachingStrategy } from "./interfaces/caching";
+import tv4 from 'tv4';
+import { CachingStrategy } from './interfaces/caching';
+import { cleanPath } from './util';
+import Types from './types';
+import SchemaNotFound from './schema-not-found-error';
+import config from './config';
 
 const eventHandling = require('./eventhandling');
-const util = require('./util');
-const config = require('./config');
-const tv4 = require('tv4');
-const Types = require('./types');
-
-const SchemaNotFound = Types.SchemaNotFound;
 
 /**
  * Provides a high-level interface to access data below a given root path.
  */
-// TODO add type for storage
-export default function BaseClient (storage, base: string) {
+function BaseClient (storage, base: string) {
   if (base[base.length - 1] !== '/') {
     throw "Not a folder: " + base;
   }
@@ -55,7 +53,6 @@ export default function BaseClient (storage, base: string) {
 BaseClient.Types = Types;
 
 BaseClient.prototype = {
-
   /**
    * Instantiate a new client, scoped to a subpath of the current client's
    * path.
@@ -309,7 +306,7 @@ BaseClient.prototype = {
       throw 'Argument \'path\' of baseClient.getItemURL must be a string';
     }
     if (this.storage.connected) {
-      path = this._cleanPath(this.makePath(path));
+      path = cleanPath(this.makePath(path));
       return this.storage.remote.href + path;
     } else {
       return undefined;
@@ -367,11 +364,16 @@ BaseClient.prototype = {
    * @param {uri}    uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
    * @param {object} schema - A JSON Schema object describing the object type
    **/
-  declareType: function (alias: string, uri: object, schema: object) {
+  declareType: function (alias: any, uriOrSchema: any, schema?: any): void {
+    let uri: string;
+
     if (!schema) {
-      schema = uri;
+      schema = uriOrSchema;
       uri = this._defaultTypeURI(alias);
+    } else {
+      uri = uriOrSchema;
     }
+
     BaseClient.Types.declare(this.moduleName, alias, uri, schema);
   },
 
@@ -451,19 +453,12 @@ BaseClient.prototype = {
       });
       this._emit('change', event);
     }
-  },
-
-  /**
-   * TODO: document
-   *
-   * @private
-   */
-  _cleanPath: util.cleanPath
-
+  }
 };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 BaseClient._rs_init = function (): void {
 };
 
+export default BaseClient;
 module.exports = BaseClient;

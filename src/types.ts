@@ -1,13 +1,3 @@
-class SchemaNotFound extends Error {
-  constructor(uri) {
-    super();
-    const error = new Error("Schema not found: " + uri);
-    error.name = "SchemaNotFound";
-    return error;
-  }
-}
-
-
 /**
  * @class BaseClient.Types
  *
@@ -15,9 +5,9 @@ class SchemaNotFound extends Error {
  *   JSON Schema
  * - Adds schema declaration/validation methods to BaseClient instances.
  **/
-class Types {
-  SchemaNotFound = SchemaNotFound;
+type JsonSchemas = { [key: string]: tv4.JsonSchema };
 
+class BaseClientTypes {
   /**
    * <alias> -> <uri>
    */
@@ -28,7 +18,7 @@ class Types {
    *
    * <uri> -> <schema>
    */
-  schemas: { [key: string]: string } = {};
+  schemas: JsonSchemas = {};
 
   /**
    * <uri> -> <alias>
@@ -40,17 +30,17 @@ class Types {
    * ! Not intended to be used as public API !
    * @private
    */
-  declare(moduleName, alias, uri, schema): void {
+  declare (moduleName: string, alias: string, uri: string, schema: tv4.JsonSchema): void {
     const fullAlias = moduleName + '/' + alias;
 
-    if(schema.extends) {
+    if (schema.extends) {
       const parts = schema.extends.split('/');
       const extendedAlias = (parts.length === 1)
         ? moduleName + '/' + parts.shift()
         : parts.join('/');
 
       const extendedUri = this.uris[extendedAlias];
-      if(!extendedUri) {
+      if (!extendedUri) {
         throw "Type '" + fullAlias + "' tries to extend unknown schema '" + extendedAlias + "'";
       }
       schema.extends = this.schemas[extendedUri];
@@ -61,15 +51,15 @@ class Types {
     this.schemas[uri] = schema;
   }
 
-  resolveAlias(alias) {
+  resolveAlias (alias: string): string {
     return this.uris[alias];
   }
 
-  getSchema(uri) {
+  getSchema (uri: string): tv4.JsonSchema {
     return this.schemas[uri];
   }
 
-  inScope(moduleName) {
+  inScope (moduleName: string): JsonSchemas {
     const ml = moduleName.length;
     const schemas = {};
     for (const alias in this.uris) {
@@ -82,6 +72,6 @@ class Types {
   }
 }
 
-const typesAsObject = new Types();
-
-module.exports = typesAsObject;
+const Types = new BaseClientTypes();
+export default Types;
+module.exports = Types;
