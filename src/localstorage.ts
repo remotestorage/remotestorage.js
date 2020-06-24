@@ -1,7 +1,7 @@
 import CachingLayer from './cachinglayer';
-import { eventHandling } from './eventhandling-new';
+import EventHandling from './eventhandling-new';
 import log from './log';
-import { localStorageAvailable } from './util';
+import { applyMixins, localStorageAvailable } from './util';
 
 /**
  * localStorage caching adapter. Used when no IndexedDB available.
@@ -19,63 +19,15 @@ function isNodeKey(key: string): boolean {
   return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX;
 }
 
-class LocalStorageBase extends CachingLayer {
-  /**
-   * Initialize the LocalStorage backend.
-   *
-   * @protected
-   */
-  protected static _rs_init(): void {
-    return;
+class LocalStorage extends CachingLayer {
+  constructor() {
+    super();
+    this.addEvents(['change', 'local-events-done']);
   }
-
-
-  /**
-   * Inform about the availability of the LocalStorage backend.
-   *
-   * @protected
-   */
-  protected static _rs_supported(): boolean {
-    return localStorageAvailable();
-  };
-
-  /**
-   * Remove LocalStorage as a backend.
-   *
-   * @protected
-   *
-   * TODO: tests missing!
-   */
-  protected static _rs_cleanup(): void {
-    const keys = [];
-
-    for (let i = 0, len = localStorage.length; i < len; i++) {
-      const key = localStorage.key(i);
-      if(isRemoteStorageKey(key)) {
-        keys.push(key);
-      }
-    }
-
-    keys.forEach((key) => {
-      log('[LocalStorage] Removing', key);
-      delete localStorage[key];
-    });
-  };
-
-
-  // TODO fix this
-  // NOTE: will be overwritten by eventHandlingMíxin
-  _emit(...args: any[]): never {
-    throw new Error('Should never be called');
-  };
 
   // TODO fix this
   diffHandler(...args: any[]): void {
     return;
-  }
-
-  constructor() {
-    super();
   }
 
   getNodes(paths: string[]): Promise<RSNodes> {
@@ -119,10 +71,52 @@ class LocalStorageBase extends CachingLayer {
     }
     return Promise.resolve();
   }
+
+  /**
+   * Initialize the LocalStorage backend.
+   *
+   * @protected
+   */
+  static _rs_init(): void {
+    return;
+  }
+
+  /**
+   * Inform about the availability of the LocalStorage backend.
+   *
+   * @protected
+   */
+  static _rs_supported(): boolean {
+    return localStorageAvailable();
+  };
+
+  /**
+   * Remove LocalStorage as a backend.
+   *
+   * @protected
+   *
+   * TODO: tests missing!
+   */
+  static _rs_cleanup(): void {
+    const keys = [];
+
+    for (let i = 0, len = localStorage.length; i < len; i++) {
+      const key = localStorage.key(i);
+      if(isRemoteStorageKey(key)) {
+        keys.push(key);
+      }
+    }
+
+    keys.forEach((key) => {
+      log('[LocalStorage] Removing', key);
+      delete localStorage[key];
+    });
+  };
 }
 
-// Also add event handling class
-const LocalStorage = eventHandling(LocalStorageBase, ['change', 'local-events-done']);
+// TODO move to CachingLayer, same for all layers
+interface LocalStorage extends EventHandling {};
+applyMixins(LocalStorage, [EventHandling]);
 
 export default LocalStorage;
 module.exports = LocalStorage;

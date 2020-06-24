@@ -1,6 +1,8 @@
+import EventHandling from './eventhandling-new';
 import config from './config';
 import log from './log';
 import {
+  applyMixins,
   deepClone,
   equal,
   isDocument,
@@ -21,7 +23,7 @@ import {
  * @interface
  */
 
-export default abstract class CachingLayer {
+abstract class CachingLayer {
   // FIXME
   // this process of updating nodes needs to be heavily documented first, then
   // refactored. Right now it's almost impossible to refactor as there's no
@@ -36,8 +38,6 @@ export default abstract class CachingLayer {
   abstract getNodes(paths: string[]): Promise<RSNodes>;
 
   abstract diffHandler(...args: any[]);
-
-  abstract _emit(...args: any[]): void;
 
   abstract forAllNodes(cb: (node) => any): Promise<void>;
 
@@ -435,4 +435,8 @@ function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
   return node;
 }
 
+interface CachingLayer extends EventHandling {};
+applyMixins(CachingLayer, [EventHandling]);
+
+export default CachingLayer;
 module.exports = CachingLayer;

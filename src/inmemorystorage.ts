@@ -1,5 +1,6 @@
-import { eventHandling } from './eventhandling-new';
+import EventHandling from './eventhandling-new';
 import CachingLayer from './cachinglayer';
+import { applyMixins } from './util';
 
 /**
  * In-memory caching adapter. Used when no IndexedDB or localStorage
@@ -11,45 +12,13 @@ import CachingLayer from './cachinglayer';
  * @class
  **/
 
-class InMemoryStorageBase extends CachingLayer {
-
-  /**
-   * Initialize the InMemoryStorage backend.
-   *
-   * @param {Object} remoteStorage - RemoteStorage instance
-   *
-   * @protected
-   */
-  protected static _rs_init(): void {
-    // empty
-  }
-
-  /**
-   * Inform about the availability of the InMemoryStorage backend.
-   *
-   * @returns {Boolean}
-   *
-   * @protected
-   */
-  protected static _rs_supported(): true {
-    // In-memory storage is always supported
-    return true;
-  }
-
-  /**
-   * Remove InMemoryStorage as a backend.
-   *
-   * @protected
-   */
-  protected static _rs_cleanup(): void {
-    // empty
-  }
-
+class InMemoryStorage extends CachingLayer {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _storage: { [key: string]: any } = {};
 
   constructor() {
     super();
+    this.addEvents(['change', 'local-events-done']);
   }
 
   getNodes(paths: string[]): Promise<RSNodes> {
@@ -90,9 +59,42 @@ class InMemoryStorageBase extends CachingLayer {
   diffHandler() {
     // empty
   }
+
+  /**
+   * Initialize the InMemoryStorage backend.
+   *
+   * @param {Object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
+  protected static _rs_init(): void {
+    // empty
+  }
+
+  /**
+   * Inform about the availability of the InMemoryStorage backend.
+   *
+   * @returns {Boolean}
+   *
+   * @protected
+   */
+  protected static _rs_supported(): true {
+    // In-memory storage is always supported
+    return true;
+  }
+
+  /**
+   * Remove InMemoryStorage as a backend.
+   *
+   * @protected
+   */
+  protected static _rs_cleanup(): void {
+    // empty
+  }
 }
 
-// Also add event handling class
-const InMemoryStorage = eventHandling(InMemoryStorageBase, ['change', 'local-events-done']);
+interface InMemoryStorage extends EventHandling {};
+applyMixins(InMemoryStorage, [EventHandling]);
+
 export default InMemoryStorage;
 module.exports = InMemoryStorage;

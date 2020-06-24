@@ -32,10 +32,11 @@
  * @interface
  */
 
-import { eventHandling } from './eventhandling-new';
+import EventHandling from './eventhandling-new';
 import CachingLayer from './cachinglayer';
 import log from './log';
 import {
+  applyMixins,
   deepClone,
   getGlobalContext
 } from './util';
@@ -47,8 +48,7 @@ const DEFAULT_DB_NAME = 'remotestorage';
 // TODO very weird that this is re-assigned
 let DEFAULT_DB;
 
-class IndexedDBBase extends CachingLayer {
-
+class IndexedDB extends CachingLayer {
   db: any;
   getsRunning: number;
   putsRunning: number;
@@ -58,6 +58,7 @@ class IndexedDBBase extends CachingLayer {
 
   constructor(database) {
     super();
+    this.addEvents(['change', 'local-events-done']);
 
     this.db = database || DEFAULT_DB;
 
@@ -255,8 +256,8 @@ class IndexedDBBase extends CachingLayer {
 
     this.db.close();
 
-    IndexedDBBase.clean(this.db.name, () => {
-      IndexedDBBase.open(dbName, (err, other) => {
+    IndexedDB.clean(this.db.name, () => {
+      IndexedDB.open(dbName, (err, other) => {
         if (err) {
           log('[IndexedDB] Error while resetting local storage', err);
         } else {
@@ -342,8 +343,8 @@ class IndexedDBBase extends CachingLayer {
         const db = req.result;
         if (!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
           log("[IndexedDB] Missing object store. Resetting the database.");
-          IndexedDBBase.clean(name, function () {
-            IndexedDBBase.open(name, callback);
+          IndexedDB.clean(name, function () {
+            IndexedDB.open(name, callback);
           });
           return;
         }
@@ -356,8 +357,8 @@ class IndexedDBBase extends CachingLayer {
 
       clearTimeout(timer);
 
-      IndexedDBBase.clean(name, function () {
-        IndexedDBBase.open(name, callback);
+      IndexedDB.clean(name, function () {
+        IndexedDB.open(name, callback);
       });
     }
   }
@@ -391,7 +392,7 @@ class IndexedDBBase extends CachingLayer {
 
     return new Promise((resolve, reject) => {
 
-      IndexedDBBase.open(DEFAULT_DB_NAME, function (err, db) {
+      IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
         if (err) {
           reject(err);
         } else {
@@ -470,14 +471,8 @@ class IndexedDBBase extends CachingLayer {
         remoteStorage.local.closeDB();
       }
 
-      IndexedDBBase.clean(DEFAULT_DB_NAME, resolve);
+      IndexedDB.clean(DEFAULT_DB_NAME, resolve);
     });
-  }
-
-  // NOTE: will be overwritten by eventHandlingMixin
-  _emit(...args): never {
-    throw new Error('Should never be called');
-    // empty
   }
 
   diffHandler() {
@@ -485,6 +480,9 @@ class IndexedDBBase extends CachingLayer {
   }
 };
 
-const IndexedDB = eventHandling(IndexedDBBase, ['change', 'local-events-done']);
+// TODO move to CachingLayer, same for all layers
+interface IndexedDB extends EventHandling {};
+applyMixins(IndexedDB, [EventHandling]);
+
 export default IndexedDB;
 module.exports = IndexedDB;
