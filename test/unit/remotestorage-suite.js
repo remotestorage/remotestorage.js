@@ -1,23 +1,12 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['require', 'tv4', './build/eventhandling'], function (require, tv4, eventHandling) {
+define(['require', 'tv4', './build/eventhandling', './build/util'],
+       function (require, tv4, EventHandling, util) {
   var suites = [];
 
   var consoleLog, fakeLogs;
   global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
-
-  function FakeRemote(connected) {
-    this.fakeRemote = true;
-    this.connected = (typeof connected === 'boolean') ? connected : true;
-    this.configure = function() {};
-    this.stopWaitingForToken = function() {
-      if (!this.connected) {
-        this._emit('not-connected');
-      }
-    };
-    eventHandling(this, 'connected', 'disconnected', 'not-connected');
-  }
 
   function fakeRequest(path) {
     if (path === '/testing403') {
@@ -27,11 +16,21 @@ define(['require', 'tv4', './build/eventhandling'], function (require, tv4, even
     }
   }
 
-  FakeRemote.prototype = {
-    get: fakeRequest,
-    put: fakeRequest,
-    delete: fakeRequest
-  };
+  class FakeRemote {
+    constructor(connected) {
+      this.fakeRemote = true;
+      this.connected = (typeof connected === 'boolean') ? connected : true;
+      this.configure = function() {};
+      this.stopWaitingForToken = function() {
+        if (!this.connected) { this._emit('not-connected'); }
+      };
+      this.addEvents(['connected', 'disconnected', 'not-connected']);
+    }
+  }
+  FakeRemote.prototype.get = fakeRequest;
+  FakeRemote.prototype.put = fakeRequest;
+  FakeRemote.prototype.delete = fakeRequest;
+  util.applyMixins(FakeRemote, [EventHandling.default]);
 
   function FakeLocal() {}
 
@@ -79,7 +78,6 @@ define(['require', 'tv4', './build/eventhandling'], function (require, tv4, even
       global.Dropbox = require('./build/dropbox');
 
       global.RemoteStorage = require('./build/remotestorage');
-
 
       global.Discover = function(userAddress) {
         var pending = Promise.defer();
@@ -806,7 +804,6 @@ define(['require', 'tv4', './build/eventhandling'], function (require, tv4, even
     name: "remoteStorage",
     desc: "the RemoteStorage instance - without a connected remote",
     setup: function(env, test) {
-
       RemoteStorage.prototype.remote = new FakeRemote(false);
       test.assertType(RemoteStorage, 'function');
     },

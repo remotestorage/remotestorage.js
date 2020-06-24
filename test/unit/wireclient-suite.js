@@ -1,24 +1,30 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./build/sync', './build/sync-error', './build/wireclient', './build/authorize', './build/eventhandling', './build/config', 'test/behavior/backend', 'test/helpers/mocks'],
-       function(Sync, SyncError, WireClient, Authorize, eventHandling, config, backend, mocks, undefined) {
+define(['./build/sync', './build/sync-error', './build/wireclient',
+        './build/authorize', './build/eventhandling', './build/config',
+        './build/util', 'test/behavior/backend', 'test/helpers/mocks'],
+       function(Sync, SyncError, WireClient, Authorize, EventHandling,
+                config, util, backend, mocks, undefined) {
 
   var suites = [];
 
   function setup(env, test) {
-    global.RemoteStorage = function() {};
-
-    global.RemoteStorage.log = function() {};
-    global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
+    class RemoteStorage {
+      localStorageAvailable() { return false; }
+      static log () {}
+    }
+    util.applyMixins(RemoteStorage, [EventHandling.default]);
+    global.RemoteStorage = RemoteStorage;
 
     test.done();
   }
 
   function beforeEach(env, test) {
     env.rs = new RemoteStorage();
-    eventHandling(env.rs, 'error', 'wire-busy', 'wire-done', 'network-offline',
-                  'network-online');
+    env.rs.addEvents([
+      'error', 'wire-busy', 'wire-done', 'network-offline', 'network-online'
+    ]);
     env.client = new WireClient(env.rs);
     env.connectedClient = new WireClient(env.rs);
     env.baseURI = 'https://example.com/storage/test';

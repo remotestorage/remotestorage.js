@@ -2,7 +2,7 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['require', 'test/helpers/mocks'], function(require, mocks) {
+define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require, mocks) {
   var suites = [];
 
   suites.push({
@@ -12,16 +12,16 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
     setup: function(env, test){
       mocks.defineMocks(env);
 
-      global.RemoteStorage = function() {
-        eventHandling(this, 'sync-req-done', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
-      };
-      global.RemoteStorage.log = function() {};
       global.Authorize = require('./build/authorize');
       global.UnauthorizedError = require('./build/unauthorized-error');
       global.config = require('./build/config');
-      global.eventHandling = require('./build/eventhandling');
+      global.EventHandling = require('./build/eventhandling');
       global.Sync = require('./build/sync');
       global.InMemoryStorage = require('./build/inmemorystorage');
+
+      class RemoteStorage { static log () {} }
+      util.applyMixins(RemoteStorage, [EventHandling.default]);
+      global.RemoteStorage = RemoteStorage;
 
       var RS = require('./build/remotestorage');
       RemoteStorage.prototype.stopSync = RS.prototype.stopSync;
@@ -35,6 +35,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
 
     beforeEach: function(env, test) {
       env.rs = new RemoteStorage();
+      env.rs.addEvents(['sync-req-done', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error']);
       env.rs.local = new InMemoryStorage();
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();

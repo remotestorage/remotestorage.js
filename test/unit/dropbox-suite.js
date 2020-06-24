@@ -2,20 +2,20 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 define(['require', './build/util', './build/dropbox', './build/wireclient',
-  './build/eventhandling', './build/config', 'test/behavior/backend', 'test/helpers/mocks'],
-  function (require, util, Dropbox, WireClient, eventHandling, config, backend, mocks) {
+        './build/eventhandling', './build/config', './build/util',
+        'test/behavior/backend', 'test/helpers/mocks'],
+       function (require, util, Dropbox, WireClient, EventHandling, config,
+                 buildUtil, backend, mocks) {
 
     var suites = [];
 
     function setup(env, test) {
-      global.RemoteStorage = function () {
-        eventHandling(this, 'error', 'connected', 'wire-busy', 'wire-done',
-                      'network-offline', 'network-online');
-      };
-      global.RemoteStorage.log = function () {};
-      global.RemoteStorage.prototype.setBackend = function (b) {
-        this.backend = b;
-      };
+      class RemoteStorage {
+        setBackend (b) { this.backend = b; }
+        static log () {}
+      }
+      buildUtil.applyMixins(RemoteStorage, [EventHandling.default]);
+      global.RemoteStorage = RemoteStorage;
 
       global.localStorage = {
         setItem: function() {},
@@ -34,8 +34,8 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
     }
 
     function beforeEach(env, test) {
-   
       env.rs = new RemoteStorage();
+      env.rs.addEvents(['error', 'connected', 'wire-busy', 'wire-done', 'network-offline', 'network-online']);
       env.rs.apiKeys = { dropbox: {appKey: 'testkey'} };
 
       var oldLocalStorageAvailable = util.localStorageAvailable;

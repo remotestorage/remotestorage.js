@@ -1,8 +1,11 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['util', 'require', './build/eventhandling', './build/googledrive', './build/config', 'test/behavior/backend', 'test/helpers/mocks'],
-       function (util, require, eventHandling, GoogleDrive, config, backend, mocks) {
+define(['util', 'require', './build/eventhandling', './build/googledrive',
+        './build/config', './build/util', 'test/behavior/backend',
+        'test/helpers/mocks'],
+       function (util, require, EventHandling, GoogleDrive, config, buildUtil,
+                 backend, mocks) {
 
   var suites = [];
 
@@ -11,15 +14,12 @@ define(['util', 'require', './build/eventhandling', './build/googledrive', './bu
       setItem: function() {},
       removeItem: function() {}
     };
-    global.RemoteStorage = function () {
-      eventHandling(this, 'error', 'wire-busy', 'wire-done', 'network-offline',
-                    'network-online');
-    };
-    RemoteStorage.prototype = {
-      setBackend: function (b) {
-        this.backend = b;
-      }
-    };
+
+    class RemoteStorage {
+      setBackend (b) { this.backend = b; }
+    }
+    buildUtil.applyMixins(RemoteStorage, [EventHandling.default]);
+    global.RemoteStorage = RemoteStorage;
 
     global.Authorize = require('./build/authorize');
 
@@ -28,6 +28,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive', './bu
 
   function beforeEach(env, test) {
     env.rs = new RemoteStorage();
+    env.rs.addEvents(['error', 'wire-busy', 'wire-done', 'network-offline', 'network-online']);
     env.rs.apiKeys= { googledrive: {clientId: 'testkey'} };
     var oldLocalStorageAvailable = util.localStorageAvailable;
     util.localStorageAvailable = function() { return true; };
