@@ -1,10 +1,10 @@
-const eventHandling = require('./eventhandling');
-
 import Authorize from './authorize';
+import EventHandling from './eventhandling-new';
 import UnauthorizedError from './unauthorized-error';
 import config from './config';
 import log from './log';
 import {
+  applyMixins,
   cleanPath,
   getJSONFromLocalStorage,
   getTextFromArrayBuffer,
@@ -164,7 +164,7 @@ const WireClient = function WireClient(rs) {
    *   Fired when the wireclient connect method realizes that it is in
    *   possession of a token and href
    **/
-  eventHandling(this, 'connected', 'not-connected');
+  this.addEvents(['connected', 'not-connected']);
 
   if (hasLocalStorage) {
     const settings = getJSONFromLocalStorage(SETTINGS_KEY);
@@ -639,6 +639,9 @@ WireClient._rs_cleanup = function (): void {
     delete localStorage[SETTINGS_KEY];
   }
 };
+
+interface WireClient extends EventHandling {};
+applyMixins(WireClient, [EventHandling]);
 
 export default WireClient;
 module.exports = WireClient;

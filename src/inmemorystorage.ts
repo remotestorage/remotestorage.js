@@ -6,9 +6,6 @@ import { applyMixins } from './util';
  * In-memory caching adapter. Used when no IndexedDB or localStorage
  * available.
  *
- * NOTE: has the suffix base to underline that it doesn't get exported directly,
- * but only with the eventHandlingMixin applied.
- *
  * @class
  **/
 
@@ -50,12 +47,6 @@ class InMemoryStorage extends CachingLayer {
     return Promise.resolve();
   }
 
-  // NOTE: will be overwritten by eventHandlingMixin
-  _emit(...args): never {
-    throw new Error('Should never be called');
-    // empty
-  }
-
   diffHandler() {
     // empty
   }
@@ -93,6 +84,7 @@ class InMemoryStorage extends CachingLayer {
   }
 }
 
+// TODO move to CachingLayer, same for all layers
 interface InMemoryStorage extends EventHandling {};
 applyMixins(InMemoryStorage, [EventHandling]);
 

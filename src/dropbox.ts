@@ -1,4 +1,12 @@
+import EventHandling from './eventhandling-new';
+import WireClient from './wireclient';
+import BaseClient from './baseclient';
+import RevisionCache from './revisioncache';
+import Sync from './sync';
+import SyncError from './sync-error';
+import UnauthorizedError from './unauthorized-error';
 import {
+  applyMixins,
   cleanPath,
   isFolder,
   shouldBeTreatedAsBinary,
@@ -6,15 +14,6 @@ import {
   getTextFromArrayBuffer,
   localStorageAvailable
 } from './util';
-
-import WireClient from './wireclient';
-import BaseClient from './baseclient';
-import RevisionCache from './revisioncache';
-import Sync from './sync';
-import SyncError from './sync-error';
-import UnauthorizedError from './unauthorized-error';
-
-const eventHandling = require('./eventhandling');
 
 /**
  * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
@@ -99,7 +98,7 @@ class Dropbox {
     this.online = true; // TODO implement offline detection on failed request
     this._initialFetchDone = false;
 
-    eventHandling(this, 'connected', 'not-connected');
+    this.addEvents(['connected', 'not-connected']);
 
     this.clientId = rs.apiKeys.dropbox.appKey;
     this._revCache = new RevisionCache('rev');
@@ -1147,6 +1146,9 @@ function unHookIt(rs){
   unHookGetItemURL(rs);
   unHookSyncCycle(rs);
 }
+
+interface Dropbox extends EventHandling {};
+applyMixins(Dropbox, [EventHandling]);
 
 export default Dropbox;
 module.exports = Dropbox;

@@ -1,11 +1,10 @@
 import tv4 from 'tv4';
 import { CachingStrategy } from './interfaces/caching';
-import { cleanPath } from './util';
 import Types from './types';
 import SchemaNotFound from './schema-not-found-error';
+import EventHandling from './eventhandling-new';
 import config from './config';
-
-const eventHandling = require('./eventhandling');
+import { applyMixins, cleanPath } from './util';
 
 /**
  * Provides a high-level interface to access data below a given root path.
@@ -45,7 +44,7 @@ function BaseClient (storage, base: string) {
     this.moduleName = 'root';
   }
 
-  eventHandling(this, 'change');
+  this.addEvents(['change']);
   this.on = this.on.bind(this);
   storage.onChange(this.base, this._fireChange.bind(this));
 };
@@ -459,6 +458,9 @@ BaseClient.prototype = {
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 BaseClient._rs_init = function (): void {
 };
+
+interface BaseClient extends EventHandling {};
+applyMixins(BaseClient, [EventHandling]);
 
 export default BaseClient;
 module.exports = BaseClient;

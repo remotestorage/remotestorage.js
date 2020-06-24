@@ -16,7 +16,9 @@
 
 import BaseClient from './baseclient';
 import WireClient from './wireclient';
+import EventHandling from './eventhandling-new';
 import {
+  applyMixins,
   isFolder,
   cleanPath,
   shouldBeTreatedAsBinary,
@@ -24,8 +26,6 @@ import {
   getTextFromArrayBuffer,
   localStorageAvailable
 } from './util';
-
-const eventHandling = require('./eventhandling');
 
 const BASE_URL = 'https://www.googleapis.com';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -137,7 +137,7 @@ class FileIdCache {
 
 const GoogleDrive = function (remoteStorage, clientId) {
 
-  eventHandling(this, 'connected', 'not-connected');
+  this.addEvents(['connected', 'not-connected']);
 
   this.rs = remoteStorage;
   this.clientId = clientId;
@@ -788,6 +788,9 @@ GoogleDrive._rs_cleanup = function (remoteStorage): void {
   }
   unHookGetItemURL(remoteStorage);
 };
+
+interface GoogleDrive extends EventHandling {};
+applyMixins(GoogleDrive, [EventHandling]);
 
 export default GoogleDrive;
 module.exports = GoogleDrive;

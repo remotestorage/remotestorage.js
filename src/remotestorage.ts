@@ -3,6 +3,7 @@
 import config from './config';
 import log from './log';
 import {
+  applyMixins,
   getGlobalContext,
   getJSONFromLocalStorage,
   extend,
@@ -13,6 +14,7 @@ import Access from './access';
 import Authorize from './authorize';
 import BaseClient from './baseclient';
 import Caching from './caching';
+import EventHandling from './eventhandling-new';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
 import Discover from './discover';
@@ -22,8 +24,6 @@ import Features from './features';
 
 // TODO this is assigned to RemoteStorage.util later; check if still needed
 import * as util from './util';
-
-const eventHandling = require('./eventhandling');
 
 const globalContext = getGlobalContext();
 // declare global {
@@ -58,12 +58,12 @@ const RemoteStorage = function (cfg) {
     extend(config, cfg);
   }
 
-  eventHandling(this,
+  this.addEvents([
     'ready', 'authing', 'connecting', 'connected', 'disconnected',
     'not-connected', 'conflict', 'error', 'features-loaded',
     'sync-interval-change', 'sync-req-done', 'sync-done',
     'wire-busy', 'wire-done', 'network-offline', 'network-online'
-  );
+  ]);
 
   /**
    * Pending get/put/delete calls
@@ -863,5 +863,11 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
  * Not available, when caching is turned off.
  */
 
+interface RemoteStorage extends EventHandling {};
+applyMixins(RemoteStorage, [EventHandling]);
+
+export default RemoteStorage;
 module.exports = RemoteStorage;
+
+// TODO wth
 require('./modules');

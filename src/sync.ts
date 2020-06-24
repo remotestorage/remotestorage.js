@@ -1,12 +1,18 @@
 import config from './config';
 import Env from './env';
+import EventHandling from './eventhandling-new';
 import log from './log';
 import Authorize from './authorize';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
-import { isFolder, isDocument, equal, deepClone, pathsFromRoot } from './util';
-
-const eventHandling = require('./eventhandling');
+import {
+  applyMixins,
+  deepClone,
+  equal,
+  isFolder,
+  isDocument,
+  pathsFromRoot
+} from './util';
 
 let syncCycleCb, syncOnConnect;
 
@@ -124,7 +130,7 @@ class Sync {
       this.doTasks();
     });
 
-    eventHandling(this, 'done', 'req-done');
+    this.addEvents(['done', 'req-done']);
   }
 
   public now (): number {
@@ -1068,6 +1074,9 @@ class Sync {
     delete remoteStorage.sync;
   }
 };
+
+interface Sync extends EventHandling {};
+applyMixins(Sync, [EventHandling]);
 
 export default Sync;
 module.exports = Sync;
