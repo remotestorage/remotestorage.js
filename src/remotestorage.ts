@@ -14,6 +14,7 @@ import Authorize from './authorize';
 import BaseClient from './baseclient';
 import Caching from './caching';
 import GoogleDrive from './googledrive';
+import Dropbox from './dropbox';
 import Discover from './discover';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
@@ -23,7 +24,6 @@ import Features from './features';
 import * as util from './util';
 
 const eventHandling = require('./eventhandling');
-const Dropbox = require('./dropbox');
 
 const globalContext = getGlobalContext();
 // declare global {

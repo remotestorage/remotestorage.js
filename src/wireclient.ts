@@ -99,7 +99,7 @@ interface WireRequestResponse {
   revision: string | undefined;
 }
 
-function addQuotes(str: string): string {
+function addQuotes (str: string): string {
   if (typeof (str) !== 'string') {
     return str;
   }
@@ -110,7 +110,7 @@ function addQuotes(str: string): string {
   return '"' + str + '"';
 }
 
-function stripQuotes(str: string): string {
+function stripQuotes (str: string): string {
   if (typeof (str) !== 'string') {
     return str;
   }
@@ -118,7 +118,7 @@ function stripQuotes(str: string): string {
   return str.replace(/^["']|["']$/g, '');
 }
 
-function determineCharset(mimeType: string): string {
+function determineCharset (mimeType: string): string {
   let charset = 'UTF-8';
   let charsetMatch;
 
@@ -131,17 +131,25 @@ function determineCharset(mimeType: string): string {
   return charset;
 }
 
-function isFolderDescription(body: object): boolean {
+function isFolderDescription (body: object): boolean {
   return ((body['@context'] === 'http://remotestorage.io/spec/folder-description')
     && (typeof (body['items']) === 'object'));
 }
 
-function isSuccessStatus(status: number): boolean {
+function isSuccessStatus (status: number): boolean {
   return [201, 204, 304].indexOf(status) >= 0;
 }
 
-function isErrorStatus(status: number): boolean {
+function isErrorStatus (status: number): boolean {
   return [401, 403, 404, 412].indexOf(status) >= 0;
+}
+
+function isForbiddenRequestMethod(method: string, uri: string): boolean {
+  if (method === 'PUT' || method === 'DELETE') {
+    return isFolder(uri);
+  } else {
+    return false;
+  }
 }
 
 /**
@@ -212,8 +220,8 @@ WireClient.prototype = {
    */
 
   _request: async function (method: string, uri: string, token: string | false, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
-    if ((method === 'PUT' || method === 'DELETE') && uri[uri.length - 1] === '/') {
-      return Promise.reject('Don\'t ' + method + ' on directories!');
+    if (isForbiddenRequestMethod(method, uri)) {
+      return Promise.reject(`Don't use ${method} on directories!`);
     }
 
     let revision: string | undefined;
@@ -291,7 +299,7 @@ WireClient.prototype = {
             });
         }
       }
-    }, (error) => {
+    }, error => {
       if (this.online) {
         this.online = false;
         this.rs._emit('network-offline');
@@ -477,14 +485,14 @@ WireClient.isArrayBufferView = isArrayBufferView;
 
 // TODO add proper definition for options
 // Shared request function used by WireClient, GoogleDrive and Dropbox.
-WireClient.request = function (method: string, url: string, options: unknown): Promise<XMLHttpRequest | Response> {
+WireClient.request = async function (method: string, url: string, options: unknown): Promise<XMLHttpRequest | Response> {
   if (typeof fetch === 'function') {
     return WireClient._fetchRequest(method, url, options);
   } else if (typeof XMLHttpRequest === 'function') {
     return WireClient._xhrRequest(method, url, options);
   } else {
-    log('[WireClient] add a polyfill for fetch or XMLHttpRequest');
-    return Promise.reject('[WireClient] add a polyfill for fetch or XMLHttpRequest');
+    log('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
+    return Promise.reject('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
   }
 };
 
