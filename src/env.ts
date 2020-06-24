@@ -1,4 +1,4 @@
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import { applyMixins } from './util';
 
 class Env {

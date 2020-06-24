@@ -16,7 +16,7 @@
 
 import BaseClient from './baseclient';
 import WireClient from './wireclient';
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import {
   applyMixins,
   isFolder,

@@ -14,7 +14,7 @@ import Access from './access';
 import Authorize from './authorize';
 import BaseClient from './baseclient';
 import Caching from './caching';
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
 import Discover from './discover';

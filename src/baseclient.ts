@@ -2,7 +2,7 @@ import tv4 from 'tv4';
 import { CachingStrategy } from './interfaces/caching';
 import Types from './types';
 import SchemaNotFound from './schema-not-found-error';
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import config from './config';
 import { applyMixins, cleanPath } from './util';
 

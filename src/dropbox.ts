@@ -1,4 +1,4 @@
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import WireClient from './wireclient';
 import BaseClient from './baseclient';
 import RevisionCache from './revisioncache';

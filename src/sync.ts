@@ -1,6 +1,6 @@
 import config from './config';
 import Env from './env';
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import log from './log';
 import Authorize from './authorize';
 import SyncError from './sync-error';

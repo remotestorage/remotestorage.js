@@ -1,4 +1,4 @@
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import config from './config';
 import log from './log';
 import {

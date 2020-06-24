@@ -32,7 +32,7 @@
  * @interface
  */
 
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import CachingLayer from './cachinglayer';
 import log from './log';
 import {

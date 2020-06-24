@@ -1,5 +1,5 @@
 import Authorize from './authorize';
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import UnauthorizedError from './unauthorized-error';
 import config from './config';
 import log from './log';

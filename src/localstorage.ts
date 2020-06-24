@@ -1,5 +1,5 @@
 import CachingLayer from './cachinglayer';
-import EventHandling from './eventhandling-new';
+import EventHandling from './eventhandling';
 import log from './log';
 import { applyMixins, localStorageAvailable } from './util';
 
