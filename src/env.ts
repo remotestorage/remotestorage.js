@@ -1,79 +1,76 @@
-const eventHandling = require('./eventhandling');
+import EventHandling from './eventhandling-new';
+import { applyMixins } from './util';
 
-const mode = typeof(window) !== 'undefined' ? 'browser' : 'node';
+class Env {
+  hiddenProperty: "hidden" | "mozHidden" | "msHidden" | "webkitHidden";
+  visibilityChangeEvent: "visibilitychange" | "mozvisibilitychange" | "msvisibilitychange" | "webkitvisibilitychange";
+  mode: "browser" | "node";
 
-// TODO check if engine prefix is still necessary
-interface Env {
-  hiddenProperty?: "hidden" | "mozHidden" | "msHidden" | "webkitHidden";
-  visibilityChangeEvent?: "visibilitychange" | "mozvisibilitychange" | "msvisibilitychange" | "webkitvisibilitychange";
-}
+  constructor() {
+    this.addEvents(["background", "foreground"]);
 
-const env: Env = {};
+    this.mode = typeof(window) !== 'undefined' ? 'browser' : 'node';
 
-const Env = function (): Env {
-  return env;
-};
-
-function setBrowserPrefixedNames (obj: Env): void {
-  if (mode !== 'browser') { return; }
-
-  if (typeof document.hidden !== "undefined") {
-    obj.hiddenProperty = "hidden";
-    obj.visibilityChangeEvent = "visibilitychange";
-  } else if (typeof document["mozHidden"] !== "undefined") {
-    obj.hiddenProperty = "mozHidden";
-    obj.visibilityChangeEvent = "mozvisibilitychange";
-  } else if (typeof document["msHidden"] !== "undefined") {
-    obj.hiddenProperty = "msHidden";
-    obj.visibilityChangeEvent = "msvisibilitychange";
-  } else if (typeof document["webkitHidden"] !== "undefined") {
-    obj.hiddenProperty = "webkitHidden";
-    obj.visibilityChangeEvent = "webkitvisibilitychange";
+    if (this.mode === 'browser') {
+      this.setBrowserPrefixedNames();
+      document.addEventListener(this.visibilityChangeEvent, this.setVisibility, false);
+      this.setVisibility();
+    }
   }
-}
 
-function setVisibility (): void {
-  if (document[env.hiddenProperty]) {
-    Env.goBackground();
-  } else {
-    Env.goForeground();
+  setBrowserPrefixedNames (): void {
+    if (this.mode !== 'browser') { return; }
+
+    if (typeof document.hidden !== "undefined") {
+      this.hiddenProperty = "hidden";
+      this.visibilityChangeEvent = "visibilitychange";
+    } else if (typeof document["mozHidden"] !== "undefined") {
+      this.hiddenProperty = "mozHidden";
+      this.visibilityChangeEvent = "mozvisibilitychange";
+    } else if (typeof document["msHidden"] !== "undefined") {
+      this.hiddenProperty = "msHidden";
+      this.visibilityChangeEvent = "msvisibilitychange";
+    } else if (typeof document["webkitHidden"] !== "undefined") {
+      this.hiddenProperty = "webkitHidden";
+      this.visibilityChangeEvent = "webkitvisibilitychange";
+    }
   }
-}
 
-// TODO Only fixes the TS compiler not knowing about mixed in functions.
-// Remove when eventhandling is refactored with TypeScript
-Env._emit = null;
-Env.on = null;
+  setVisibility (): void {
+    if (document[this.hiddenProperty]) {
+      this.goBackground();
+    } else {
+      this.goForeground();
+    }
+  }
 
-Env.isBrowser = function (): boolean {
-  return mode === "browser";
-};
+  isBrowser (): boolean {
+    return this.mode === "browser";
+  }
 
-Env.isNode = function (): boolean {
-  return mode === "node";
-};
+  isNode (): boolean {
+    return this.mode === "node";
+  }
 
-Env.goBackground = function (): void {
-  Env._emit("background");
-};
+  goBackground (): void {
+    this._emit("background");
+  }
 
-Env.goForeground = function (): void {
-  Env._emit("foreground");
-};
+  goForeground (): void {
+    this._emit("foreground");
+  }
 
-Env._rs_init = function (/* remoteStorage */): void {
-  eventHandling(Env, "background", "foreground");
+  static _rs_init (/* remoteStorage */): void {
+    return;
+  }
 
-  if (mode === 'browser') {
-    setBrowserPrefixedNames(env);
-    document.addEventListener(env.visibilityChangeEvent, setVisibility, false);
-    setVisibility();
+  static _rs_cleanup (/* remoteStorage */): void {
+    return;
   }
 };
 
-Env._rs_cleanup = function (/* remoteStorage */): void {
-  return;
-};
+interface Env extends EventHandling {};
+applyMixins(Env, [EventHandling]);
 
 export default Env;
 module.exports = Env;

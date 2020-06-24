@@ -67,15 +67,15 @@ function mergeMutualDeletion (node: RSNode): RSNode {
   return node;
 }
 
-function handleVisibility (rs): void {
+function handleVisibility (env, rs): void {
   function handleChange (isForeground): void {
     const oldValue = rs.getCurrentSyncInterval();
     config.isBackground = !isForeground;
     const newValue = rs.getCurrentSyncInterval();
     rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
   }
-  Env.on('background', () => handleChange(false));
-  Env.on('foreground', () => handleChange(true));
+  env.on('background', () => handleChange(false));
+  env.on('foreground', () => handleChange(true));
 }
 
 /**
@@ -1039,7 +1039,9 @@ class Sync {
     syncCycleCb = function (): void {
       // if (!config.cache) return false
       log('[Sync] syncCycleCb calling syncCycle');
-      if (Env.isBrowser()) { handleVisibility(remoteStorage); }
+
+      const env = new Env();
+      if (env.isBrowser()) { handleVisibility(env, remoteStorage); }
 
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
