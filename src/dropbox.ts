@@ -2,7 +2,6 @@ import EventHandling from './eventhandling';
 import WireClient from './wireclient';
 import BaseClient from './baseclient';
 import RevisionCache from './revisioncache';
-import Sync from './sync';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import {
@@ -156,7 +155,7 @@ class Dropbox {
           token: this.token
         }));
       }
-    }
+    };
 
     const handleError = function() {
       this.connected = false;
@@ -211,10 +210,9 @@ class Dropbox {
   _getFolder (path) {
     const url = 'https://api.dropboxapi.com/2/files/list_folder';
     const revCache = this._revCache;
-    const self = this;
 
-    const processResponse = function (resp) {
-      let body, listing;
+    const processResponse = (resp) => {
+      let body;
 
       if (resp.status !== 200 && resp.status !== 409) {
         return Promise.reject('Unexpected response status: ' + resp.status);
@@ -235,14 +233,14 @@ class Dropbox {
         return Promise.reject(new Error('API returned an error: ' + body.error_summary));
       }
 
-      listing = body.entries.reduce(function (map, item) {
+      const listing = body.entries.reduce((map, item) => {
         const isDir = item['.tag'] === 'folder';
         const itemName = item.path_lower.split('/').slice(-1)[0] + (isDir ? '/' : '');
         if (isDir){
           map[itemName] = { ETag: revCache.get(path+itemName) };
         } else {
           map[itemName] = { ETag: item.rev };
-          self._revCache.set(path+itemName, item.rev);
+          this._revCache.set(path+itemName, item.rev);
         }
         return map;
       }, {});
@@ -256,13 +254,13 @@ class Dropbox {
       return Promise.resolve(listing);
     };
 
-    const loadNext = function (cursor) {
+    const loadNext = (cursor) => {
       const continueURL = 'https://api.dropboxapi.com/2/files/list_folder/continue';
       const params = {
         body: { cursor: cursor }
       };
 
-      return self._request('POST', continueURL, params).then(processResponse);
+      return this._request('POST', continueURL, params).then(processResponse);
     };
 
     return this._request('POST', url, {
@@ -295,7 +293,6 @@ class Dropbox {
   get (path, options) {
     if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
     const url = 'https://content.dropboxapi.com/2/files/download';
-    const self = this;
 
     const savedRev = this._revCache.get(path);
     if (savedRev === null) {
@@ -332,7 +329,7 @@ class Dropbox {
       params.headers['If-None-Match'] = options.ifNoneMatch;
     }
 
-    return this._request('GET', url, params).then(function (resp) {
+    return this._request('GET', url, params).then(resp => {
       const status = resp.status;
       let meta, body, mime, rev;
       if (status !== 200 && status !== 409) {
@@ -341,7 +338,7 @@ class Dropbox {
       meta = resp.getResponseHeader('Dropbox-API-Result');
       //first encode the response as text, and later check if 
       //text appears to actually be binary data
-      return getTextFromArrayBuffer(resp.response, 'UTF-8').then(function (responseText) {
+      return getTextFromArrayBuffer(resp.response, 'UTF-8').then(responseText => {
         body = responseText;
         if (status === 409) {
           meta = body;
@@ -362,8 +359,8 @@ class Dropbox {
 
         mime = resp.getResponseHeader('Content-Type');
         rev = meta.rev;
-        self._revCache.set(path, rev);
-        self._shareIfNeeded(path);
+        this._revCache.set(path, rev);
+        this._shareIfNeeded(path);
 
         if (shouldBeTreatedAsBinary(responseText, mime)) {
           // return unprocessed response
@@ -405,13 +402,11 @@ class Dropbox {
    * @protected
    */
   put (path, body, contentType, options) {
-    const self = this;
-
     if (!this.connected) {
       throw new Error("not connected (path: " + path + ")");
     }
 
-    //check if file has changed and return 412
+    // check if file has changed and return 412
     const savedRev = this._revCache.get(path);
     if (options && options.ifMatch &&
         savedRev && (savedRev !== options.ifMatch)) {
@@ -440,7 +435,7 @@ class Dropbox {
     };
 
     if (needsMetadata) {
-      result = this._getMetadata(path).then(function (metadata) {
+      result = this._getMetadata(path).then(metadata => {
         if (options && (options.ifNoneMatch === '*') && metadata) {
           // if !!metadata === true, the file exists
           return Promise.resolve({
@@ -456,15 +451,15 @@ class Dropbox {
           });
         }
 
-        return self._uploadSimple(uploadParams);
+        return this._uploadSimple(uploadParams);
       });
     } else {
-      result = self._uploadSimple(uploadParams);
+      result = this._uploadSimple(uploadParams);
     }
 
-    return result.then(function (ret) {
-      self._shareIfNeeded(path);
-      return ret;
+    return result.then(res => {
+      this._shareIfNeeded(path);
+      return res;
     });
   }
 
@@ -605,11 +600,7 @@ class Dropbox {
    * @private
    */
   _request (method, url, options) {
-    const self = this;
-
-    if (!options.headers) {
-      options.headers = {};
-    }
+    if (!options.headers) { options.headers = {}; }
     options.headers['Authorization'] = 'Bearer ' + this.token;
 
     if (typeof options.body === 'object' && !isBinaryData(options.body)) {
@@ -622,20 +613,20 @@ class Dropbox {
       isFolder: isFolder(url)
     });
 
-    return WireClient.request.call(this, method, url, options).then(function(xhr) {
+    return WireClient.request.call(this, method, url, options).then(xhr => {
       // 503 means retry this later
       if (xhr && xhr.status === 503) {
-        if (self.online) {
-          self.online = false;
-          self.rs._emit('network-offline');
+        if (this.online) {
+          this.online = false;
+          this.rs._emit('network-offline');
         }
-        return setTimeout(self._request(method, url, options), 3210);
+        return setTimeout(this._request(method, url, options), 3210);
       } else {
-        if (!self.online) {
-          self.online = true;
-          self.rs._emit('network-online');
+        if (!this.online) {
+          this.online = true;
+          this.rs._emit('network-online');
         }
-        self.rs._emit('wire-done', {
+        this.rs._emit('wire-done', {
           method: method,
           isFolder: isFolder(url),
           success: true
@@ -643,12 +634,12 @@ class Dropbox {
 
         return Promise.resolve(xhr);
       }
-    }, function(error) {
-      if (self.online) {
-        self.online = false;
-        self.rs._emit('network-offline');
+    }, error => {
+      if (this.online) {
+        this.online = false;
+        this.rs._emit('network-offline');
       }
-      self.rs._emit('wire-done', {
+      this.rs._emit('wire-done', {
         method: method,
         isFolder: isFolder(url),
         success: false
@@ -665,17 +656,14 @@ class Dropbox {
    *
    * @private
    */
-  fetchDelta () {
+  fetchDelta (...args) {
     // If fetchDelta was already called, and didn't finish, return the existing
     // promise instead of calling Dropbox API again
     if (this._fetchDeltaPromise) {
       return this._fetchDeltaPromise;
     }
 
-    const args = Array.prototype.slice.call(arguments);
-    const self = this;
-
-    function fetch (cursor) {
+    const fetch = (cursor) => {
       let url = 'https://api.dropboxapi.com/2/files/list_folder';
       let requestBody;
 
@@ -690,9 +678,9 @@ class Dropbox {
         };
       }
 
-      return self._request('POST', url, { body: requestBody }).then(function (response) {
+      return this._request('POST', url, { body: requestBody }).then(response => {
         if (response.status === 401) {
-          self.rs._emit('error', new UnauthorizedError());
+          this.rs._emit('error', new UnauthorizedError());
           return Promise.resolve(args);
         }
 
@@ -722,29 +710,29 @@ class Dropbox {
 
         if (!cursor) {
           //we are doing a complete fetch, so propagation would introduce unnecessary overhead
-          self._revCache.deactivatePropagation();
+          this._revCache.deactivatePropagation();
         }
 
-        responseBody.entries.forEach(function (entry) {
+        responseBody.entries.forEach(entry => {
           const path = entry.path_lower.substr(PATH_PREFIX.length);
 
           if (entry['.tag'] === 'deleted') {
             // there's no way to know whether the entry was a file or a folder
-            self._revCache.delete(path);
-            self._revCache.delete(path + '/');
+            this._revCache.delete(path);
+            this._revCache.delete(path + '/');
           } else if (entry['.tag'] === 'file') {
-            self._revCache.set(path, entry.rev);
+            this._revCache.set(path, entry.rev);
           }
         });
 
-        self._fetchDeltaCursor = responseBody.cursor;
+        this._fetchDeltaCursor = responseBody.cursor;
         if (responseBody.has_more) {
           return fetch(responseBody.cursor);
         } else {
-          self._revCache.activatePropagation();        
-          self._initialFetchDone = true;
+          this._revCache.activatePropagation();
+          this._initialFetchDone = true;
         }
-      }).catch((error) => {
+      }).catch(error => {
         if (error === 'timeout' || error instanceof ProgressEvent) {
           // Offline is handled elsewhere already, just ignore it here
           return Promise.resolve();
@@ -753,7 +741,8 @@ class Dropbox {
         }
       });
     };
-    this._fetchDeltaPromise = fetch(self._fetchDeltaCursor).catch((error) => {
+
+    this._fetchDeltaPromise = fetch(this._fetchDeltaCursor).catch(error => {
       if (typeof(error) === 'object' && 'message' in error) {
         error.message = 'Dropbox: fetchDelta: ' + error.message;
       } else {
@@ -1020,11 +1009,11 @@ class Dropbox {
  *
  * TODO: document
  */
-function hookSync(rs) {
+function hookSync(rs, ...args) {
   if (rs._dropboxOrigSync) { return; } // already hooked
   rs._dropboxOrigSync = rs.sync.sync.bind(rs.sync);
   rs.sync.sync = function () {
-    return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
+    return this.dropbox.fetchDelta(rs, ...args).
       then(rs._dropboxOrigSync, function (err) {
         rs._emit('error', new SyncError(err));
         rs._emit('sync-done');
@@ -1049,13 +1038,13 @@ function unHookSync(rs) {
  * the sync function
  * @param {object} rs RemoteStorage instance
  */
-function hookSyncCycle(rs) {
+function hookSyncCycle(rs, ...args) {
   if (rs._dropboxOrigSyncCycle) { return; } // already hooked
   rs._dropboxOrigSyncCycle = rs.syncCycle;
   rs.syncCycle = () => {
     if (rs.sync) {
       hookSync(rs);
-      rs._dropboxOrigSyncCycle(arguments);
+      rs._dropboxOrigSyncCycle(rs, ...args);
       unHookSyncCycle(rs);
     } else {
       throw new Error('expected sync to be initialized by now');
