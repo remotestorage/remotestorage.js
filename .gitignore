@@ -3,7 +3,7 @@
 .#*
 *.swp
 *.log
-build
+/build
 node_modules
 server/server-state
 server-state
