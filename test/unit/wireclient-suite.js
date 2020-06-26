@@ -34,6 +34,8 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
       token: env.token
     });
 
+    env.requestOrig = WireClient.request;
+
     mocks.defineMocks(env);
 
     env.busy = new test.Stub(function(){});
@@ -61,6 +63,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
   function afterEach(env, test) {
     mocks.undefineMocks(env);
     delete env.client;
+    WireClient.request = env.requestOrig;
     test.done();
   }
 
@@ -592,16 +595,12 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
           env.connectedClient.configure({
             storageApi: 'draft-dejong-remotestorage-01'
           });
-          var request = WireClient.request;
 
           WireClient.request = function(method, url, options) {
-            WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A%252FB/bar', url);
           };
 
-          env.connectedClient.put('/foo/A%2FB/bar', 'baz' , 'text/plain');
-
-          WireClient.request = request;
+          return env.connectedClient.put('/foo/A%2FB/bar', 'baz' , 'text/plain');
         }
       },
 
@@ -611,16 +610,12 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
           env.connectedClient.configure({
             storageApi: 'draft-dejong-remotestorage-01'
           });
-          var request = WireClient.request;
 
           WireClient.request = function(method, url, options) {
-            WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A%20B/bar', url);
           };
 
-          env.connectedClient.put('/foo/A B/bar', 'baz' , 'text/plain');
-
-          WireClient.request = request;
+          return env.connectedClient.put('/foo/A B/bar', 'baz' , 'text/plain');
         }
       },
 
@@ -630,16 +625,12 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
           env.connectedClient.configure({
             storageApi: 'draft-dejong-remotestorage-01'
           });
-          var request = WireClient.request;
 
           WireClient.request = function(method, url, options) {
-            WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
           };
 
-          env.connectedClient.put('/foo/A/B/C/D/E', 'baz' , 'text/plain');
-
-          WireClient.request = request;
+          return env.connectedClient.put('/foo/A/B/C/D/E', 'baz' , 'text/plain');
         }
       },
 
@@ -649,16 +640,12 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
           env.connectedClient.configure({
             storageApi: 'draft-dejong-remotestorage-01'
           });
-          var request = WireClient.request;
 
           WireClient.request = function(method, url, options) {
-            WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
           };
 
-          env.connectedClient.put('/foo/A//B/C///D/E', 'baz' , 'text/plain');
-
-          WireClient.request = request;
+          return env.connectedClient.put('/foo/A//B/C///D/E', 'baz' , 'text/plain');
         }
       },
 
@@ -927,8 +914,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
               test.assertAnd(r.statusCode, 200);
               test.assertTypeAnd(r.body, 'undefined');
               test.assertTypeAnd(r.contentType, 'undefined');
-              test.assertAnd(r.revision, null);
-              test.done();
+              test.assert(r.revision, null);
             });
           mockRequestSuccess({
             status: 200,
@@ -945,8 +931,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
               test.assertAnd(r.statusCode, 200);
               test.assertTypeAnd(r.body, 'undefined');
               test.assertTypeAnd(r.contentType, 'undefined');
-              test.assertAnd(r.revision, 'foo');
-              test.done();
+              test.assert(r.revision, 'foo');
             });
           mockRequestSuccess({
             responseHeaders: {'ETag': '"foo"'},
@@ -973,7 +958,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
             });
           }, 10);
         }
-      },    
+      },
     ];
 
     var xhrTests = tests.concat([
