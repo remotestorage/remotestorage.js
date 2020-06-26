@@ -155,7 +155,7 @@ function isForbiddenRequestMethod(method: string, uri: string): boolean {
 /**
  * Class : WireClient
  **/
-const WireClient = function WireClient(rs) {
+const WireClient = function WireClient(rs): void {
   this.rs = rs;
   this.connected = false;
 
@@ -239,7 +239,7 @@ WireClient.prototype = {
       body: body,
       headers: headers,
       responseType: 'arraybuffer'
-    }).then((response: (XMLHttpRequest)): Promise<WireRequestResponse> => {
+    }).then((response: XMLHttpRequest): Promise<WireRequestResponse> => {
       if (!this.online) {
         this.online = true;
         this.rs._emit('network-online');
