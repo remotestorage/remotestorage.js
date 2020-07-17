@@ -40,7 +40,7 @@ export default class Access {
    */
   get scopes(): ScopeEntry[] {
     return Object.keys(this.scopeModeMap).map((key) => {
-      return {name: key, mode: this.scopeModeMap[key]};
+      return { name: key, mode: this.scopeModeMap[key] };
     });
   }
 
@@ -57,10 +57,10 @@ export default class Access {
    * @param {string} mode - Access mode. Either "r" for read-only or "rw" for read/write
    */
   claim (scope: AccessScope, mode: AccessMode): void {
-    if(typeof (scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
+    if (typeof (scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
       throw new Error('Scope should be a non-empty string without forward slashes');
     }
-    if(!mode.match(/^rw?$/)) {
+    if (!mode.match(/^rw?$/)) {
       throw new Error('Mode should be either \'r\' or \'rw\'');
     }
     this._adjustRootPaths(scope);
@@ -115,7 +115,7 @@ export default class Access {
    * @returns {boolean} true if the requested access mode is active, false otherwise
    */
   checkPathPermission (path: string, mode: AccessMode): boolean {
-    if(this.checkPermission('*', mode)) {
+    if (this.checkPermission('*', mode)) {
       return true;
     }
     // TODO check if this is reliable
@@ -135,7 +135,7 @@ export default class Access {
    * Return the module name for a given path.
    */
   private _getModuleName (path): string {
-    if(path[0] !== '/') {
+    if (path[0] !== '/') {
       throw new Error('Path should start with a slash');
     }
     const moduleMatch = path.replace(/^\/public/, '').match(/^\/([^/]*)\//);
@@ -146,9 +146,9 @@ export default class Access {
    * TODO: document
    */
   private _adjustRootPaths (newScope: AccessScope): void {
-    if('*' in this.scopeModeMap || newScope === '*') {
+    if ('*' in this.scopeModeMap || newScope === '*') {
       this.rootPaths = ['/'];
-    } else if(!(newScope in this.scopeModeMap)) {
+    } else if (!(newScope in this.scopeModeMap)) {
       this.rootPaths.push('/' + newScope + '/');
       this.rootPaths.push('/public/' + newScope + '/');
     }
@@ -158,10 +158,10 @@ export default class Access {
    * TODO: document
    */
   private _scopeNameForParameter (scope: ScopeEntry): string {
-    if(scope.name === '*' && this.storageType) {
-      if(this.storageType === '2012.04') {
+    if (scope.name === '*' && this.storageType) {
+      if (this.storageType === '2012.04') {
         return '';
-      } else if(this.storageType.match(/remotestorage-0[01]/)) {
+      } else if (this.storageType.match(/remotestorage-0[01]/)) {
         return 'root';
       }
     }

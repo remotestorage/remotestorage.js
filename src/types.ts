@@ -63,7 +63,7 @@ class BaseClientTypes {
     const ml = moduleName.length;
     const schemas = {};
     for (const alias in this.uris) {
-      if(alias.substr(0, ml + 1) === moduleName + '/') {
+      if (alias.substr(0, ml + 1) === moduleName + '/') {
         const uri = this.uris[alias];
         schemas[uri] = this.schemas[uri];
       }

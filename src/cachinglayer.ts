@@ -51,14 +51,14 @@ abstract class CachingLayer {
   // this hacky third parameter as a callback
   get (path: string, maxAge: number, queueGetRequest: (path: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
 
-    if(typeof (maxAge) === 'number') {
+    if (typeof (maxAge) === 'number') {
 
       return this.getNodes(pathsFromRoot(path))
         .then((objs) => {
           const node: RSNode = getLatest(objs[path]);
-          if(isOutdated(objs, maxAge)) {
+          if (isOutdated(objs, maxAge)) {
             return queueGetRequest(path);
-          } else if(node) {
+          } else if (node) {
             return {statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType};
           } else {
             return {statusCode: 404};
@@ -68,11 +68,11 @@ abstract class CachingLayer {
       return this.getNodes([path])
         .then((objs) => {
           const node = getLatest(objs[path]);
-          if(node) {
-            if(isFolder(path)) {
+          if (node) {
+            if (isFolder(path)) {
               for (const i in node.itemsMap) {
                 // the hasOwnProperty check here is only because our jshint settings require it:
-                if(node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
+                if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
                   delete node.itemsMap[i];
                 }
               }
@@ -95,12 +95,12 @@ abstract class CachingLayer {
           let node = nodes[nodePath];
           let previous;
 
-          if(!node) {
+          if (!node) {
             nodes[nodePath] = node = makeNode(nodePath);
           }
 
           // Document
-          if(i === 0) {
+          if (i === 0) {
             previous = getLatest(node);
             node.local = {
               body: body,
@@ -134,12 +134,12 @@ abstract class CachingLayer {
         const node = nodes[nodePath];
         let previous;
 
-        if(!node) {
+        if (!node) {
           console.error('Cannot delete non-existing node ' + nodePath);
           continue;
         }
 
-        if(i === 0) {
+        if (i === 0) {
           // Document
           previous = getLatest(node);
           node.local = {
@@ -149,13 +149,13 @@ abstract class CachingLayer {
           };
         } else {
           // Folder
-          if(!node.local) {
+          if (!node.local) {
             node.local = deepClone(node.common);
           }
           const itemName = nodePaths[i - 1].substring(nodePath.length);
           delete node.local.itemsMap[itemName];
 
-          if(Object.getOwnPropertyNames(node.local.itemsMap).length > 0) {
+          if (Object.getOwnPropertyNames(node.local.itemsMap).length > 0) {
             // This folder still contains other items, don't remove any further ancestors
             break;
           }
@@ -173,7 +173,7 @@ abstract class CachingLayer {
       for (const nodePath in nodes) {
         const node = nodes[nodePath];
 
-        if(node && node.common && node.local) {
+        if (node && node.common && node.local) {
           this._emitChange({
             path: node.path,
             origin: 'local',
@@ -189,21 +189,21 @@ abstract class CachingLayer {
   }
 
   private _emitChange(obj: ChangeObj) {
-    if(config.changeEvents[obj.origin]) {
+    if (config.changeEvents[obj.origin]) {
       this._emit('change', obj);
     }
   }
 
   fireInitial() {
-    if(!config.changeEvents.local) {
+    if (!config.changeEvents.local) {
       return;
     }
 
     this.forAllNodes((node) => {
 
-      if(isDocument(node.path)) {
+      if (isDocument(node.path)) {
         const latest = getLatest(node);
-        if(latest) {
+        if (latest) {
           this._emitChange({
             path: node.path,
             origin: 'local',
@@ -225,15 +225,15 @@ abstract class CachingLayer {
   }
 
   migrate(node: RSNode): RSNode {
-    if(typeof (node) === 'object' && !node.common) {
+    if (typeof (node) === 'object' && !node.common) {
       node.common = {};
-      if(typeof (node.path) === 'string') {
-        if(node.path.substr(-1) === '/' && typeof (node.body) === 'object') {
+      if (typeof (node.path) === 'string') {
+        if (node.path.substr(-1) === '/' && typeof (node.body) === 'object') {
           node.common.itemsMap = node.body;
         }
       } else {
         //save legacy content of document node as local version
-        if(!node.local) {
+        if (!node.local) {
           node.local = {};
         }
         node.local.body = node.body;
@@ -254,7 +254,7 @@ abstract class CachingLayer {
   }
 
   private _doUpdateNodes(paths, _processNodes, promise) {
-    if(this._updateNodesRunning) {
+    if (this._updateNodesRunning) {
       this._updateNodesQueued.push({
         paths: paths,
         cb: _processNodes,
@@ -273,10 +273,10 @@ abstract class CachingLayer {
 
       for (const path in nodes) {
         const node = nodes[path];
-        if(equal(node, existingNodes[path])) {
+        if (equal(node, existingNodes[path])) {
           delete nodes[path];
-        } else if(isDocument(path)) {
-          if(
+        } else if (isDocument(path)) {
+          if (
             !equal(node.local.body, node.local.previousBody) ||
             node.local.contentType !== node.local.previousContentType
           ) {
@@ -305,7 +305,7 @@ abstract class CachingLayer {
     }).then(() => {
       this._updateNodesRunning = false;
       const nextJob = this._updateNodesQueued.shift();
-      if(nextJob) {
+      if (nextJob) {
         this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
       }
     });
@@ -314,14 +314,14 @@ abstract class CachingLayer {
   private _emitChangeEvents(events: RSEvent[]) {
     for (let i = 0, len = events.length; i < len; i++) {
       this._emitChange(events[i]);
-      if(this.diffHandler) {
+      if (this.diffHandler) {
         this.diffHandler(events[i].path);
       }
     }
   }
 
   private _getAllDescendentPaths(path: string) {
-    if(isFolder(path)) {
+    if (isFolder(path)) {
       return this.getNodes([path]).then((nodes) => {
         const allPaths = [path];
         const latest = getLatest(nodes[path]);
@@ -355,33 +355,33 @@ abstract class CachingLayer {
 
 
 function getLatest(node: RSNode): any {
-  if(typeof (node) !== 'object' || typeof (node.path) !== 'string') {
+  if (typeof (node) !== 'object' || typeof (node.path) !== 'string') {
     return;
   }
-  if(isFolder(node.path)) {
-    if(node.local && node.local.itemsMap) {
+  if (isFolder(node.path)) {
+    if (node.local && node.local.itemsMap) {
       return node.local;
     }
-    if(node.common && node.common.itemsMap) {
+    if (node.common && node.common.itemsMap) {
       return node.common;
     }
   } else {
-    if(node.local) {
-      if(node.local.body && node.local.contentType) {
+    if (node.local) {
+      if (node.local.body && node.local.contentType) {
         return node.local;
       }
-      if(node.local.body === false) {
+      if (node.local.body === false) {
         return;
       }
     }
-    if(node.common && node.common.body && node.common.contentType) {
+    if (node.common && node.common.body && node.common.contentType) {
       return node.common;
     }
     // Migration code! Once all apps use at least this version of the lib, we
     // can publish clean-up code that migrates over any old-format data, and
     // stop supporting it. For now, new apps will support data in both
     // formats, thanks to this:
-    if(node.body && node.contentType) {
+    if (node.body && node.contentType) {
       return {
         body: node.body,
         contentType: node.contentType
@@ -392,13 +392,13 @@ function getLatest(node: RSNode): any {
 
 function isOutdated(nodes: RSNodes, maxAge: number): boolean {
   for (const path in nodes) {
-    if(nodes[path] && nodes[path].remote) {
+    if (nodes[path] && nodes[path].remote) {
       return true;
     }
     const nodeVersion = getLatest(nodes[path]);
-    if(nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
+    if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
       return false;
-    } else if(!nodeVersion) {
+    } else if (!nodeVersion) {
       return true;
     }
   }
@@ -409,25 +409,25 @@ function isOutdated(nodes: RSNodes, maxAge: number): boolean {
 function makeNode(path: string): RSNode {
   const node: RSNode = {path: path, common: {}};
 
-  if(isFolder(path)) {
+  if (isFolder(path)) {
     node.common.itemsMap = {};
   }
   return node;
 }
 
 function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
-  if(!node.common) {
+  if (!node.common) {
     node.common = {
       itemsMap: {}
     };
   }
-  if(!node.common.itemsMap) {
+  if (!node.common.itemsMap) {
     node.common.itemsMap = {};
   }
-  if(!node.local) {
+  if (!node.local) {
     node.local = deepClone(node.common);
   }
-  if(!node.local.itemsMap) {
+  if (!node.local.itemsMap) {
     node.local.itemsMap = node.common.itemsMap;
   }
   node.local.itemsMap[itemName] = true;

@@ -10,12 +10,12 @@ import Global = NodeJS.Global;
  * It recurses into sub-objects, but skips arrays if they occur.
  */
 function _fixArrayBuffers(srcObj: object, dstObj: object) {
-  if(typeof (srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
+  if (typeof (srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
     return;
   }
   for (const field in srcObj) {
-    if(typeof (srcObj[field]) === 'object' && srcObj[field] !== null) {
-      if(srcObj[field].toString() === '[object ArrayBuffer]') {
+    if (typeof (srcObj[field]) === 'object' && srcObj[field] !== null) {
+      if (srcObj[field].toString() === '[object ArrayBuffer]') {
         dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
         const srcArr = new Int8Array(srcObj[field]);
         const dstArr = new Int8Array(dstObj[field]);
@@ -28,7 +28,7 @@ function _fixArrayBuffers(srcObj: object, dstObj: object) {
 }
 
 export const logError = (error: string | Error): void => {
-  if(typeof (error) === 'string') {
+  if (typeof (error) === 'string') {
     console.error(error);
   } else {
     console.error(error.message, error.stack);
@@ -55,10 +55,10 @@ export const extend = (...args): unknown => {
 };
 
 export const containingFolder = (path: string): string => {
-  if(path === '') {
+  if (path === '') {
     return '/';
   }
-  if(!path) {
+  if (!path) {
     throw "Path not given!";
   }
 
@@ -76,7 +76,7 @@ export const isDocument = (path: string): boolean => {
 
 export const baseName = (path: string): string => {
   const parts = path.split('/');
-  if(isFolder(path)) {
+  if (isFolder(path)) {
     return parts[parts.length - 2] + '/';
   } else {
     return parts[parts.length - 1];
@@ -91,7 +91,7 @@ export const cleanPath = (path: string): string => {
 
 export const bindAll = (object: object) => {
   for (const key in this) {
-    if(typeof (object[key]) === 'function') {
+    if (typeof (object[key]) === 'function') {
       object[key] = object[key].bind(object);
     }
   }
@@ -100,19 +100,19 @@ export const bindAll = (object: object) => {
 export const equal = (a: any, b: any, seen = []): boolean => {
   let key;
 
-  if(typeof (a) !== typeof (b)) {
+  if (typeof (a) !== typeof (b)) {
     return false;
   }
 
-  if(typeof (a) === 'number' || typeof (a) === 'boolean' || typeof (a) === 'string') {
+  if (typeof (a) === 'number' || typeof (a) === 'boolean' || typeof (a) === 'string') {
     return a === b;
   }
 
-  if(typeof (a) === 'function') {
+  if (typeof (a) === 'function') {
     return a.toString() === b.toString();
   }
 
-  if(a instanceof ArrayBuffer && b instanceof ArrayBuffer) {
+  if (a instanceof ArrayBuffer && b instanceof ArrayBuffer) {
     // Without the following conversion the browsers wouldn't be able to
     // tell the ArrayBuffer instances apart.
     a = new Uint8Array(a);
@@ -121,38 +121,38 @@ export const equal = (a: any, b: any, seen = []): boolean => {
 
   // If this point has been reached, a and b are either arrays or objects.
 
-  if(a instanceof Array) {
-    if(a.length !== b.length) {
+  if (a instanceof Array) {
+    if (a.length !== b.length) {
       return false;
     }
 
     for (let i = 0, c = a.length; i < c; i++) {
-      if(!equal(a[i], b[i], seen)) {
+      if (!equal(a[i], b[i], seen)) {
         return false;
       }
     }
   } else {
     // Check that keys from a exist in b
     for (key in a) {
-      if(a.hasOwnProperty(key) && !(key in b)) {
+      if (a.hasOwnProperty(key) && !(key in b)) {
         return false;
       }
     }
 
     // Check that keys from b exist in a, and compare the values
     for (key in b) {
-      if(!b.hasOwnProperty(key)) {
+      if (!b.hasOwnProperty(key)) {
         continue;
       }
 
-      if(!(key in a)) {
+      if (!(key in a)) {
         return false;
       }
 
       let seenArg;
 
-      if(typeof (b[key]) === 'object') {
-        if(seen.indexOf(b[key]) >= 0) {
+      if (typeof (b[key]) === 'object') {
+        if (seen.indexOf(b[key]) >= 0) {
           // Circular reference, don't attempt to compare this object.
           // If nothing else returns false, the objects match.
           continue;
@@ -162,7 +162,7 @@ export const equal = (a: any, b: any, seen = []): boolean => {
         seenArg.push(b[key]);
       }
 
-      if(!equal(a[key], b[key], seenArg)) {
+      if (!equal(a[key], b[key], seenArg)) {
         return false;
       }
     }
@@ -172,7 +172,7 @@ export const equal = (a: any, b: any, seen = []): boolean => {
 };
 
 export const deepClone = (obj: any): any => {
-  if(obj === undefined) {
+  if (obj === undefined) {
     return undefined;
   } else {
     const clone = JSON.parse(JSON.stringify(obj));
@@ -195,7 +195,7 @@ export const pathsFromRoot = (path: string): string[] => {
 export const localStorageAvailable = (): boolean => {
   const context = getGlobalContext();
 
-  if(!('localStorage' in context)) {
+  if (!('localStorage' in context)) {
     return false;
   }
 
@@ -247,7 +247,7 @@ export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType:
  */
 export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding: string): Promise<string | ArrayBuffer> => {
   return new Promise((resolve/*, reject*/) => {
-    if(typeof Blob === 'undefined') {
+    if (typeof Blob === 'undefined') {
       const buffer = new Buffer(new Uint8Array(arrayBuffer));
       resolve(buffer.toString(encoding));
     } else {
@@ -256,7 +256,7 @@ export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding: strin
       // TODO fix as BlobBuilder is not available in all browsers
       // @see https://developer.mozilla.org/en-US/docs/Web/API/BlobBuilder
       gc.BlobBuilder = gc.BlobBuilder || gc.WebKitBlobBuilder;
-      if(typeof gc.BlobBuilder !== 'undefined') {
+      if (typeof gc.BlobBuilder !== 'undefined') {
         const bb = new gc.BlobBuilder();
         bb.append(arrayBuffer);
         blob = bb.getBlob();
@@ -265,7 +265,7 @@ export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding: strin
       }
 
       const fileReader = new FileReader();
-      if(typeof fileReader.addEventListener === 'function') {
+      if (typeof fileReader.addEventListener === 'function') {
         fileReader.addEventListener('loadend', function (evt) {
           resolve(evt.target.result);
         });
@@ -286,7 +286,7 @@ export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding: strin
  */
 export const toBase64 = (str: string): string => {
   const context = getGlobalContext();
-  if('btoa' in context) {
+  if ('btoa' in context) {
     return context['btoa'](str);
   } else {
     return Buffer.from(str).toString('base64');

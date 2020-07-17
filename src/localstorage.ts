@@ -57,14 +57,14 @@ class LocalStorage extends CachingLayer {
     let node;
 
     for (let i = 0, len = localStorage.length; i < len; i++) {
-      if(isNodeKey(localStorage.key(i))) {
+      if (isNodeKey(localStorage.key(i))) {
         try {
           // NOTE: this is coming from caching layer todo fix via interface or similar
           node = this.migrate(JSON.parse(localStorage[localStorage.key(i)]));
         } catch (e) {
           node = undefined;
         }
-        if(node) {
+        if (node) {
           cb(node);
         }
       }
@@ -102,7 +102,7 @@ class LocalStorage extends CachingLayer {
 
     for (let i = 0, len = localStorage.length; i < len; i++) {
       const key = localStorage.key(i);
-      if(isRemoteStorageKey(key)) {
+      if (isRemoteStorageKey(key)) {
         keys.push(key);
       }
     }

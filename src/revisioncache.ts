@@ -28,7 +28,7 @@ class RevisionCache {
   get(key: string): string {
     key = key.toLowerCase();
     let stored = this._storage[key];
-    if(typeof stored === 'undefined') {
+    if (typeof stored === 'undefined') {
       stored = this.defaultValue;
       this._storage[key] = stored;
     }
@@ -40,15 +40,15 @@ class RevisionCache {
    */
   set(key: string, value): unknown {
     key = key.toLowerCase();
-    if(this._storage[key] === value) {
+    if (this._storage[key] === value) {
       return value;
     }
     this._storage[key] = value;
-    if(!value) {
+    if (!value) {
       delete this._itemsRev[key];
     }
     this._updateParentFolderItemRev(key, value);
-    if(this._canPropagate) {
+    if (this._canPropagate) {
       this._propagate(key);
     }
     return value;
@@ -74,7 +74,7 @@ class RevisionCache {
    * and refreshes the folder revision ids for entire tree.
    */
   activatePropagation(): true {
-    if(this._canPropagate) {
+    if (this._canPropagate) {
       return true;
     }
     this._generateFolderRev("/");
@@ -87,7 +87,7 @@ class RevisionCache {
    */
   private _hashCode(str: string): number {
     let hash = 0;
-    if(str.length === 0) {
+    if (str.length === 0) {
       return hash;
     }
     for (let i = 0; i < str.length; i++) {
@@ -115,13 +115,13 @@ class RevisionCache {
    * Update the revision of a key in it's parent folder data
    */
   private _updateParentFolderItemRev(key: string, rev): void {
-    if(key !== '/') {
+    if (key !== '/') {
       const parentFolder = this._getParentFolder(key);
-      if(!this._itemsRev[parentFolder]) {
+      if (!this._itemsRev[parentFolder]) {
         this._itemsRev[parentFolder] = {};
       }
       const parentFolderItemsRev = this._itemsRev[parentFolder];
-      if(!rev) {
+      if (!rev) {
         delete parentFolderItemsRev[key];
       } else {
         parentFolderItemsRev[key] = rev;
@@ -140,7 +140,7 @@ class RevisionCache {
    * for them
    */
   private _propagate(key: string): void {
-    if(key !== '/') {
+    if (key !== '/') {
       const parentFolder = this._getParentFolder(key);
       const parentFolderItemsRev = this._itemsRev[parentFolder];
       const hashItems = [];
@@ -159,19 +159,19 @@ class RevisionCache {
   private _generateFolderRev(folder: string): string {
     const itemsRev = this._itemsRev[folder];
     let hash = this.defaultValue;
-    if(itemsRev) {
+    if (itemsRev) {
       const hashItems = [];
       for (const path in itemsRev) {
         const isDir: boolean = (path.substr(-1) === '/');
         let hashItem;
-        if(isDir) {
+        if (isDir) {
           hashItem = this._generateFolderRev(path);
         } else {
           hashItem = itemsRev[path];
         }
         hashItems.push(hashItem);
       }
-      if(hashItems.length > 0) {
+      if (hashItems.length > 0) {
         hash = this._generateHash(hashItems);
       }
     }

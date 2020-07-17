@@ -28,25 +28,25 @@ export default class Caching {
    * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
    */
   set (path: string, strategy: CachingStrategy): void {
-    if(typeof path !== 'string') {
+    if (typeof path !== 'string') {
       throw new Error('path should be a string');
     }
-    if(!isFolder(path)) {
+    if (!isFolder(path)) {
       throw new Error('path should be a folder');
     }
     // FIXME We need to get to the access instance somehow.  But I'm not sure
     // this check is even necessary in the first place. -raucao
-    // if(!this._remoteStorage.access.checkPathPermission(path, 'r')) {
+    // if (!this._remoteStorage.access.checkPathPermission(path, 'r')) {
     //   throw new Error('No access to path "' + path + '". You have to claim access to it first.');
     // }
-    if(!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
+    if (!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
       throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
     }
 
     this._rootPaths[path] = strategy;
 
-    if(strategy === 'ALL') {
-      if(this.activateHandler) {
+    if (strategy === 'ALL') {
+      if (this.activateHandler) {
         this.activateHandler(path);
       } else {
         this.pendingActivations.push(path);
@@ -99,9 +99,9 @@ export default class Caching {
    * @returns {string} caching strategy for the path
    **/
   checkPath (path: string): string {
-    if(this._rootPaths[path] !== undefined) {
+    if (this._rootPaths[path] !== undefined) {
       return this._rootPaths[path];
-    } else if(path === '/') {
+    } else if (path === '/') {
       return 'SEEN';
     } else {
       return this.checkPath(containingFolder(path));
