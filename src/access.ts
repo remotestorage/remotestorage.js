@@ -46,7 +46,7 @@ export default class Access {
 
   get scopeParameter(): string {
     return this.scopes.map((scope) => {
-      return this._scopeNameForParameter(scope) + ':' + scope.mode;
+      return `${this._scopeNameForParameter(scope)}:${scope.mode}`;
     }).join(' ');
   }
 
