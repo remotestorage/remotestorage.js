@@ -144,7 +144,8 @@ const Features = {
   },
 
   featureFailed (featureName, err) {
-    throw new Error(`Feature initialization failed for "${featureName}": ${err}`);
+    log(`[RemoteStorage] [FEATURE ${featureName}] initialization failed (${err})`);
+    this.featureDone();
   },
 
   featureSupported (featureName, success) {
