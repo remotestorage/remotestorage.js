@@ -1,13 +1,12 @@
+import { containingFolder, isFolder } from './util';
+import { CachingStrategy } from './interfaces/caching';
+import log from './log';
+
 /**
  * @class Caching
  *
  * Holds/manages caching configuration.
  **/
-
-import { containingFolder, isFolder } from './util';
-import { CachingStrategy } from './interfaces/caching';
-import log from './log';
-
 export default class Caching {
   pendingActivations: string[] = [];
   // TODO add correct type
