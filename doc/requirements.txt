@@ -1,4 +1,4 @@
-sphinx-js
+sphinx-js >= 3.0
 sphinx-issues
 sphinx-autobuild
 sphinx_rtd_theme
