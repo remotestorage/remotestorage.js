@@ -19,7 +19,7 @@
     "build:release": "NODE_ENV=production webpack --mode=production",
     "build:dev": "webpack --mode=development",
     "build:docs": "cd doc && sphinx-build -v . _build/html",
-    "dev": "tsc -w",
+    "dev": "webpack --mode=development -w",
     "postshrinkwrap": "if [ \"`uname`\" = \"Darwin\" ]; then sed -i '' -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; else sed -i -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; fi",
     "doc": "cd doc; sphinx-autobuild -i '*~' -i '*.sw*' -i '#*#' . _build/html",
     "preversion": "npm test && npm run build:js",
@@ -40,6 +40,7 @@
     "esformatter": "^0.11.3",
     "eslint": "^6.8.0",
     "jaribu": "^2.2.2",
+    "ts-loader": "^8.0.2",
     "typescript": "^3.8.3",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10"
