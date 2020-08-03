@@ -18,5 +18,3 @@ export default class UnauthorizedError extends Error {
     this.stack = (new Error()).stack;
   };
 }
-
-module.exports = UnauthorizedError;

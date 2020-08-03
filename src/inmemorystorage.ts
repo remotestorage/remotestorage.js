@@ -89,4 +89,3 @@ interface InMemoryStorage extends EventHandling {};
 applyMixins(InMemoryStorage, [EventHandling]);
 
 export default InMemoryStorage;
-module.exports = InMemoryStorage;

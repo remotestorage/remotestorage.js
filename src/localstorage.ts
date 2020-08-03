@@ -119,4 +119,3 @@ interface LocalStorage extends EventHandling {};
 applyMixins(LocalStorage, [EventHandling]);
 
 export default LocalStorage;
-module.exports = LocalStorage;

@@ -230,5 +230,3 @@ export default class Authorize {
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
 };
-
-module.exports = Authorize;

@@ -644,4 +644,3 @@ interface WireClient extends EventHandling {};
 applyMixins(WireClient, [EventHandling]);
 
 export default WireClient;
-module.exports = WireClient;

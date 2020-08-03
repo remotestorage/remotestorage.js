@@ -14,5 +14,3 @@ export default function log(...args): void {
     console.log(...args);
   }
 }
-
-module.exports = log;

@@ -10,7 +10,7 @@ define(['require', 'fs'], function( require, fs, undefined) {
 
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      RemoteStorage.Access = require('../../build/access');
+      RemoteStorage.Access = require('../../build/access').default;
 
       env.Access = RemoteStorage.Access;
 

@@ -67,17 +67,14 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
       global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
-      // global.WebFinger = require('webfinger.js')
-      // global.Discover = require('./build/discover');
-      global.SyncedGetPutDelete = require('./build/syncedgetputdelete');
-      global.Authorize = require('./build/authorize');
-      global.UnauthorizedError = require('./build/unauthorized-error');
-      global.Sync = require('./build/sync');
-      global.config = require('./build/config');
-      global.log = require('./build/log');
-      global.Dropbox = require('./build/dropbox');
-
-      global.RemoteStorage = require('./build/remotestorage');
+      global.SyncedGetPutDelete = require('./build/syncedgetputdelete').default;
+      global.Authorize = require('./build/authorize').default;
+      global.UnauthorizedError = require('./build/unauthorized-error').default;
+      global.Sync = require('./build/sync').default;
+      global.config = require('./build/config').default;
+      global.log = require('./build/log').default;
+      global.Dropbox = require('./build/dropbox').default;
+      global.RemoteStorage = require('./build/remotestorage').default;
 
       global.Discover = function(userAddress) {
         var pending = Promise.defer();
@@ -101,7 +98,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
 
     tests: [
       {
-        desc: "#get emiting error RemoteStorage.Unauthorized on 403",
+        desc: "#get raises UnauthorizedError on 403",
         run: function (env, test) {
           var success = false;
 
@@ -118,7 +115,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
       },
 
       {
-        desc: "#put emiting error RemoteStorage.Unauthorized on 403",
+        desc: "#put raises UnauthorizedError on 403",
         run: function(env, test) {
           var success = false;
           env.rs.on('error', function(e) {
@@ -133,7 +130,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
       },
 
       {
-        desc: "#delete emiting error RemoteStorage.Unauthorized on 403",
+        desc: "#delete raises UnauthorizedError on 403",
         run: function (env, test) {
           var success = false;
           env.rs.on('error', function (e) {
@@ -752,7 +749,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
     },
 
     beforeEach: function(env, test) {
-      global.log = require('./build/log');
+      global.log = require('./build/log').default;
       fakeLogs = [];
       test.done();
     },

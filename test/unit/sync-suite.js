@@ -12,18 +12,18 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
     setup: function(env, test){
       mocks.defineMocks(env);
 
-      global.Authorize = require('./build/authorize');
-      global.UnauthorizedError = require('./build/unauthorized-error');
-      global.config = require('./build/config');
-      global.EventHandling = require('./build/eventhandling');
-      global.Sync = require('./build/sync');
-      global.InMemoryStorage = require('./build/inmemorystorage');
+      global.Authorize = require('./build/authorize').default;
+      global.UnauthorizedError = require('./build/unauthorized-error').default;
+      global.config = require('./build/config').default;
+      global.EventHandling = require('./build/eventhandling').default;
+      global.Sync = require('./build/sync').default;
+      global.InMemoryStorage = require('./build/inmemorystorage').default;
 
       class RemoteStorage { static log () {} }
-      util.applyMixins(RemoteStorage, [EventHandling.default]);
+      util.applyMixins(RemoteStorage, [EventHandling]);
       global.RemoteStorage = RemoteStorage;
 
-      var RS = require('./build/remotestorage');
+      var RS = require('./build/remotestorage').default;
       RemoteStorage.prototype.stopSync = RS.prototype.stopSync;
       RemoteStorage.prototype.startSync = RS.prototype.startSync;
       RemoteStorage.prototype.getSyncInterval = RS.prototype.getSyncInterval;

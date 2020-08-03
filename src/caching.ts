@@ -123,5 +123,3 @@ export default class Caching {
     return;
   }
 }
-
-module.exports = Caching;

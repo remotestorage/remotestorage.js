@@ -73,4 +73,3 @@ interface Env extends EventHandling {};
 applyMixins(Env, [EventHandling]);
 
 export default Env;
-module.exports = Env;

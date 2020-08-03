@@ -463,4 +463,3 @@ interface BaseClient extends EventHandling {};
 applyMixins(BaseClient, [EventHandling]);
 
 export default BaseClient;
-module.exports = BaseClient;

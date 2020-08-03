@@ -485,4 +485,3 @@ interface IndexedDB extends EventHandling {};
 applyMixins(IndexedDB, [EventHandling]);
 
 export default IndexedDB;
-module.exports = IndexedDB;

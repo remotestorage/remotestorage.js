@@ -6,4 +6,3 @@ export default class SchemaNotFound extends Error {
     return error;
   }
 }
-module.exports = SchemaNotFound;

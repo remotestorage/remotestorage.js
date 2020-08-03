@@ -1081,4 +1081,3 @@ interface Sync extends EventHandling {};
 applyMixins(Sync, [EventHandling]);
 
 export default Sync;
-module.exports = Sync;

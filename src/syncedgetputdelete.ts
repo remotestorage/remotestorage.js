@@ -61,4 +61,3 @@ const SyncedGetPutDelete = {
 };
 
 export default SyncedGetPutDelete;
-module.exports = SyncedGetPutDelete;

@@ -74,4 +74,3 @@ export class BaseClientTypes {
 
 const Types = new BaseClientTypes();
 export default Types;
-module.exports = Types;

@@ -255,4 +255,3 @@ const Features = {
 };
 
 export default Features;
-module.exports = Features;

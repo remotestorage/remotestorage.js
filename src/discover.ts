@@ -106,4 +106,3 @@ Discover._rs_cleanup = function (): void {
 
 
 export default Discover;
-module.exports = Discover;

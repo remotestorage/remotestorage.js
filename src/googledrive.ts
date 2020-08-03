@@ -793,4 +793,3 @@ interface GoogleDrive extends EventHandling {};
 applyMixins(GoogleDrive, [EventHandling]);
 
 export default GoogleDrive;
-module.exports = GoogleDrive;

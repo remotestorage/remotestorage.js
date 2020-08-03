@@ -8,6 +8,9 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
                  backend, mocks) {
 
   var suites = [];
+  var EventHandling = EventHandling.default;
+  var GoogleDrive = GoogleDrive.default;
+  var config = config.default;
 
   function setup (env, test) {
     global.localStorage = {
@@ -18,10 +21,10 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
     class RemoteStorage {
       setBackend (b) { this.backend = b; }
     }
-    buildUtil.applyMixins(RemoteStorage, [EventHandling.default]);
+    buildUtil.applyMixins(RemoteStorage, [EventHandling]);
     global.RemoteStorage = RemoteStorage;
 
-    global.Authorize = require('./build/authorize');
+    global.Authorize = require('./build/authorize').default;
 
     test.done();
   }

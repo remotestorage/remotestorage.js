@@ -3,6 +3,8 @@ if (typeof(define) !== 'function') {
 }
 define(['./build/indexeddb', './build/config'], function (IndexedDB, config) {
   var suites = [];
+  var IndexedDB = IndexedDB.default;
+  var config = config.default;
 
   suites.push({
     name: "IndexedDB",

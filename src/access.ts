@@ -177,5 +177,3 @@ export default class Access {
     this.storageType = type;
   }
 }
-
-module.exports = Access;

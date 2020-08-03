@@ -3,6 +3,7 @@ if (typeof(define) !== 'function') {
 }
 define(['./build/revisioncache'], function (RevisionCache) {
   var suites = [];
+  var RevisionCache = RevisionCache.default;
 
   suites.push({
     name: "RevisionCache",

@@ -8,13 +8,17 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                  buildUtil, backend, mocks) {
 
     var suites = [];
+    var Dropbox = Dropbox.default;
+    var WireClient = WireClient.default;
+    var EventHandling = EventHandling.default;
+    var config = config.default;
 
     function setup(env, test) {
       class RemoteStorage {
         setBackend (b) { this.backend = b; }
         static log () {}
       }
-      buildUtil.applyMixins(RemoteStorage, [EventHandling.default]);
+      buildUtil.applyMixins(RemoteStorage, [EventHandling]);
       global.RemoteStorage = RemoteStorage;
 
       global.localStorage = {
@@ -28,7 +32,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
         return false;
       };
 
-      global.Authorize = require('./build/authorize');
+      global.Authorize = require('./build/authorize').default;
 
       test.done();
     }

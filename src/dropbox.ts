@@ -1140,4 +1140,3 @@ interface Dropbox extends EventHandling {};
 applyMixins(Dropbox, [EventHandling]);
 
 export default Dropbox;
-module.exports = Dropbox;

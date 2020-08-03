@@ -14,5 +14,3 @@ export default class SyncError extends Error {
     }
   }
 }
-
-module.exports = SyncError;

@@ -439,4 +439,3 @@ interface CachingLayer extends EventHandling {};
 applyMixins(CachingLayer, [EventHandling]);
 
 export default CachingLayer;
-module.exports = CachingLayer;
