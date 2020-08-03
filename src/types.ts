@@ -7,7 +7,7 @@
  **/
 type JsonSchemas = { [key: string]: tv4.JsonSchema };
 
-class BaseClientTypes {
+export class BaseClientTypes {
   /**
    * <alias> -> <uri>
    */
