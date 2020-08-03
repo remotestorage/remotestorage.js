@@ -13,7 +13,7 @@ class Env {
 
     if (this.mode === 'browser') {
       this.setBrowserPrefixedNames();
-      document.addEventListener(this.visibilityChangeEvent, this.setVisibility, false);
+      document.addEventListener(this.visibilityChangeEvent, this.setVisibility.bind(this), false);
       this.setVisibility();
     }
   }
