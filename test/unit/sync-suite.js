@@ -2,7 +2,7 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['require', 'test/helpers/mocks'], function(require, mocks) {
+define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require, mocks) {
   var suites = [];
 
   suites.push({
@@ -12,17 +12,18 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
     setup: function(env, test){
       mocks.defineMocks(env);
 
-      global.RemoteStorage = function() {
-        eventHandling(this, 'sync-req-done', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
-      };
-      global.RemoteStorage.log = function() {};
-      global.Authorize = require('./src/authorize');
-      global.config = require('./src/config');
-      global.eventHandling = require('./src/eventhandling');
-      global.Sync = require('./src/sync');
-      global.InMemoryStorage = require('./src/inmemorystorage');
+      global.Authorize = require('./build/authorize').default;
+      global.UnauthorizedError = require('./build/unauthorized-error').default;
+      global.config = require('./build/config').default;
+      global.EventHandling = require('./build/eventhandling').default;
+      global.Sync = require('./build/sync').default;
+      global.InMemoryStorage = require('./build/inmemorystorage').default;
 
-      var RS = require('./src/remotestorage');
+      class RemoteStorage { static log () {} }
+      util.applyMixins(RemoteStorage, [EventHandling]);
+      global.RemoteStorage = RemoteStorage;
+
+      var RS = require('./build/remotestorage').default;
       RemoteStorage.prototype.stopSync = RS.prototype.stopSync;
       RemoteStorage.prototype.startSync = RS.prototype.startSync;
       RemoteStorage.prototype.getSyncInterval = RS.prototype.getSyncInterval;
@@ -34,6 +35,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
 
     beforeEach: function(env, test) {
       env.rs = new RemoteStorage();
+      env.rs.addEvents(['sync-req-done', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error']);
       env.rs.local = new InMemoryStorage();
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
@@ -920,7 +922,7 @@ define(['require', 'test/helpers/mocks'], function(require, mocks) {
         desc: "handleResponse emits Unauthorized error for status 401",
         run: function(env, test) {
           env.rs.on('error', function(err) {
-            if (err instanceof Authorize.Unauthorized) {
+            if (err instanceof UnauthorizedError) {
               test.result(true, "handleResponse() emitted Unauthorized error");
             } else {
               test.result(false);

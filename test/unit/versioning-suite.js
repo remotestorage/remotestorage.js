@@ -2,15 +2,22 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['./src/config', './src/eventhandling', './src/inmemorystorage', './src/sync', 'require', 'test/helpers/mocks'],
-       function (config, eventHandling, InMemoryStorage, Sync, require, mocks) {
+define(['./build/config', './build/eventhandling', './build/inmemorystorage',
+        './build/sync', './build/util', 'require', 'test/helpers/mocks'],
+       function (config, EventHandling, InMemoryStorage, Sync, util, require,
+                 mocks) {
 
   var suites = [];
+  var config = config.default;
+  var EventHandling = EventHandling.default;
+  var InMemoryStorage = InMemoryStorage.default;
+  var Sync = Sync.default;
 
   function flatten(array){
     var flat = [];
     for (var i = 0, l = array.length; i < l; i++){
-      var type = Object.prototype.toString.call(array[i]).split(' ').pop().split(']').shift().toLowerCase();
+      var type = Object.prototype.toString.call(array[i])
+                       .split(' ').pop().split(']').shift().toLowerCase();
       if (type) { flat = flat.concat(/^(array|collection|arguments|object)$/.test(type) ? flatten(array[i]) : array[i]); }
     }
     return flat;
@@ -21,10 +28,10 @@ define(['./src/config', './src/eventhandling', './src/inmemorystorage', './src/s
     desc: "testing how sync deals with revisions and conflicts",
 
     setup: function(env, test){
-      global.RemoteStorage = function(){
-        eventHandling(this, 'sync-req-done', 'sync-done', 'ready', 'error');
-      };
-      global.RemoteStorage.log = function() {};
+      class RemoteStorage { static log () {} }
+      util.applyMixins(RemoteStorage, [EventHandling]);
+      global.RemoteStorage = RemoteStorage;
+
       config.changeEvents = { local: true, window: false, remote: true, conflict: true };
 
       env.responses1 = {
@@ -355,6 +362,7 @@ define(['./src/config', './src/eventhandling', './src/inmemorystorage', './src/s
 
     beforeEach: function(env, test){
       env.rs = new RemoteStorage();
+      env.rs.addEvents(['sync-req-done', 'sync-done', 'ready', 'error']);
       env.rs.local = new InMemoryStorage();
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();

@@ -1,8 +1,9 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
-define(['./src/remotestorage', './src/modules'], function(RemoteStorage, modules) {
+define(['./build/remotestorage'], function(RS) {
   var suites = [];
+  var RemoteStorage = RS.default;
 
   suites.push({
     name: "modules",

@@ -1,8 +1,10 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/indexeddb', './src/config'], function (IndexedDB, config) {
+define(['./build/indexeddb', './build/config'], function (IndexedDB, config) {
   var suites = [];
+  var IndexedDB = IndexedDB.default;
+  var config = config.default;
 
   suites.push({
     name: "IndexedDB",

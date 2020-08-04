@@ -42,7 +42,9 @@ autosectionlabel_prefix_document = True
 templates_path = ['_templates']
 
 # Used to extract JSDoc function/class docs from source
+js_language = 'typescript'
 js_source_path = '../src'
+jsdoc_config_path = '../tsconfig.json'
 primary_domain = 'js'
 
 # GitHub issues config
@@ -59,7 +61,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'remoteStorage.js'
-copyright = '2017, RS Contributors'
+copyright = '2012-2020, RS Contributors'
 author = 'RS Contributors'
 
 # The version info for the project you're documenting, acts as replacement for

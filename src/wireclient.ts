@@ -1,10 +1,17 @@
-'use strict';
-
-const log = require('./log');
-const util = require('./util');
-const eventHandling = require('./eventhandling');
-const Authorize = require('./authorize');
-const config = require('./config');
+import Authorize from './authorize';
+import EventHandling from './eventhandling';
+import UnauthorizedError from './unauthorized-error';
+import config from './config';
+import log from './log';
+import {
+  applyMixins,
+  cleanPath,
+  getJSONFromLocalStorage,
+  getTextFromArrayBuffer,
+  isFolder,
+  localStorageAvailable,
+  shouldBeTreatedAsBinary
+} from './util';
 
 /**
  * This file exposes a get/put/delete interface on top of fetch() or XMLHttpRequest.
@@ -41,29 +48,35 @@ const config = require('./config');
  * @interface
  */
 
-var hasLocalStorage;
-var SETTINGS_KEY = 'remotestorage:wireclient';
+let hasLocalStorage;
+const SETTINGS_KEY = 'remotestorage:wireclient';
 
-var API_2012 = 1, API_00 = 2, API_01 = 3, API_02 = 4, API_HEAD = 5;
+const API_2012 = 1;
+const API_00 = 2;
+const API_01 = 3;
+const API_02 = 4;
+const API_HEAD = 5;
 
-var STORAGE_APIS = {
+const STORAGE_APIS = {
   'draft-dejong-remotestorage-00': API_00,
   'draft-dejong-remotestorage-01': API_01,
   'draft-dejong-remotestorage-02': API_02,
   'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
 };
 
-var isArrayBufferView;
+let isArrayBufferView;
 
-if (typeof(ArrayBufferView) === 'function') {
-  isArrayBufferView = function (object) { return object && (object instanceof ArrayBufferView); };
+if (typeof ((global || window as any).ArrayBufferView) === 'function') {
+  isArrayBufferView = function (object) {
+    return object && (object instanceof (global || window as any).ArrayBufferView);
+  };
 } else {
-  var arrayBufferViews = [
+  const arrayBufferViews = [
     Int8Array, Uint8Array, Int16Array, Uint16Array,
     Int32Array, Uint32Array, Float32Array, Float64Array
   ];
-  isArrayBufferView = function (object) {
-    for (let i=0;i<8;i++) {
+  isArrayBufferView = function (object): boolean {
+    for (let i = 0; i < 8; i++) {
       if (object instanceof arrayBufferViews[i]) {
         return true;
       }
@@ -72,14 +85,22 @@ if (typeof(ArrayBufferView) === 'function') {
   };
 }
 
-const isFolder = util.isFolder;
-const cleanPath = util.cleanPath;
-const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
-const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
-const getTextFromArrayBuffer = util.getTextFromArrayBuffer;
+// TODO double check
+interface WireClientSettings {
+  userAddress: string;
+  href: string;
+  storageApi: unknown;
+  token: string;
+  properties: unknown;
+}
 
-function addQuotes(str) {
-  if (typeof(str) !== 'string') {
+interface WireRequestResponse {
+  statusCode: number;
+  revision: string | undefined;
+}
+
+function addQuotes (str: string): string {
+  if (typeof (str) !== 'string') {
     return str;
   }
   if (str === '*') {
@@ -89,17 +110,17 @@ function addQuotes(str) {
   return '"' + str + '"';
 }
 
-function stripQuotes(str) {
-  if (typeof(str) !== 'string') {
+function stripQuotes (str: string): string {
+  if (typeof (str) !== 'string') {
     return str;
   }
 
   return str.replace(/^["']|["']$/g, '');
 }
 
-function determineCharset(mimeType) {
-  var charset = 'UTF-8';
-  var charsetMatch;
+function determineCharset (mimeType: string): string {
+  let charset = 'UTF-8';
+  let charsetMatch;
 
   if (mimeType) {
     charsetMatch = mimeType.match(/charset=(.+)$/);
@@ -110,23 +131,31 @@ function determineCharset(mimeType) {
   return charset;
 }
 
-function isFolderDescription(body) {
+function isFolderDescription (body: object): boolean {
   return ((body['@context'] === 'http://remotestorage.io/spec/folder-description')
-           && (typeof(body['items']) === 'object'));
+    && (typeof (body['items']) === 'object'));
 }
 
-function isSuccessStatus(status) {
+function isSuccessStatus (status: number): boolean {
   return [201, 204, 304].indexOf(status) >= 0;
 }
 
-function isErrorStatus(status) {
+function isErrorStatus (status: number): boolean {
   return [401, 403, 404, 412].indexOf(status) >= 0;
+}
+
+function isForbiddenRequestMethod(method: string, uri: string): boolean {
+  if (method === 'PUT' || method === 'DELETE') {
+    return isFolder(uri);
+  } else {
+    return false;
+  }
 }
 
 /**
  * Class : WireClient
  **/
-var WireClient = function WireClient(rs) {
+const WireClient = function WireClient(rs): void {
   this.rs = rs;
   this.connected = false;
 
@@ -135,14 +164,14 @@ var WireClient = function WireClient(rs) {
    *   Fired when the wireclient connect method realizes that it is in
    *   possession of a token and href
    **/
-  eventHandling(this, 'connected', 'not-connected');
+  this.addEvents(['connected', 'not-connected']);
 
   if (hasLocalStorage) {
     const settings = getJSONFromLocalStorage(SETTINGS_KEY);
     if (settings) {
-      setTimeout(function () {
+      setTimeout(() => {
         this.configure(settings);
-      }.bind(this), 0);
+      }, 0);
     }
   }
 
@@ -190,13 +219,12 @@ WireClient.prototype = {
    *   // -> 'draft-dejong-remotestorage-01'
    */
 
-  _request: function (method, uri, token, headers, body, getEtag, fakeRevision) {
-    if ((method === 'PUT' || method === 'DELETE') && uri[uri.length - 1] === '/') {
-      return Promise.reject('Don\'t ' + method + ' on directories!');
+  _request: async function (method: string, uri: string, token: string | false, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
+    if (isForbiddenRequestMethod(method, uri)) {
+      return Promise.reject(`Don't use ${method} on directories!`);
     }
 
-    var revision;
-    var self = this;
+    let revision: string | undefined;
 
     if (token !== Authorize.IMPLIED_FAKE_TOKEN) {
       headers['Authorization'] = 'Bearer ' + token;
@@ -211,12 +239,12 @@ WireClient.prototype = {
       body: body,
       headers: headers,
       responseType: 'arraybuffer'
-    }).then(function(response) {
-      if (!self.online) {
-        self.online = true;
-        self.rs._emit('network-online');
+    }).then((response: XMLHttpRequest): Promise<WireRequestResponse> => {
+      if (!this.online) {
+        this.online = true;
+        this.rs._emit('network-online');
       }
-      self.rs._emit('wire-done', {
+      this.rs._emit('wire-done', {
         method: method,
         isFolder: isFolder(uri),
         success: true
@@ -231,24 +259,24 @@ WireClient.prototype = {
         }
 
         if (response.status === 401) {
-          self.rs._emit('error', new Authorize.Unauthorized());
+          this.rs._emit('error', new UnauthorizedError());
         }
 
         return Promise.resolve({statusCode: response.status, revision: revision});
       } else if (isSuccessStatus(response.status) ||
-                 (response.status === 200 && method !== 'GET')) {
+        (response.status === 200 && method !== 'GET')) {
         revision = stripQuotes(response.getResponseHeader('ETag'));
         log('[WireClient] Successful request', revision);
         return Promise.resolve({statusCode: response.status, revision: revision});
       } else {
-        var mimeType = response.getResponseHeader('Content-Type');
+        const mimeType = response.getResponseHeader('Content-Type');
         if (getEtag) {
           revision = stripQuotes(response.getResponseHeader('ETag'));
         } else {
-          revision = response.status === 200 ? fakeRevision : undefined;
+          revision = (response.status === 200) ? fakeRevision : undefined;
         }
 
-        var charset = determineCharset(mimeType);
+        const charset = determineCharset(mimeType);
 
         if (shouldBeTreatedAsBinary(response.response, mimeType)) {
           log('[WireClient] Successful request with unknown or binary mime-type', revision);
@@ -260,7 +288,7 @@ WireClient.prototype = {
           });
         } else {
           return getTextFromArrayBuffer(response.response, charset)
-            .then(function (textContent) {
+            .then((textContent) => {
               log('[WireClient] Successful request', revision);
               return Promise.resolve({
                 statusCode: response.status,
@@ -271,12 +299,12 @@ WireClient.prototype = {
             });
         }
       }
-    }, function (error) {
-      if (self.online) {
-        self.online = false;
-        self.rs._emit('network-offline');
+    }, error => {
+      if (this.online) {
+        this.online = false;
+        this.rs._emit('network-offline');
       }
-      self.rs._emit('wire-done', {
+      this.rs._emit('wire-done', {
         method: method,
         isFolder: isFolder(uri),
         success: false
@@ -307,7 +335,7 @@ WireClient.prototype = {
    *              the user disconnected their storage, or you found that the
    *              token you have has expired, simply set that field to `null`.
    */
-  configure: function (settings) {
+  configure: function (settings: WireClientSettings): void {
     if (typeof settings !== 'object') {
       throw new Error('WireClient configure settings parameter should be an object');
     }
@@ -349,19 +377,18 @@ WireClient.prototype = {
     }
   },
 
-  stopWaitingForToken: function () {
+  stopWaitingForToken: function (): void {
     if (!this.connected) {
       this._emit('not-connected');
     }
   },
 
-  get: function (path, options) {
-    var self = this;
+  get: function (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
-    if (!options) { options = {}; }
-    var headers = {};
+
+    const headers = {};
     if (this.supportsRevs) {
       if (options.ifNoneMatch) {
         headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
@@ -369,60 +396,59 @@ WireClient.prototype = {
     }
     // commenting it out as this is doing nothing and jshint is complaining -les
     // else if (options.ifNoneMatch) {
-    //   var oldRev = this._revisionCache[path];
+    //   let oldRev = this._revisionCache[path];
     // }
 
 
     return this._request('GET', this.href + cleanPath(path), this.token, headers,
-                          undefined, this.supportsRevs, this._revisionCache[path])
-    .then(function (r) {
-      if (!isFolder(path)) {
-        return Promise.resolve(r);
-      }
-      var itemsMap = {};
-      if (typeof(r.body) !== 'undefined') {
-        try {
-          r.body = JSON.parse(r.body);
-        } catch (e) {
-          return Promise.reject('Folder description at ' + self.href + cleanPath(path) + ' is not JSON');
+      undefined, this.supportsRevs, this._revisionCache[path])
+      .then((r) => {
+        if (!isFolder(path)) {
+          return Promise.resolve(r);
         }
-      }
-
-      if (r.statusCode === 200 && typeof(r.body) === 'object') {
-      // New folder listing received
-        if (Object.keys(r.body).length === 0) {
-        // Empty folder listing of any spec
-          r.statusCode = 404;
-        } else if (isFolderDescription(r.body)) {
-        // >= 02 spec
-          for (var item in r.body.items) {
-            self._revisionCache[path + item] = r.body.items[item].ETag;
+        let itemsMap = {};
+        if (typeof (r.body) !== 'undefined') {
+          try {
+            r.body = JSON.parse(r.body);
+          } catch (e) {
+            return Promise.reject('Folder description at ' + this.href + cleanPath(path) + ' is not JSON');
           }
-          itemsMap = r.body.items;
-        } else {
-        // < 02 spec
-          Object.keys(r.body).forEach(function (key){
-            self._revisionCache[path + key] = r.body[key];
-            itemsMap[key] = {'ETag': r.body[key]};
-          });
         }
-        r.body = itemsMap;
-        return Promise.resolve(r);
-      } else {
-        return Promise.resolve(r);
-      }
-    });
+
+        if (r.statusCode === 200 && typeof (r.body) === 'object') {
+          // New folder listing received
+          if (Object.keys(r.body).length === 0) {
+            // Empty folder listing of any spec
+            r.statusCode = 404;
+          } else if (isFolderDescription(r.body)) {
+            // >= 02 spec
+            for (const item in r.body.items) {
+              this._revisionCache[path + item] = r.body.items[item].ETag;
+            }
+            itemsMap = r.body.items;
+          } else {
+            // < 02 spec
+            Object.keys(r.body).forEach((key) => {
+              this._revisionCache[path + key] = r.body[key];
+              itemsMap[key] = {'ETag': r.body[key]};
+            });
+          }
+          r.body = itemsMap;
+          return Promise.resolve(r);
+        } else {
+          return Promise.resolve(r);
+        }
+      });
   },
 
-  put: function (path, body, contentType, options) {
+  put: function (path: string, body: unknown, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
-    if (!options) { options = {}; }
     if ((!contentType.match(/charset=/)) && (body instanceof ArrayBuffer || isArrayBufferView(body))) {
-      contentType +=  '; charset=binary';
+      contentType += '; charset=binary';
     }
-    var headers = { 'Content-Type': contentType };
+    const headers = {'Content-Type': contentType};
     if (this.supportsRevs) {
       if (options.ifMatch) {
         headers['If-Match'] = addQuotes(options.ifMatch);
@@ -432,58 +458,61 @@ WireClient.prototype = {
       }
     }
     return this._request('PUT', this.href + cleanPath(path), this.token,
-                   headers, body, this.supportsRevs);
+      headers, body, this.supportsRevs);
   },
 
-  'delete': function (path, options) {
+  'delete': function (path: string, options: { ifMatch?: string } = {}) {
     if (!this.connected) {
       throw new Error('not connected (path: ' + path + ')');
     }
-    if (!options) { options = {}; }
-    var headers = {};
+    if (!options) {
+      options = {};
+    }
+    const headers = {};
     if (this.supportsRevs) {
       if (options.ifMatch) {
         headers['If-Match'] = addQuotes(options.ifMatch);
       }
     }
     return this._request('DELETE', this.href + cleanPath(path), this.token,
-                   headers,
-                   undefined, this.supportsRevs);
+      headers,
+      undefined, this.supportsRevs);
   }
 };
 
 // Shared isArrayBufferView used by WireClient and Dropbox
 WireClient.isArrayBufferView = isArrayBufferView;
 
+// TODO add proper definition for options
 // Shared request function used by WireClient, GoogleDrive and Dropbox.
-WireClient.request = function (method, url, options) {
+WireClient.request = async function (method: string, url: string, options: unknown): Promise<XMLHttpRequest | Response> {
   if (typeof fetch === 'function') {
     return WireClient._fetchRequest(method, url, options);
   } else if (typeof XMLHttpRequest === 'function') {
     return WireClient._xhrRequest(method, url, options);
   } else {
-    log('[WireClient] add a polyfill for fetch or XMLHttpRequest');
-    return Promise.reject('[WireClient] add a polyfill for fetch or XMLHttpRequest');
+    log('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
+    return Promise.reject('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
   }
 };
 
 /** options includes body, headers and responseType */
-WireClient._fetchRequest = function (method, url, options) {
-  var syntheticXhr;
-  var responseHeaders = {};
-  var abortController;
+WireClient._fetchRequest = function (method: string, url: string, options): Promise<Response> {
+  let syntheticXhr;
+  const responseHeaders = {};
+  let abortController;
   if (typeof AbortController === 'function') {
     abortController = new AbortController();
   }
-  var networkPromise = fetch(url, {
+  const networkPromise: Promise<Response> = fetch(url, {
     method: method,
     headers: options.headers,
     body: options.body,
     signal: abortController ? abortController.signal : undefined
-  }).then(function (response) {
+  }).then((response) => {
     log('[WireClient fetch]', response);
 
-    response.headers.forEach(function (value, headerName) {
+    response.headers.forEach((value: string, headerName: string) => {
       responseHeaders[headerName.toUpperCase()] = value;
     });
 
@@ -492,7 +521,7 @@ WireClient._fetchRequest = function (method, url, options) {
       status: response.status,
       statusText: response.statusText,
       response: undefined,
-      getResponseHeader: function (headerName) {
+      getResponseHeader: (headerName: string): unknown => {
         return responseHeaders[headerName.toUpperCase()] || null;
       },
       // responseText: 'foo',
@@ -513,7 +542,7 @@ WireClient._fetchRequest = function (method, url, options) {
       default:   // document
         throw new Error("responseType 'document' is not currently supported using fetch");
     }
-  }).then(function (processedBody) {
+  }).then((processedBody) => {
     syntheticXhr.response = processedBody;
     if (!options.responseType || options.responseType === 'text') {
       syntheticXhr.responseText = processedBody;
@@ -521,8 +550,8 @@ WireClient._fetchRequest = function (method, url, options) {
     return syntheticXhr;
   });
 
-  var timeoutPromise = new Promise(function (resolve, reject) {
-    setTimeout(function () {
+  const timeoutPromise: Promise<Response> = new Promise((resolve, reject) => {
+    setTimeout(() => {
       reject('timeout');
       if (abortController) {
         abortController.abort();
@@ -533,19 +562,19 @@ WireClient._fetchRequest = function (method, url, options) {
   return Promise.race([networkPromise, timeoutPromise]);
 };
 
-WireClient._xhrRequest = function (method, url, options) {
-  return new Promise ((resolve, reject) => {
+WireClient._xhrRequest = function (method, url, options): Promise<XMLHttpRequest> {
+  return new Promise((resolve, reject) => {
 
     log('[WireClient]', method, url);
 
-    var timedOut = false;
+    let timedOut = false;
 
-    var timer = setTimeout(function () {
+    const timer = setTimeout(() => {
       timedOut = true;
       reject('timeout');
     }, config.requestTimeout);
 
-    var xhr = new XMLHttpRequest();
+    const xhr = new XMLHttpRequest();
     xhr.open(method, url, true);
 
     if (options.responseType) {
@@ -553,26 +582,30 @@ WireClient._xhrRequest = function (method, url, options) {
     }
 
     if (options.headers) {
-      for (var key in options.headers) {
+      for (const key in options.headers) {
         xhr.setRequestHeader(key, options.headers[key]);
       }
     }
 
-    xhr.onload = () => {
-      if (timedOut) { return; }
+    xhr.onload = (): void => {
+      if (timedOut) {
+        return;
+      }
       clearTimeout(timer);
       resolve(xhr);
     };
 
-    xhr.onerror = (error) => {
-      if (timedOut) { return; }
+    xhr.onerror = (error): void => {
+      if (timedOut) {
+        return;
+      }
       clearTimeout(timer);
       reject(error);
     };
 
-    var body = options.body;
+    let body = options.body;
 
-    if (typeof(body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
+    if (typeof (body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
       body = new Uint8Array(body);
     }
     xhr.send(body);
@@ -582,7 +615,7 @@ WireClient._xhrRequest = function (method, url, options) {
 Object.defineProperty(WireClient.prototype, 'storageType', {
   get: function () {
     if (this.storageApi) {
-      var spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
+      const spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
       return spec ? spec[1] : '2012.04';
     } else {
       return undefined;
@@ -591,20 +624,23 @@ Object.defineProperty(WireClient.prototype, 'storageType', {
 });
 
 
-WireClient._rs_init = function (remoteStorage) {
-  hasLocalStorage = util.localStorageAvailable();
+WireClient._rs_init = function (remoteStorage): void {
+  hasLocalStorage = localStorageAvailable();
   remoteStorage.remote = new WireClient(remoteStorage);
   this.online = true;
 };
 
-WireClient._rs_supported = function () {
+WireClient._rs_supported = function (): boolean {
   return typeof fetch === 'function' || typeof XMLHttpRequest === 'function';
 };
 
-WireClient._rs_cleanup = function () {
-  if (hasLocalStorage){
+WireClient._rs_cleanup = function (): void {
+  if (hasLocalStorage) {
     delete localStorage[SETTINGS_KEY];
   }
 };
 
-module.exports = WireClient;
+interface WireClient extends EventHandling {};
+applyMixins(WireClient, [EventHandling]);
+
+export default WireClient;

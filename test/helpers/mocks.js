@@ -81,7 +81,7 @@ define([], function() {
             throw new Error('no FakeRemote response for args ' + JSON.stringify(args));
           }
           var resp = this._responses[args] || [200];
-          if(resp === 'timeout') {
+          if (resp === 'timeout') {
             return Promise.reject(resp);
           } else {
             return Promise.resolve(resp);

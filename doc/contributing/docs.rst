@@ -42,17 +42,13 @@ Setup
 1. `Install Python and PIP <https://pip.pypa.io/en/stable/installing/>`_
    (likely already installed)
 
-2. Install sphinx::
-
-   $ pip install sphinx
-
-3. Install required extensions (from repository root)::
+2. Install sphinx-js and extensions (from repository root)::
 
    $ pip install -r doc/requirements.txt
 
-4. Install JSDoc globally via npm::
+3. Install TypeScript and TypeDoc globally (so Sphinx can use them)::
 
-   $ npm install -g jsdoc
+   $ npm -g install typescript typedoc
 
 Build
 ^^^^^

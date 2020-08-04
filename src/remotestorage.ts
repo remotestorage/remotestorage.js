@@ -1,25 +1,46 @@
 'use strict';
 
-const util = require('./util');
-const Dropbox = require('./dropbox');
-const GoogleDrive = require('./googledrive');
-const Discover = require('./discover');
-const BaseClient = require('./baseclient');
-const config = require('./config');
-const Authorize = require('./authorize');
-const Sync = require('./sync');
-const log = require('./log');
-const Features = require('./features');
-const globalContext = util.getGlobalContext();
-const eventHandling = require('./eventhandling');
-const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
+import config from './config';
+import log from './log';
+import {
+  applyMixins,
+  getGlobalContext,
+  getJSONFromLocalStorage,
+  extend,
+  localStorageAvailable
+} from './util';
 
-var hasLocalStorage;
+import Access from './access';
+import Authorize from './authorize';
+import BaseClient from './baseclient';
+import Caching from './caching';
+import EventHandling from './eventhandling';
+import GoogleDrive from './googledrive';
+import Dropbox from './dropbox';
+import Discover from './discover';
+import SyncError from './sync-error';
+import UnauthorizedError from './unauthorized-error';
+import Features from './features';
+
+// TODO this is assigned to RemoteStorage.util later; check if still needed
+import * as util from './util';
+
+interface RSModule {
+  name: string;
+  builder: Function; // TODO detailed type
+}
+
+const globalContext = getGlobalContext();
+// declare global {
+//   interface Window { cordova: any };
+// }
+
+let hasLocalStorage: boolean;
 
 // TODO document and/or refactor (seems weird)
 function emitUnauthorized(r) {
   if (r.statusCode === 403  || r.statusCode === 401) {
-    this._emit('error', new Authorize.Unauthorized());
+    this._emit('error', new UnauthorizedError());
   }
   return Promise.resolve(r);
 }
@@ -35,19 +56,19 @@ function emitUnauthorized(r) {
  * @param {object} config - an optional configuration object
  * @class
  */
-var RemoteStorage = function (cfg) {
+const RemoteStorage = function (cfg) {
 
   // Initial configuration property settings.
   if (typeof cfg === 'object') {
-    util.extend(config, cfg);
+    extend(config, cfg);
   }
 
-  eventHandling(this,
+  this.addEvents([
     'ready', 'authing', 'connecting', 'connected', 'disconnected',
     'not-connected', 'conflict', 'error', 'features-loaded',
     'sync-interval-change', 'sync-req-done', 'sync-done',
     'wire-busy', 'wire-done', 'network-offline', 'network-online'
-  );
+  ]);
 
   /**
    * Pending get/put/delete calls
@@ -88,7 +109,7 @@ var RemoteStorage = function (cfg) {
    */
   this.apiKeys = {};
 
-  hasLocalStorage = util.localStorageAvailable();
+  hasLocalStorage = localStorageAvailable();
 
   if (hasLocalStorage) {
     this.apiKeys = getJSONFromLocalStorage('remotestorage:api-keys') || {};
@@ -96,7 +117,7 @@ var RemoteStorage = function (cfg) {
   }
 
   // Keep a reference to the orginal `on` function
-  var origOn = this.on;
+  const origOn = this.on;
 
   /**
    * Register an event handler. See :ref:`rs-events` for available event names.
@@ -104,7 +125,7 @@ var RemoteStorage = function (cfg) {
    * @param {string} eventName - Name of the event
    * @param {function} handler - Event handler
    */
-  this.on = function (eventName, handler) {
+  this.on = function (eventName: string, handler: Function): void {
     if (this._allLoaded) {
       // check if the handler should be called immediately, because the
       // event has happened already
@@ -153,8 +174,8 @@ var RemoteStorage = function (cfg) {
 // export setAuthURL / getAuthURL from RemoteStorage prototype
 RemoteStorage.Authorize = Authorize;
 
-RemoteStorage.SyncError = Sync.SyncError;
-RemoteStorage.Unauthorized = Authorize.Unauthorized;
+RemoteStorage.SyncError = SyncError;
+RemoteStorage.Unauthorized = UnauthorizedError;
 RemoteStorage.DiscoveryError = Discover.DiscoveryError;
 
 RemoteStorage.prototype = {
@@ -164,7 +185,7 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  loadModules: function loadModules() {
+  loadModules: function loadModules(): void {
     config.modules.forEach(this.addModule.bind(this));
   },
 
@@ -182,7 +203,7 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  authorize: function authorize (options) {
+  authorize (options: { authURL: string; scope?: string; clientId?: string; redirectUri: string }): void {
     this.access.setStorageType(this.remote.storageApi);
     if (typeof options.scope === 'undefined') {
       options.scope = this.access.scopeParameter;
@@ -194,7 +215,7 @@ RemoteStorage.prototype = {
       options.clientId = options.redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
     }
 
-    Authorize(this, options);
+    Authorize.authorize(this, options);
   },
 
   /**
@@ -202,7 +223,8 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  impliedauth: function (storageApi, redirectUri) {
+  impliedauth: function (storageApi, redirectUri): void {
+    // TODO shouldn't these be default argument values?
     storageApi = this.remote.storageApi;
     redirectUri =  String(document.location);
 
@@ -251,7 +273,7 @@ RemoteStorage.prototype = {
    * @param {string} userAddress - The user address (user@host) to connect to.
    * @param {string} token       - (optional) A bearer token acquired beforehand
    */
-  connect: function (userAddress, token) {
+  connect: function (userAddress: string, token?: string): void {
     this.setBackend('remotestorage');
     if (userAddress.indexOf('@') < 0) {
       this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
@@ -274,13 +296,11 @@ RemoteStorage.prototype = {
     });
     this._emit('connecting');
 
-    var discoveryTimeout = setTimeout(function () {
+    const discoveryTimeout = setTimeout((): void => {
       this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
-    }.bind(this), config.discoveryTimeout);
+    }, config.discoveryTimeout);
 
-    Discover(userAddress).then(info => {
-      // Info contains fields: href, storageApi, authURL (optional), properties
-
+    Discover(userAddress).then((info: StorageInfo): void => {
       clearTimeout(discoveryTimeout);
       this._emit('authing');
       info.userAddress = userAddress;
@@ -315,7 +335,7 @@ RemoteStorage.prototype = {
   /**
    * Reconnect the remote server to get a new authorization.
    */
-  reconnect: function () {
+  reconnect: function (): void {
     this.remote.configure({ token: null });
 
     if (this.backend === 'remotestorage') {
@@ -331,7 +351,7 @@ RemoteStorage.prototype = {
    * This method clears all stored settings and deletes the entire local
    * cache.
    */
-  disconnect: function () {
+  disconnect: function (): void {
     if (this.remote) {
       this.remote.configure({
         userAddress: null,
@@ -346,26 +366,28 @@ RemoteStorage.prototype = {
       put: this._pendingGPD('put'),
       delete: this._pendingGPD('delete')
     });
-    var n = this._cleanups.length, i = 0;
+    const n = this._cleanups.length;
+    let i = 0;
 
-    var oneDone = function () {
+    const oneDone = (): void => {
       i++;
       if (i >= n) {
         this._init();
-        log('Done cleaning up, emitting disconnected and disconnect events');
+        // FIXME Re-enable when modules are all imports
+        // log('Done cleaning up, emitting disconnected and disconnect events');
         this._emit('disconnected');
       }
-    }.bind(this);
+    };
 
     if (n > 0) {
-      this._cleanups.forEach(function (cleanup) {
-        var cleanupResult = cleanup(this);
+      this._cleanups.forEach((cleanup: Function) => {
+        const cleanupResult = cleanup(this);
         if (typeof(cleanupResult) === 'object' && typeof(cleanupResult.then) === 'function') {
           cleanupResult.then(oneDone);
         } else {
           oneDone();
         }
-      }.bind(this));
+      });
     } else {
       oneDone();
     }
@@ -376,7 +398,7 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  setBackend: function (what) {
+  setBackend: function (what): void {
     this.backend = what;
     if (hasLocalStorage) {
       if (what) {
@@ -399,7 +421,7 @@ RemoteStorage.prototype = {
    * @param {string} path - Absolute path to attach handler to
    * @param {function} handler - Handler function
    */
-  onChange: function (path, handler) {
+  onChange: function (path: string, handler: Function): void {
     if (! this._pathHandlers.change[path]) {
       this._pathHandlers.change[path] = [];
     }
@@ -411,7 +433,7 @@ RemoteStorage.prototype = {
    *
    * Enable remoteStorage logging.
    */
-  enableLog: function () {
+  enableLog: function (): void {
     config.logging = true;
   },
 
@@ -420,7 +442,7 @@ RemoteStorage.prototype = {
    *
    * Disable remoteStorage logging
    */
-  disableLog: function () {
+  disableLog: function (): void {
     config.logging = false;
   },
 
@@ -429,8 +451,8 @@ RemoteStorage.prototype = {
    *
    * The same as <RemoteStorage.log>.
    */
-  log: function () {
-    log.apply(RemoteStorage, arguments);
+  log: function (...args): void {
+    log.apply(RemoteStorage, args);
   },
 
   /**
@@ -440,7 +462,7 @@ RemoteStorage.prototype = {
    * @param {string} [apiKeys.type] - Backend type: 'googledrive' or 'dropbox'
    * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
    */
-  setApiKeys: function (apiKeys) {
+  setApiKeys: function (apiKeys: { type: string; key: string }): void | boolean {
     const validTypes = ['googledrive', 'dropbox'];
     if (typeof apiKeys !== 'object' || !Object.keys(apiKeys).every(type => validTypes.includes(type))) {
       console.error('setApiKeys() was called with invalid arguments') ;
@@ -448,7 +470,7 @@ RemoteStorage.prototype = {
     }
 
     Object.keys(apiKeys).forEach(type => {
-      let key = apiKeys[type];
+      const key = apiKeys[type];
       if (!key) { delete this.apiKeys[type]; return; }
 
       switch(type) {
@@ -481,7 +503,7 @@ RemoteStorage.prototype = {
    *
    * @param {string} uri - A valid HTTP(S) URI
    */
-  setCordovaRedirectUri: function (uri) {
+  setCordovaRedirectUri: function (uri: unknown): void {
     if (typeof uri !== 'string' || !uri.match(/http(s)?:\/\//)) {
       throw new Error("Cordova redirect URI must be a URI string");
     }
@@ -519,8 +541,8 @@ RemoteStorage.prototype = {
    */
   _setGPD: function (impl, context) {
     function wrap(func) {
-      return function () {
-        return func.apply(context, arguments)
+      return function (...args) {
+        return func.apply(context, args)
           .then(emitUnauthorized.bind(this));
       };
     }
@@ -534,10 +556,10 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  _pendingGPD: function (methodName) {
-    return function () {
-      var methodArguments = Array.prototype.slice.call(arguments);
-      return new Promise(function(resolve, reject) {
+  _pendingGPD: function (methodName): Function {
+    return (...args) => {
+      const methodArguments = Array.prototype.slice.call(args);
+      return new Promise((resolve, reject) => {
         this._pending.push({
           method: methodName,
           args: methodArguments,
@@ -546,8 +568,8 @@ RemoteStorage.prototype = {
             reject: reject
           }
         });
-      }.bind(this));
-    }.bind(this);
+      });
+    };
   },
 
   /**
@@ -555,14 +577,14 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  _processPending: function () {
-    this._pending.forEach(function (pending) {
+  _processPending: function (): void {
+    this._pending.forEach((pending) => {
       try {
-        this[pending.method].apply(this, pending.args).then(pending.promise.resolve, pending.promise.reject);
+        this[pending.method](...pending.args).then(pending.promise.resolve, pending.promise.reject);
       } catch(e) {
         pending.promise.reject(e);
       }
-    }.bind(this));
+    });
     this._pending = [];
   },
 
@@ -575,7 +597,7 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  _bindChange: function (object) {
+  _bindChange: function (object: { on: Function }): void {
     object.on('change', this._dispatchEvent.bind(this, 'change'));
   },
 
@@ -584,20 +606,19 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  _dispatchEvent: function (eventName, event) {
-    var self = this;
-    Object.keys(this._pathHandlers[eventName]).forEach(function (path) {
-      var pl = path.length;
+  _dispatchEvent: function (eventName: string, event): void {
+    Object.keys(this._pathHandlers[eventName]).forEach((path: string) => {
+      const pl = path.length;
       if (event.path.substr(0, pl) === path) {
-        self._pathHandlers[eventName][path].forEach(function (handler) {
-          var ev = {};
-          for (var key in event) { ev[key] = event[key]; }
+        this._pathHandlers[eventName][path].forEach((handler: Function) => {
+          const ev: { relativePath?: string } = {};
+          for (const key in event) { ev[key] = event[key]; }
           ev.relativePath = event.path.replace(new RegExp('^' + path), '');
           try {
             handler(ev);
           } catch(e) {
             console.error("'change' handler failed: ", e, e.stack);
-            self._emit('error', e);
+            this._emit('error', e);
           }
         });
       }
@@ -616,13 +637,13 @@ RemoteStorage.prototype = {
    *
    * @returns {BaseClient} A client with the specified scope (category/base directory)
    */
-  scope: function (path) {
+  scope: function (path: string): Function {
     if (typeof(path) !== 'string') {
       throw 'Argument \'path\' of baseClient.scope must be a string';
     }
 
     if (!this.access.checkPathPermission(path, 'r')) {
-      var escapedPath = path.replace(/(['\\])/g, '\\$1');
+      const escapedPath = path.replace(/(['\\])/g, '\\$1');
       console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
     }
     return new BaseClient(this, path);
@@ -634,7 +655,7 @@ RemoteStorage.prototype = {
    *
    * @returns {number} A number of milliseconds
    */
-  getSyncInterval: function () {
+  getSyncInterval: function (): number {
     return config.syncInterval;
   },
 
@@ -643,12 +664,12 @@ RemoteStorage.prototype = {
    *
    * @param {number} interval - Sync interval in milliseconds (between 1000 and 3600000)
    */
-  setSyncInterval: function (interval) {
+  setSyncInterval: function (interval: unknown): void {
     if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
-    var oldValue = config.syncInterval;
-    config.syncInterval = parseInt(interval, 10);
+    const oldValue = config.syncInterval;
+    config.syncInterval = interval;
     this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
   },
 
@@ -657,7 +678,7 @@ RemoteStorage.prototype = {
    *
    * @returns {number} A number of milliseconds
    */
-  getBackgroundSyncInterval: function () {
+  getBackgroundSyncInterval: function (): number {
     return config.backgroundSyncInterval;
   },
 
@@ -667,12 +688,12 @@ RemoteStorage.prototype = {
    *
    * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
    */
-  setBackgroundSyncInterval: function (interval) {
-    if(!isValidInterval(interval)) {
+  setBackgroundSyncInterval: function (interval: unknown): void {
+    if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
-    var oldValue = config.backgroundSyncInterval;
-    config.backgroundSyncInterval = parseInt(interval, 10);
+    const oldValue = config.backgroundSyncInterval;
+    config.backgroundSyncInterval = interval;
     this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
   },
 
@@ -682,7 +703,7 @@ RemoteStorage.prototype = {
    *
    * @returns {number} A number of milliseconds
    */
-  getCurrentSyncInterval: function () {
+  getCurrentSyncInterval: function (): number {
     return config.isBackground ? config.backgroundSyncInterval : config.syncInterval;
   },
 
@@ -691,7 +712,7 @@ RemoteStorage.prototype = {
    *
    * @returns {number} A number of milliseconds
    */
-  getRequestTimeout: function () {
+  getRequestTimeout: function (): number {
     return config.requestTimeout;
   },
 
@@ -700,8 +721,11 @@ RemoteStorage.prototype = {
    *
    * @param timeout - Timeout in milliseconds
    */
-  setRequestTimeout: function (timeout) {
-    config.requestTimeout = parseInt(timeout, 10);
+  setRequestTimeout: function (timeout: unknown): void {
+    if (typeof timeout !== 'number') {
+      throw timeout + " is not a valid request timeout";
+    }
+    config.requestTimeout = timeout;
   },
 
   /**
@@ -709,13 +733,12 @@ RemoteStorage.prototype = {
    *
    * @private
    */
-  syncCycle: function () {
-    if (!this.sync || this.sync.stopped) {
-      return;
-    }
+  syncCycle: function (): void {
+    if (!this.sync || this.sync.stopped) { return; }
 
-    this.on('sync-done', function () {
-      log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
+    this.on('sync-done', (): void => {
+      // FIXME Re-enable when modules are all imports
+      // log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (this.sync && !this.sync.stopped) {
         if (this._syncTimer) {
           clearTimeout(this._syncTimer);
@@ -723,7 +746,7 @@ RemoteStorage.prototype = {
         }
         this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
       }
-    }.bind(this));
+    });
 
     this.sync.sync();
   },
@@ -740,7 +763,7 @@ RemoteStorage.prototype = {
    *
    * @returns {Promise} A Promise which resolves when the sync has finished
    */
-  startSync: function () {
+  startSync: function (): Promise<void> {
     if (!config.cache) {
       console.warn('Nothing to sync, because caching is disabled.');
       return Promise.resolve();
@@ -753,30 +776,105 @@ RemoteStorage.prototype = {
   /**
    * Stop the periodic synchronization.
    */
-  stopSync: function () {
+  stopSync: function (): void {
     clearTimeout(this._syncTimer);
     this._syncTimer = undefined;
 
     if (this.sync) {
-      log('[Sync] Stopping sync');
+      // FIXME Re-enable when modules are all imports
+      // log('[Sync] Stopping sync');
       this.sync.stopped = true;
     } else {
       // The sync class has not been initialized yet, so we make sure it will
       // not start the syncing process as soon as it's initialized.
-      log('[Sync] Will instantiate sync stopped');
+      // FIXME Re-enable when modules are all imports
+      // log('[Sync] Will instantiate sync stopped');
       this.syncStopped = true;
     }
+  },
+
+  /*
+   * Add remoteStorage data module
+   *
+   * @param {Object} module - module object needs following properies:
+   * @param {string} [module.name] - Name of the module
+   * @param {function} [module.builder] - Builder function defining the module
+   *
+   * The module builder function should return an object containing another
+   * object called exports, which will be exported to this <RemoteStorage>
+   * instance under the module's name. So when defining a locations module,
+   * like in the example below, it would be accessible via
+   * `remoteStorage.locations`, which would in turn have a `features` and a
+   * `collections` property.
+   *
+   * The function receives a private and a public client, which are both
+   * instances of <RemoteStorage.BaseClient>. In the following example, the
+   * scope of privateClient is `/locations` and the scope of publicClient is
+   * `/public/locations`.
+   *
+   * @example
+   *   RemoteStorage.addModule({name: 'locations', builder: function (privateClient, publicClient) {
+   *     return {
+   *       exports: {
+   *         features: privateClient.scope('features/').defaultType('feature'),
+   *         collections: privateClient.scope('collections/').defaultType('feature-collection')
+   *       }
+   *     };
+   *   }});
+  */
+  addModule: function (module: RSModule): void {
+    const moduleName = module.name;
+    const moduleBuilder = module.builder;
+
+    Object.defineProperty(this, moduleName, {
+      configurable: true,
+      get: function () {
+        const instance = this._loadModule(moduleName, moduleBuilder);
+        Object.defineProperty(this, moduleName, {
+          value: instance
+        });
+        return instance;
+      }
+    });
+
+    if (moduleName.indexOf('-') !== -1) {
+      const camelizedName = moduleName.replace(/\-[a-z]/g, function (s) {
+        return s[1].toUpperCase();
+      });
+
+      Object.defineProperty(this, camelizedName, {
+        get: function () {
+          return this[moduleName];
+        }
+      });
+    }
+  },
+
+  /*
+   * Load module
+   *
+   * @private
+   *
+   */
+  _loadModule: function (moduleName: string, moduleBuilder: Function): { [key: string]: unknown }  {
+    if (moduleBuilder) {
+      const module = moduleBuilder(
+        new BaseClient(this, '/' + moduleName + '/'),
+        new BaseClient(this, '/public/' + moduleName + '/')
+      );
+      return module.exports;
+    } else {
+      throw "Unknown module: " + moduleName;
+    }
   }
-
 };
-
 
 /**
 * Check if interval is valid: numeric and between 1000ms and 3600000ms
 *
 * @private
 */
-function isValidInterval(interval) {
+function isValidInterval(interval: unknown): interval is number {
   return (typeof interval === 'number' &&
           interval > 1000 &&
           interval < 3600000);
@@ -800,10 +898,9 @@ Object.defineProperty(RemoteStorage.prototype, 'connected', {
  *
  * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
 */
-var Access = require('./access');
 Object.defineProperty(RemoteStorage.prototype, 'access', {
   get: function() {
-    var access = new Access();
+    const access = new Access();
     Object.defineProperty(this, 'access', {
       value: access
     });
@@ -823,13 +920,11 @@ Object.defineProperty(RemoteStorage.prototype, 'access', {
  *
  * Caching settings. A <RemoteStorage.Caching> instance.
  */
-
 // FIXME Was in rs_init of Caching but don't want to require RemoteStorage from there.
-var Caching = require('./caching');
 Object.defineProperty(RemoteStorage.prototype, 'caching', {
   configurable: true,
   get: function () {
-    var caching = new Caching();
+    const caching = new Caching();
     Object.defineProperty(this, 'caching', {
       value: caching
     });
@@ -846,5 +941,7 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
  * Not available, when caching is turned off.
  */
 
-module.exports = RemoteStorage;
-require('./modules');
+interface RemoteStorage extends EventHandling {};
+applyMixins(RemoteStorage, [EventHandling]);
+
+export default RemoteStorage;

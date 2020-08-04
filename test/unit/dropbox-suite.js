@@ -1,21 +1,25 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require', './src/util', './src/dropbox', './src/wireclient',
-  './src/eventhandling', './src/config', 'test/behavior/backend', 'test/helpers/mocks'],
-  function (require, util, Dropbox, WireClient, eventHandling, config, backend, mocks) {
+define(['require', './build/util', './build/dropbox', './build/wireclient',
+        './build/eventhandling', './build/config', './build/util',
+        'test/behavior/backend', 'test/helpers/mocks'],
+       function (require, util, Dropbox, WireClient, EventHandling, config,
+                 buildUtil, backend, mocks) {
 
     var suites = [];
+    var Dropbox = Dropbox.default;
+    var WireClient = WireClient.default;
+    var EventHandling = EventHandling.default;
+    var config = config.default;
 
     function setup(env, test) {
-      global.RemoteStorage = function () {
-        eventHandling(this, 'error', 'connected', 'wire-busy', 'wire-done',
-                      'network-offline', 'network-online');
-      };
-      global.RemoteStorage.log = function () {};
-      global.RemoteStorage.prototype.setBackend = function (b) {
-        this.backend = b;
-      };
+      class RemoteStorage {
+        setBackend (b) { this.backend = b; }
+        static log () {}
+      }
+      buildUtil.applyMixins(RemoteStorage, [EventHandling]);
+      global.RemoteStorage = RemoteStorage;
 
       global.localStorage = {
         setItem: function() {},
@@ -28,14 +32,14 @@ define(['require', './src/util', './src/dropbox', './src/wireclient',
         return false;
       };
 
-      global.Authorize = require('./src/authorize');
+      global.Authorize = require('./build/authorize').default;
 
       test.done();
     }
 
     function beforeEach(env, test) {
-   
       env.rs = new RemoteStorage();
+      env.rs.addEvents(['error', 'connected', 'wire-busy', 'wire-done', 'network-offline', 'network-online']);
       env.rs.apiKeys = { dropbox: {appKey: 'testkey'} };
 
       var oldLocalStorageAvailable = util.localStorageAvailable;

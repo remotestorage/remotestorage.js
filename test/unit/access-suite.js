@@ -1,7 +1,6 @@
-if (typeof define !== 'function') {
-  var define = require('amdefine')(module);
-}
-define([ 'require', 'fs'], function( require, fs, undefined) {
+if (typeof define !== 'function') { var define = require('amdefine')(module); }
+
+define(['require', 'fs'], function( require, fs, undefined) {
   var suites = [];
 
   suites.push({
@@ -11,7 +10,7 @@ define([ 'require', 'fs'], function( require, fs, undefined) {
 
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      RemoteStorage.Access = require('../../src/access');
+      RemoteStorage.Access = require('../../build/access').default;
 
       env.Access = RemoteStorage.Access;
 

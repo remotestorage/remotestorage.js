@@ -1,22 +1,22 @@
-const eventHandling = require('./eventhandling');
-const util = require('./util');
-const config = require('./config');
-const tv4 = require('tv4');
-const Types = require('./types');
-
-const SchemaNotFound = Types.SchemaNotFound;
+import tv4 from 'tv4';
+import { CachingStrategy } from './interfaces/caching';
+import Types from './types';
+import SchemaNotFound from './schema-not-found-error';
+import EventHandling from './eventhandling';
+import config from './config';
+import { applyMixins, cleanPath } from './util';
 
 /**
  * Provides a high-level interface to access data below a given root path.
  */
-var BaseClient = function (storage, base) {
+function BaseClient (storage, base: string) {
   if (base[base.length - 1] !== '/') {
     throw "Not a folder: " + base;
   }
 
   if (base === '/') {
     // allow absolute and relative paths for the root scope.
-    this.makePath = function (path) {
+    this.makePath = (path: string): string => {
       return (path[0] === '/' ? '' : '/') + path;
     };
   }
@@ -37,14 +37,14 @@ var BaseClient = function (storage, base) {
   /**
    * TODO: document what this does exactly
    */
-  var parts = this.base.split('/');
+  const parts = this.base.split('/');
   if (parts.length > 2) {
     this.moduleName = parts[1];
   } else {
     this.moduleName = 'root';
   }
 
-  eventHandling(this, 'change');
+  this.addEvents(['change']);
   this.on = this.on.bind(this);
   storage.onChange(this.base, this._fireChange.bind(this));
 };
@@ -52,7 +52,6 @@ var BaseClient = function (storage, base) {
 BaseClient.Types = Types;
 
 BaseClient.prototype = {
-
   /**
    * Instantiate a new client, scoped to a subpath of the current client's
    * path.
@@ -62,7 +61,8 @@ BaseClient.prototype = {
    * @returns {BaseClient} A new client operating on a subpath of the current
    *                       base path.
    */
-  scope: function (path) {
+  // TODO add real type (requires bigger refactor)
+  scope: function (path: string): unknown {
     return new BaseClient(this.storage, this.makePath(path));
   },
 
@@ -75,8 +75,9 @@ BaseClient.prototype = {
    *
    * @returns {Promise} A promise for an object representing child nodes
    */
-  getListing: function (path, maxAge) {
-    if (typeof(path) !== 'string') {
+  // TODO add real return type
+  getListing: function (path: string, maxAge?: false | number): Promise<unknown> {
+    if (typeof (path) !== 'string') {
       path = '';
     } else if (path.length > 0 && path[path.length - 1] !== '/') {
       return Promise.reject("Not a folder: " + path);
@@ -97,43 +98,46 @@ BaseClient.prototype = {
    *
    * @returns {Promise} A promise for an object
    */
-  getAll: function (path, maxAge) {
-    if (typeof(path) !== 'string') {
+  // TODO add real return type
+  getAll: function (path: string, maxAge?: false | number): Promise<unknown> {
+    if (typeof (path) !== 'string') {
       path = '';
     } else if (path.length > 0 && path[path.length - 1] !== '/') {
       return Promise.reject("Not a folder: " + path);
     }
 
-    return this.storage.get(this.makePath(path), maxAge).then(function (r) {
-      if (r.statusCode === 404) { return {}; }
-      if (typeof(r.body) === 'object') {
-        var keys = Object.keys(r.body);
+    return this.storage.get(this.makePath(path), maxAge).then((r) => {
+      if (r.statusCode === 404) {
+        return {};
+      }
+      if (typeof (r.body) === 'object') {
+        const keys = Object.keys(r.body);
         if (keys.length === 0) {
           // treat this like 404. it probably means a folder listing that
           // has changes that haven't been pushed out yet.
           return {};
         }
 
-        var calls = keys.map(function (key) {
+        const calls = keys.map((key: string) => {
           return this.storage.get(this.makePath(path + key), maxAge)
             .then(function (o) {
-              if (typeof(o.body) === 'string') {
+              if (typeof (o.body) === 'string') {
                 try {
                   o.body = JSON.parse(o.body);
                 } catch (e) {
                   // empty
                 }
               }
-              if (typeof(o.body) === 'object') {
+              if (typeof (o.body) === 'object') {
                 r.body[key] = o.body;
               }
             });
-        }.bind(this));
+        });
         return Promise.all(calls).then(function () {
           return r.body;
         });
       }
-    }.bind(this));
+    });
   },
 
   /**
@@ -147,8 +151,9 @@ BaseClient.prototype = {
    *
    * @returns {Promise} A promise for an object
    */
-  getFile: function (path, maxAge) {
-    if (typeof(path) !== 'string') {
+  // TODO add real return type
+  getFile: function (path: string, maxAge?: false | number): Promise<unknown> {
+    if (typeof (path) !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getFile must be a string');
     }
     return this.storage.get(this.makePath(path), maxAge).then(function (r) {
@@ -169,27 +174,27 @@ BaseClient.prototype = {
    *
    * @returns {Promise} A promise for the created/updated revision (ETag)
    */
-  storeFile: function (mimeType, path, body) {
-    if (typeof(mimeType) !== 'string') {
+  storeFile: function (mimeType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string> {
+    if (typeof (mimeType) !== 'string') {
       return Promise.reject('Argument \'mimeType\' of baseClient.storeFile must be a string');
     }
-    if (typeof(path) !== 'string') {
+    if (typeof (path) !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.storeFile must be a string');
     }
-    if (typeof(body) !== 'string' && typeof(body) !== 'object') {
+    if (typeof (body) !== 'string' && typeof (body) !== 'object') {
       return Promise.reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
     }
     if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
       console.warn('WARNING: Editing a document to which only read access (\'r\') was claimed');
     }
 
-    return this.storage.put(this.makePath(path), body, mimeType).then(function (r) {
+    return this.storage.put(this.makePath(path), body, mimeType).then((r) => {
       if (r.statusCode === 200 || r.statusCode === 201) {
         return r.revision;
       } else {
         return Promise.reject("Request (PUT " + this.makePath(path) + ") failed with status: " + r.statusCode);
       }
-    }.bind(this));
+    });
   },
 
   /**
@@ -203,23 +208,25 @@ BaseClient.prototype = {
    * @returns {Promise} A promise, which resolves with the requested object (or ``null``
    *          if non-existent)
    */
-  getObject: function (path, maxAge) {
-    if (typeof(path) !== 'string') {
+
+  // TODO add real return type
+  getObject: function (path: string, maxAge?: false | number): Promise<unknown> {
+    if (typeof (path) !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getObject must be a string');
     }
-    return this.storage.get(this.makePath(path), maxAge).then(function (r) {
-      if (typeof(r.body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
+    return this.storage.get(this.makePath(path), maxAge).then((r) => {
+      if (typeof (r.body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
         return r.body;
-      } else if (typeof(r.body) === 'string') {
+      } else if (typeof (r.body) === 'string') {
         try {
           return JSON.parse(r.body);
         } catch (e) {
           throw "Not valid JSON: " + this.makePath(path);
         }
-      } else if (typeof(r.body) !== 'undefined' && r.statusCode === 200) {
+      } else if (typeof (r.body) !== 'undefined' && r.statusCode === 200) {
         return Promise.reject("Not an object: " + this.makePath(path));
       }
-    }.bind(this));
+    });
   },
 
   /**
@@ -228,7 +235,7 @@ BaseClient.prototype = {
    * See ``declareType()`` and :doc:`data types </data-modules/defining-data-types>`
    * for an explanation of types
    *
-   * @param {string} type   - Unique type of this object within this module.
+   * @param {string} typeAlias   - Unique type of this object within this module.
    * @param {string} path   - Path relative to the module root.
    * @param {object} object - A JavaScript object to be stored at the given
    *                          path. Must be serializable as JSON.
@@ -236,35 +243,36 @@ BaseClient.prototype = {
    * @returns {Promise} Resolves with revision on success. Rejects with
    *                    a ValidationError, if validations fail.
    */
-  storeObject: function (typeAlias, path, object) {
-    if (typeof(typeAlias) !== 'string') {
+  // TODO add real return type
+  storeObject: function (typeAlias: string, path: string, object: object): Promise<unknown> {
+    if (typeof (typeAlias) !== 'string') {
       return Promise.reject('Argument \'typeAlias\' of baseClient.storeObject must be a string');
     }
-    if (typeof(path) !== 'string') {
+    if (typeof (path) !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.storeObject must be a string');
     }
-    if (typeof(object) !== 'object') {
+    if (typeof (object) !== 'object') {
       return Promise.reject('Argument \'object\' of baseClient.storeObject must be an object');
     }
 
     this._attachType(object, typeAlias);
 
     try {
-      var validationResult = this.validate(object);
-      if (! validationResult.valid) {
+      const validationResult = this.validate(object);
+      if (!validationResult.valid) {
         return Promise.reject(validationResult);
       }
-    } catch(exc) {
+    } catch (exc) {
       return Promise.reject(exc);
     }
 
-    return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then(function (r) {
+    return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then((r) => {
       if (r.statusCode === 200 || r.statusCode === 201) {
         return r.revision;
       } else {
         return Promise.reject("Request (PUT " + this.makePath(path) + ") failed with status: " + r.statusCode);
       }
-    }.bind(this));
+    });
   },
 
   /**
@@ -273,8 +281,9 @@ BaseClient.prototype = {
    * @param {string} path - Path relative to the module root.
    * @returns {Promise}
    */
-  remove: function (path) {
-    if (typeof(path) !== 'string') {
+  // TODO add real return type
+  remove: function (path: string): Promise<unknown> {
+    if (typeof (path) !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
     }
     if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
@@ -291,12 +300,12 @@ BaseClient.prototype = {
    * @param {string} path - Path relative to the module root.
    * @returns {string} The full URL of the item, including the storage origin
    */
-  getItemURL: function (path) {
-    if (typeof(path) !== 'string') {
+  getItemURL: function (path: string): string {
+    if (typeof (path) !== 'string') {
       throw 'Argument \'path\' of baseClient.getItemURL must be a string';
     }
     if (this.storage.connected) {
-      path = this._cleanPath( this.makePath(path) );
+      path = cleanPath(this.makePath(path));
       return this.storage.remote.href + path;
     } else {
       return undefined;
@@ -315,21 +324,20 @@ BaseClient.prototype = {
    *
    * @returns {BaseClient} The same instance this is called on to allow for method chaining
    */
-  cache: function (path, strategy) {
-    if (typeof path  !== 'string') {
+  cache: function (path: string, strategy: CachingStrategy = 'ALL') {
+    if (typeof path !== 'string') {
       throw 'Argument \'path\' of baseClient.cache must be a string';
     }
 
-    if (strategy === undefined) {
-      strategy = 'ALL';
-    } else if (typeof strategy  !== 'string') {
+    if (typeof strategy !== 'string') {
       throw 'Argument \'strategy\' of baseClient.cache must be a string or undefined';
     }
+
     if (strategy !== 'FLUSH' &&
-        strategy !== 'SEEN' &&
-        strategy !== 'ALL') {
+      strategy !== 'SEEN' &&
+      strategy !== 'ALL') {
       throw 'Argument \'strategy\' of baseclient.cache must be one of '
-          + '["FLUSH", "SEEN", "ALL"]';
+      + '["FLUSH", "SEEN", "ALL"]';
     }
     this.storage.caching.set(this.makePath(path), strategy);
 
@@ -341,7 +349,8 @@ BaseClient.prototype = {
    *
    * @param {string} path
    */
-  flush: function (path) {
+  // TODO add return type once known
+  flush: function (path: string): unknown {
     return this.storage.local.flush(path);
   },
 
@@ -354,11 +363,16 @@ BaseClient.prototype = {
    * @param {uri}    uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
    * @param {object} schema - A JSON Schema object describing the object type
    **/
-  declareType: function(alias, uri, schema) {
-    if (! schema) {
-      schema = uri;
+  declareType: function (alias: any, uriOrSchema: any, schema?: any): void {
+    let uri: string;
+
+    if (!schema) {
+      schema = uriOrSchema;
       uri = this._defaultTypeURI(alias);
+    } else {
+      uri = uriOrSchema;
     }
+
     BaseClient.Types.declare(this.moduleName, alias, uri, schema);
   },
 
@@ -369,8 +383,8 @@ BaseClient.prototype = {
    *
    * @returns {Object} An object containing information about validation errors
    **/
-  validate: function(object) {
-    var schema = BaseClient.Types.getSchema(object['@context']);
+  validate: function (object: object): object {
+    const schema = BaseClient.Types.getSchema(object['@context']);
     if (schema) {
       return tv4.validateResult(object, schema);
     } else {
@@ -385,7 +399,7 @@ BaseClient.prototype = {
    */
   schemas: {
     configurable: true,
-    get: function() {
+    get: function () {
       return BaseClient.Types.inScope(this.moduleName);
     }
   },
@@ -395,7 +409,7 @@ BaseClient.prototype = {
    *
    * @private
    */
-  _defaultTypeURI: function(alias) {
+  _defaultTypeURI: function (alias: string): string {
     return 'http://remotestorage.io/spec/modules/' + encodeURIComponent(this.moduleName) + '/' + encodeURIComponent(alias);
   },
 
@@ -404,7 +418,7 @@ BaseClient.prototype = {
    *
    * @private
    */
-  _attachType: function(object, alias) {
+  _attachType: function (object: object, alias: string): void {
     object['@context'] = BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
   },
 
@@ -413,7 +427,7 @@ BaseClient.prototype = {
    *
    * @private
    */
-  makePath: function (path) {
+  makePath: function (path: string): string {
     return this.base + (path || '');
   },
 
@@ -422,15 +436,15 @@ BaseClient.prototype = {
    *
    * @private
    */
-  _fireChange: function (event) {
+  _fireChange: function (event: ChangeObj) {
     if (config.changeEvents[event.origin]) {
       ['new', 'old', 'lastCommon'].forEach(function (fieldNamePrefix) {
-        if ((!event[fieldNamePrefix+'ContentType'])
-            || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType']))) {
-          if (typeof(event[fieldNamePrefix+'Value']) === 'string') {
+        if ((!event[fieldNamePrefix + 'ContentType'])
+          || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix + 'ContentType']))) {
+          if (typeof (event[fieldNamePrefix + 'Value']) === 'string') {
             try {
-              event[fieldNamePrefix+'Value'] = JSON.parse(event[fieldNamePrefix+'Value']);
-            } catch(e) {
+              event[fieldNamePrefix + 'Value'] = JSON.parse(event[fieldNamePrefix + 'Value']);
+            } catch (e) {
               // empty
             }
           }
@@ -438,17 +452,14 @@ BaseClient.prototype = {
       });
       this._emit('change', event);
     }
-  },
-
-  /**
-   * TODO: document
-   *
-   * @private
-   */
-  _cleanPath: util.cleanPath
-
+  }
 };
 
-BaseClient._rs_init = function () {};
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+BaseClient._rs_init = function (): void {
+};
 
-module.exports = BaseClient;
+interface BaseClient extends EventHandling {};
+applyMixins(BaseClient, [EventHandling]);
+
+export default BaseClient;

@@ -1,20 +1,22 @@
+import { containingFolder, isFolder } from './util';
+import { CachingStrategy } from './interfaces/caching';
+import log from './log';
+
 /**
  * @class Caching
  *
  * Holds/manages caching configuration.
  **/
+export default class Caching {
+  pendingActivations: string[] = [];
+  // TODO add correct type
+  activateHandler: Function;
 
-var util = require('./util');
-var log = require('./log');
+  private _rootPaths: object;
 
-var containingFolder = util.containingFolder;
-
-var Caching = function () {
-  this.reset();
-};
-
-Caching.prototype = {
-  pendingActivations: [],
+  constructor () {
+    this.reset();
+  }
 
   /**
    * Configure caching for a given path explicitly.
@@ -23,19 +25,19 @@ Caching.prototype = {
    *
    * @param {string} path - Path to cache
    * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
-   *
    */
-  set: function (path, strategy) {
+  set (path: string, strategy: CachingStrategy): void {
     if (typeof path !== 'string') {
       throw new Error('path should be a string');
     }
-    if (!util.isFolder(path)) {
+    if (!isFolder(path)) {
       throw new Error('path should be a folder');
     }
-    if (this._remoteStorage && this._remoteStorage.access &&
-        !this._remoteStorage.access.checkPathPermission(path, 'r')) {
-      throw new Error('No access to path "'+path+'". You have to claim access to it first.');
-    }
+    // FIXME We need to get to the access instance somehow.  But I'm not sure
+    // this check is even necessary in the first place. -raucao
+    // if (!this._remoteStorage.access.checkPathPermission(path, 'r')) {
+    //   throw new Error('No access to path "' + path + '". You have to claim access to it first.');
+    // }
     if (!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
       throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
     }
@@ -49,7 +51,7 @@ Caching.prototype = {
         this.pendingActivations.push(path);
       }
     }
-  },
+  }
 
   /**
    * Enable caching for a given path.
@@ -58,9 +60,9 @@ Caching.prototype = {
    *
    * @param {string} path - Path to enable caching for
    */
-  enable: function (path) {
+  enable (path: string): void {
     this.set(path, 'ALL');
-  },
+  }
 
   /**
    * Disable caching for a given path.
@@ -70,24 +72,23 @@ Caching.prototype = {
    *
    * @param {string} path - Path to disable caching for
    */
-  disable: function (path) {
+  disable (path: string): void {
     this.set(path, 'FLUSH');
-  },
+  }
 
   /**
    * Set a callback for when caching is activated for a path.
    *
-   * @param {function} callback - Callback function
+   * @param {function} cb - Callback function
    */
-  onActivate: function (cb) {
-    var i;
+  onActivate (cb: (firstPending: string) => void): void {
     log('[Caching] Setting activate handler', cb, this.pendingActivations);
     this.activateHandler = cb;
-    for (i=0; i<this.pendingActivations.length; i++) {
+    for (let i = 0; i < this.pendingActivations.length; i++) {
       cb(this.pendingActivations[i]);
     }
     delete this.pendingActivations;
-  },
+  }
 
   /**
    * Retrieve caching setting for a given path, or its next parent
@@ -96,7 +97,7 @@ Caching.prototype = {
    * @param {string} path - Path to retrieve setting for
    * @returns {string} caching strategy for the path
    **/
-  checkPath: function (path) {
+  checkPath (path: string): string {
     if (this._rootPaths[path] !== undefined) {
       return this._rootPaths[path];
     } else if (path === '/') {
@@ -104,25 +105,21 @@ Caching.prototype = {
     } else {
       return this.checkPath(containingFolder(path));
     }
-  },
+  }
 
   /**
    * Reset the state of caching by deleting all caching information.
    **/
-  reset: function () {
+  reset (): void {
     this._rootPaths = {};
-    this._remoteStorage = null;
   }
-};
 
-
-/**
- * Setup function that is called on initialization.
- *
- * @private
- **/
-Caching._rs_init = function (remoteStorage) {
-  this._remoteStorage = remoteStorage;
-};
-
-module.exports = Caching;
+  /**
+   * Setup function that is called on initialization.
+   *
+   * @private
+   **/
+  static _rs_init (/*remoteStorage*/): void {
+    return;
+  }
+}

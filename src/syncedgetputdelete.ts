@@ -1,11 +1,11 @@
-const log = require('./log');
+import log from './log';
 
-function shareFirst(path) {
+function shareFirst(path: string): boolean {
   return ( this.backend === 'dropbox' &&
-           path.match(/^\/public\/.*[^\/]$/) );
+           !!path.match(/^\/public\/.*[^\/]$/) );
 }
 
-function defaultMaxAge(context) {
+function defaultMaxAge(context): false | number {
   if ((typeof context.remote === 'object') &&
       context.remote.connected && context.remote.online) {
     return 2 * context.getSyncInterval();
@@ -15,8 +15,8 @@ function defaultMaxAge(context) {
   }
 }
 
-var SyncedGetPutDelete = {
-  get: function (path, maxAge) {
+const SyncedGetPutDelete = {
+  get: function (path: string, maxAge: undefined | false | number): Promise<unknown> {
     if (!this.local) {
       return this.remote.get(path);
     } else {
@@ -29,7 +29,7 @@ var SyncedGetPutDelete = {
     }
   },
 
-  put: function (path, body, contentType) {
+  put: function (path: string, body: unknown, contentType: string): Promise<unknown> {
     if (shareFirst.bind(this)(path)) {
       return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
     }
@@ -40,7 +40,7 @@ var SyncedGetPutDelete = {
     }
   },
 
-  'delete': function (path) {
+  'delete': function (path: string): Promise<unknown> {
     if (this.local) {
       return this.local.delete(path);
     } else {
@@ -48,17 +48,16 @@ var SyncedGetPutDelete = {
     }
   },
 
-  _wrapBusyDone: function (result) {
-    var self = this;
+  _wrapBusyDone: async function (result: Promise<unknown>): Promise<unknown> {
     this._emit('wire-busy');
-    return result.then(function (r) {
-      self._emit('wire-done', { success: true });
+    return result.then((r) => {
+      this._emit('wire-done', { success: true });
       return Promise.resolve(r);
-    }, function (err) {
-      self._emit('wire-done', { success: false });
+    }, (err: Error) => {
+      this._emit('wire-done', { success: false });
       return Promise.reject(err);
     });
   }
 };
 
-module.exports = SyncedGetPutDelete;
+export default SyncedGetPutDelete;

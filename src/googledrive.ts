@@ -14,10 +14,18 @@
  * Docs: https://developers.google.com/drive/v3/web/quickstart/js
 **/
 
-const BaseClient = require('./baseclient');
-const WireClient = require('./wireclient');
-const eventHandling = require('./eventhandling');
-const util = require('./util');
+import BaseClient from './baseclient';
+import WireClient from './wireclient';
+import EventHandling from './eventhandling';
+import {
+  applyMixins,
+  isFolder,
+  cleanPath,
+  shouldBeTreatedAsBinary,
+  getJSONFromLocalStorage,
+  getTextFromArrayBuffer,
+  localStorageAvailable
+} from './util';
 
 const BASE_URL = 'https://www.googleapis.com';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -27,12 +35,6 @@ const PATH_PREFIX = '/remotestorage';
 
 const GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
 const RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
-
-const isFolder = util.isFolder;
-const cleanPath = util.cleanPath;
-const shouldBeTreatedAsBinary = util.shouldBeTreatedAsBinary;
-const getJSONFromLocalStorage = util.getJSONFromLocalStorage;
-const getTextFromArrayBuffer = util.getTextFromArrayBuffer;
 
 let hasLocalStorage;
 
@@ -44,7 +46,7 @@ let hasLocalStorage;
  *
  * @private
  */
-function metaTitleFromFileName (filename) {
+function metaTitleFromFileName (filename: string): string {
   if (filename.substr(-1) === '/') {
     filename = filename.substr(0, filename.length - 1);
   }
@@ -60,7 +62,7 @@ function metaTitleFromFileName (filename) {
  *
  * @private
  */
-function parentPath (path) {
+function parentPath (path: string): string {
   return path.replace(/[^\/]+\/?$/, '');
 }
 
@@ -72,7 +74,7 @@ function parentPath (path) {
  *
  * @private
  */
-function baseName (path) {
+function baseName (path: string): string {
   const parts = path.split('/');
   if (path.substr(-1) === '/') {
     return parts[parts.length-2]+'/';
@@ -89,7 +91,7 @@ function baseName (path) {
  *
  * @private
  */
-function googleDrivePath (path) {
+function googleDrivePath (path: string): string {
   return cleanPath(`${PATH_PREFIX}/${path}`);
 }
 
@@ -101,8 +103,8 @@ function googleDrivePath (path) {
  *
  * @private
  */
-function removeQuotes (string) {
-  return string.replace(/^["'](.*)["']$/, "$1");
+function removeQuotes (str: string): string {
+  return str.replace(/^["'](.*)["']$/, "$1");
 }
 
 /**
@@ -110,19 +112,22 @@ function removeQuotes (string) {
  *
  * @param {number} maxAge - Maximum age (in seconds) the content should be cached for
  */
-const Cache = function (maxAge) {
-  this.maxAge = maxAge;
-  this._items = {};
-};
+class FileIdCache {
+  maxAge: number;
+  _items = {}
 
-Cache.prototype = {
-  get: function (key) {
+  constructor(maxAge?: number) {
+    this.maxAge = maxAge;
+    this._items = {};
+  }
+
+  get (key): number | undefined {
     const item = this._items[key];
     const now = new Date().getTime();
     return (item && item.t >= (now - this.maxAge)) ? item.v : undefined;
-  },
+  }
 
-  set: function (key, value) {
+  set (key, value): void {
     this._items[key] = {
       v: value,
       t: new Date().getTime()
@@ -132,14 +137,14 @@ Cache.prototype = {
 
 const GoogleDrive = function (remoteStorage, clientId) {
 
-  eventHandling(this, 'connected', 'not-connected');
+  this.addEvents(['connected', 'not-connected']);
 
   this.rs = remoteStorage;
   this.clientId = clientId;
 
-  this._fileIdCache = new Cache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
+  this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
 
-  hasLocalStorage = util.localStorageAvailable();
+  hasLocalStorage = localStorageAvailable();
 
   if (hasLocalStorage){
     const settings = getJSONFromLocalStorage(SETTINGS_KEY);
@@ -212,7 +217,7 @@ GoogleDrive.prototype = {
   /**
    * Initiate the authorization flow's OAuth dance.
    */
-  connect: function () {
+  connect: function (): void {
     this.rs.setBackend('googledrive');
     this.rs.authorize({ authURL: AUTH_URL, scope: AUTH_SCOPE, clientId: this.clientId });
   },
@@ -222,7 +227,7 @@ GoogleDrive.prototype = {
    *
    * @protected
    */
-  stopWaitingForToken: function () {
+  stopWaitingForToken: function (): void {
     if (!this.connected) {
       this._emit('not-connected');
     }
@@ -457,28 +462,31 @@ GoogleDrive.prototype = {
           }
         }
 
-        var params = {
+        const params = {
           responseType: 'arraybuffer'
-        };        
+        };
         return this._request('GET', meta.downloadUrl, params).then((response) => {
-          //first encode the response as text, and later check if 
+          //first encode the response as text, and later check if
           //text appears to actually be binary data
-          return getTextFromArrayBuffer(response.response, 'UTF-8').then(function (responseText) { 
+          return getTextFromArrayBuffer(response.response, 'UTF-8').then(function (responseText) {
             let body = responseText;
             if (meta.mimeType.match(/^application\/json/)) {
               try {
-                body = JSON.parse(body);
+                body = JSON.parse(body as string);
               } catch(e) {
                 // body couldn't be parsed as JSON, so we'll just return it as is
               }
-            } else {
-              if (shouldBeTreatedAsBinary(responseText, meta.mimeType)) {
-                //return unprocessed response 
-                body = response.response;
-              }
+            } else if (shouldBeTreatedAsBinary(responseText, meta.mimeType)) {
+              //return unprocessed response
+              body = response.response;
             }
 
-            return {statusCode: 200, body: body, contentType: meta.mimeType, revision: etagWithoutQuotes};
+            return {
+              statusCode: 200,
+              body: body,
+              contentType: meta.mimeType,
+              revision: etagWithoutQuotes
+            };
           });
         });
       });
@@ -497,13 +505,13 @@ GoogleDrive.prototype = {
    */
   _getFolder: function (path/*, options*/) {
     return this._getFileId(path).then((id) => {
-      let query, fields, data, etagWithoutQuotes, itemsMap;
+      let data, etagWithoutQuotes, itemsMap;
       if (! id) {
         return Promise.resolve({statusCode: 404});
       }
 
-      query = '\'' + id + '\' in parents';
-      fields = 'items(downloadUrl,etag,fileSize,id,mimeType,title)';
+      const query = '\'' + id + '\' in parents';
+      const fields = 'items(downloadUrl,etag,fileSize,id,mimeType,title)';
       return this._request('GET', BASE_URL + '/drive/v2/files?'
           + 'q=' + encodeURIComponent(query)
           + '&fields=' + encodeURIComponent(fields)
@@ -712,10 +720,10 @@ GoogleDrive.prototype = {
  *
  * @private
  */
-function hookGetItemURL (rs) {
+function hookGetItemURL (rs): void {
   if (rs._origBaseClientGetItemURL) { return; }
   rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
-  BaseClient.prototype.getItemURL = function (/* path */){
+  BaseClient.prototype.getItemURL = function (/* path */): never {
     throw new Error('getItemURL is not implemented for Google Drive yet');
   };
 }
@@ -727,7 +735,7 @@ function hookGetItemURL (rs) {
  *
  * @private
  */
-function unHookGetItemURL (rs) {
+function unHookGetItemURL (rs): void {
   if (!rs._origBaseClientGetItemURL) { return; }
   BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
   delete rs._origBaseClientGetItemURL;
@@ -740,7 +748,7 @@ function unHookGetItemURL (rs) {
  *
  * @protected
  */
-GoogleDrive._rs_init = function (remoteStorage) {
+GoogleDrive._rs_init = function (remoteStorage): void {
   const config = remoteStorage.apiKeys.googledrive;
   if (config) {
     remoteStorage.googledrive = new GoogleDrive(remoteStorage, config.clientId);
@@ -761,7 +769,7 @@ GoogleDrive._rs_init = function (remoteStorage) {
  *
  * @protected
  */
-GoogleDrive._rs_supported = function () {
+GoogleDrive._rs_supported = function (): boolean {
   return true;
 };
 
@@ -772,7 +780,7 @@ GoogleDrive._rs_supported = function () {
  *
  * @protected
  */
-GoogleDrive._rs_cleanup = function (remoteStorage) {
+GoogleDrive._rs_cleanup = function (remoteStorage): void {
   remoteStorage.setBackend(undefined);
   if (remoteStorage._origRemote) {
     remoteStorage.remote = remoteStorage._origRemote;
@@ -781,4 +789,7 @@ GoogleDrive._rs_cleanup = function (remoteStorage) {
   unHookGetItemURL(remoteStorage);
 };
 
-module.exports = GoogleDrive;
+interface GoogleDrive extends EventHandling {};
+applyMixins(GoogleDrive, [EventHandling]);
+
+export default GoogleDrive;

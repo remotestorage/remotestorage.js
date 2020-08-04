@@ -9,7 +9,7 @@ define(['require'], function(require) {
     name: "caching",
     desc: "Caching stores settings about which paths to cache locally",
     setup: function(env, test) {
-      env.Caching = require('./src/caching');
+      env.Caching = require('./build/caching').default;
 
       test.result(true);
     },

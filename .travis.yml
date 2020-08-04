@@ -5,6 +5,7 @@ node_js:
   - "lts/*"
   - "node"
 script:
+  - tsc
   - npm test
   - npm run lint
 branches:

@@ -1,8 +1,10 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/config', './src/inmemorystorage'], function (config, InMemoryStorage) {
+define(['./build/config', './build/inmemorystorage'], function (config, InMemoryStorage) {
   var suites = [];
+  var config = config.default;
+  var InMemoryStorage = InMemoryStorage.default;
 
   suites.push({
     name: 'InMemoryStorage',

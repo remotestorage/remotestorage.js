@@ -1,8 +1,10 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/config', './src/localstorage'], function (config, LocalStorage) {
+define(['./build/config', './build/localstorage'], function (config, LocalStorage) {
   var suites = [];
+  var config = config.default;
+  var LocalStorage = LocalStorage.default;
 
   var NODES_PREFIX = 'remotestorage:cache:nodes:';
   var CHANGES_PREFIX = 'remotestorage:cache:changes:';

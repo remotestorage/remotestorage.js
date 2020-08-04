@@ -1,34 +1,55 @@
-const { isFolder, isDocument, equal, deepClone, pathsFromRoot } = require('./util');
-const Env = require('./env');
-const eventHandling = require('./eventhandling');
-const log = require('./log');
-const Authorize = require('./authorize');
-const config = require('./config');
+import config from './config';
+import Env from './env';
+import EventHandling from './eventhandling';
+import log from './log';
+import Authorize from './authorize';
+import SyncError from './sync-error';
+import UnauthorizedError from './unauthorized-error';
+import {
+  applyMixins,
+  deepClone,
+  equal,
+  isFolder,
+  isDocument,
+  pathsFromRoot
+} from './util';
 
 let syncCycleCb, syncOnConnect;
 
-function taskFor (action, path, promise) {
-  return {
-    action:  action,
-    path:    path,
-    promise: promise
-  };
+interface ResponseStatus {
+  statusCode: string | number;
+  successful: boolean | undefined;
+  conflict: boolean | undefined;
+  unAuth: boolean | undefined;
+  notFound: boolean | undefined;
+  changed: boolean | undefined;
+  networkProblems: boolean | undefined;
 }
 
-function nodeChanged (node, etag) {
+interface SyncTask {
+  action: any;
+  path: string;
+  promise: Promise<any>;
+}
+
+function taskFor (action, path: string, promise: Promise<any>): SyncTask {
+  return { action, path, promise };
+}
+
+function nodeChanged (node: RSNode, etag: string): boolean {
   return node.common.revision !== etag &&
          (!node.remote || node.remote.revision !== etag);
 }
 
-function isStaleChild (node) {
+function isStaleChild (node: RSNode): boolean {
   return node.remote && node.remote.revision && !node.remote.itemsMap && !node.remote.body;
 }
 
-function hasCommonRevision (node) {
+function hasCommonRevision (node: RSNode): boolean {
   return node.common && node.common.revision;
 }
 
-function hasNoRemoteChanges (node) {
+function hasNoRemoteChanges (node: RSNode): boolean {
   if (node.remote && node.remote.revision &&
       node.remote.revision !== node.common.revision) {
     return false;
@@ -38,7 +59,7 @@ function hasNoRemoteChanges (node) {
      node.remote.contentType === node.common.contentType);
 }
 
-function mergeMutualDeletion (node) {
+function mergeMutualDeletion (node: RSNode): RSNode {
   if (node.remote && node.remote.body === false &&
       node.local && node.local.body === false) {
     delete node.local;
@@ -46,16 +67,15 @@ function mergeMutualDeletion (node) {
   return node;
 }
 
-function handleVisibility (rs) {
-  function handleChange(isForeground) {
-    var oldValue, newValue;
-    oldValue = rs.getCurrentSyncInterval();
+function handleVisibility (env, rs): void {
+  function handleChange (isForeground): void {
+    const oldValue = rs.getCurrentSyncInterval();
     config.isBackground = !isForeground;
-    newValue = rs.getCurrentSyncInterval();
+    const newValue = rs.getCurrentSyncInterval();
     rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
   }
-  Env.on('background', () => handleChange(false));
-  Env.on('foreground', () => handleChange(true));
+  env.on('background', () => handleChange(false));
+  env.on('foreground', () => handleChange(true));
 }
 
 /**
@@ -79,7 +99,19 @@ function handleVisibility (rs) {
  * the `markChildren` function).
  **/
 class Sync {
-  constructor (remoteStorage) {
+  // TODO remove when RS is defined, or if unnecessary
+  rs: { [propName: string]: any }
+
+  numThreads: number
+  done: boolean
+  stopped: boolean
+
+  // TODO define in more detail
+  _tasks: object
+  _running: object
+  _timeStarted: object
+
+  constructor (remoteStorage: object) {
     this.rs = remoteStorage;
 
     this._tasks       = {};
@@ -93,29 +125,27 @@ class Sync {
       this.doTasks();
     });
 
-    this.rs.caching.onActivate(path => {
+    this.rs.caching.onActivate((path: string): void => {
       this.addTask(path);
       this.doTasks();
     });
 
-    eventHandling(this, 'done', 'req-done');
+    this.addEvents(['done', 'req-done']);
   }
 
-  now () {
+  public now (): number {
     return new Date().getTime();
   }
 
-  queueGetRequest (path) {
+  public queueGetRequest (path: string): object {
     return new Promise((resolve, reject) => {
       if (!this.rs.remote.connected) {
         reject('cannot fulfill maxAge requirement - remote is not connected');
       } else if (!this.rs.remote.online) {
         reject('cannot fulfill maxAge requirement - remote is not online');
       } else {
-        this.addTask(path, function () {
-          this.rs.local.get(path).then(function (r) {
-            return resolve(r);
-          });
+        this.addTask(path, function (): void {
+          this.rs.local.get(path).then(r => resolve(r));
         }.bind(this));
 
         this.doTasks();
@@ -124,13 +154,13 @@ class Sync {
   }
 
   // FIXME force02 sounds like rs spec 02, thus could be removed
-  corruptServerItemsMap (itemsMap, force02) {
+  public corruptServerItemsMap (itemsMap, force02?: boolean): boolean {
     if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
       return true;
     }
 
-    for (var itemName in itemsMap) {
-      var item = itemsMap[itemName];
+    for (const itemName in itemsMap) {
+      const item = itemsMap[itemName];
 
       if (typeof(item) !== 'object') {
         return true;
@@ -160,13 +190,13 @@ class Sync {
     return false;
   }
 
-  corruptItemsMap (itemsMap) {
+  public corruptItemsMap (itemsMap): boolean {
     if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
       return true;
     }
 
-    for (var itemName in itemsMap) {
-      if (typeof(itemsMap[itemName]) !== 'boolean') {
+    for (const path in itemsMap) {
+      if (typeof itemsMap[path] !== 'boolean') {
         return true;
       }
     }
@@ -174,7 +204,7 @@ class Sync {
     return false;
   }
 
-  corruptRevision (rev) {
+  public corruptRevision (rev): boolean {
     return ((typeof(rev) !== 'object') ||
             (Array.isArray(rev)) ||
             (rev.revision && typeof(rev.revision) !== 'string') ||
@@ -185,7 +215,7 @@ class Sync {
             (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
   }
 
-  isCorrupt (node) {
+  public isCorrupt (node: RSNode): boolean {
     return ((typeof(node) !== 'object') ||
             (Array.isArray(node)) ||
             (typeof(node.path) !== 'string') ||
@@ -195,14 +225,14 @@ class Sync {
             (node.push && this.corruptRevision(node.push)));
   }
 
-  hasTasks () {
+  public hasTasks (): boolean {
     return Object.getOwnPropertyNames(this._tasks).length > 0;
   }
 
-  collectDiffTasks () {
-    var num = 0;
+  public async collectDiffTasks (): Promise<number> {
+    let num = 0;
 
-    return this.rs.local.forAllNodes(node => {
+    return this.rs.local.forAllNodes((node: RSNode) => {
       if (num > 100) { return; }
 
       if (this.isCorrupt(node)) {
@@ -219,19 +249,17 @@ class Sync {
         this.addTask(node.path);
         num++;
       }
-    }).then(function () {
-      return num;
-    }, function (err) {
-      throw err;
-    });
+    })
+    .then((): number => num)
+    .catch(e => { throw e; });
   }
 
-  inConflict (node) {
+  public inConflict (node: RSNode): boolean {
     return (node.local && node.remote &&
             (node.remote.body !== undefined || node.remote.itemsMap));
   }
 
-  needsRefresh (node) {
+  public needsRefresh (node: RSNode): boolean {
     if (node.common) {
       if (!node.common.timestamp) {
         return true;
@@ -241,7 +269,7 @@ class Sync {
     return false;
   }
 
-  needsFetch (node) {
+  public needsFetch (node: RSNode): boolean {
     if (this.inConflict(node)) {
       return true;
     }
@@ -258,7 +286,7 @@ class Sync {
     return false;
   }
 
-  needsPush (node) {
+  public needsPush (node: RSNode): boolean {
     if (this.inConflict(node)) {
       return false;
     }
@@ -267,16 +295,16 @@ class Sync {
     }
   }
 
-  needsRemotePut (node) {
+  public needsRemotePut (node: RSNode): boolean {
     return node.local && node.local.body;
   }
 
-  needsRemoteDelete (node) {
+  public needsRemoteDelete (node: RSNode): boolean {
     return node.local && node.local.body === false;
   }
 
-  getParentPath (path) {
-    var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+  public getParentPath (path: string): string {
+    const parts = path.match(/^(.*\/)([^\/]+\/?)$/);
 
     if (parts) {
       return parts[1];
@@ -285,11 +313,11 @@ class Sync {
     }
   }
 
-  deleteChildPathsFromTasks () {
-    for (var path in this._tasks) {
-      var paths = pathsFromRoot(path);
+  public deleteChildPathsFromTasks (): void {
+    for (const path in this._tasks) {
+      const paths = pathsFromRoot(path);
 
-      for (var i=1; i<paths.length; i++) {
+      for (let i=1; i<paths.length; i++) {
         if (this._tasks[paths[i]]) {
           // move pending promises to parent task
           if (Array.isArray(this._tasks[path]) && this._tasks[path].length) {
@@ -304,9 +332,9 @@ class Sync {
     }
   }
 
-  collectRefreshTasks () {
-    return this.rs.local.forAllNodes(node => {
-      var parentPath;
+  public async collectRefreshTasks (): Promise<void> {
+    return this.rs.local.forAllNodes((node: RSNode) => {
+      let parentPath: string;
       if (this.needsRefresh(node)) {
         try {
           parentPath = this.getParentPath(node.path);
@@ -319,12 +347,13 @@ class Sync {
           this.addTask(node.path);
         }
       }
-    }).then(() => { this.deleteChildPathsFromTasks(); },
-            err => { throw err; });
+    })
+    .then(() => this.deleteChildPathsFromTasks())
+    .catch((e: Error) => { throw e; });
   }
 
-  flush (nodes) {
-    for (var path in nodes) {
+  public flush (nodes: RSNodes): RSNodes {
+    for (const path in nodes) {
       // Strategy is 'FLUSH' and no local changes exist
       if (this.rs.caching.checkPath(path) === 'FLUSH' &&
           nodes[path] && !nodes[path].local) {
@@ -335,9 +364,9 @@ class Sync {
     return nodes;
   }
 
-  doTask (path) {
-    return this.rs.local.getNodes([path]).then(nodes => {
-      var node = nodes[path];
+  public doTask (path: string): object {
+    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
+      const node = nodes[path];
       // First fetch:
       if (typeof(node) === 'undefined') {
         return taskFor('get', path, this.rs.remote.get(path));
@@ -352,7 +381,7 @@ class Sync {
         node.push.timestamp = this.now();
 
         return this.rs.local.setNodes(this.flush(nodes)).then(() => {
-          var options;
+          let options;
           if (hasCommonRevision(node)) {
             options = { ifMatch: node.common.revision };
           } else {
@@ -391,13 +420,13 @@ class Sync {
     });
   }
 
-  autoMergeFolder (node) {
+  public autoMergeFolder (node: RSNode): RSNode {
     if (node.remote.itemsMap) {
       node.common = node.remote;
       delete node.remote;
 
       if (node.common.itemsMap) {
-        for (var itemName in node.common.itemsMap) {
+        for (const itemName in node.common.itemsMap) {
           if (!node.local.itemsMap[itemName]) {
             // Indicates the node is either newly being fetched
             // has been deleted locally (whether or not leading to conflict);
@@ -415,7 +444,7 @@ class Sync {
     return node;
   }
 
-  autoMergeDocument (node) {
+  public autoMergeDocument (node: RSNode): RSNode {
     if (hasNoRemoteChanges(node)) {
       node = mergeMutualDeletion(node);
       delete node.remote;
@@ -442,10 +471,11 @@ class Sync {
       delete node.remote;
       delete node.local;
     }
+
     return node;
   }
 
-  autoMerge (node) {
+  public autoMerge (node: RSNode): RSNode {
     if (node.remote) {
       if (node.local) {
         if (isFolder(node.path)) {
@@ -461,7 +491,7 @@ class Sync {
           }
         } else {
           if (node.remote.body !== undefined) {
-            var change = {
+            const change = {
               origin:   'remote',
               path:     node.path,
               oldValue: (node.common.body === false ? undefined : node.common.body),
@@ -496,11 +526,12 @@ class Sync {
 
       return undefined;
     }
+
     return node;
   }
 
-  updateCommonTimestamp (path, revision) {
-    return this.rs.local.getNodes([path]).then(nodes => {
+  public async updateCommonTimestamp (path: string, revision: string): Promise<void> {
+    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       if (nodes[path] &&
           nodes[path].common &&
           nodes[path].common.revision === revision) {
@@ -510,24 +541,24 @@ class Sync {
     });
   }
 
-  markChildren (path, itemsMap, changedNodes, missingChildren) {
-    var paths = [];
-    var meta = {};
-    var recurse = {};
+  public async markChildren (path, itemsMap, changedNodes: RSNodes, missingChildren): Promise<void> {
+    const paths = [];
+    const meta = {};
+    const recurse = {};
 
-    for (var item in itemsMap) {
+    for (const item in itemsMap) {
       paths.push(path+item);
       meta[path+item] = itemsMap[item];
     }
-    for (var childName in missingChildren) {
+    for (const childName in missingChildren) {
       paths.push(path+childName);
     }
 
-    return this.rs.local.getNodes(paths).then(nodes => {
-      var cachingStrategy;
-      var node;
+    return this.rs.local.getNodes(paths).then((nodes: RSNodes) => {
+      let cachingStrategy;
+      let node;
 
-      for (var nodePath in nodes) {
+      for (const nodePath in nodes) {
         node = nodes[nodePath];
 
         if (meta[nodePath]) {
@@ -565,13 +596,13 @@ class Sync {
           }
         } else if (missingChildren[nodePath.substring(path.length)] && node && node.common) {
           if (node.common.itemsMap) {
-            for (var commonItem in node.common.itemsMap) {
+            for (const commonItem in node.common.itemsMap) {
               recurse[nodePath+commonItem] = true;
             }
           }
 
           if (node.local && node.local.itemsMap) {
-            for (var localItem in node.local.itemsMap) {
+            for (const localItem in node.local.itemsMap) {
               recurse[nodePath+localItem] = true;
             }
           }
@@ -582,9 +613,9 @@ class Sync {
             changedNodes[nodePath] = this.autoMerge(node);
 
             if (typeof changedNodes[nodePath] === 'undefined') {
-              var parentPath = this.getParentPath(nodePath);
-              var parentNode = changedNodes[parentPath];
-              var itemName = nodePath.substring(path.length);
+              const parentPath = this.getParentPath(nodePath);
+              const parentNode = changedNodes[parentPath];
+              const itemName = nodePath.substring(path.length);
               if (parentNode && parentNode.local) {
                 delete parentNode.local.itemsMap[itemName];
 
@@ -604,35 +635,33 @@ class Sync {
     });
   }
 
-  deleteRemoteTrees (paths, changedNodes) {
+  public async deleteRemoteTrees (paths: Array<string>, changedNodes: RSNodes): Promise<RSNodes> {
     if (paths.length === 0) {
       return Promise.resolve(changedNodes);
     }
 
-    return this.rs.local.getNodes(paths).then(nodes => {
-      var subPaths = {};
+    return this.rs.local.getNodes(paths).then(async (nodes: RSNodes) => {
+      const subPaths = {};
 
-      var collectSubPaths = function (folder, path) {
+      function collectSubPaths (folder, path: string): void {
         if (folder && folder.itemsMap) {
-          for (var itemName in folder.itemsMap) {
+          for (const itemName in folder.itemsMap) {
             subPaths[path+itemName] = true;
           }
         }
       };
 
-      for (var path in nodes) {
-        var node = nodes[path];
+      for (const path in nodes) {
+        const node = nodes[path];
 
         // TODO Why check for the node here? I don't think this check ever applies
-        if (!node) {
-          continue;
-        }
+        if (!node) { continue; }
 
         if (isFolder(path)) {
           collectSubPaths(node.common, path);
           collectSubPaths(node.local, path);
         } else {
-          if (node.common && typeof(node.common.body) !== 'undefined') {
+          if (node.common && typeof(node.common.body) !== undefined) {
             changedNodes[path] = deepClone(node);
             changedNodes[path].remote = {
               body:      false,
@@ -651,10 +680,10 @@ class Sync {
     });
   }
 
-  completeFetch (path, bodyOrItemsMap, contentType, revision) {
-    var paths;
-    var parentPath;
-    var pathsFromRootArr = pathsFromRoot(path);
+  public async completeFetch (path: string, bodyOrItemsMap: object, contentType: string, revision: string): Promise<any> {
+    let paths: Array<string>;
+    let parentPath: string;
+    const pathsFromRootArr = pathsFromRoot(path);
 
     if (isFolder(path)) {
       paths = [path];
@@ -663,13 +692,13 @@ class Sync {
       paths = [path, parentPath];
     }
 
-    return this.rs.local.getNodes(paths).then(nodes => {
-      var itemName;
-      var missingChildren = {};
-      var node = nodes[path];
-      var parentNode;
+    return this.rs.local.getNodes(paths).then((nodes: RSNodes) => {
+      let itemName: string;
+      let node: RSNode = nodes[path];
+      let parentNode: RSNode;
+      const missingChildren = {};
 
-      var collectMissingChildren = function (folder) {
+      function collectMissingChildren (folder): void {
         if (folder && folder.itemsMap) {
           for (itemName in folder.itemsMap) {
             if (!bodyOrItemsMap[itemName]) {
@@ -714,6 +743,7 @@ class Sync {
       }
 
       nodes[path] = this.autoMerge(node);
+
       return {
         toBeSaved:       nodes,
         missingChildren: missingChildren
@@ -721,9 +751,9 @@ class Sync {
     });
   }
 
-  completePush (path, action, conflict, revision) {
-    return this.rs.local.getNodes([path]).then(nodes => {
-      var node = nodes[path];
+  public async completePush (path: string, action, conflict, revision: string): Promise<void> {
+    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
+      const node = nodes[path];
 
       if (!node.push) {
         this.stopped = true;
@@ -771,8 +801,8 @@ class Sync {
     });
   }
 
-  dealWithFailure (path) {
-    return this.rs.local.getNodes([path]).then(nodes => {
+  public async dealWithFailure (path: string): Promise<void> {
+    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       if (nodes[path]) {
         delete nodes[path].push;
         return this.rs.local.setNodes(this.flush(nodes));
@@ -780,8 +810,8 @@ class Sync {
     });
   }
 
-  interpretStatus (statusCode) {
-    const status = {
+  public interpretStatus (statusCode: string | number): ResponseStatus {
+    const status: ResponseStatus = {
       statusCode:      statusCode,
       successful:      undefined,
       conflict:        undefined,
@@ -791,29 +821,30 @@ class Sync {
       networkProblems: undefined
     };
 
-    if (statusCode === 'offline' || statusCode === 'timeout') {
+    if (typeof statusCode === 'string' &&
+        (statusCode === 'offline' || statusCode === 'timeout')) {
       status.successful = false;
       status.networkProblems = true;
       return status;
+    } else if (typeof statusCode === 'number') {
+      const series = Math.floor(statusCode / 100);
+
+      status.successful = (series === 2 ||
+                           statusCode === 304 ||
+                           statusCode === 412 ||
+                           statusCode === 404),
+      status.conflict   = (statusCode === 412);
+      status.unAuth     = ((statusCode === 401 && this.rs.remote.token !== Authorize.IMPLIED_FAKE_TOKEN) ||
+                           statusCode === 402 ||
+                           statusCode === 403);
+      status.notFound   = (statusCode === 404);
+      status.changed    = (statusCode !== 304);
+
+      return status;
     }
-
-    let series = Math.floor(statusCode / 100);
-
-    status.successful = (series === 2 ||
-                         statusCode === 304 ||
-                         statusCode === 412 ||
-                         statusCode === 404),
-    status.conflict   = (statusCode === 412);
-    status.unAuth     = ((statusCode === 401 && this.rs.remote.token !== Authorize.IMPLIED_FAKE_TOKEN) ||
-                         statusCode === 402 ||
-                         statusCode === 403);
-    status.notFound   = (statusCode === 404);
-    status.changed    = (statusCode !== 304);
-
-    return status;
   }
 
-  handleGetResponse (path, status, bodyOrItemsMap, contentType, revision) {
+  public async handleGetResponse (path: string, status: ResponseStatus, bodyOrItemsMap, contentType: string, revision: string): Promise<boolean> {
     if (status.notFound) {
       if (isFolder(path)) {
         bodyOrItemsMap = {};
@@ -844,8 +875,8 @@ class Sync {
     }
   }
 
-  handleResponse (path, action, r) {
-    var status = this.interpretStatus(r.statusCode);
+  public handleResponse (path: string, action, r): Promise<boolean> {
+    const status = this.interpretStatus(r.statusCode);
 
     if (status.successful) {
       if (action === 'get') {
@@ -858,12 +889,12 @@ class Sync {
         throw new Error(`cannot handle response for unknown action ${action}`);
       }
     } else {
-    // Unsuccessful
-      var error;
+      // Unsuccessful
+      let error: Error;
       if (status.unAuth) {
-        error = new Authorize.Unauthorized();
+        error = new UnauthorizedError();
       } else if (status.networkProblems) {
-        error = new Sync.SyncError('Network request failed.');
+        error = new SyncError('Network request failed.');
       } else {
         error = new Error('HTTP response code ' + status.statusCode + ' received.');
       }
@@ -875,7 +906,7 @@ class Sync {
     }
   }
 
-  finishTask (task) {
+  public finishTask (task: SyncTask): void | Promise<void> {
     if (task.action === undefined) {
       delete this._running[task.path];
       return;
@@ -894,7 +925,7 @@ class Sync {
 
         if (completed) {
           if (this._tasks[task.path]) {
-            for (var i=0; i < this._tasks[task.path].length; i++) {
+            for (let i=0; i < this._tasks[task.path].length; i++) {
               this._tasks[task.path][i]();
             }
             delete this._tasks[task.path];
@@ -930,8 +961,8 @@ class Sync {
       });
   }
 
-  doTasks () {
-    let numToHave, numAdded = 0, numToAdd, path;
+  public doTasks (): boolean {
+    let numToHave: number, numAdded = 0, path: string;
     if (this.rs.remote.connected) {
       if (this.rs.remote.online) {
         numToHave = this.numThreads;
@@ -941,7 +972,7 @@ class Sync {
     } else {
       numToHave = 0;
     }
-    numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
+    const numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
     if (numToAdd <= 0) {
       return true;
     }
@@ -959,7 +990,7 @@ class Sync {
     return (numAdded >= numToAdd);
   }
 
-  collectTasks (alsoCheckRefresh) {
+  public async collectTasks (alsoCheckRefresh?: boolean): Promise<void> {
     if (this.hasTasks() || this.stopped) {
       return Promise.resolve();
     }
@@ -973,7 +1004,7 @@ class Sync {
     }, function (err) { throw err; });
   }
 
-  addTask (path, cb) {
+  public addTask (path: string, cb?: Function): void {
     if (!this._tasks[path]) {
       this._tasks[path] = [];
     }
@@ -985,7 +1016,7 @@ class Sync {
   /**
    * Method: sync
    **/
-  sync () {
+  public sync (): Promise<void> {
     this.done = false;
 
     if (!this.doTasks()) {
@@ -1004,11 +1035,13 @@ class Sync {
     }
   }
 
-  static _rs_init (remoteStorage) {
-    syncCycleCb = function () {
+  static _rs_init (remoteStorage): void {
+    syncCycleCb = function (): void {
       // if (!config.cache) return false
       log('[Sync] syncCycleCb calling syncCycle');
-      if (Env.isBrowser()) { handleVisibility(remoteStorage); }
+
+      const env = new Env();
+      if (env.isBrowser()) { handleVisibility(env, remoteStorage); }
 
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
@@ -1025,7 +1058,7 @@ class Sync {
       remoteStorage.syncCycle();
     };
 
-    syncOnConnect = function() {
+    syncOnConnect = function (): void {
       remoteStorage.removeEventListener('connected', syncOnConnect);
       remoteStorage.startSync();
     };
@@ -1034,7 +1067,7 @@ class Sync {
     remoteStorage.on('connected', syncOnConnect);
   }
 
-  static _rs_cleanup (remoteStorage) {
+  static _rs_cleanup (remoteStorage): void {
     remoteStorage.stopSync();
     remoteStorage.removeEventListener('ready', syncCycleCb);
     remoteStorage.removeEventListener('connected', syncOnConnect);
@@ -1042,23 +1075,9 @@ class Sync {
     remoteStorage.sync = undefined;
     delete remoteStorage.sync;
   }
-
-}
-
-Sync.SyncError = class extends Error {
-  constructor (originalError) {
-    super();
-    this.name = 'SyncError';
-    let msg = 'Sync failed: ';
-    if (typeof(originalError) === 'object' && 'message' in originalError) {
-      msg += originalError.message;
-      this.stack = originalError.stack;
-      this.originalError = originalError;
-    } else {
-      msg += originalError;
-    }
-    this.message = msg;
-  }
 };
 
-module.exports = Sync;
+interface Sync extends EventHandling {};
+applyMixins(Sync, [EventHandling]);
+
+export default Sync;

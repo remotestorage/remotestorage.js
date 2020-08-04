@@ -2,8 +2,9 @@
 \#*
 .#*
 *.swp
-node_modules
 *.log
+/build
+node_modules
 server/server-state
 server-state
 doc/code

@@ -1,17 +1,18 @@
 'use strict';
 
-const log = require('./log');
-const util = require('./util');
-const WebFinger = require('webfinger.js');
+import WebFinger from 'webfinger.js';
+import log from './log';
+import { globalContext, localStorageAvailable } from './util';
 
 // feature detection flags
-var haveXMLHttpRequest, hasLocalStorage;
+let haveXMLHttpRequest, hasLocalStorage;
 
 // used to store settings in localStorage
-var SETTINGS_KEY = 'remotestorage:discover';
+const SETTINGS_KEY = 'remotestorage:discover';
 
 // cache loaded from localStorage
-var cachedInfo = {};
+// TODO use class property
+let cachedInfo = {};
 
 /**
  * This function deals with the Webfinger lookup, discovering a connecting
@@ -26,14 +27,14 @@ var cachedInfo = {};
  *          properties - Webfinger link properties
  **/
 
-const Discover = function Discover(userAddress) {
+const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
   return new Promise((resolve, reject) => {
 
     if (userAddress in cachedInfo) {
       return resolve(cachedInfo[userAddress]);
     }
 
-    var webFinger = new WebFinger({
+    const webFinger = new WebFinger({
       tls_only: false,
       uri_fallback: true,
       request_timeout: 5000
@@ -49,10 +50,10 @@ const Discover = function Discover(userAddress) {
         return reject("WebFinger record for " + userAddress + " does not have remotestorage defined in the links section.");
       }
 
-      var rs = response.idx.links.remotestorage[0];
-      var authURL = rs.properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
+      const rs = response.idx.links.remotestorage[0];
+      const authURL = rs.properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
                     rs.properties['auth-endpoint'];
-      var storageApi = rs.properties['http://remotestorage.io/spec/version'] ||
+      const storageApi = rs.properties['http://remotestorage.io/spec/version'] ||
                        rs.type;
 
       // cache fetched data
@@ -80,27 +81,28 @@ Discover.DiscoveryError = function(message) {
 Discover.DiscoveryError.prototype = Object.create(Error.prototype);
 Discover.DiscoveryError.prototype.constructor = Discover.DiscoveryError;
 
-Discover._rs_init = function (/*remoteStorage*/) {
-  hasLocalStorage = util.localStorageAvailable();
+Discover._rs_init = function (/*remoteStorage*/): void {
+  hasLocalStorage = localStorageAvailable();
   if (hasLocalStorage) {
-    var settings;
-    try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) { /* empty */ }
-    if (settings) {
+    try {
+      const settings = JSON.parse(localStorage[SETTINGS_KEY]);
       cachedInfo = settings.cache;
+    } catch(e) {
+      /* empty */
     }
   }
 };
 
-Discover._rs_supported = function () {
-  haveXMLHttpRequest = !! util.globalContext.XMLHttpRequest;
+Discover._rs_supported = function (): boolean {
+  haveXMLHttpRequest = Object.prototype.hasOwnProperty.call(globalContext, 'XMLHttpRequest');
   return haveXMLHttpRequest;
 };
 
-Discover._rs_cleanup = function () {
+Discover._rs_cleanup = function (): void {
   if (hasLocalStorage) {
     delete localStorage[SETTINGS_KEY];
   }
 };
 
 
-module.exports = Discover;
+export default Discover;
