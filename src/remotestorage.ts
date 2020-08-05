@@ -56,7 +56,7 @@ function emitUnauthorized(r) {
  * @param {object} config - an optional configuration object
  * @class
  */
-const RemoteStorage = function (cfg) {
+const RemoteStorage = function (cfg?) {
 
   // Initial configuration property settings.
   if (typeof cfg === 'object') {

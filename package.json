@@ -13,7 +13,8 @@
   "homepage": "https://remotestorage.io",
   "scripts": {
     "test": "tsc && bash scripts/test-all.sh",
-    "test:mocha": "mocha test/unit/*.test.js --require esm",
+    "test:mocha": "mocha test/unit/*.test.ts",
+    "test:watch": "mocha test/unit/*.test.ts --watch",
     "lint": "eslint --quiet --ext=ts src/",
     "format": "esformatter --config esformatter-config.json -i src/sync.js",
     "build:js": "tsc -d --declarationDir release/types",
@@ -33,6 +34,8 @@
   "devDependencies": {
     "@babel/core": "^7.8.4",
     "@babel/preset-env": "^7.8.4",
+    "@types/chai": "^4.2.12",
+    "@types/mocha": "^8.0.1",
     "@types/node": "12.12.6",
     "@types/tv4": "^1.2.29",
     "@typescript-eslint/eslint-plugin": "^2.27.0",
@@ -44,6 +47,7 @@
     "jaribu": "^2.2.2",
     "mocha": "^8.1.0",
     "ts-loader": "^8.0.2",
+    "ts-node": "^8.10.2",
     "typescript": "^3.8.3",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10"
