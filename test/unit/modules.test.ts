@@ -1,16 +1,16 @@
 // TODO move to RemoteStorage suite, once it exists. (Functions from the source
 // modules.ts file have already been moved.)
+import 'mocha';
 import { expect } from 'chai';
-import RemoteStorage from './build/remotestorage.js';
+import RemoteStorage from '../../src/remotestorage';
 
-describe('RemoteStorage modules', function() {
+describe('RemoteStorage module initialization', function() {
   const env = {
     rs: new RemoteStorage()
-  }
+  };
 
   before(function() {
     RemoteStorage.prototype.remote = { connected: false };
-    RemoteStorage.BaseClient = function() {};
   });
 
   describe('addModule()', function() {
@@ -37,4 +37,4 @@ describe('RemoteStorage modules', function() {
       expect(rs.bar.it).to.equal('worked');
     });
   });
-})
+});
