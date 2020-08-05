@@ -1,3 +1,5 @@
+// TODO move to RemoteStorage suite, once it exists. (Functions from the source
+// modules.ts file have already been moved.)
 import { expect } from 'chai';
 import RemoteStorage from './build/remotestorage.js';
 
