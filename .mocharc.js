@@ -3,7 +3,7 @@
 module.exports = {
   diff: true,
   extension: ['ts'],
-  reporter: 'dot',
+  reporter: 'spec',
   require: 'ts-node/register',
   'watch-files': ['src/**/*.ts', 'test/unit/*.ts']
 };

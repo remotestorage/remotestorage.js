@@ -14,7 +14,7 @@
   "scripts": {
     "test": "tsc && bash scripts/test-all.sh",
     "test:mocha": "mocha test/unit/*.test.ts",
-    "test:watch": "mocha test/unit/*.test.ts --watch",
+    "test:watch": "mocha test/unit/*.test.ts --watch --reporter dot",
     "lint": "eslint --quiet --ext=ts src/",
     "format": "esformatter --config esformatter-config.json -i src/sync.js",
     "build:js": "tsc -d --declarationDir release/types",
