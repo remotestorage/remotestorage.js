@@ -45,3 +45,4 @@ declare const GoogleDrive: {
 interface GoogleDrive extends EventHandling {
 }
 export default GoogleDrive;
+//# sourceMappingURL=googledrive.d.ts.map

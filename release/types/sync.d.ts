@@ -89,3 +89,4 @@ declare class Sync {
 interface Sync extends EventHandling {
 }
 export default Sync;
+//# sourceMappingURL=sync.d.ts.map

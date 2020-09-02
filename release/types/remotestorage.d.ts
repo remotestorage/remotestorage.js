@@ -25,3 +25,4 @@ declare const RemoteStorage: {
 interface RemoteStorage extends EventHandling {
 }
 export default RemoteStorage;
+//# sourceMappingURL=remotestorage.d.ts.map

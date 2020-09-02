@@ -60,3 +60,4 @@ export default class Caching {
      **/
     static _rs_init(): void;
 }
+//# sourceMappingURL=caching.d.ts.map

@@ -86,3 +86,4 @@ export default class Access {
     setStorageType(type: string): void;
 }
 export {};
+//# sourceMappingURL=access.d.ts.map

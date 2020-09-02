@@ -10,3 +10,4 @@ declare namespace BaseClient {
 interface BaseClient extends EventHandling {
 }
 export default BaseClient;
+//# sourceMappingURL=baseclient.d.ts.map

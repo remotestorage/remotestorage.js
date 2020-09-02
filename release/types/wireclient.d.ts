@@ -16,3 +16,4 @@ declare const WireClient: {
 interface WireClient extends EventHandling {
 }
 export default WireClient;
+//# sourceMappingURL=wireclient.d.ts.map

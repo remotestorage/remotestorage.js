@@ -21,3 +21,4 @@ declare const config: {
     syncInterval: number;
 };
 export default config;
+//# sourceMappingURL=config.d.ts.map

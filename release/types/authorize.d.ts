@@ -28,3 +28,4 @@ export default class Authorize {
     static _rs_cleanup(remoteStorage: any): void;
 }
 export {};
+//# sourceMappingURL=authorize.d.ts.map

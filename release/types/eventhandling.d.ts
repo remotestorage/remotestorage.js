@@ -24,3 +24,4 @@ export default class EventHandling {
     _addEvent(eventName: string): void;
 }
 export {};
+//# sourceMappingURL=eventhandling.d.ts.map

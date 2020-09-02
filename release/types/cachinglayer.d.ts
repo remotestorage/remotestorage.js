@@ -42,3 +42,4 @@ declare function makeNode(path: string): RSNode;
 interface CachingLayer extends EventHandling {
 }
 export default CachingLayer;
+//# sourceMappingURL=cachinglayer.d.ts.map

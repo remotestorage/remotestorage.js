@@ -4,3 +4,4 @@ export default class UnauthorizedError extends Error {
         code?: string;
     });
 }
+//# sourceMappingURL=unauthorized-error.d.ts.map

@@ -46,3 +46,4 @@ export declare const getTextFromArrayBuffer: (arrayBuffer: ArrayBuffer, encoding
  */
 export declare const toBase64: (str: string) => string;
 export declare function applyMixins(derivedCtor: any, baseCtors: any[]): void;
+//# sourceMappingURL=util.d.ts.map
