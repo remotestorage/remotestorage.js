@@ -1,4 +1,3 @@
-/// <reference types="mocha" />
 /// <reference types="node" />
 import Global = NodeJS.Global;
 export declare const logError: (error: string | Error) => void;
