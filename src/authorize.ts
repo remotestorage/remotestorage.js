@@ -187,7 +187,10 @@ export default class Authorize {
     onFeaturesLoaded = function() {
       let authParamsUsed = false;
 
-      if (!params) { return; };
+      if (!params) {
+        remoteStorage.remote.stopWaitingForToken();
+        return;
+      };
 
       if (params.error) {
         if (params.error === 'access_denied') {
