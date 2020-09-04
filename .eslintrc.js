@@ -22,6 +22,13 @@ module.exports = {
     "Uint32Array": true,
     "Float32Array": true,
     "Float64Array": true,
+    // Mocha
+    "describe": true,
+    "before": true,
+    "beforeEach": true,
+    "after": true,
+    "afterEach": true,
+    "it": true
   },
   rules: {
     "complexity": ["warn"],
