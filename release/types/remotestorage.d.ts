@@ -1,4 +1,5 @@
 import Authorize from './authorize';
+import Caching from './caching';
 import EventHandling from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
@@ -52,6 +53,10 @@ declare class RemoteStorage {
      * TODO use type Sync
      */
     sync: any;
+    /**
+     * Holds the feature class instance, added by feature initialization
+     */
+    caching: Caching;
     _syncTimer: any;
     syncStopped: any;
     get: any;
