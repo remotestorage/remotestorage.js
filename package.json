@@ -50,5 +50,5 @@
     "webfinger.js": "^2.7.0",
     "xhr2": "^0.2.0"
   },
-  "types": "./release/types/"
+  "types": "./release/types/remotestorage.d.ts"
 }
