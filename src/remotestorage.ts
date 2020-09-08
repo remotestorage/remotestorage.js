@@ -97,6 +97,10 @@ class RemoteStorage {
    * TODO use type Sync
    */
   sync: any;
+  /**
+   * Holds the feature class instance, added by feature initialization
+   */
+  caching: Caching;
 
   // TODO use correct types, document
   _syncTimer: any;
