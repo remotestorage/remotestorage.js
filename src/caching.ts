@@ -87,7 +87,7 @@ export default class Caching {
     for (let i = 0; i < this.pendingActivations.length; i++) {
       cb(this.pendingActivations[i]);
     }
-    delete this.pendingActivations;
+    this.pendingActivations = [];
   }
 
   /**
