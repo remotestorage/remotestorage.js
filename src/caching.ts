@@ -1,5 +1,4 @@
 import { containingFolder, isFolder } from './util';
-import { CachingStrategy } from './interfaces/caching';
 import log from './log';
 
 /**
@@ -26,7 +25,7 @@ export default class Caching {
    * @param {string} path - Path to cache
    * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
    */
-  set (path: string, strategy: CachingStrategy): void {
+  set (path: string, strategy: 'ALL' | 'SEEN' | 'FLUSH'): void {
     if (typeof path !== 'string') {
       throw new Error('path should be a string');
     }
