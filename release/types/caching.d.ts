@@ -1,4 +1,3 @@
-import { CachingStrategy } from './interfaces/caching';
 /**
  * @class Caching
  *
@@ -17,7 +16,7 @@ export default class Caching {
      * @param {string} path - Path to cache
      * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
      */
-    set(path: string, strategy: CachingStrategy): void;
+    set(path: string, strategy: 'ALL' | 'SEEN' | 'FLUSH'): void;
     /**
      * Enable caching for a given path.
      *
@@ -60,3 +59,4 @@ export default class Caching {
      **/
     static _rs_init(): void;
 }
+//# sourceMappingURL=caching.d.ts.map

@@ -118,3 +118,4 @@ declare class IndexedDB extends CachingLayer {
 interface IndexedDB extends EventHandling {
 }
 export default IndexedDB;
+//# sourceMappingURL=indexeddb.d.ts.map

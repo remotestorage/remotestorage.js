@@ -39,3 +39,4 @@ declare class InMemoryStorage extends CachingLayer {
 interface InMemoryStorage extends EventHandling {
 }
 export default InMemoryStorage;
+//# sourceMappingURL=inmemorystorage.d.ts.map

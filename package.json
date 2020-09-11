@@ -15,7 +15,7 @@
     "test": "tsc && bash scripts/test-all.sh",
     "lint": "eslint --quiet --ext=ts src/",
     "format": "esformatter --config esformatter-config.json -i src/sync.js",
-    "build:js": "tsc -d --declarationDir release/types",
+    "build:js": "tsc -d --declarationDir release/types --declarationMap",
     "build:release": "NODE_ENV=production webpack --mode=production",
     "build:dev": "webpack --mode=development",
     "build:docs": "cd doc && sphinx-build -v . _build/html",
@@ -49,5 +49,6 @@
     "tv4": "^1.3.0",
     "webfinger.js": "^2.7.0",
     "xhr2": "^0.2.0"
-  }
+  },
+  "types": "./release/types/remotestorage.d.ts"
 }

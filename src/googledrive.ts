@@ -1,19 +1,3 @@
-/**
- * @class GoogleDrive
- *
- * To use this backend, you need to specify the app's client ID like so:
- *
- * @example
- * remoteStorage.setApiKeys({
- *   googledrive: 'your-client-id'
- * });
- *
- * A client ID can be obtained by registering your app in the Google
- * Developers Console: https://console.developers.google.com/flows/enableapi?apiid=drive
- *
- * Docs: https://developers.google.com/drive/v3/web/quickstart/js
-**/
-
 import BaseClient from './baseclient';
 import WireClient from './wireclient';
 import EventHandling from './eventhandling';
@@ -135,29 +119,79 @@ class FileIdCache {
   }
 };
 
-const GoogleDrive = function (remoteStorage, clientId) {
+/**
+ * Overwrite BaseClient's getItemURL with our own implementation
+ *
+ * TODO: Still needs to be implemented. At the moment it just throws
+ * and error saying that it's not implemented yet.
+ *
+ * @param {object} rs - RemoteStorage instance
+ *
+ * @private
+ */
+function hookGetItemURL (rs): void {
+  if (rs._origBaseClientGetItemURL) { return; }
+  rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
+  BaseClient.prototype.getItemURL = function (/* path */): never {
+    throw new Error('getItemURL is not implemented for Google Drive yet');
+  };
+}
 
-  this.addEvents(['connected', 'not-connected']);
+/**
+ * Restore BaseClient's getItemURL original implementation
+ *
+ * @param {object} rs - RemoteStorage instance
+ *
+ * @private
+ */
+function unHookGetItemURL (rs): void {
+  if (!rs._origBaseClientGetItemURL) { return; }
+  BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
+  delete rs._origBaseClientGetItemURL;
+}
 
-  this.rs = remoteStorage;
-  this.clientId = clientId;
+/**
+ * @class GoogleDrive
+ *
+ * To use this backend, you need to specify the app's client ID like so:
+ *
+ * @example
+ * remoteStorage.setApiKeys({
+ *   googledrive: 'your-client-id'
+ * });
+ *
+ * A client ID can be obtained by registering your app in the Google
+ * Developers Console: https://console.developers.google.com/flows/enableapi?apiid=drive
+ *
+ * Docs: https://developers.google.com/drive/v3/web/quickstart/js
+**/
+class GoogleDrive {
+  rs: any;
+  clientId: string;
+  userAddress: string;
+  token: string;
+  connected = false;
+  online = true;
 
-  this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
+  _fileIdCache: FileIdCache;
 
-  hasLocalStorage = localStorageAvailable();
+  constructor(remoteStorage, clientId) {
+    this.addEvents(['connected', 'not-connected']);
 
-  if (hasLocalStorage){
-    const settings = getJSONFromLocalStorage(SETTINGS_KEY);
-    if (settings) {
-      this.configure(settings);
+    this.rs = remoteStorage;
+    this.clientId = clientId;
+
+    this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
+
+    hasLocalStorage = localStorageAvailable();
+
+    if (hasLocalStorage){
+      const settings = getJSONFromLocalStorage(SETTINGS_KEY);
+      if (settings) {
+        this.configure(settings);
+      }
     }
   }
-
-};
-
-GoogleDrive.prototype = {
-  connected: false,
-  online: true,
 
   /**
    * Configure the Google Drive backend.
@@ -170,7 +204,7 @@ GoogleDrive.prototype = {
    *
    * @protected
    */
-  configure: function (settings) { // Settings parameter compatible with WireClient
+  configure (settings) { // Settings parameter compatible with WireClient
     // We only update this.userAddress if settings.userAddress is set to a string or to null
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
     // Same for this.token. If only one of these two is set, we leave the other one at its existing value
@@ -212,26 +246,26 @@ GoogleDrive.prototype = {
     } else {
       handleError.apply(this);
     }
-  },
+  }
 
   /**
    * Initiate the authorization flow's OAuth dance.
    */
-  connect: function (): void {
+  connect (): void {
     this.rs.setBackend('googledrive');
     this.rs.authorize({ authURL: AUTH_URL, scope: AUTH_SCOPE, clientId: this.clientId });
-  },
+  }
 
   /**
    * Stop the authorization process.
    *
    * @protected
    */
-  stopWaitingForToken: function (): void {
+  stopWaitingForToken (): void {
     if (!this.connected) {
       this._emit('not-connected');
     }
-  },
+  }
 
   /**
    * Request a resource (file or directory).
@@ -243,13 +277,13 @@ GoogleDrive.prototype = {
    *
    * @protected
    */
-  get: function (path, options) {
-    if (path.substr(-1) === '/') {
-      return this._getFolder(googleDrivePath(path), options);
+  get (path, options) {
+    if (isFolder(path)) {
+      return this._getFolder(googleDrivePath(path));
     } else {
       return this._getFile(googleDrivePath(path), options);
     }
-  },
+  }
 
   /**
    * Create or update a file.
@@ -265,7 +299,7 @@ GoogleDrive.prototype = {
    *
    * @protected
    */
-  put: function (path, body, contentType, options) {
+  put (path, body, contentType, options) {
     const fullPath = googleDrivePath(path);
 
     function putDone(response) {
@@ -287,10 +321,10 @@ GoogleDrive.prototype = {
         }
         return this._updateFile(id, fullPath, body, contentType, options).then(putDone);
       } else {
-        return this._createFile(fullPath, body, contentType, options).then(putDone);
+        return this._createFile(fullPath, body, contentType).then(putDone);
       }
     });
-  },
+  }
 
   /**
    * Delete a file.
@@ -303,7 +337,7 @@ GoogleDrive.prototype = {
    *
    * @protected
    */
-  'delete': function (path, options) {
+  delete (path, options) {
     const fullPath = googleDrivePath(path);
 
     return this._getFileId(fullPath).then((id) => {
@@ -330,7 +364,7 @@ GoogleDrive.prototype = {
         });
       });
     });
-  },
+  }
 
   /**
    * Fetch the user's info from Google.
@@ -339,7 +373,7 @@ GoogleDrive.prototype = {
    *
    * @protected
    */
-  info: function () {
+  info () {
     const url = BASE_URL + '/drive/v2/about?fields=user';
     // requesting user info(mainly for userAdress)
     return this._request('GET', url, {}).then(function (resp){
@@ -350,7 +384,7 @@ GoogleDrive.prototype = {
         return Promise.reject(e);
       }
     });
-  },
+  }
 
   /**
    * Update an existing file.
@@ -366,7 +400,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _updateFile: function (id, path, body, contentType, options) {
+  _updateFile (id, path, body, contentType, options) {
     const metadata = {
       mimeType: contentType
     };
@@ -390,7 +424,7 @@ GoogleDrive.prototype = {
         });
       }
     });
-  },
+  }
 
   /**
    * Create a new file.
@@ -402,7 +436,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _createFile: function (path, body, contentType/*, options*/) {
+  _createFile (path, body, contentType) {
     return this._getParentId(path).then((parentId) => {
       const fileName = baseName(path);
       const metadata = {
@@ -424,7 +458,7 @@ GoogleDrive.prototype = {
         });
       });
     });
-  },
+  }
 
   /**
    * Request a file.
@@ -438,7 +472,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _getFile: function (path, options) {
+  _getFile (path, options) {
     return this._getFileId(path).then((id) => {
       return this._getMeta(id).then((meta) => {
         let etagWithoutQuotes;
@@ -491,7 +525,7 @@ GoogleDrive.prototype = {
         });
       });
     });
-  },
+  }
 
   /**
    * Request a directory.
@@ -503,7 +537,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _getFolder: function (path/*, options*/) {
+  _getFolder (path) {
     return this._getFileId(path).then((id) => {
       let data, etagWithoutQuotes, itemsMap;
       if (! id) {
@@ -550,7 +584,7 @@ GoogleDrive.prototype = {
         return Promise.resolve({statusCode: 200, body: itemsMap, contentType: RS_DIR_MIME_TYPE, revision: undefined});
       });
     });
-  },
+  }
 
   /**
    * Get the ID of a parent path.
@@ -562,7 +596,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _getParentId: function (path) {
+  _getParentId (path) {
     const foldername = parentPath(path);
 
     return this._getFileId(foldername).then((parentId) => {
@@ -572,7 +606,7 @@ GoogleDrive.prototype = {
         return this._createFolder(foldername);
       }
     });
-  },
+  }
 
   /**
    * Create a directory.
@@ -584,7 +618,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _createFolder: function (path) {
+  _createFolder (path) {
     return this._getParentId(path).then((parentId) => {
       return this._request('POST', BASE_URL + '/drive/v2/files', {
         body: JSON.stringify({
@@ -602,7 +636,7 @@ GoogleDrive.prototype = {
         return Promise.resolve(meta.id);
       });
     });
-  },
+  }
 
   /**
    * Get the ID of a file.
@@ -612,7 +646,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _getFileId: function (path) {
+  _getFileId (path) {
     let id;
 
     if (path === '/') {
@@ -637,7 +671,7 @@ GoogleDrive.prototype = {
       }
       return Promise.resolve(id);
     });
-  },
+  }
 
   /**
    * Get the metadata for a given file ID.
@@ -647,7 +681,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _getMeta: function (id) {
+  _getMeta (id) {
     return this._request('GET', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
       if (response.status === 200) {
         return Promise.resolve(JSON.parse(response.responseText));
@@ -655,7 +689,7 @@ GoogleDrive.prototype = {
         return Promise.reject("request (getting metadata for " + id + ") failed with status: " + response.status);
       }
     });
-  },
+  }
 
   /**
    * Make a network request.
@@ -667,7 +701,7 @@ GoogleDrive.prototype = {
    *
    * @private
    */
-  _request: function (method, url, options) {
+  _request (method, url, options) {
     if (! options.headers) { options.headers = {}; }
     options.headers['Authorization'] = 'Bearer ' + this.token;
 
@@ -708,86 +742,55 @@ GoogleDrive.prototype = {
       return Promise.reject(error);
     });
   }
-};
 
-/**
- * Overwrite BaseClient's getItemURL with our own implementation
- *
- * TODO: Still needs to be implemented. At the moment it just throws
- * and error saying that it's not implemented yet.
- *
- * @param {object} rs - RemoteStorage instance
- *
- * @private
- */
-function hookGetItemURL (rs): void {
-  if (rs._origBaseClientGetItemURL) { return; }
-  rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
-  BaseClient.prototype.getItemURL = function (/* path */): never {
-    throw new Error('getItemURL is not implemented for Google Drive yet');
-  };
-}
+  /**
+   * Initialize the Google Drive backend.
+   *
+   * @param {Object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
+  static _rs_init (remoteStorage): void {
+    const config = remoteStorage.apiKeys.googledrive;
+    if (config) {
+      remoteStorage.googledrive = new GoogleDrive(remoteStorage, config.clientId);
+      if (remoteStorage.backend === 'googledrive') {
+        remoteStorage._origRemote = remoteStorage.remote;
+        remoteStorage.remote = remoteStorage.googledrive;
 
-/**
- * Restore BaseClient's getItemURL original implementation
- *
- * @param {object} rs - RemoteStorage instance
- *
- * @private
- */
-function unHookGetItemURL (rs): void {
-  if (!rs._origBaseClientGetItemURL) { return; }
-  BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
-  delete rs._origBaseClientGetItemURL;
-}
-
-/**
- * Initialize the Google Drive backend.
- *
- * @param {Object} remoteStorage - RemoteStorage instance
- *
- * @protected
- */
-GoogleDrive._rs_init = function (remoteStorage): void {
-  const config = remoteStorage.apiKeys.googledrive;
-  if (config) {
-    remoteStorage.googledrive = new GoogleDrive(remoteStorage, config.clientId);
-    if (remoteStorage.backend === 'googledrive') {
-      remoteStorage._origRemote = remoteStorage.remote;
-      remoteStorage.remote = remoteStorage.googledrive;
-
-      hookGetItemURL(remoteStorage);
+        hookGetItemURL(remoteStorage);
+      }
     }
   }
-};
 
-/**
- * Inform about the availability of the Google Drive backend.
- *
- * @param {Object} rs - RemoteStorage instance
- * @returns {Boolean}
- *
- * @protected
- */
-GoogleDrive._rs_supported = function (): boolean {
-  return true;
-};
+  /**
+   * Inform about the availability of the Google Drive backend.
+   *
+   * @param {Object} rs - RemoteStorage instance
+   * @returns {Boolean}
+   *
+   * @protected
+   */
+  static _rs_supported (): boolean {
+    return true;
+  };
 
-/**
- * Remove Google Drive as a backend.
- *
- * @param {Object} remoteStorage - RemoteStorage instance
- *
- * @protected
- */
-GoogleDrive._rs_cleanup = function (remoteStorage): void {
-  remoteStorage.setBackend(undefined);
-  if (remoteStorage._origRemote) {
-    remoteStorage.remote = remoteStorage._origRemote;
-    delete remoteStorage._origRemote;
-  }
-  unHookGetItemURL(remoteStorage);
-};
+  /**
+   * Remove Google Drive as a backend.
+   *
+   * @param {Object} remoteStorage - RemoteStorage instance
+   *
+   * @protected
+   */
+  static _rs_cleanup (remoteStorage): void {
+    remoteStorage.setBackend(undefined);
+    if (remoteStorage._origRemote) {
+      remoteStorage.remote = remoteStorage._origRemote;
+      delete remoteStorage._origRemote;
+    }
+    unHookGetItemURL(remoteStorage);
+  };
+}
 
 interface GoogleDrive extends EventHandling {};
 applyMixins(GoogleDrive, [EventHandling]);

@@ -40,3 +40,4 @@ export declare class BaseClientTypes {
 }
 declare const Types: BaseClientTypes;
 export default Types;
+//# sourceMappingURL=types.d.ts.map

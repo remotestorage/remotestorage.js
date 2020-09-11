@@ -6,7 +6,7 @@ interface AuthOptions {
   authURL: string;
   scope?: string;
   clientId?: string;
-  redirectUri: string;
+  redirectUri?: string;
 }
 
 interface AuthResult {

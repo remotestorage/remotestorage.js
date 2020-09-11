@@ -2,7 +2,7 @@ interface AuthOptions {
     authURL: string;
     scope?: string;
     clientId?: string;
-    redirectUri: string;
+    redirectUri?: string;
 }
 export default class Authorize {
     static IMPLIED_FAKE_TOKEN: boolean;
@@ -28,3 +28,4 @@ export default class Authorize {
     static _rs_cleanup(remoteStorage: any): void;
 }
 export {};
+//# sourceMappingURL=authorize.d.ts.map

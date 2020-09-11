@@ -1,5 +1,4 @@
 import tv4 from 'tv4';
-import { CachingStrategy } from './interfaces/caching';
 import Types from './types';
 import SchemaNotFound from './schema-not-found-error';
 import EventHandling from './eventhandling';
@@ -324,7 +323,7 @@ BaseClient.prototype = {
    *
    * @returns {BaseClient} The same instance this is called on to allow for method chaining
    */
-  cache: function (path: string, strategy: CachingStrategy = 'ALL') {
+  cache: function (path: string, strategy: 'ALL' | 'SEEN' | 'FLUSH' = 'ALL') {
     if (typeof path !== 'string') {
       throw 'Argument \'path\' of baseClient.cache must be a string';
     }
