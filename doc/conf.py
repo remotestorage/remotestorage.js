@@ -43,7 +43,7 @@ templates_path = ['_templates']
 
 # Used to extract JSDoc function/class docs from source
 js_language = 'typescript'
-js_source_path = '../src'
+js_source_path = '../src/'
 jsdoc_config_path = '../tsconfig.json'
 primary_domain = 'js'
 
