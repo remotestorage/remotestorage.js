@@ -4,14 +4,14 @@ RemoteStorage
 Constructor
 -----------
 
-Create a ``remoteStorage`` instance like so::
+Create a ``remoteStorage`` class instance like so::
 
-   var remoteStorage = new RemoteStorage();
+   const remoteStorage = new RemoteStorage();
 
 The constructor can optionally be called with a configuration object. This
 example shows all default values::
 
-   var remoteStorage = new RemoteStorage({
+   const remoteStorage = new RemoteStorage({
      cache: true,
      changeEvents: {
        local:    true,
@@ -27,7 +27,7 @@ example shows all default values::
 .. NOTE::
    In the current version, it is only possible to use a single
    ``RemoteStorage`` instance. You cannot connect to two different remotes yet.
-   We intend to support this soon (see issue :issue:`991`)
+   We intend to support this eventually (see issue :issue:`991`)
 
 .. WARNING::
    For the change events configuration, you currently have to set all events
@@ -138,13 +138,10 @@ List of events
 """"""""""""""""""""""""
    Emitted when the sync interval changes
 
-Prototype functions
--------------------
+Methods
+-------
 
-The following functions can be called on your ``remoteStorage`` instance:
-
-.. autofunction:: RemoteStorage#authorize(options)
-  :short-name:
+The following methods can be called on your ``remoteStorage`` instance:
 
 .. autofunction:: RemoteStorage#connect(userAddress, [token])
   :short-name:
