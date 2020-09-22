@@ -4,26 +4,16 @@ import SchemaNotFound from './schema-not-found-error';
 import EventHandling from './eventhandling';
 import config from './config';
 import { applyMixins, cleanPath } from './util';
+import RemoteStorage from './remotestorage';
 
 /**
  * Provides a high-level interface to access data below a given root path.
  */
-function BaseClient (storage, base: string) {
-  if (base[base.length - 1] !== '/') {
-    throw "Not a folder: " + base;
-  }
-
-  if (base === '/') {
-    // allow absolute and relative paths for the root scope.
-    this.makePath = (path: string): string => {
-      return (path[0] === '/' ? '' : '/') + path;
-    };
-  }
-
+class BaseClient {
   /**
    * The <RemoteStorage> instance this <BaseClient> operates on.
    */
-  this.storage = storage;
+  storage: RemoteStorage;
 
   /**
    * Base path, which this <BaseClient> operates on.
@@ -31,26 +21,40 @@ function BaseClient (storage, base: string) {
    * For the module's privateClient this would be /<moduleName>/, for the
    * corresponding publicClient /public/<moduleName>/.
    */
-  this.base = base;
+  base: string;
 
-  /**
-   * TODO: document what this does exactly
-   */
-  const parts = this.base.split('/');
-  if (parts.length > 2) {
-    this.moduleName = parts[1];
-  } else {
-    this.moduleName = 'root';
+  moduleName: string;
+
+  constructor(storage: RemoteStorage, base: string) {
+    if (base[base.length - 1] !== '/') {
+      throw "Not a folder: " + base;
+    }
+
+    if (base === '/') {
+      // allow absolute and relative paths for the root scope.
+      this.makePath = (path: string): string => {
+        return (path[0] === '/' ? '' : '/') + path;
+      };
+    }
+
+    this.storage = storage;
+    this.base = base;
+
+    /**
+     * TODO: document
+     */
+    const parts = this.base.split('/');
+    if (parts.length > 2) {
+      this.moduleName = parts[1];
+    } else {
+      this.moduleName = 'root';
+    }
+
+    this.addEvents(['change']);
+    this.on = this.on.bind(this);
+    storage.onChange(this.base, this._fireChange.bind(this));
   }
 
-  this.addEvents(['change']);
-  this.on = this.on.bind(this);
-  storage.onChange(this.base, this._fireChange.bind(this));
-};
-
-BaseClient.Types = Types;
-
-BaseClient.prototype = {
   /**
    * Instantiate a new client, scoped to a subpath of the current client's
    * path.
@@ -60,10 +64,9 @@ BaseClient.prototype = {
    * @returns {BaseClient} A new client operating on a subpath of the current
    *                       base path.
    */
-  // TODO add real type (requires bigger refactor)
-  scope: function (path: string): unknown {
+  scope (path: string): BaseClient {
     return new BaseClient(this.storage, this.makePath(path));
-  },
+  }
 
   /**
    * Get a list of child nodes below a given path.
@@ -75,7 +78,7 @@ BaseClient.prototype = {
    * @returns {Promise} A promise for an object representing child nodes
    */
   // TODO add real return type
-  getListing: function (path: string, maxAge?: false | number): Promise<unknown> {
+  getListing (path: string, maxAge?: false | number): Promise<unknown> {
     if (typeof (path) !== 'string') {
       path = '';
     } else if (path.length > 0 && path[path.length - 1] !== '/') {
@@ -86,7 +89,7 @@ BaseClient.prototype = {
         return (r.statusCode === 404) ? {} : r.body;
       }
     );
-  },
+  }
 
   /**
    * Get all objects directly below a given path.
@@ -98,7 +101,7 @@ BaseClient.prototype = {
    * @returns {Promise} A promise for an object
    */
   // TODO add real return type
-  getAll: function (path: string, maxAge?: false | number): Promise<unknown> {
+  getAll (path: string, maxAge?: false | number): Promise<unknown> {
     if (typeof (path) !== 'string') {
       path = '';
     } else if (path.length > 0 && path[path.length - 1] !== '/') {
@@ -137,7 +140,7 @@ BaseClient.prototype = {
         });
       }
     });
-  },
+  }
 
   /**
    * Get the file at the given path. A file is raw data, as opposed to
@@ -151,7 +154,7 @@ BaseClient.prototype = {
    * @returns {Promise} A promise for an object
    */
   // TODO add real return type
-  getFile: function (path: string, maxAge?: false | number): Promise<unknown> {
+  getFile (path: string, maxAge?: false | number): Promise<unknown> {
     if (typeof (path) !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getFile must be a string');
     }
@@ -162,7 +165,7 @@ BaseClient.prototype = {
         revision: r.revision // (this is new)
       };
     });
-  },
+  }
 
   /**
    * Store raw data at a given path.
@@ -173,7 +176,7 @@ BaseClient.prototype = {
    *
    * @returns {Promise} A promise for the created/updated revision (ETag)
    */
-  storeFile: function (mimeType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string> {
+  storeFile (mimeType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string> {
     if (typeof (mimeType) !== 'string') {
       return Promise.reject('Argument \'mimeType\' of baseClient.storeFile must be a string');
     }
@@ -194,7 +197,7 @@ BaseClient.prototype = {
         return Promise.reject("Request (PUT " + this.makePath(path) + ") failed with status: " + r.statusCode);
       }
     });
-  },
+  }
 
   /**
    * Get a JSON object from the given path.
@@ -209,7 +212,7 @@ BaseClient.prototype = {
    */
 
   // TODO add real return type
-  getObject: function (path: string, maxAge?: false | number): Promise<unknown> {
+  getObject (path: string, maxAge?: false | number): Promise<unknown> {
     if (typeof (path) !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getObject must be a string');
     }
@@ -226,7 +229,7 @@ BaseClient.prototype = {
         return Promise.reject("Not an object: " + this.makePath(path));
       }
     });
-  },
+  }
 
   /**
    * Store object at given path. Triggers synchronization.
@@ -243,7 +246,7 @@ BaseClient.prototype = {
    *                    a ValidationError, if validations fail.
    */
   // TODO add real return type
-  storeObject: function (typeAlias: string, path: string, object: object): Promise<unknown> {
+  storeObject (typeAlias: string, path: string, object: object): Promise<unknown> {
     if (typeof (typeAlias) !== 'string') {
       return Promise.reject('Argument \'typeAlias\' of baseClient.storeObject must be a string');
     }
@@ -272,7 +275,7 @@ BaseClient.prototype = {
         return Promise.reject("Request (PUT " + this.makePath(path) + ") failed with status: " + r.statusCode);
       }
     });
-  },
+  }
 
   /**
    * Remove node at given path from storage. Triggers synchronization.
@@ -281,7 +284,7 @@ BaseClient.prototype = {
    * @returns {Promise}
    */
   // TODO add real return type
-  remove: function (path: string): Promise<unknown> {
+  remove (path: string): Promise<unknown> {
     if (typeof (path) !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
     }
@@ -290,7 +293,7 @@ BaseClient.prototype = {
     }
 
     return this.storage.delete(this.makePath(path));
-  },
+  }
 
   /**
    * Retrieve full URL of a document. Useful for example for sharing the public
@@ -299,7 +302,7 @@ BaseClient.prototype = {
    * @param {string} path - Path relative to the module root.
    * @returns {string} The full URL of the item, including the storage origin
    */
-  getItemURL: function (path: string): string {
+  getItemURL (path: string): string {
     if (typeof (path) !== 'string') {
       throw 'Argument \'path\' of baseClient.getItemURL must be a string';
     }
@@ -309,7 +312,7 @@ BaseClient.prototype = {
     } else {
       return undefined;
     }
-  },
+  }
 
   /**
    * Set caching strategy for a given path and its children.
@@ -323,7 +326,7 @@ BaseClient.prototype = {
    *
    * @returns {BaseClient} The same instance this is called on to allow for method chaining
    */
-  cache: function (path: string, strategy: 'ALL' | 'SEEN' | 'FLUSH' = 'ALL') {
+  cache (path: string, strategy: 'ALL' | 'SEEN' | 'FLUSH' = 'ALL') {
     if (typeof path !== 'string') {
       throw 'Argument \'path\' of baseClient.cache must be a string';
     }
@@ -341,7 +344,7 @@ BaseClient.prototype = {
     this.storage.caching.set(this.makePath(path), strategy);
 
     return this;
-  },
+  }
 
   /**
    * TODO: document
@@ -349,9 +352,9 @@ BaseClient.prototype = {
    * @param {string} path
    */
   // TODO add return type once known
-  flush: function (path: string): unknown {
+  flush (path: string): unknown {
     return this.storage.local.flush(path);
-  },
+  }
 
   /**
    * Declare a remoteStorage object type using a JSON schema.
@@ -362,7 +365,7 @@ BaseClient.prototype = {
    * @param {uri}    uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
    * @param {object} schema - A JSON Schema object describing the object type
    **/
-  declareType: function (alias: any, uriOrSchema: any, schema?: any): void {
+  declareType (alias: any, uriOrSchema: any, schema?: any): void {
     let uri: string;
 
     if (!schema) {
@@ -373,7 +376,7 @@ BaseClient.prototype = {
     }
 
     BaseClient.Types.declare(this.moduleName, alias, uri, schema);
-  },
+  }
 
   /**
    * Validate an object against the associated schema.
@@ -382,60 +385,60 @@ BaseClient.prototype = {
    *
    * @returns {Object} An object containing information about validation errors
    **/
-  validate: function (object: object): object {
+  validate (object: {[key: string]: any}): {[key: string]: any} {
     const schema = BaseClient.Types.getSchema(object['@context']);
     if (schema) {
       return tv4.validateResult(object, schema);
     } else {
       throw new SchemaNotFound(object['@context']);
     }
-  },
+  }
 
   /**
    * TODO document
    *
    * @private
    */
-  schemas: {
+  schemas = {
     configurable: true,
     get: function () {
       return BaseClient.Types.inScope(this.moduleName);
     }
-  },
+  };
 
   /**
    * The default JSON-LD @context URL for RS types/objects/documents
    *
    * @private
    */
-  _defaultTypeURI: function (alias: string): string {
+  _defaultTypeURI (alias: string): string {
     return 'http://remotestorage.io/spec/modules/' + encodeURIComponent(this.moduleName) + '/' + encodeURIComponent(alias);
-  },
+  }
 
   /**
    * Attaches the JSON-LD @content to an object
    *
    * @private
    */
-  _attachType: function (object: object, alias: string): void {
+  _attachType (object: object, alias: string): void {
     object['@context'] = BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
-  },
+  }
 
   /**
    * TODO: document
    *
    * @private
    */
-  makePath: function (path: string): string {
+  makePath (path: string): string {
     return this.base + (path || '');
-  },
+  }
 
   /**
    * TODO: document
    *
    * @private
    */
-  _fireChange: function (event: ChangeObj) {
+  _fireChange (event: ChangeObj) {
     if (config.changeEvents[event.origin]) {
       ['new', 'old', 'lastCommon'].forEach(function (fieldNamePrefix) {
         if ((!event[fieldNamePrefix + 'ContentType'])
@@ -452,11 +455,14 @@ BaseClient.prototype = {
       this._emit('change', event);
     }
   }
-};
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-BaseClient._rs_init = function (): void {
-};
+  static Types = Types;
+
+  static _rs_init (): void {
+    return;
+  }
+}
+
 
 interface BaseClient extends EventHandling {};
 applyMixins(BaseClient, [EventHandling]);

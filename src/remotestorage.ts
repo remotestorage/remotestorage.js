@@ -14,6 +14,9 @@ import Access from './access';
 import Authorize from './authorize';
 import BaseClient from './baseclient';
 import Caching from './caching';
+import IndexedDB from './indexeddb';
+import InMemoryStorage from './inmemorystorage';
+import LocalStorage from './localstorage';
 import EventHandling from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
@@ -117,10 +120,20 @@ class RemoteStorage {
    */
   remote: any;
 
+  /*
+   * Access to the local caching backend used. Usually either a
+   * <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
+   *
+   * Not available, when caching is turned off.
+   */
+  local: IndexedDB | LocalStorage | InMemoryStorage;
+
   dropbox: Dropbox;
   googledrive: GoogleDrive;
 
   fireInitial: Function;
+
+  on: any;
 
   constructor (cfg?: object) {
     // Initial configuration property settings.
@@ -199,6 +212,13 @@ class RemoteStorage {
 
     this.on('ready', this.fireInitial.bind(this));
     this.loadModules();
+  }
+
+  /**
+   * Indicating if remoteStorage is currently connected.
+   */
+  get connected (): boolean {
+    return this.remote.connected;
   }
 
   // FIXME: Instead of doing this, would be better to only
@@ -658,7 +678,7 @@ class RemoteStorage {
    *
    * @returns {BaseClient} A client with the specified scope (category/base directory)
    */
-  scope (path: string): Function {
+  scope (path: string): BaseClient {
     if (typeof(path) !== 'string') {
       throw 'Argument \'path\' of baseClient.scope must be a string';
     }
@@ -887,17 +907,6 @@ class RemoteStorage {
 }
 
 /**
- * @property connected
- *
- * Boolean property indicating if remoteStorage is currently connected.
- */
-Object.defineProperty(RemoteStorage.prototype, 'connected', {
-  get: function () {
-    return this.remote.connected;
-  }
-});
-
-/**
  * @property access
  *
  * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
@@ -935,15 +944,6 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
     return caching;
   }
 });
-
-/*
- * @property local
- *
- * Access to the local caching backend used. Usually either a
- * <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
- *
- * Not available, when caching is turned off.
- */
 
 interface RemoteStorage extends EventHandling {};
 applyMixins(RemoteStorage, [EventHandling]);
