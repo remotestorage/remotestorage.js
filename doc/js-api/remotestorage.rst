@@ -138,10 +138,10 @@ List of events
 """"""""""""""""""""""""
    Emitted when the sync interval changes
 
-Methods
--------
+List of functions
+-----------------
 
-The following methods can be called on your ``remoteStorage`` instance:
+The following methods/functions can be called on your ``remoteStorage`` instance:
 
 .. autofunction:: RemoteStorage#connect(userAddress, [token])
   :short-name:
