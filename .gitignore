@@ -9,4 +9,5 @@ server/server-state
 server-state
 doc/code
 doc/_build
+doc/__pycache__/
 /remotestorage*.js
