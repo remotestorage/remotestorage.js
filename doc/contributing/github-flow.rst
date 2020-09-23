@@ -87,7 +87,7 @@ Reviewing pull requests
 -  Check if it works, if it has unit tests, if the tests pass, and if
    JSHint and CodeClimate are happy.
 -  Check if the code is understandable, with clear and unambiguous names for
-   functions and variables, and that it has JSDoc comments and a changelog
+   functions and variables, and that it has TypeDoc comments and a changelog
    entry.
 -  If you use ``git up``, like recommended above, it will automatically
    create tracked branches for all remote branches. So in order to
