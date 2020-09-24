@@ -21,7 +21,6 @@
     "build:docs": "cd doc && sphinx-build -v . _build/html",
     "dev": "webpack --mode=development -w",
     "postshrinkwrap": "if [ \"`uname`\" = \"Darwin\" ]; then sed -i '' -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; else sed -i -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; fi",
-    "doc": "cd doc; sphinx-autobuild -i '*~' -i '*.sw*' -i '#*#' . _build/html",
     "preversion": "npm test && npm run build:js",
     "version": "npm run build:release && git add release/ && npm run update-bower-version && git add bower.json && npm run update-doc-version && git add doc/version.py",
     "postversion": "git push && git push --tags",
