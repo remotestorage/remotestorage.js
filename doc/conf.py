@@ -184,3 +184,10 @@ texinfo_documents = [
      author, 'remoteStoragejs', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+#
+# HACKFIX WARNING
+# TODO Remove this when there is official support for pre-build steps on RTD
+# https://github.com/readthedocs/readthedocs.org/issues/6662
+#
+os.system('npm install')
