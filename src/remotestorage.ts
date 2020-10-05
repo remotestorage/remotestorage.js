@@ -548,9 +548,9 @@ class RemoteStorage {
    * Set redirect URI to be used for the OAuth redirect within the
    * in-app-browser window in Cordova apps.
    *
-   * @param {string} uri - A valid HTTP(S) URI
+   * @param uri - A valid HTTP(S) URI
    */
-  setCordovaRedirectUri (uri: unknown): void {
+  setCordovaRedirectUri (uri: string): void {
     if (typeof uri !== 'string' || !uri.match(/http(s)?:\/\//)) {
       throw new Error("Cordova redirect URI must be a URI string");
     }
@@ -702,9 +702,9 @@ class RemoteStorage {
   /**
    * Set the value of the sync interval when application is in the foreground
    *
-   * @param {number} interval - Sync interval in milliseconds (between 1000 and 3600000)
+   * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
    */
-  setSyncInterval (interval: unknown): void {
+  setSyncInterval (interval: number): void {
     if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
@@ -716,7 +716,7 @@ class RemoteStorage {
   /**
    * Get the value of the sync interval when application is in the background
    *
-   * @returns {number} A number of milliseconds
+   * @returns A number of milliseconds
    */
   getBackgroundSyncInterval (): number {
     return config.backgroundSyncInterval;
@@ -728,7 +728,7 @@ class RemoteStorage {
    *
    * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
    */
-  setBackgroundSyncInterval (interval: unknown): void {
+  setBackgroundSyncInterval (interval: number): void {
     if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
@@ -761,7 +761,7 @@ class RemoteStorage {
    *
    * @param timeout - Timeout in milliseconds
    */
-  setRequestTimeout (timeout: unknown): void {
+  setRequestTimeout (timeout: number): void {
     if (typeof timeout !== 'number') {
       throw timeout + " is not a valid request timeout";
     }
