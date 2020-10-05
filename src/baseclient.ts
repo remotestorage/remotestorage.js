@@ -59,10 +59,9 @@ class BaseClient {
    * Instantiate a new client, scoped to a subpath of the current client's
    * path.
    *
-   * @param {string} path - The path to scope the new client to.
+   * @param path - The path to scope the new client to
    *
-   * @returns {BaseClient} A new client operating on a subpath of the current
-   *                       base path.
+   * @returns  A new client operating on a subpath of the current base path
    */
   scope (path: string): BaseClient {
     return new BaseClient(this.storage, this.makePath(path));
