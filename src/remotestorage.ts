@@ -14,6 +14,9 @@ import Access from './access';
 import Authorize from './authorize';
 import BaseClient from './baseclient';
 import Caching from './caching';
+import IndexedDB from './indexeddb';
+import InMemoryStorage from './inmemorystorage';
+import LocalStorage from './localstorage';
 import EventHandling from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
@@ -117,10 +120,20 @@ class RemoteStorage {
    */
   remote: any;
 
+  /*
+   * Access to the local caching backend used. Usually either a
+   * <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
+   *
+   * Not available, when caching is turned off.
+   */
+  local: IndexedDB | LocalStorage | InMemoryStorage;
+
   dropbox: Dropbox;
   googledrive: GoogleDrive;
 
   fireInitial: Function;
+
+  on: any;
 
   constructor (cfg?: object) {
     // Initial configuration property settings.
@@ -199,6 +212,13 @@ class RemoteStorage {
 
     this.on('ready', this.fireInitial.bind(this));
     this.loadModules();
+  }
+
+  /**
+   * Indicating if remoteStorage is currently connected.
+   */
+  get connected (): boolean {
+    return this.remote.connected;
   }
 
   // FIXME: Instead of doing this, would be better to only
@@ -528,9 +548,9 @@ class RemoteStorage {
    * Set redirect URI to be used for the OAuth redirect within the
    * in-app-browser window in Cordova apps.
    *
-   * @param {string} uri - A valid HTTP(S) URI
+   * @param uri - A valid HTTP(S) URI
    */
-  setCordovaRedirectUri (uri: unknown): void {
+  setCordovaRedirectUri (uri: string): void {
     if (typeof uri !== 'string' || !uri.match(/http(s)?:\/\//)) {
       throw new Error("Cordova redirect URI must be a URI string");
     }
@@ -653,12 +673,12 @@ class RemoteStorage {
    * Please use this method only for debugging and development, and choose or
    * create a :doc:`data module </data-modules>` for your app to use.
    *
-   * @param {string} path - The base directory of the BaseClient that will be
-   *                         returned (with a leading and a trailing slash)
+   * @param path - The base directory of the BaseClient that will be returned
+   *               (with a leading and a trailing slash)
    *
-   * @returns {BaseClient} A client with the specified scope (category/base directory)
+   * @returns A client with the specified scope (category/base directory)
    */
-  scope (path: string): Function {
+  scope (path: string): BaseClient {
     if (typeof(path) !== 'string') {
       throw 'Argument \'path\' of baseClient.scope must be a string';
     }
@@ -682,9 +702,9 @@ class RemoteStorage {
   /**
    * Set the value of the sync interval when application is in the foreground
    *
-   * @param {number} interval - Sync interval in milliseconds (between 1000 and 3600000)
+   * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
    */
-  setSyncInterval (interval: unknown): void {
+  setSyncInterval (interval: number): void {
     if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
@@ -696,7 +716,7 @@ class RemoteStorage {
   /**
    * Get the value of the sync interval when application is in the background
    *
-   * @returns {number} A number of milliseconds
+   * @returns A number of milliseconds
    */
   getBackgroundSyncInterval (): number {
     return config.backgroundSyncInterval;
@@ -708,7 +728,7 @@ class RemoteStorage {
    *
    * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
    */
-  setBackgroundSyncInterval (interval: unknown): void {
+  setBackgroundSyncInterval (interval: number): void {
     if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
@@ -741,7 +761,7 @@ class RemoteStorage {
    *
    * @param timeout - Timeout in milliseconds
    */
-  setRequestTimeout (timeout: unknown): void {
+  setRequestTimeout (timeout: number): void {
     if (typeof timeout !== 'number') {
       throw timeout + " is not a valid request timeout";
     }
@@ -887,17 +907,6 @@ class RemoteStorage {
 }
 
 /**
- * @property connected
- *
- * Boolean property indicating if remoteStorage is currently connected.
- */
-Object.defineProperty(RemoteStorage.prototype, 'connected', {
-  get: function () {
-    return this.remote.connected;
-  }
-});
-
-/**
  * @property access
  *
  * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
@@ -935,15 +944,6 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
     return caching;
   }
 });
-
-/*
- * @property local
- *
- * Access to the local caching backend used. Usually either a
- * <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
- *
- * Not available, when caching is turned off.
- */
 
 interface RemoteStorage extends EventHandling {};
 applyMixins(RemoteStorage, [EventHandling]);

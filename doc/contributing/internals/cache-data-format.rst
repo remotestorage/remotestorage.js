@@ -27,7 +27,7 @@ will get either its 'local' revision if it exists, or its 'common'
 revision otherwise. The following are versioning tree diagrams of how
 local and remote revisions of a node can interact:
 
-::
+.. CODE:: text
 
     //in sync:
     1)  . . . . [common]

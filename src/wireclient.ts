@@ -1,18 +1,3 @@
-import Authorize from './authorize';
-import EventHandling from './eventhandling';
-import UnauthorizedError from './unauthorized-error';
-import config from './config';
-import log from './log';
-import {
-  applyMixins,
-  cleanPath,
-  getJSONFromLocalStorage,
-  getTextFromArrayBuffer,
-  isFolder,
-  localStorageAvailable,
-  shouldBeTreatedAsBinary
-} from './util';
-
 /**
  * This file exposes a get/put/delete interface on top of fetch() or XMLHttpRequest.
  * It requires to be configured with parameters about the remotestorage server to
@@ -44,9 +29,22 @@ import {
  * receives an empty folder listing, to mimic remotestorage-01 behavior. Note
  * that it is not always possible to know the revision beforehand, hence it may
  * be undefined at times (especially for caching-roots).
- *
- * @interface
  */
+import RemoteStorage from './remotestorage';
+import Authorize from './authorize';
+import EventHandling from './eventhandling';
+import UnauthorizedError from './unauthorized-error';
+import config from './config';
+import log from './log';
+import {
+  applyMixins,
+  cleanPath,
+  getJSONFromLocalStorage,
+  getTextFromArrayBuffer,
+  isFolder,
+  localStorageAvailable,
+  shouldBeTreatedAsBinary
+} from './util';
 
 let hasLocalStorage;
 const SETTINGS_KEY = 'remotestorage:wireclient';
@@ -62,6 +60,11 @@ const STORAGE_APIS = {
   'draft-dejong-remotestorage-01': API_01,
   'draft-dejong-remotestorage-02': API_02,
   'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
+};
+
+function readSettings () {
+  const { userAddress, href, storageApi, token, properties } = getJSONFromLocalStorage(SETTINGS_KEY);
+  return { userAddress, href, storageApi, token, properties };
 };
 
 let isArrayBufferView;
@@ -89,7 +92,7 @@ if (typeof ((global || window as any).ArrayBufferView) === 'function') {
 interface WireClientSettings {
   userAddress: string;
   href: string;
-  storageApi: unknown;
+  storageApi: string;
   token: string;
   properties: unknown;
 }
@@ -97,6 +100,7 @@ interface WireClientSettings {
 interface WireRequestResponse {
   statusCode: number;
   revision: string | undefined;
+  body?: any;
 }
 
 function addQuotes (str: string): string {
@@ -152,40 +156,13 @@ function isForbiddenRequestMethod(method: string, uri: string): boolean {
   }
 }
 
-/**
- * Class : WireClient
- **/
-const WireClient = function WireClient(rs): void {
-  this.rs = rs;
-  this.connected = false;
+class WireClient {
+  rs: RemoteStorage;
+  connected: boolean;
+  online: boolean;
+  userAddress: string;
 
   /**
-   * Event: connected
-   *   Fired when the wireclient connect method realizes that it is in
-   *   possession of a token and href
-   **/
-  this.addEvents(['connected', 'not-connected']);
-
-  if (hasLocalStorage) {
-    const settings = getJSONFromLocalStorage(SETTINGS_KEY);
-    if (settings) {
-      setTimeout(() => {
-        this.configure(settings);
-      }, 0);
-    }
-  }
-
-  this._revisionCache = {};
-
-  if (this.connected) {
-    setTimeout(this._emit.bind(this), 0, 'connected');
-  }
-};
-
-WireClient.prototype = {
-  /**
-   * Property: token
-   *
    * Holds the bearer token of this WireClient, as obtained in the OAuth dance
    *
    * Example:
@@ -194,10 +171,9 @@ WireClient.prototype = {
    *   remoteStorage.remote.token
    *   // -> 'DEADBEEF01=='
    */
+  token: string;
 
   /**
-   * Property: href
-   *
    * Holds the server's base URL, as obtained in the Webfinger discovery
    *
    * Example:
@@ -206,10 +182,9 @@ WireClient.prototype = {
    *   remoteStorage.remote.href
    *   // -> 'https://storage.example.com/users/jblogg/'
    */
+  href: string;
 
   /**
-   * Property: storageApi
-   *
    * Holds the spec version the server claims to be compatible with
    *
    * Example:
@@ -218,8 +193,50 @@ WireClient.prototype = {
    *   remoteStorage.remote.storageApi
    *   // -> 'draft-dejong-remotestorage-01'
    */
+  storageApi: string;
+  // TODO implement TS validation for incoming type
 
-  _request: async function (method: string, uri: string, token: string | false, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
+  supportsRevs: boolean;
+
+  _revisionCache: { [key: string]: any } = {};
+
+  properties: any;
+
+  constructor (rs: RemoteStorage) {
+    this.rs = rs;
+    this.connected = false;
+
+    /**
+     * Event: connected
+     *   Fired when the wireclient connect method realizes that it is in
+     *   possession of a token and href
+     **/
+    this.addEvents(['connected', 'not-connected']);
+
+    if (hasLocalStorage) {
+      const settings = readSettings();
+      if (settings) {
+        setTimeout(() => {
+          this.configure(settings);
+        }, 0);
+      }
+    }
+
+    if (this.connected) {
+      setTimeout(this._emit.bind(this), 0, 'connected');
+    }
+  }
+
+  get storageType () {
+    if (this.storageApi) {
+      const spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
+      return spec ? spec[1] : '2012.04';
+    } else {
+      return undefined;
+    }
+  }
+
+  async _request (method: string, uri: string, token: string | false, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
     if (isForbiddenRequestMethod(method, uri)) {
       return Promise.reject(`Don't use ${method} on directories!`);
     }
@@ -312,12 +329,9 @@ WireClient.prototype = {
 
       return Promise.reject(error);
     });
-  },
+  }
 
   /**
-   *
-   * Method: configure
-   *
    * Sets the userAddress, href, storageApi, token, and properties of a
    * remote store. Also sets connected and online to true and emits the
    * 'connected' event, if both token and href are present.
@@ -335,7 +349,7 @@ WireClient.prototype = {
    *              the user disconnected their storage, or you found that the
    *              token you have has expired, simply set that field to `null`.
    */
-  configure: function (settings: WireClientSettings): void {
+  configure (settings: WireClientSettings): void {
     if (typeof settings !== 'object') {
       throw new Error('WireClient configure settings parameter should be an object');
     }
@@ -355,9 +369,9 @@ WireClient.prototype = {
       this.properties = settings.properties;
     }
 
-    if (typeof this.storageApi !== 'undefined') {
-      this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
-      this.supportsRevs = this._storageApi >= API_00;
+    if (typeof this.storageApi === 'string') {
+      const _storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
+      this.supportsRevs = _storageApi >= API_00;
     }
     if (this.href && this.token) {
       this.connected = true;
@@ -375,15 +389,15 @@ WireClient.prototype = {
         properties: this.properties
       });
     }
-  },
+  }
 
-  stopWaitingForToken: function (): void {
+  stopWaitingForToken (): void {
     if (!this.connected) {
       this._emit('not-connected');
     }
-  },
+  }
 
-  get: function (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
+  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
@@ -398,7 +412,6 @@ WireClient.prototype = {
     // else if (options.ifNoneMatch) {
     //   let oldRev = this._revisionCache[path];
     // }
-
 
     return this._request('GET', this.href + cleanPath(path), this.token, headers,
       undefined, this.supportsRevs, this._revisionCache[path])
@@ -439,9 +452,9 @@ WireClient.prototype = {
           return Promise.resolve(r);
         }
       });
-  },
+  }
 
-  put: function (path: string, body: unknown, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
+  put (path: string, body: unknown, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
@@ -459,9 +472,9 @@ WireClient.prototype = {
     }
     return this._request('PUT', this.href + cleanPath(path), this.token,
       headers, body, this.supportsRevs);
-  },
+  }
 
-  'delete': function (path: string, options: { ifMatch?: string } = {}) {
+  delete (path: string, options: { ifMatch?: string } = {}) {
     if (!this.connected) {
       throw new Error('not connected (path: ' + path + ')');
     }
@@ -478,167 +491,155 @@ WireClient.prototype = {
       headers,
       undefined, this.supportsRevs);
   }
-};
 
-// Shared isArrayBufferView used by WireClient and Dropbox
-WireClient.isArrayBufferView = isArrayBufferView;
+  // Shared isArrayBufferView used by WireClient and Dropbox
+  static isArrayBufferView = isArrayBufferView;
 
-// TODO add proper definition for options
-// Shared request function used by WireClient, GoogleDrive and Dropbox.
-WireClient.request = async function (method: string, url: string, options: unknown): Promise<XMLHttpRequest | Response> {
-  if (typeof fetch === 'function') {
-    return WireClient._fetchRequest(method, url, options);
-  } else if (typeof XMLHttpRequest === 'function') {
-    return WireClient._xhrRequest(method, url, options);
-  } else {
-    log('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
-    return Promise.reject('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
+  // TODO add proper definition for options
+  // Shared request function used by WireClient, GoogleDrive and Dropbox.
+  static async request (method: string, url: string, options: unknown): Promise<XMLHttpRequest | Response> {
+    if (typeof fetch === 'function') {
+      return WireClient._fetchRequest(method, url, options);
+    } else if (typeof XMLHttpRequest === 'function') {
+      return WireClient._xhrRequest(method, url, options);
+    } else {
+      log('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
+      return Promise.reject('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
+    }
   }
-};
 
-/** options includes body, headers and responseType */
-WireClient._fetchRequest = function (method: string, url: string, options): Promise<Response> {
-  let syntheticXhr;
-  const responseHeaders = {};
-  let abortController;
-  if (typeof AbortController === 'function') {
-    abortController = new AbortController();
-  }
-  const networkPromise: Promise<Response> = fetch(url, {
-    method: method,
-    headers: options.headers,
-    body: options.body,
-    signal: abortController ? abortController.signal : undefined
-  }).then((response) => {
-    log('[WireClient fetch]', response);
+  /** options includes body, headers and responseType */
+  static _fetchRequest (method: string, url: string, options): Promise<Response> {
+    let syntheticXhr;
+    const responseHeaders = {};
+    let abortController;
+    if (typeof AbortController === 'function') {
+      abortController = new AbortController();
+    }
+    const networkPromise: Promise<Response> = fetch(url, {
+      method: method,
+      headers: options.headers,
+      body: options.body,
+      signal: abortController ? abortController.signal : undefined
+    }).then((response) => {
+      log('[WireClient fetch]', response);
 
-    response.headers.forEach((value: string, headerName: string) => {
-      responseHeaders[headerName.toUpperCase()] = value;
+      response.headers.forEach((value: string, headerName: string) => {
+        responseHeaders[headerName.toUpperCase()] = value;
+      });
+
+      syntheticXhr = {
+        readyState: 4,
+        status: response.status,
+        statusText: response.statusText,
+        response: undefined,
+        getResponseHeader: (headerName: string): unknown => {
+          return responseHeaders[headerName.toUpperCase()] || null;
+        },
+        // responseText: 'foo',
+        responseType: options.responseType,
+        responseURL: url,
+      };
+      switch (options.responseType) {
+        case 'arraybuffer':
+          return response.arrayBuffer();
+        case 'blob':
+          return response.blob();
+        case 'json':
+          return response.json();
+        case undefined:
+        case '':
+        case 'text':
+          return response.text();
+        default:   // document
+          throw new Error("responseType 'document' is not currently supported using fetch");
+      }
+    }).then((processedBody) => {
+      syntheticXhr.response = processedBody;
+      if (!options.responseType || options.responseType === 'text') {
+        syntheticXhr.responseText = processedBody;
+      }
+      return syntheticXhr;
     });
 
-    syntheticXhr = {
-      readyState: 4,
-      status: response.status,
-      statusText: response.statusText,
-      response: undefined,
-      getResponseHeader: (headerName: string): unknown => {
-        return responseHeaders[headerName.toUpperCase()] || null;
-      },
-      // responseText: 'foo',
-      responseType: options.responseType,
-      responseURL: url,
-    };
-    switch (options.responseType) {
-      case 'arraybuffer':
-        return response.arrayBuffer();
-      case 'blob':
-        return response.blob();
-      case 'json':
-        return response.json();
-      case undefined:
-      case '':
-      case 'text':
-        return response.text();
-      default:   // document
-        throw new Error("responseType 'document' is not currently supported using fetch");
-    }
-  }).then((processedBody) => {
-    syntheticXhr.response = processedBody;
-    if (!options.responseType || options.responseType === 'text') {
-      syntheticXhr.responseText = processedBody;
-    }
-    return syntheticXhr;
-  });
+    const timeoutPromise: Promise<Response> = new Promise((resolve, reject) => {
+      setTimeout(() => {
+        reject('timeout');
+        if (abortController) {
+          abortController.abort();
+        }
+      }, config.requestTimeout);
+    });
 
-  const timeoutPromise: Promise<Response> = new Promise((resolve, reject) => {
-    setTimeout(() => {
-      reject('timeout');
-      if (abortController) {
-        abortController.abort();
+    return Promise.race([networkPromise, timeoutPromise]);
+  }
+
+  static _xhrRequest (method, url, options): Promise<XMLHttpRequest> {
+    return new Promise((resolve, reject) => {
+
+      log('[WireClient]', method, url);
+
+      let timedOut = false;
+
+      const timer = setTimeout(() => {
+        timedOut = true;
+        reject('timeout');
+      }, config.requestTimeout);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open(method, url, true);
+
+      if (options.responseType) {
+        xhr.responseType = options.responseType;
       }
-    }, config.requestTimeout);
-  });
 
-  return Promise.race([networkPromise, timeoutPromise]);
-};
-
-WireClient._xhrRequest = function (method, url, options): Promise<XMLHttpRequest> {
-  return new Promise((resolve, reject) => {
-
-    log('[WireClient]', method, url);
-
-    let timedOut = false;
-
-    const timer = setTimeout(() => {
-      timedOut = true;
-      reject('timeout');
-    }, config.requestTimeout);
-
-    const xhr = new XMLHttpRequest();
-    xhr.open(method, url, true);
-
-    if (options.responseType) {
-      xhr.responseType = options.responseType;
-    }
-
-    if (options.headers) {
-      for (const key in options.headers) {
-        xhr.setRequestHeader(key, options.headers[key]);
+      if (options.headers) {
+        for (const key in options.headers) {
+          xhr.setRequestHeader(key, options.headers[key]);
+        }
       }
-    }
 
-    xhr.onload = (): void => {
-      if (timedOut) {
-        return;
+      xhr.onload = (): void => {
+        if (timedOut) {
+          return;
+        }
+        clearTimeout(timer);
+        resolve(xhr);
+      };
+
+      xhr.onerror = (error): void => {
+        if (timedOut) {
+          return;
+        }
+        clearTimeout(timer);
+        reject(error);
+      };
+
+      let body = options.body;
+
+      if (typeof (body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
+        body = new Uint8Array(body);
       }
-      clearTimeout(timer);
-      resolve(xhr);
-    };
+      xhr.send(body);
+    });
+  }
 
-    xhr.onerror = (error): void => {
-      if (timedOut) {
-        return;
-      }
-      clearTimeout(timer);
-      reject(error);
-    };
+  static _rs_init (remoteStorage): void {
+    hasLocalStorage = localStorageAvailable();
+    remoteStorage.remote = new WireClient(remoteStorage);
+    remoteStorage.remote.online = true;
+  }
 
-    let body = options.body;
+  static _rs_supported (): boolean {
+    return typeof fetch === 'function' || typeof XMLHttpRequest === 'function';
+  }
 
-    if (typeof (body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
-      body = new Uint8Array(body);
-    }
-    xhr.send(body);
-  });
-};
-
-Object.defineProperty(WireClient.prototype, 'storageType', {
-  get: function () {
-    if (this.storageApi) {
-      const spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
-      return spec ? spec[1] : '2012.04';
-    } else {
-      return undefined;
+  static _rs_cleanup (): void {
+    if (hasLocalStorage) {
+      delete localStorage[SETTINGS_KEY];
     }
   }
-});
-
-
-WireClient._rs_init = function (remoteStorage): void {
-  hasLocalStorage = localStorageAvailable();
-  remoteStorage.remote = new WireClient(remoteStorage);
-  this.online = true;
-};
-
-WireClient._rs_supported = function (): boolean {
-  return typeof fetch === 'function' || typeof XMLHttpRequest === 'function';
-};
-
-WireClient._rs_cleanup = function (): void {
-  if (hasLocalStorage) {
-    delete localStorage[SETTINGS_KEY];
-  }
-};
+}
 
 interface WireClient extends EventHandling {};
 applyMixins(WireClient, [EventHandling]);

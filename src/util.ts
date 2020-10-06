@@ -215,7 +215,7 @@ export const localStorageAvailable = (): boolean => {
  *
  * @returns {object} parsed object or undefined
  */
-export const getJSONFromLocalStorage = (key: string): object => {
+export const getJSONFromLocalStorage = (key: string): { [key: string]: any } => {
   const context = getGlobalContext() as Window;
 
   try {
