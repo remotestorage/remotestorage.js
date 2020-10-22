@@ -190,5 +190,4 @@ texinfo_documents = [
 # TODO Remove this when there is official support for pre-build steps on RTD
 # https://github.com/readthedocs/readthedocs.org/issues/6662
 #
-os.system('npm install -g typescript')
 os.system('npm install')
