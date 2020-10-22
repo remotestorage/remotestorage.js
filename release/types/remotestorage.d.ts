@@ -1,5 +1,9 @@
 import Authorize from './authorize';
+import BaseClient from './baseclient';
 import Caching from './caching';
+import IndexedDB from './indexeddb';
+import InMemoryStorage from './inmemorystorage';
+import LocalStorage from './localstorage';
 import EventHandling from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
@@ -68,10 +72,16 @@ declare class RemoteStorage {
      * TODO use correct type
      */
     remote: any;
+    local: IndexedDB | LocalStorage | InMemoryStorage;
     dropbox: Dropbox;
     googledrive: GoogleDrive;
     fireInitial: Function;
+    on: any;
     constructor(cfg?: object);
+    /**
+     * Indicating if remoteStorage is currently connected.
+     */
+    get connected(): boolean;
     static Authorize: typeof Authorize;
     static SyncError: typeof SyncError;
     static Unauthorized: typeof UnauthorizedError;
@@ -205,9 +215,9 @@ declare class RemoteStorage {
      * Set redirect URI to be used for the OAuth redirect within the
      * in-app-browser window in Cordova apps.
      *
-     * @param {string} uri - A valid HTTP(S) URI
+     * @param uri - A valid HTTP(S) URI
      */
-    setCordovaRedirectUri(uri: unknown): void;
+    setCordovaRedirectUri(uri: string): void;
     _init: () => void;
     features: any[];
     loadFeature: (featureName: any) => void;
@@ -256,12 +266,12 @@ declare class RemoteStorage {
      * Please use this method only for debugging and development, and choose or
      * create a :doc:`data module </data-modules>` for your app to use.
      *
-     * @param {string} path - The base directory of the BaseClient that will be
-     *                         returned (with a leading and a trailing slash)
+     * @param path - The base directory of the BaseClient that will be returned
+     *               (with a leading and a trailing slash)
      *
-     * @returns {BaseClient} A client with the specified scope (category/base directory)
+     * @returns A client with the specified scope (category/base directory)
      */
-    scope(path: string): Function;
+    scope(path: string): BaseClient;
     /**
      * Get the value of the sync interval when application is in the foreground
      *
@@ -271,13 +281,13 @@ declare class RemoteStorage {
     /**
      * Set the value of the sync interval when application is in the foreground
      *
-     * @param {number} interval - Sync interval in milliseconds (between 1000 and 3600000)
+     * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
      */
-    setSyncInterval(interval: unknown): void;
+    setSyncInterval(interval: number): void;
     /**
      * Get the value of the sync interval when application is in the background
      *
-     * @returns {number} A number of milliseconds
+     * @returns A number of milliseconds
      */
     getBackgroundSyncInterval(): number;
     /**
@@ -286,7 +296,7 @@ declare class RemoteStorage {
      *
      * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
      */
-    setBackgroundSyncInterval(interval: unknown): void;
+    setBackgroundSyncInterval(interval: number): void;
     /**
      * Get the value of the current sync interval. Can be background or
      * foreground, custom or default.
@@ -305,7 +315,7 @@ declare class RemoteStorage {
      *
      * @param timeout - Timeout in milliseconds
      */
-    setRequestTimeout(timeout: unknown): void;
+    setRequestTimeout(timeout: number): void;
     /**
      * TODO: document
      * @private

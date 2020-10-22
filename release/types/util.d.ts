@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import Global = NodeJS.Global;
 export declare const logError: (error: string | Error) => void;
-export declare const globalContext: (Window & typeof globalThis) | Global;
+export declare const globalContext: (Window & typeof globalThis) | (Global & typeof globalThis);
 export declare const getGlobalContext: () => any;
 export declare const extend: (...args: any[]) => unknown;
 export declare const containingFolder: (path: string) => string;
@@ -21,7 +21,9 @@ export declare const localStorageAvailable: () => boolean;
  *
  * @returns {object} parsed object or undefined
  */
-export declare const getJSONFromLocalStorage: (key: string) => object;
+export declare const getJSONFromLocalStorage: (key: string) => {
+    [key: string]: any;
+};
 /**
  * Decide if data should be treated as binary based on the content (presence of non-printable characters
  * or replacement character) and content-type.
