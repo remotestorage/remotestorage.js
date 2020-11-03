@@ -191,5 +191,7 @@ texinfo_documents = [
 # https://github.com/readthedocs/readthedocs.org/issues/6662
 #
 os.system('npm install')
-os.environ["PATH"] = os.path.join('..', 'node_modules', '.bin') + ':' + os.environ["PATH"]
+import subprocess
+parent = subprocess.check_output("cd ../ && pwd", shell=True).decode().strip()
+os.environ["PATH"] = os.path.join(parent, 'node_modules', '.bin') + ':' + os.environ["PATH"]
 os.system('which typedoc')
