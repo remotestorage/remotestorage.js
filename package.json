@@ -38,11 +38,10 @@
     "babel-loader": "^8.0.6",
     "esformatter": "^0.11.3",
     "eslint": "6.x",
-    "fs-extra": "^9.0.1",
     "jaribu": "^2.2.2",
     "ts-loader": "^8.0.2",
-    "typedoc": "^0.19.2",
     "typescript": "^3.9.5",
+    "typedoc": "^0.19.2",
     "webpack": "4.x",
     "webpack-cli": "3.x"
   },
