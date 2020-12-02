@@ -8,9 +8,6 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
                  backend, mocks) {
 
   var suites = [];
-  var EventHandling = EventHandling.default;
-  var GoogleDrive = GoogleDrive.default;
-  var config = config.default;
 
   function setup (env, test) {
     global.localStorage = {
@@ -24,7 +21,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
     buildUtil.applyMixins(RemoteStorage, [EventHandling]);
     global.RemoteStorage = RemoteStorage;
 
-    global.Authorize = require('./build/authorize').default;
+    global.Authorize = require('./build/authorize');
 
     test.done();
   }
@@ -68,7 +65,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
   function beforeEachFetch(env, test) {
     beforeEach(env, test);
     mocks.defineFetchMock(env);
-  }    
+  }
 
   function afterEach(env, test) {
     mocks.undefineMocks(env);
@@ -198,7 +195,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
                 }
               }
             })
-          });            
+          });
         }, 10);
       }
     },
@@ -222,7 +219,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
       run: function (env, test) {
         addMockRequestCallback(function(req) {
           test.assert(getMockRequestHeader('Authorization'), 'Bearer ' + env.token);
-        });          
+        });
         env.connectedClient.get('/foo/bar').then(function () {
           test.result(false, 'get call should not return successful');
         }).catch(function (err) {

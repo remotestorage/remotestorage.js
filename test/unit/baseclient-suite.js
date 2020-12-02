@@ -2,10 +2,9 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
-       function (config, BC, mocks, tv4) {
+       function (config, BaseClient, mocks, tv4) {
 
   var suites = [];
-  var BaseClient = BC.default;
 
   suites.push({
     name: "BaseClient",

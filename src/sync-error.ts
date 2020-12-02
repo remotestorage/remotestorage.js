@@ -1,4 +1,4 @@
-export default class SyncError extends Error {
+class SyncError extends Error {
   originalError: Error
 
   constructor (originalError: string | Error) {
@@ -14,3 +14,5 @@ export default class SyncError extends Error {
     }
   }
 }
+
+export = SyncError;

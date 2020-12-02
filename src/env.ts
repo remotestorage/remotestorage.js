@@ -72,4 +72,4 @@ class Env {
 interface Env extends EventHandling {};
 applyMixins(Env, [EventHandling]);
 
-export default Env;
+export = Env;

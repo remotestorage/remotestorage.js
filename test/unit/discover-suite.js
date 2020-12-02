@@ -10,7 +10,7 @@ define(['require', 'fs'], function (require, fs) {
     setup: function(env, test) {
       global.XMLHttpRequest = require('xhr2');
       global.WebFinger = require('webfinger.js')
-      global.Discover = require('./build/discover').default;
+      global.Discover = require('./build/discover');
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };

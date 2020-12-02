@@ -948,4 +948,4 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
 interface RemoteStorage extends EventHandling {};
 applyMixins(RemoteStorage, [EventHandling]);
 
-export default RemoteStorage;
+export = RemoteStorage;

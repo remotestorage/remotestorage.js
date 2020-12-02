@@ -7,10 +7,9 @@ define(['require', 'fs'], function( require, fs, undefined) {
     name: "access",
     desc: "access knows all about the scope we claimed and which paths that gives us access to",
     setup: function(env, test) {
-
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      RemoteStorage.Access = require('../../build/access').default;
+      RemoteStorage.Access = require('../../build/access');
 
       env.Access = RemoteStorage.Access;
 

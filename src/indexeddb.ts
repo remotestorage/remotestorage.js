@@ -388,7 +388,7 @@ class IndexedDB extends CachingLayer {
    * @protected
    */
   // TODO add real type once known
-  static _rs_init (remoteStorage: unknown): Promise<unknown> {
+  static _rs_init (remoteStorage: unknown): Promise<void> {
 
     return new Promise((resolve, reject) => {
 
@@ -484,4 +484,4 @@ class IndexedDB extends CachingLayer {
 interface IndexedDB extends EventHandling {};
 applyMixins(IndexedDB, [EventHandling]);
 
-export default IndexedDB;
+export = IndexedDB;

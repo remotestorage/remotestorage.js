@@ -1139,4 +1139,4 @@ function unHookIt(rs){
 interface Dropbox extends EventHandling {};
 applyMixins(Dropbox, [EventHandling]);
 
-export default Dropbox;
+export = Dropbox;

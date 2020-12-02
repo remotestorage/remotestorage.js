@@ -3,8 +3,6 @@ if (typeof define !== 'function') {
 }
 define(['./build/wireclient', './build/remotestorage'], function (WireClient, RemoteStorage) {
   var suites = [];
-  var WireClient = WireClient.default;
-  var RemoteStorage = RemoteStorage.default;
 
   function setup(env, test) {
     test.assertType(RemoteStorage, 'function');

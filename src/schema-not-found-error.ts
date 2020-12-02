@@ -1,4 +1,4 @@
-export default class SchemaNotFound extends Error {
+class SchemaNotFound extends Error {
   constructor(uri: string) {
     super();
     const error = new Error("Schema not found: " + uri);
@@ -6,3 +6,5 @@ export default class SchemaNotFound extends Error {
     return error;
   }
 }
+
+export = SchemaNotFound;

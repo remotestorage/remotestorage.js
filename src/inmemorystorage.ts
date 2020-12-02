@@ -88,4 +88,4 @@ class InMemoryStorage extends CachingLayer {
 interface InMemoryStorage extends EventHandling {};
 applyMixins(InMemoryStorage, [EventHandling]);
 
-export default InMemoryStorage;
+export = InMemoryStorage;

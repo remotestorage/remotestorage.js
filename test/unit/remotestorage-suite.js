@@ -30,7 +30,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
   FakeRemote.prototype.get = fakeRequest;
   FakeRemote.prototype.put = fakeRequest;
   FakeRemote.prototype.delete = fakeRequest;
-  util.applyMixins(FakeRemote, [EventHandling.default]);
+  util.applyMixins(FakeRemote, [EventHandling]);
 
   function FakeLocal() {}
 
@@ -67,14 +67,14 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
       global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
-      global.SyncedGetPutDelete = require('./build/syncedgetputdelete').default;
-      global.Authorize = require('./build/authorize').default;
-      global.UnauthorizedError = require('./build/unauthorized-error').default;
-      global.Sync = require('./build/sync').default;
-      global.config = require('./build/config').default;
-      global.log = require('./build/log').default;
-      global.Dropbox = require('./build/dropbox').default;
-      global.RemoteStorage = require('./build/remotestorage').default;
+      global.SyncedGetPutDelete = require('./build/syncedgetputdelete');
+      global.Authorize = require('./build/authorize');
+      global.UnauthorizedError = require('./build/unauthorized-error');
+      global.Sync = require('./build/sync');
+      global.config = require('./build/config');
+      global.log = require('./build/log');
+      global.Dropbox = require('./build/dropbox');
+      global.RemoteStorage = require('./build/remotestorage');
 
       global.Discover = function(userAddress) {
         var pending = Promise.defer();
@@ -749,7 +749,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
     },
 
     beforeEach: function(env, test) {
-      global.log = require('./build/log').default;
+      global.log = require('./build/log');
       fakeLogs = [];
       test.done();
     },
