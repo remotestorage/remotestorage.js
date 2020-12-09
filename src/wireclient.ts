@@ -63,7 +63,9 @@ const STORAGE_APIS = {
 };
 
 function readSettings () {
-  const { userAddress, href, storageApi, token, properties } = getJSONFromLocalStorage(SETTINGS_KEY);
+  const settings = getJSONFromLocalStorage(SETTINGS_KEY) || {};
+  const { userAddress, href, storageApi, token, properties } = settings;
+
   return { userAddress, href, storageApi, token, properties };
 };
 
@@ -203,6 +205,8 @@ class WireClient {
   properties: any;
 
   constructor (rs: RemoteStorage) {
+    hasLocalStorage = localStorageAvailable();
+
     this.rs = rs;
     this.connected = false;
 
@@ -625,7 +629,6 @@ class WireClient {
   }
 
   static _rs_init (remoteStorage): void {
-    hasLocalStorage = localStorageAvailable();
     remoteStorage.remote = new WireClient(remoteStorage);
     remoteStorage.remote.online = true;
   }
