@@ -15,5 +15,5 @@ declare class Env {
 }
 interface Env extends EventHandling {
 }
-export default Env;
+export = Env;
 //# sourceMappingURL=env.d.ts.map

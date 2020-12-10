@@ -95,7 +95,7 @@ declare class IndexedDB extends CachingLayer {
      *
      * @protected
      */
-    static _rs_init(remoteStorage: unknown): Promise<unknown>;
+    static _rs_init(remoteStorage: unknown): Promise<void>;
     /**
      * Inform about the availability of the IndexedDB backend.
      *
@@ -117,5 +117,5 @@ declare class IndexedDB extends CachingLayer {
 }
 interface IndexedDB extends EventHandling {
 }
-export default IndexedDB;
+export = IndexedDB;
 //# sourceMappingURL=indexeddb.d.ts.map

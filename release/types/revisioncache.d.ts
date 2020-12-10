@@ -59,5 +59,5 @@ declare class RevisionCache {
      */
     private _generateFolderRev;
 }
-export default RevisionCache;
+export = RevisionCache;
 //# sourceMappingURL=revisioncache.d.ts.map

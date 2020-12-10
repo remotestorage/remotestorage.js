@@ -17,5 +17,5 @@ declare const Discover: {
     _rs_supported(): boolean;
     _rs_cleanup(): void;
 };
-export default Discover;
+export = Discover;
 //# sourceMappingURL=discover.d.ts.map

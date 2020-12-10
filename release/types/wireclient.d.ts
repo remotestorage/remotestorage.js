@@ -128,5 +128,5 @@ declare class WireClient {
 }
 interface WireClient extends EventHandling {
 }
-export default WireClient;
+export = WireClient;
 //# sourceMappingURL=wireclient.d.ts.map

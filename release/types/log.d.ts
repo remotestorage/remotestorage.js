@@ -6,5 +6,6 @@
  * (You can also enable logging during remoteStorage object creation. See:
  * {@link RemoteStorage}).
  */
-export default function log(...args: any[]): void;
+declare function log(...args: any[]): void;
+export = log;
 //# sourceMappingURL=log.d.ts.map

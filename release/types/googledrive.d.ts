@@ -232,5 +232,5 @@ declare class GoogleDrive {
 }
 interface GoogleDrive extends EventHandling {
 }
-export default GoogleDrive;
+export = GoogleDrive;
 //# sourceMappingURL=googledrive.d.ts.map

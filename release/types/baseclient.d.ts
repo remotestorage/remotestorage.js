@@ -192,5 +192,5 @@ declare class BaseClient {
 }
 interface BaseClient extends EventHandling {
 }
-export default BaseClient;
+export = BaseClient;
 //# sourceMappingURL=baseclient.d.ts.map

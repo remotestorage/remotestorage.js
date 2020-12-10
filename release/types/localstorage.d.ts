@@ -29,5 +29,5 @@ declare class LocalStorage extends CachingLayer {
 }
 interface LocalStorage extends EventHandling {
 }
-export default LocalStorage;
+export = LocalStorage;
 //# sourceMappingURL=localstorage.d.ts.map

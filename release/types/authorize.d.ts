@@ -4,7 +4,7 @@ interface AuthOptions {
     clientId?: string;
     redirectUri?: string;
 }
-export default class Authorize {
+declare class Authorize {
     static IMPLIED_FAKE_TOKEN: boolean;
     static authorize(remoteStorage: any, { authURL, scope, redirectUri, clientId }: AuthOptions): void;
     /**
@@ -27,5 +27,5 @@ export default class Authorize {
     static _rs_init: (remoteStorage: any) => void;
     static _rs_cleanup(remoteStorage: any): void;
 }
-export {};
+export = Authorize;
 //# sourceMappingURL=authorize.d.ts.map

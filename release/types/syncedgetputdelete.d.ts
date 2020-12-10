@@ -4,5 +4,5 @@ declare const SyncedGetPutDelete: {
     delete: (path: string) => Promise<unknown>;
     _wrapBusyDone: (result: Promise<unknown>) => Promise<unknown>;
 };
-export default SyncedGetPutDelete;
+export = SyncedGetPutDelete;
 //# sourceMappingURL=syncedgetputdelete.d.ts.map

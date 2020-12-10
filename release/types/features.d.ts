@@ -32,5 +32,5 @@ declare const Features: {
     featuresLoaded(): void;
     _collectCleanupFunctions(): void;
 };
-export default Features;
+export = Features;
 //# sourceMappingURL=features.d.ts.map

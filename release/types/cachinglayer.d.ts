@@ -41,5 +41,5 @@ declare function isOutdated(nodes: RSNodes, maxAge: number): boolean;
 declare function makeNode(path: string): RSNode;
 interface CachingLayer extends EventHandling {
 }
-export default CachingLayer;
+export = CachingLayer;
 //# sourceMappingURL=cachinglayer.d.ts.map

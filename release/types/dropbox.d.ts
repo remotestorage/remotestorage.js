@@ -214,5 +214,5 @@ declare class Dropbox {
 }
 interface Dropbox extends EventHandling {
 }
-export default Dropbox;
+export = Dropbox;
 //# sourceMappingURL=dropbox.d.ts.map

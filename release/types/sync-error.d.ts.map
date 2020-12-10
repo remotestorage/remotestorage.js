@@ -1,1 +1,1 @@
-{"version":3,"file":"sync-error.d.ts","sourceRoot":"","sources":["../../src/sync-error.ts"],"names":[],"mappings":"AAAA,MAAM,CAAC,OAAO,OAAO,SAAU,SAAQ,KAAK;IAC1C,aAAa,EAAE,KAAK,CAAA;gBAEP,aAAa,EAAE,MAAM,GAAG,KAAK;CAY3C"}
+{"version":3,"file":"sync-error.d.ts","sourceRoot":"","sources":["../../src/sync-error.ts"],"names":[],"mappings":"AAAA,cAAM,SAAU,SAAQ,KAAK;IAC3B,aAAa,EAAE,KAAK,CAAA;gBAEP,aAAa,EAAE,MAAM,GAAG,KAAK;CAY3C;AAED,SAAS,SAAS,CAAC"}

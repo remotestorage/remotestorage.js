@@ -12,7 +12,7 @@ interface ScopeModeMap {
  *
  * Keeps track of claimed access and scopes.
  */
-export default class Access {
+declare class Access {
     scopeModeMap: ScopeModeMap;
     rootPaths: string[];
     storageType: string;
@@ -85,5 +85,5 @@ export default class Access {
      */
     setStorageType(type: string): void;
 }
-export {};
+export = Access;
 //# sourceMappingURL=access.d.ts.map

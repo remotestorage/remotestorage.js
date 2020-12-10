@@ -349,5 +349,5 @@ declare class RemoteStorage {
 }
 interface RemoteStorage extends EventHandling {
 }
-export default RemoteStorage;
+export = RemoteStorage;
 //# sourceMappingURL=remotestorage.d.ts.map

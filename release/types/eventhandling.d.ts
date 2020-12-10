@@ -1,5 +1,5 @@
 declare type EventHandler = (event?: unknown) => void;
-export default class EventHandling {
+declare class EventHandling {
     _handlers: {
         [key: string]: EventHandler[];
     };
@@ -23,5 +23,5 @@ export default class EventHandling {
     _delegateEvent(eventName: string, target: any): void;
     _addEvent(eventName: string): void;
 }
-export {};
+export = EventHandling;
 //# sourceMappingURL=eventhandling.d.ts.map

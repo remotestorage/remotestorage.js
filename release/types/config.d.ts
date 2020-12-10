@@ -20,5 +20,5 @@ declare const config: {
     requestTimeout: number;
     syncInterval: number;
 };
-export default config;
+export = config;
 //# sourceMappingURL=config.d.ts.map

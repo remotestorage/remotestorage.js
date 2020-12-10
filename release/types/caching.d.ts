@@ -3,7 +3,7 @@
  *
  * Holds/manages caching configuration.
  **/
-export default class Caching {
+declare class Caching {
     pendingActivations: string[];
     activateHandler: Function;
     private _rootPaths;
@@ -59,4 +59,5 @@ export default class Caching {
      **/
     static _rs_init(): void;
 }
+export = Caching;
 //# sourceMappingURL=caching.d.ts.map
