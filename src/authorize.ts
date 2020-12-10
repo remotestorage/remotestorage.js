@@ -72,7 +72,7 @@ function buildOAuthURL (authURL: string, redirectUri: string, scope: string, cli
   return url;
 }
 
-export default class Authorize {
+class Authorize {
   static IMPLIED_FAKE_TOKEN = false;
 
   static authorize (remoteStorage, { authURL, scope, redirectUri, clientId }: AuthOptions): void {
@@ -233,3 +233,5 @@ export default class Authorize {
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
 };
+
+export = Authorize;

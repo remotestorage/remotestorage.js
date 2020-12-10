@@ -10,8 +10,8 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      env.Authorize = Authorize.default;
-      env.UnauthorizedError = UnauthorizedError.default;
+      env.Authorize = Authorize;
+      env.UnauthorizedError = UnauthorizedError;
       test.done();
     },
 

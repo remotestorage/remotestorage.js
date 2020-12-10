@@ -3,8 +3,6 @@ if (typeof(define) !== 'function') {
 }
 define(['./build/config', './build/inmemorystorage'], function (config, InMemoryStorage) {
   var suites = [];
-  var config = config.default;
-  var InMemoryStorage = InMemoryStorage.default;
 
   suites.push({
     name: 'InMemoryStorage',

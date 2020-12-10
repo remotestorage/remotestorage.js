@@ -3,8 +3,6 @@ if (typeof(define) !== 'function') {
 }
 define(['./build/config', './build/localstorage'], function (config, LocalStorage) {
   var suites = [];
-  var config = config.default;
-  var LocalStorage = LocalStorage.default;
 
   var NODES_PREFIX = 'remotestorage:cache:nodes:';
   var CHANGES_PREFIX = 'remotestorage:cache:changes:';

@@ -1,4 +1,4 @@
-export default class UnauthorizedError extends Error {
+class UnauthorizedError extends Error {
   code: string;
 
   constructor (message?: string, options: {code?: string} = {}) {
@@ -18,3 +18,5 @@ export default class UnauthorizedError extends Error {
     this.stack = (new Error()).stack;
   };
 }
+
+export = UnauthorizedError;

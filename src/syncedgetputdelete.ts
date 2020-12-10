@@ -60,4 +60,4 @@ const SyncedGetPutDelete = {
   }
 };
 
-export default SyncedGetPutDelete;
+export = SyncedGetPutDelete;

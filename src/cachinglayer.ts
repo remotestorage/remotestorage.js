@@ -438,4 +438,4 @@ function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
 interface CachingLayer extends EventHandling {};
 applyMixins(CachingLayer, [EventHandling]);
 
-export default CachingLayer;
+export = CachingLayer;

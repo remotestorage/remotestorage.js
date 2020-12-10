@@ -118,4 +118,4 @@ class LocalStorage extends CachingLayer {
 interface LocalStorage extends EventHandling {};
 applyMixins(LocalStorage, [EventHandling]);
 
-export default LocalStorage;
+export = LocalStorage;

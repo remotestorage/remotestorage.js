@@ -462,8 +462,7 @@ class BaseClient {
   }
 }
 
-
 interface BaseClient extends EventHandling {};
 applyMixins(BaseClient, [EventHandling]);
 
-export default BaseClient;
+export = BaseClient;

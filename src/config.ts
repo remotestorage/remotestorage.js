@@ -23,4 +23,4 @@ const config = {
   syncInterval: 10000
 };
 
-export default config;
+export = config;

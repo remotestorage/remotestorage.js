@@ -1080,4 +1080,4 @@ class Sync {
 interface Sync extends EventHandling {};
 applyMixins(Sync, [EventHandling]);
 
-export default Sync;
+export = Sync;

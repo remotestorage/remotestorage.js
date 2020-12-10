@@ -180,4 +180,4 @@ class RevisionCache {
   }
 }
 
-export default RevisionCache;
+export = RevisionCache;

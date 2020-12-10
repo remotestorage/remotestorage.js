@@ -8,12 +8,6 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
                 config, util, backend, mocks, undefined) {
 
   var suites = [];
-  var Sync = Sync.default;
-  var SyncError = SyncError.default;
-  var WireClient = WireClient.default;
-  var Authorize = Authorize.default;
-  var EventHandling = EventHandling.default;
-  var config = config.default;
 
   function setup(env, test) {
     class RemoteStorage {

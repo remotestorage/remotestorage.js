@@ -6,7 +6,7 @@ import log from './log';
  *
  * Holds/manages caching configuration.
  **/
-export default class Caching {
+class Caching {
   pendingActivations: string[] = [];
   // TODO add correct type
   activateHandler: Function;
@@ -122,3 +122,5 @@ export default class Caching {
     return;
   }
 }
+
+export = Caching;

@@ -647,4 +647,4 @@ class WireClient {
 interface WireClient extends EventHandling {};
 applyMixins(WireClient, [EventHandling]);
 
-export default WireClient;
+export = WireClient;
