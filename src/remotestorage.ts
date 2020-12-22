@@ -260,7 +260,7 @@ class RemoteStorage {
     if (globalContext.cordova) {
       options.redirectUri = config.cordovaRedirectUri;
     } else {
-      let location = Authorize.getLocation();
+      const location = Authorize.getLocation();
       let redirectUri = location.origin;
       if (location.pathname !== '/') {
         redirectUri += location.pathname;
