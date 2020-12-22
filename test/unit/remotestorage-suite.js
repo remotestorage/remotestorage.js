@@ -653,6 +653,8 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -674,6 +676,8 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -694,6 +698,8 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -722,6 +728,8 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -737,6 +745,29 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
           delete global.document;
         }
       },
+
+      {
+        desc: "#authorize does not add a trailing slash as only pathname to redirectUri",
+        run: function (env, test) {
+            global.document = {
+              location: {
+                origin: 'https://app.com:5000',
+                pathname: '/',
+                href: 'https://app.com:5000/',
+                toString: function() { return this.href; }
+              }
+            };
+
+            const authURL = 'https://provider.com/oauth';
+
+            env.rs.authorize({ authURL, scope: 'custom-scope' });
+
+            test.assert(document.location.href, 'https://provider.com/oauth?redirect_uri=https%3A%2F%2Fapp.com%3A5000&scope=custom-scope&client_id=https%3A%2F%2Fapp.com%3A5000&response_type=token');
+
+            delete global.document;
+        }
+      },
+
     ]
   });
 
