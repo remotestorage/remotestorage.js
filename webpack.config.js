@@ -15,7 +15,7 @@ const plugins = isProd ? [
 
 module.exports = {
   entry: ['./src/remotestorage.ts'],
-  devtool: 'inline-source-map',
+  devtool: 'source-map',
   // the only external dependecy is xmlhttprequest because it is
   // different in browser and in node env so user has to manage with that
   externals: ['xmlhttprequest'],
