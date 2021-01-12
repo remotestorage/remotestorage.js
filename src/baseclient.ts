@@ -222,7 +222,7 @@ class BaseClient {
         try {
           return JSON.parse(r.body);
         } catch (e) {
-          throw "Not valid JSON: " + this.makePath(path);
+          throw new Error("Not valid JSON: " + this.makePath(path));
         }
       } else if (typeof (r.body) !== 'undefined' && r.statusCode === 200) {
         return Promise.reject("Not an object: " + this.makePath(path));
