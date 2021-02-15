@@ -695,7 +695,7 @@ class RemoteStorage {
 
     if (!this.access.checkPathPermission(path, 'r')) {
       const escapedPath = path.replace(/(['\\])/g, '\\$1');
-      console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
+      console.warn('WARNING: Please use remoteStorage.access.claim() to ask for access permissions first: https://remotestoragejs.readthedocs.io/en/latest/js-api/access.html#claim');
     }
     return new BaseClient(this, path);
   }
