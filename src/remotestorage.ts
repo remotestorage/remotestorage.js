@@ -692,9 +692,7 @@ class RemoteStorage {
     if (typeof(path) !== 'string') {
       throw 'Argument \'path\' of baseClient.scope must be a string';
     }
-
     if (!this.access.checkPathPermission(path, 'r')) {
-      const escapedPath = path.replace(/(['\\])/g, '\\$1');
       console.warn('WARNING: Please use remoteStorage.access.claim() to ask for access permissions first: https://remotestoragejs.readthedocs.io/en/latest/js-api/access.html#claim');
     }
     return new BaseClient(this, path);
