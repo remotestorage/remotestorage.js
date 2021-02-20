@@ -28,7 +28,7 @@ Whenever the Git repository's ``master`` branch is pushed to GitHub, RTD will
 automatically build a new version of the site and publish it to
 `remotestoragejs.readthedocs.io <https://remotestoragejs.readthedocs.io>`_.
 
-This means that if you want to contribute to the documentation [#f1]_, you don't
+This means that if you want to contribute to the documentation, you don't
 necessarily have to set up Sphinx and sphinx-js locally (especially for small
 changes). However, if you want to preview what your local changes look like
 when they are rendered as HTML, you will have to set up local builds first.
@@ -63,8 +63,3 @@ This will start a web server, serving rendered HTML docs on `<http://localhost:8
    The autobuild cannot watch for changes in TypeDoc comments as of now, so you
    will need to re-run the command, or change something in a ``.rst`` file in
    order for code documentation changes to be re-built.
-
-.. rubric:: Footnotes
-
-.. [#f1] Every single bit helps other people! Even fixing a typo is worth a
-         pull request.
