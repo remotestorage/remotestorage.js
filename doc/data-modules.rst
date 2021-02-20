@@ -1,31 +1,28 @@
 Data modules
 ============
 
-One of the core ideas of the remoteStorage protocol, and one of its unique
-features, is that data shouldn't be locked into a single app. Why not create a
-to-do in one app, but track time on it in another one for example?
+A core idea of the remoteStorage protocol is that the same data can be used by
+multiple apps. Imagine creating a to-do in one app, and tracking time on it in
+another.
 
-With traditional Web apps, this is only possible by implementing custom,
-proprietary APIs, which make you entirely dependent on the app provider. Also,
-for other app developers to access that data via the API, they usually have to
-register an application with the original provider, who can revoke this access
-at any point. However, with remoteStorage, and `unhosted web apps
-<https://unhosted.org>`_ in general, end users have ultimate control over which
+Traditional Web apps make this possible with custom, proprietary APIs, which are
+dependent on the app provider. Third party developers usually need to
+register an application with the original provider to access that data via the
+API, and this access can be revoked at any time. remoteStorage and `unhosted web apps
+<https://unhosted.org>`_ in general give end users ultimate control over which
 apps have access to their data.
 
 In order to make it easy and safe for your app data to be compatible with other
 apps, we created the concept of data modules for rs.js, which can be shared and
-collaboratively developed in the open.
+developed collaboratively in the open.
 
-Data modules can contain as much or little functionality as necessary or
-desired, not just defining data formats and types, but also handling for
-example data validation, formatting, processing, transformation, encryption,
-indexing, and whatever else you may come up with.
+Data modules can contain as much or as little functionality as desired, from
+defining data formats and types to data validation, formatting, processing,
+transformation, encryption, indexing, and other use cases.
 
-Thus, modules are not only useful for making your data/app compatible with
-others, but also to encapsulate functionality you might only want to use in a
-custom module in your own app. And although sharing your data module(s) is
-certainly encouraged, it is by no means required, of course.
+Data modules make your app and its data interoperable with other apps. Sharing
+your modules is incouraged but it is always possible to encapsulate custom
+functionality in a custom module made just for your app.
 
 .. toctree::
    :caption: Contents
