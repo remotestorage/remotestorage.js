@@ -15,6 +15,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import datetime
 import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
@@ -61,7 +62,9 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'remoteStorage.js'
-copyright = '2012-2020, RS Contributors'
+copyright = '2012-{current_year}, RS Contributors'.format(
+    current_year=datetime.date.today().strftime("%Y")
+)
 author = 'RS Contributors'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -187,7 +190,29 @@ texinfo_documents = [
 
 #
 # HACKFIX WARNING
+# TODO Remove this when RTD updates their Node.js version
+# https://github.com/readthedocs/readthedocs-docker-images/issues/107
+#
+# Manually add custom Node.js/npm from conda to PATH
+python_executable_directory = sys.path.insert(0, os.path.abspath(sys.executable + "/.."))
+os.environ["PATH"] = f"{python_executable_directory}:{os.environ['PATH']}"
+# Verify Node.js version is correct
+os.system('node --version')
+os.system('npm --version')
+
+#
+# HACKFIX WARNING
 # TODO Remove this when there is official support for pre-build steps on RTD
 # https://github.com/readthedocs/readthedocs.org/issues/6662
 #
 os.system('npm install')
+
+#
+# HACKFIX WARNING
+# TODO Remove this when RTD updates their Node.js version
+# https://github.com/readthedocs/readthedocs-docker-images/issues/107
+#
+# Manually add typedoc to PATH
+typedoc_directory = os.path.abspath('../node_modules/typedoc/bin')
+os.system(f'chmod +x {typedoc_directory}/typedoc')
+os.environ["PATH"] = f"{typedoc_directory}:{os.environ['PATH']}"

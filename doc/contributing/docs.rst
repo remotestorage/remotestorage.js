@@ -64,6 +64,31 @@ This will start a web server, serving rendered HTML docs on `<http://localhost:8
    will need to re-run the command, or change something in a ``.rst`` file in
    order for code documentation changes to be re-built.
 
+How to build the docs using ReadTheDocs' Docker image
+-----------------------------------------------------
+
+This is useful for troubleshooting when the ReadTheDocs build is failing.
+
+Setup
+^^^^^
+
+1. `Install Docker <https://docs.docker.com/get-docker/>`_
+
+2. Pull the latest version of ``readthedocs/build`` image with the ``latest`` tag from Docker Hub::
+
+    $ docker pull readthedocs/build:latest
+
+Build
+^^^^^
+
+1. Enter a ``bash`` session while attaching this project as a volume::
+
+    $ docker run --rm -it -v ${PWD}:/app readthedocs/build:latest bash
+
+2. Run the ``build-with-conda.sh`` script to setup conda environment and build the docs like ReadTheDocs::
+
+    $ /app/doc/build-with-conda.sh
+
 .. rubric:: Footnotes
 
 .. [#f1] Every single bit helps other people! Even fixing a typo is worth a
