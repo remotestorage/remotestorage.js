@@ -1,0 +1,13 @@
+name: rtd_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - nodejs=14.15.1
+  - pip=21.0.1
+  - python=3.8.5
+  - pip:
+    - sphinx-js >= 3.1
+    - sphinx-issues
+    - sphinx-autobuild
+    - sphinx_rtd_theme
