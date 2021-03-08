@@ -21,7 +21,7 @@ defining data formats and types to data validation, formatting, processing,
 transformation, encryption, indexing, and other use cases.
 
 Data modules make your app and its data interoperable with other apps. Sharing
-your modules is incouraged but it is always possible to encapsulate custom
+your modules is generally encouraged, but it is also possible to encapsulate custom
 functionality in a custom module made just for your app.
 
 .. toctree::
