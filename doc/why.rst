@@ -6,7 +6,9 @@ Offline-first design
 
 rs.js stores data locally first and syncs data with a remote storage account
 second. This makes it a robust sync solution for mobile applications, where
-slow and spotty network connections are a normal situation. Apps and use
+slow and spotty network connections are a normal situation.
+
+Apps and use
 cases that don't require caching (e.g. `Sharesome <https://sharesome.5apps.com/>`_)
 can keep selective data locally while not caching the rest.
 
