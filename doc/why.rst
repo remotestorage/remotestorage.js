@@ -41,7 +41,7 @@ Even better, you can get advanced capabilities for free by using shared,
 open-source :doc:`data modules </data-modules>`, which you can cooperate on
 with other developers.
 
-For example: enable to sharing files by simply integrating the `shares module`_
+For example: enable the sharing of files by simply integrating the `shares module`_
 within a matter of minutes, giving you client-side thumbnail generation and other
 features in the process.
 
