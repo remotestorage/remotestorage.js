@@ -50,5 +50,8 @@
     "webfinger.js": "^2.7.0",
     "xhr2": "^0.2.1"
   },
-  "types": "./release/types/remotestorage.d.ts"
+  "types": "./release/types/remotestorage.d.ts",
+  "optionalDependencies": {
+    "fsevents": "^2.3.2"
+  }
 }
