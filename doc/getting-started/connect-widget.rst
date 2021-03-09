@@ -5,10 +5,9 @@ The easiest option for letting people connect their storage to your app is using
 the Connect Widget add-on library, which is written and maintained by the rs.js
 core team.
 
-This is by no means required, and it's easy to integrate all functionality in
-your own UI as well. However, it's a great way for starting out with RS app
-development and, if desired, replacing the widget with your own custom code
-later on.
+This is optional and an easy way to integrate all functionality into your own UI.
+It's a great way to start with RS app development and, can be replaced with
+custom code later on.
 
 .. HINT::
    If you haven't seen the widget in action yet, you can try it out e.g. with
@@ -55,4 +54,4 @@ informed about connection status, sync progress, errors, and so on.
    If you'd like to implement connect functionality in your own user interface
    and code, the widget can serve as a useful source code example. For
    everything it does, the Connect Widget only uses public APIs and events of
-   *rs.js*, which you can also use in your own code.
+   rs.js, which you can also use in your own code.

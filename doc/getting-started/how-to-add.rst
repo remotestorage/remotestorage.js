@@ -1,7 +1,7 @@
 Adding rs.js to an app
 ======================
 
-remoteStorage.js is distributed as a single :abbr:`UMD (Universal Module
+rs.js is distributed as a single :abbr:`UMD (Universal Module
 Definition)` build, which means it should work with all known JavaScript module
 systems, as well as without one (using a global variable).
 
@@ -79,7 +79,7 @@ module from npm like this:
 Caveat emptor (no promises)
 ---------------------------
 
-Please be aware of the fact that although remoteStorage.js is generally
+Please be aware of the fact that although rs.js is generally
 compatible with older browsers as well as the latest ones, we do not include a
 `polyfill <https://en.wikipedia.org/wiki/Polyfill>`_ for JavaScript Promises
 anymore.
