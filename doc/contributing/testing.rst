@@ -9,14 +9,14 @@ test suites and `JSHint <http://jshint.com/about/>`_ for linting. Both are set
 as dev dependencies in ``package.json``, so after installing those via ``npm
 install``, you can use the following command to run everything at once:
 
-.. CODE:: bash
+.. CODE:: console
 
    $ npm run test
 
 Or you can use the Jaribu executable directly in order to run the suite for a
 single file:
 
-.. CODE:: bash
+.. CODE:: console
 
    $ ./node_modules/.bin/jaribu test/unit/cachinglayer-suite.js
 

@@ -1,7 +1,7 @@
+.. highlight:: console
+
 Release checklist
 =================
-
-.. highlight:: bash
 
 * Build library and manually test all browsers you have access to, including
   mobile devices and private browsing mode
@@ -10,7 +10,7 @@ Release checklist
 
     * Collect and summarize changes using e.g.::
 
-         git log --no-merges <LAST RELEASE TAG>..HEAD
+         $ git log --no-merges <LAST RELEASE TAG>..HEAD
 
     * Add changes to `CHANGELOG.md`
     * Commit to Git
@@ -36,7 +36,7 @@ Release checklist
 
 * Publish to npm (https://www.npmjs.org/package/remotestoragejs)::
 
-     npm publish
+     $ npm publish
 
 * Update https://github.com/remotestorage/myfavoritedrinks to use new release
 
