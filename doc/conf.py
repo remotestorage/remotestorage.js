@@ -18,6 +18,7 @@
 import datetime
 import os
 import sys
+from pathlib import Path
 sys.path.insert(0, os.path.abspath('.'))
 
 from version import __version__
@@ -194,7 +195,8 @@ texinfo_documents = [
 # https://github.com/readthedocs/readthedocs-docker-images/issues/107
 #
 # Manually add custom Node.js/npm from conda to PATH
-python_executable_directory = sys.path.insert(0, os.path.abspath(sys.executable + "/.."))
+python_executable_directory = Path(sys.executable).parent
+sys.path.insert(0, python_executable_directory)
 os.environ["PATH"] = f"{python_executable_directory}:{os.environ['PATH']}"
 # Verify Node.js version is correct
 os.system('node --version')
@@ -205,14 +207,15 @@ os.system('npm --version')
 # TODO Remove this when there is official support for pre-build steps on RTD
 # https://github.com/readthedocs/readthedocs.org/issues/6662
 #
-os.system('npm install')
-
+typedoc_directory = Path('../node_modules/typedoc/bin').resolve()
+if not typedoc_directory.exists():
+    os.system('npm install')
+assert typedoc_directory.exists(), "There was an issue with the `npm install`, please check the logs."
 #
 # HACKFIX WARNING
 # TODO Remove this when RTD updates their Node.js version
 # https://github.com/readthedocs/readthedocs-docker-images/issues/107
 #
 # Manually add typedoc to PATH
-typedoc_directory = os.path.abspath('../node_modules/typedoc/bin')
-os.system(f'chmod +x {typedoc_directory}/typedoc')
+os.system(f'chmod +x {typedoc_directory / "typedoc"}')
 os.environ["PATH"] = f"{typedoc_directory}:{os.environ['PATH']}"
