@@ -27,7 +27,7 @@ Production
 
 .. CODE:: console
 
-   $ npm run build
+   $ npm run build:release
 
 This creates the minified production build in ``release/``.
 
