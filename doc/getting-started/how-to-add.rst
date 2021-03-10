@@ -12,11 +12,11 @@ may also just download the release build `from GitHub
 The package is available on `npm <https://www.npmjs.com/>`_ as
 ``remotestoragejs`` and on `Bower <https://bower.io/>`_ as ``remotestorage``:
 
-.. code:: bash
+.. code:: console
 
    $ npm install remotestoragejs
 
-.. code:: bash
+.. code:: console
 
    $ bower install -S rs
 
