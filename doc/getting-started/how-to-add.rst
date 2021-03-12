@@ -10,15 +10,11 @@ may also just download the release build `from GitHub
 <https://github.com/remotestorage/remotestorage.js/releases>`_.
 
 The package is available on `npm <https://www.npmjs.com/>`_ as
-``remotestoragejs`` and on `Bower <https://bower.io/>`_ as ``remotestorage``:
+``remotestoragejs``:
 
 .. code:: console
 
    $ npm install remotestoragejs
-
-.. code:: console
-
-   $ bower install -S rs
 
 Examples
 --------

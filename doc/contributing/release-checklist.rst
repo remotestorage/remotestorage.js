@@ -19,7 +19,6 @@ Release checklist
 
     * run the test suite
     * update the version in package.json
-    * update the version in bower.json
     * create a release build
     * commit everything using version as commit description
     * create a Git tag for the version
