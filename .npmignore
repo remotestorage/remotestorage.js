@@ -1,3 +1,15 @@
+*~
+\#*
+.#*
+*.swp
+*.log
+/build
+/gitno
+node_modules
+doc/code
+doc/_build
+doc/__pycache__/
+tags
 .browserslistrc
 .codeclimate.yml
 esformatter-config.json
