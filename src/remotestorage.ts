@@ -408,7 +408,7 @@ class RemoteStorage {
    * This method clears all stored settings and deletes the entire local
    * cache.
    */
-  disconnect (preserve?:boolean): void {
+  disconnect (preserve?: boolean): void {
     if (this.remote) {
       this.remote.configure({
         userAddress: null,
@@ -423,42 +423,41 @@ class RemoteStorage {
       put: this._pendingGPD('put'),
       delete: this._pendingGPD('delete')
     });
-	
-	
-	if(preserve){
-		this._init();
-        // FIXME Re-enable when modules are all imports
-        // log('Done cleaning up, emitting disconnected and disconnect events');
-        this._emit('disconnected');
-	} else {
-        const n = this._cleanups.length;
-        let i = 0;
-
-        const oneDone = (): void => {
-          i++;
-          if (i >= n) {
-            this._init();
-            // FIXME Re-enable when modules are all imports
-            // log('Done cleaning up, emitting disconnected and disconnect events');
-            this._emit('disconnected');
-          }
-        };
-
-        if (n > 0) {
-          this._cleanups.forEach((cleanup: Function) => {
-            const cleanupResult = cleanup(this);
-            if (typeof(cleanupResult) === 'object' && typeof(cleanupResult.then) === 'function') {
-              cleanupResult.then(oneDone);
-            } else {
-              oneDone();
-            }
-          });
-        } else {
-          oneDone();
-        }
-	}
-	
     
+    
+    if(preserve){
+      this._init();
+      // FIXME Re-enable when modules are all imports
+      // log('Done cleaning up, emitting disconnected and disconnect events');
+      this._emit('disconnected');
+    } else {
+      const n = this._cleanups.length;
+      let i = 0;
+
+      const oneDone = (): void => {
+        i++;
+        if (i >= n) {
+          this._init();
+          // FIXME Re-enable when modules are all imports
+          // log('Done cleaning up, emitting disconnected and disconnect events');
+          this._emit('disconnected');
+        }
+      };
+
+      if (n > 0) {
+        this._cleanups.forEach((cleanup: Function) => {
+          const cleanupResult = cleanup(this);
+          if (typeof(cleanupResult) === 'object' && typeof(cleanupResult.then) === 'function') {
+            cleanupResult.then(oneDone);
+          } else {
+            oneDone();
+          }
+        });
+      } else {
+        oneDone();
+      }
+    }
+
   }
 
   /**
