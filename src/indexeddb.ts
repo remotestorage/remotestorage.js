@@ -464,7 +464,6 @@ class IndexedDB extends CachingLayer {
    *
    * @protected
    */
-  // TODO add real type once defined
   static _rs_cleanup (remoteStorage: any) {
     return new Promise((resolve/*, reject*/) => {
       if (remoteStorage.local) {
