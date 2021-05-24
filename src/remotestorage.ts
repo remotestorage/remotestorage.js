@@ -518,8 +518,8 @@ class RemoteStorage {
    * @param {string} [apiKeys.type] - Backend type: 'googledrive' or 'dropbox'
    * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
    */
-  setApiKeys (apiKeys: { type: string; key: string }): void | boolean {
-    const validTypes = ['googledrive', 'dropbox'];
+  setApiKeys (apiKeys: {[key in ApiKeyType]?: string}): void | boolean {
+    const validTypes: string[] = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX];
     if (typeof apiKeys !== 'object' || !Object.keys(apiKeys).every(type => validTypes.includes(type))) {
       console.error('setApiKeys() was called with invalid arguments') ;
       return false;
@@ -530,15 +530,15 @@ class RemoteStorage {
       if (!key) { delete this.apiKeys[type]; return; }
 
       switch(type) {
-        case 'dropbox':
-          this.apiKeys['dropbox'] = { appKey: key };
+        case ApiKeyType.DROPBOX:
+          this.apiKeys[ApiKeyType.DROPBOX] = { appKey: key };
           if (typeof this.dropbox === 'undefined' ||
               this.dropbox.clientId !== key) {
             Dropbox._rs_init(this);
           }
           break;
-        case 'googledrive':
-          this.apiKeys['googledrive'] = { clientId: key };
+        case ApiKeyType.GOOGLE:
+          this.apiKeys[ApiKeyType.GOOGLE] = { clientId: key };
           if (typeof this.googledrive === 'undefined' ||
             this.googledrive.clientId !== key) {
             GoogleDrive._rs_init(this);
@@ -955,5 +955,10 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
 
 interface RemoteStorage extends EventHandling {};
 applyMixins(RemoteStorage, [EventHandling]);
+
+enum ApiKeyType {
+  GOOGLE = 'googledrive',
+  DROPBOX = 'dropbox'
+}
 
 export = RemoteStorage;
