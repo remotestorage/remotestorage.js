@@ -351,6 +351,16 @@ your local value of 'blue':
       lastCommonContentType: 'text/plain'
     }
 
+Conflict Resolution
+"""""""""""""""""""
+
+Conflicts are resolved by calling storeObject() or storeFile() on the device where the conflict surfaced. (Other devices are not aware of the conflict.)
+
+If there is an algorithm to merge the differences between local and remote versions of the data, conflicts may be automatically resolved.  storeObject() or storeFile() must not be called synchronously from the change event handler, nor by chaining Promises.  storeObject() or storeFile() must not be called until the next iteration of the JavaScript Task Queue, using setTimeout() or the equivalent.
+
+If no algorithm exists, conflict resolution typically involves displaing local and remote versions to the user, and having the user merge them and save (save would call storeObject() or storeFile()).
+
+
 Data types
 ----------
 
