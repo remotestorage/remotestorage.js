@@ -143,25 +143,53 @@ List of functions
 .. autofunction:: BaseClient#getAll(path, maxAge)
   :short-name:
 
-  Example response object:
-
-  .. code:: javascript
-
-     // TODO
-
-  For items that are not JSON-stringified objects (e.g. stored using
-  `storeFile` instead of `storeObject`), the object's value is filled in
-  with `true`.
-
   Example usage:
 
   .. code:: javascript
 
-     client.getAll('').then(objects => {
+     client.getAll('example-subdirectory/').then(objects => {
        for (var path in objects) {
          console.log(path, objects[path]);
        }
      });
+
+  Example response object:
+
+  .. code:: javascript
+
+    {
+      "27b8dc16483734625fff9de653a14e03": {
+        "@context": "http://remotestorage.io/spec/modules/bookmarks/archive-bookmark",
+        "id": "27b8dc16483734625fff9de653a14e03",
+        "url": "https://unhosted.org/",
+        "title": "Unhosted Web Apps",
+        "description": "Freedom from web 2.0's monopoly platforms",
+        "tags": [
+          "unhosted",
+          "remotestorage"
+        ],
+        "createdAt": "2017-11-02T15:22:25.289Z",
+        "updatedAt": "2019-11-07T17:52:22.643Z"
+      },
+      "900a5ca174bf57c56b79af0653053bdc": {
+        "@context": "http://remotestorage.io/spec/modules/bookmarks/archive-bookmark",
+        "id": "900a5ca174bf57c56b79af0653053bdc",
+        "url": "https://remotestorage.io/",
+        "title": "remoteStorage",
+        "description": "An open protocol for per-user storage on the Web",
+        "tags": [
+          "unhosted",
+          "remotestorage"
+        ],
+        "createdAt": "2019-11-07T17:59:34.883Z"
+      }
+    }
+
+  .. HINT::
+
+    For items that are not JSON-stringified objects (for example stored using
+    :func:`storeFile` instead of :func:`storeObject`), the object's value is
+    filled in with ``true``.
 
 .. autofunction:: BaseClient#getFile(path, maxAge)
   :short-name:
