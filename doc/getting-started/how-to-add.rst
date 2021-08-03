@@ -1,7 +1,7 @@
 Adding rs.js to an app
 ======================
 
-remoteStorage.js is distributed as a single :abbr:`UMD (Universal Module
+rs.js is distributed as a single :abbr:`UMD (Universal Module
 Definition)` build, which means it should work with all known JavaScript module
 systems, as well as without one (using a global variable).
 
@@ -10,15 +10,11 @@ may also just download the release build `from GitHub
 <https://github.com/remotestorage/remotestorage.js/releases>`_.
 
 The package is available on `npm <https://www.npmjs.com/>`_ as
-``remotestoragejs`` and on `Bower <https://bower.io/>`_ as ``remotestorage``:
+``remotestoragejs``:
 
-.. code:: bash
+.. code:: console
 
    $ npm install remotestoragejs
-
-.. code:: bash
-
-   $ bower install -S rs
 
 Examples
 --------
@@ -79,7 +75,7 @@ module from npm like this:
 Caveat emptor (no promises)
 ---------------------------
 
-Please be aware of the fact that although remoteStorage.js is generally
+Please be aware of the fact that although rs.js is generally
 compatible with older browsers as well as the latest ones, we do not include a
 `polyfill <https://en.wikipedia.org/wiki/Polyfill>`_ for JavaScript Promises
 anymore.

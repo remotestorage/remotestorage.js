@@ -2,10 +2,11 @@
 \#*
 .#*
 *.swp
-node_modules
 *.log
-server/server-state
-server-state
+/build
+/gitno
+node_modules
 doc/code
 doc/_build
-/remotestorage*.js
+doc/__pycache__/
+tags

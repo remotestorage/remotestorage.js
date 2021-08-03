@@ -1,23 +1,12 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventHandling) {
+define(['require', 'tv4', './build/eventhandling', './build/util'],
+       function (require, tv4, EventHandling, util) {
   var suites = [];
 
   var consoleLog, fakeLogs;
   global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
-
-  function FakeRemote(connected) {
-    this.fakeRemote = true;
-    this.connected = (typeof connected === 'boolean') ? connected : true;
-    this.configure = function() {};
-    this.stopWaitingForToken = function() {
-      if (!this.connected) {
-        this._emit('not-connected');
-      }
-    };
-    eventHandling(this, 'connected', 'disconnected', 'not-connected');
-  }
 
   function fakeRequest(path) {
     if (path === '/testing403') {
@@ -27,11 +16,21 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
     }
   }
 
-  FakeRemote.prototype = {
-    get: fakeRequest,
-    put: fakeRequest,
-    delete: fakeRequest
-  };
+  class FakeRemote {
+    constructor(connected) {
+      this.fakeRemote = true;
+      this.connected = (typeof connected === 'boolean') ? connected : true;
+      this.configure = function() {};
+      this.stopWaitingForToken = function() {
+        if (!this.connected) { this._emit('not-connected'); }
+      };
+      this.addEvents(['connected', 'disconnected', 'not-connected']);
+    }
+  }
+  FakeRemote.prototype.get = fakeRequest;
+  FakeRemote.prototype.put = fakeRequest;
+  FakeRemote.prototype.delete = fakeRequest;
+  util.applyMixins(FakeRemote, [EventHandling]);
 
   function FakeLocal() {}
 
@@ -68,17 +67,14 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
       global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
-      // global.WebFinger = require('webfinger.js')
-      // global.Discover = require('./src/discover');
-      global.SyncedGetPutDelete = require('./src/syncedgetputdelete');
-      global.Authorize = require('./src/authorize');
-      global.Sync = require('./src/sync');
-      global.config = require('./src/config');
-      global.log = require('./src/log');
-      global.Dropbox = require('./src/dropbox');
-
-      global.RemoteStorage = require('./src/remotestorage');
-
+      global.SyncedGetPutDelete = require('./build/syncedgetputdelete');
+      global.Authorize = require('./build/authorize');
+      global.UnauthorizedError = require('./build/unauthorized-error');
+      global.Sync = require('./build/sync');
+      global.config = require('./build/config');
+      global.log = require('./build/log');
+      global.Dropbox = require('./build/dropbox');
+      global.RemoteStorage = require('./build/remotestorage');
 
       global.Discover = function(userAddress) {
         var pending = Promise.defer();
@@ -102,12 +98,12 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
 
     tests: [
       {
-        desc: "#get emiting error RemoteStorage.Unauthorized on 403",
+        desc: "#get raises UnauthorizedError on 403",
         run: function (env, test) {
           var success = false;
 
           env.rs.on('error', function (e) {
-            if (e instanceof Authorize.Unauthorized) {
+            if (e instanceof UnauthorizedError) {
               success = true;
             }
           });
@@ -119,11 +115,11 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
       },
 
       {
-        desc: "#put emiting error RemoteStorage.Unauthorized on 403",
+        desc: "#put raises UnauthorizedError on 403",
         run: function(env, test) {
           var success = false;
           env.rs.on('error', function(e) {
-            if (e instanceof Authorize.Unauthorized) {
+            if (e instanceof UnauthorizedError) {
               success = true;
             }
           });
@@ -134,11 +130,11 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
       },
 
       {
-        desc: "#delete emiting error RemoteStorage.Unauthorized on 403",
+        desc: "#delete raises UnauthorizedError on 403",
         run: function (env, test) {
           var success = false;
           env.rs.on('error', function (e) {
-            if (e instanceof Authorize.Unauthorized) {
+            if (e instanceof UnauthorizedError) {
               success = true;
             }
           });
@@ -374,6 +370,8 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
           // // Mock feature to be loaded on initialization
           // Sync._rs_init = function Sync_rs_init() {};
           // Sync._rs_cleanup = function Sync_rs_cleanup() {};
+
+          // TODO Please someone document this test. It is incomprehensible as is.
 
           var loadedHandler = function() {
             initsCalled++;
@@ -655,6 +653,8 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -676,6 +676,8 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -696,6 +698,8 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -724,6 +728,8 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -739,6 +745,29 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
           delete global.document;
         }
       },
+
+      {
+        desc: "#authorize does not add a trailing slash as only pathname to redirectUri",
+        run: function (env, test) {
+            global.document = {
+              location: {
+                origin: 'https://app.com:5000',
+                pathname: '/',
+                href: 'https://app.com:5000/',
+                toString: function() { return this.href; }
+              }
+            };
+
+            const authURL = 'https://provider.com/oauth';
+
+            env.rs.authorize({ authURL, scope: 'custom-scope' });
+
+            test.assert(document.location.href, 'https://provider.com/oauth?redirect_uri=https%3A%2F%2Fapp.com%3A5000&scope=custom-scope&client_id=https%3A%2F%2Fapp.com%3A5000&response_type=token');
+
+            delete global.document;
+        }
+      },
+
     ]
   });
 
@@ -751,7 +780,7 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
     },
 
     beforeEach: function(env, test) {
-      global.log = require('./src/log');
+      global.log = require('./build/log');
       fakeLogs = [];
       test.done();
     },
@@ -803,7 +832,6 @@ define(['require', 'tv4', './src/eventhandling'], function (require, tv4, eventH
     name: "remoteStorage",
     desc: "the RemoteStorage instance - without a connected remote",
     setup: function(env, test) {
-
       RemoteStorage.prototype.remote = new FakeRemote(false);
       test.assertType(RemoteStorage, 'function');
     },

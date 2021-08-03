@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/indexeddb', './src/config'], function (IndexedDB, config) {
+define(['./build/indexeddb', './build/config'], function (IndexedDB, config) {
   var suites = [];
 
   suites.push({

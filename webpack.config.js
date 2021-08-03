@@ -14,8 +14,24 @@ const plugins = isProd ? [
 ] : [];
 
 module.exports = {
-  entry: ['./src/remotestorage.js'],
-  devtool: isProd ? 'source-map' : 'eval',
+  entry: ['./src/remotestorage.ts'],
+  devtool: 'source-map',
+  // the only external dependecy is xmlhttprequest because it is
+  // different in browser and in node env so user has to manage with that
+  externals: ['xmlhttprequest'],
+  plugins: plugins,
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
+      }
+    ]
+  },
+  resolve: {
+    extensions: ['.ts'],
+  },
   output: {
     path: path.resolve(__dirname, 'release'),
     filename: 'remotestorage.js',
@@ -24,25 +40,5 @@ module.exports = {
     libraryTarget: 'umd',
     umdNamedDefine: true,
     globalObject: 'this'
-  },
-  // the only external dependecy is xmlhttprequest because it is
-  // different in browser and in node env so user has to manage with that
-  externals: [ 'xmlhttprequest' ],
-  plugins: plugins,
-
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env'],
-            plugins: []
-          }
-        }
-      }
-    ]
   }
 };

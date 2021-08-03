@@ -27,8 +27,8 @@ connecting and syncing data with a person's Dropbox or Google Drive account
    js-api
    nodejs
    cordova
+   typescript
    contributing
-   advanced
 
 Indices and tables
 ------------------

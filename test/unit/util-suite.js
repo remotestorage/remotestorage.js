@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/util'], function (util) {
+define(['./build/util'], function (util) {
   var suites = [];
 
   function stringToArrayBuffer(str) {

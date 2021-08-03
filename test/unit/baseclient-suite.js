@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./src/config', './src/baseclient', 'test/helpers/mocks', 'tv4'],
+define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
        function (config, BaseClient, mocks, tv4) {
 
   var suites = [];
@@ -100,10 +100,6 @@ define(['./src/config', './src/baseclient', 'test/helpers/mocks', 'tv4'],
         RemoteStorage.prototype = {
           onChange: function() {}
         };
-      }
-      if (typeof(BaseClient) !== 'function') {
-        require('../../src/eventhandling');
-        BaseClient = require('../../src/baseclient');
       }
       test.done();
     },

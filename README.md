@@ -1,7 +1,7 @@
 # remoteStorage.js
 
 [![npm](https://img.shields.io/npm/v/remotestoragejs.svg)](https://www.npmjs.com/package/remotestoragejs)
-[![Build Status](http://img.shields.io/travis/remotestorage/remotestorage.js.svg?style=flat)](http://travis-ci.org/remotestorage/remotestorage.js)
+[![Build Status](https://github.com/remotestorage/remotestorage.js/actions/workflows/test-and-lint.yml/badge.svg)](https://github.com/remotestorage/remotestorage.js/actions/workflows/test-and-lint.yml?query=branch%3Amaster)
 [![Dependency Status](http://img.shields.io/david/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=dependencies)
 [![devDependency Status](http://img.shields.io/david/dev/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=devDependencies)
 

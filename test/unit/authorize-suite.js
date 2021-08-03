@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define([ 'require', './src/authorize', './src/config'], function(require, Authorize, config) {
+define([ 'require', './build/authorize', './build/unauthorized-error'], function(require, Authorize, UnauthorizedError) {
   var suites = [];
 
   suites.push({
@@ -10,7 +10,8 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-
+      env.Authorize = Authorize;
+      env.UnauthorizedError = UnauthorizedError;
       test.done();
     },
 
@@ -38,7 +39,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
           href: ''
         }
       };
-      Authorize.setLocation({ href: 'http://foo/bar' } );
+      env.Authorize.setLocation({ href: 'http://foo/bar' } );
       test.done();
     },
 
@@ -49,7 +50,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
 
     tests: [
       {
-        desc: "Authorize redirects to the provider's OAuth location",
+        desc: "#authorize redirects to the provider's OAuth location",
         run: function(env, test) {
           var authURL = 'http://storage.provider.com/oauth';
           var scope = 'contacts:r';
@@ -58,7 +59,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
 
           this.localStorageAvailable = function() { return true; };
 
-          Authorize(this, {authURL, scope, redirectUri, clientId});
+          env.Authorize.authorize(this, {authURL, scope, redirectUri, clientId});
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&state=custom%2Fpath&response_type=token';
           test.assert(document.location.href, expectedUrl);
@@ -66,7 +67,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       },
 
       {
-        desc: "Authorize redirects to the provider's OAuth location with empty fragment",
+        desc: "#authorize redirects to the provider's OAuth location with empty fragment",
         run: function(env, test) {
           var authURL = 'http://storage.provider.com/oauth';
           var scope = 'contacts:r';
@@ -75,7 +76,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
 
           this.localStorageAvailable = function() { return true; };
 
-          Authorize(this, {authURL, scope, redirectUri, clientId});
+          env.Authorize.authorize(this, {authURL, scope, redirectUri, clientId});
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&response_type=token';
           test.assert(document.location.href, expectedUrl);
@@ -83,7 +84,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       },
 
       {
-        desc: "Authorize doesn't redirect, but opens an in-app-browser window",
+        desc: "#authorize doesn't redirect, but opens an in-app-browser window",
         run: function(env, test) {
           document.location.href = 'file:///some/cordova/path';
           var authURL = 'http://storage.provider.com/oauth';
@@ -95,13 +96,13 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
 
           this.localStorageAvailable = function() { return true; };
 
-          Authorize.openWindow = function(url, uri) {
+          env.Authorize.openWindow = function(url, uri) {
             test.assertAnd(uri, redirectUri);
             delete global.cordova;
             test.done();
           };
 
-          Authorize(this, {authURL, scope, redirectUri, clientId});
+          env.Authorize.authorize(this, {authURL, scope, redirectUri, clientId});
 
           test.assertAnd(document.location.href, 'file:///some/cordova/path');
         }
@@ -111,7 +112,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         desc: "document.location getter",
         run: function(env, test) {
           document.location.href = 'http://foo/bar';
-          test.assert(Authorize.getLocation().href, "http://foo/bar");
+          test.assert(env.Authorize.getLocation().href, "http://foo/bar");
         }
       },
 
@@ -119,8 +120,8 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         desc: "document.location setter",
         run: function(env, test) {
           document.location.href = 'http://foo/bar';
-          Authorize.setLocation("https://bar/foo");
-          test.assert(Authorize.getLocation().href, "https://bar/foo");
+          env.Authorize.setLocation("https://bar/foo");
+          test.assert(env.Authorize.getLocation().href, "https://bar/foo");
         }
       },
 
@@ -128,8 +129,8 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         desc: "_rs_init removes params from the fragment",
         run: function(env, test) {
           document.location.href = 'http://foo/bar#foo=bar';
-          Authorize._rs_init(new RemoteStorage());
-          test.assert(Authorize.getLocation().hash, '');
+          env.Authorize._rs_init(new RemoteStorage());
+          test.assert(env.Authorize.getLocation().hash, '');
         }
       },
 
@@ -137,7 +138,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         desc: "_rs_init sets up a features-loaded handler",
         run: function(env, test) {
           var storage = new RemoteStorage();
-          Authorize._rs_init(storage);
+          env.Authorize._rs_init(storage);
           test.assert(storage._handlers['features-loaded'].length, 1);
         }
       },
@@ -171,11 +172,11 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
           };
 
           document.location.href = 'http://foo/bar#access_token=my-token&state=foo%3Dbar%26rsDiscovery%3Dencodeddata';
-          Authorize._rs_init(storage);
+          env.Authorize._rs_init(storage);
 
           storage._handlers['features-loaded'][0]();
 
-          test.assertAnd(Authorize.getLocation().href, 'http://foo/bar#foo=bar');
+          test.assertAnd(env.Authorize.getLocation().href, 'http://foo/bar#foo=bar');
           test.done();
         }
       },
@@ -185,7 +186,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#access_token=my-token';
-          Authorize._rs_init(storage);
+          env.Authorize._rs_init(storage);
           storage.remote = {
             configure: function(settings) {
               test.assert(settings.token, 'my-token');
@@ -200,7 +201,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#access_token=my-token&state=custom%2Fpath';
-          Authorize._rs_init(storage);
+          env.Authorize._rs_init(storage);
           storage.remote = {
             configure: function(settings) {}
           };
@@ -215,7 +216,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#remotestorage=nil%40heahdk.net';
-          Authorize._rs_init(storage);
+          env.Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');
           };
@@ -228,7 +229,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#a=b';
-          Authorize._rs_init(storage);
+          env.Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');
           };
@@ -246,7 +247,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#a=b';
-          Authorize._rs_init(storage);
+          env.Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');
           };
@@ -264,9 +265,9 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#access_token=my-token';
-          Authorize._rs_init(storage);
+          env.Authorize._rs_init(storage);
           test.assertAnd(storage._handlers['features-loaded'].length, 1);
-          Authorize._rs_cleanup(storage);
+          env.Authorize._rs_cleanup(storage);
           test.assertAnd(storage._handlers['features-loaded'].length, 0);
           test.done();
         }
@@ -275,7 +276,7 @@ define([ 'require', './src/authorize', './src/config'], function(require, Author
       {
         desc: "the Unauthorized error accepts an error code",
         run: function(env, test) {
-          let error = new Authorize.Unauthorized('error message', { code: 'error_code' });
+          let error = new env.UnauthorizedError('error message', { code: 'error_code' });
           test.assertAnd(error.message, 'error message');
           test.assert(error.code, 'error_code');
         }

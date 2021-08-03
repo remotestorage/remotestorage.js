@@ -9,14 +9,14 @@ test suites and `JSHint <http://jshint.com/about/>`_ for linting. Both are set
 as dev dependencies in ``package.json``, so after installing those via ``npm
 install``, you can use the following command to run everything at once:
 
-.. CODE:: bash
+.. CODE:: console
 
    $ npm run test
 
 Or you can use the Jaribu executable directly in order to run the suite for a
 single file:
 
-.. CODE:: bash
+.. CODE:: console
 
    $ ./node_modules/.bin/jaribu test/unit/cachinglayer-suite.js
 
@@ -30,8 +30,8 @@ single file:
 Continous integration
 ---------------------
 
-The rs.js test suite is run by Travis CI on every push to our repo on GitHub.
+The rs.js test suite is run by GitHub Actions on every push to our repo on GitHub.
 When you open a pull request, your code will be tested there, too. You can
 check out the build status and history at
-https://travis-ci.org/remotestorage/remotestorage.js/, and the CI settings in
-``.travis.yml``.
+https://github.com/remotestorage/remotestorage.js/actions, and the CI settings in
+``.github/workflows/test-and-lint.yml``.

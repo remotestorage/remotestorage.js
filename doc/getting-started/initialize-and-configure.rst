@@ -36,7 +36,7 @@ Also see the :doc:`RemoteStorage API doc </js-api/remotestorage>`.
 Claiming access
 ---------------
 
-Next, we need to tell *rs.js* which parts of the user's storage we want to
+Next, we need to tell rs.js which parts of the user's storage we want to
 access. Let's say we want to read and write a user's favorite drinks, which
 they might have added via the `My Favorite Drinks
 <https://github.com/RemoteStorage/myfavoritedrinks>`_ demo app::
@@ -64,7 +64,7 @@ Configuring caching
 Last but not least, we'll usually want to configure caching (and with it
 automatic sync) for the data we're accessing. The ``caching.enable()`` method
 will activate full caching for the given path, meaning all of the items therein
-will be automatically synced from and to the server::
+will be automatically synced with the server::
 
    remoteStorage.caching.enable('/myfavoritedrinks/')
 
