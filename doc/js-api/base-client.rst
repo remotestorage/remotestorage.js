@@ -351,6 +351,26 @@ your local value of 'blue':
       lastCommonContentType: 'text/plain'
     }
 
+Conflict Resolution
+"""""""""""""""""""
+
+Conflicts are resolved by calling :func:`storeObject` or :func:`storeFile` on
+the device where the conflict surfaced. Other devices are not aware of the
+conflict.
+
+If there is an algorithm to merge the differences between local and remote
+versions of the data, conflicts may be automatically resolved.
+:func:`storeObject` or :func:`storeFile` must not be called synchronously from
+the change event handler, nor by chaining Promises. :func:`storeObject` or
+:func:`storeFile` must not be called until the next iteration of the JavaScript
+Task Queue, using for example `setTimeout()`_.
+
+If no algorithm exists, conflict resolution typically involves displaing local
+and remote versions to the user, and having the user merge them, or choose
+which version to keep.
+
+.. _setTimeout(): https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout
+
 Data types
 ----------
 
