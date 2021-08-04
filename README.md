@@ -2,8 +2,6 @@
 
 [![npm](https://img.shields.io/npm/v/remotestoragejs.svg)](https://www.npmjs.com/package/remotestoragejs)
 [![Build Status](https://github.com/remotestorage/remotestorage.js/actions/workflows/test-and-lint.yml/badge.svg)](https://github.com/remotestorage/remotestorage.js/actions/workflows/test-and-lint.yml?query=branch%3Amaster)
-[![Dependency Status](http://img.shields.io/david/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=dependencies)
-[![devDependency Status](http://img.shields.io/david/dev/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=devDependencies)
 
 remoteStorage.js is a JavaScript library for storing user data locally in the
 browser, as well as connecting to [remoteStorage](http://remotestorage.io)
@@ -35,12 +33,13 @@ production.
 
 To develop remoteStorage-enabled apps, you need to have a
 remoteStorage-compatible storage account. We recommend
-[php-remote-storage](https://github.com/fkooman/php-remote-storage) (PHP) or
+[php-remote-storage](https://github.com/fkooman/php-remote-storage) (PHP), or
+[armadietto](https://github.com/remotestorage/armadietto) (node.js), or
 [mysteryshack](https://github.com/untitaker/mysteryshack) (Rust) for running a
 local test server, or for self-hosting an RS server.
 
-You can also get an account with a hoster, or use one of the various other
-remoteStorage server implementations: [Servers](https://wiki.remotestorage.io/Servers).
+You can also get an account with a hoster, or use another
+remoteStorage server implementation: [Servers](https://wiki.remotestorage.io/Servers).
 
 ### Developing, Contributing
 
@@ -71,6 +70,6 @@ Original authors: Niklas Cathor, Michiel de Jong
 
 See [list of all contributors](https://github.com/remotestorage/remotestorage.js/graphs/contributors)
 
-Sponsored by [NLnet](https://nlnet.nl)
+Previously sponsored by [NLnet](https://nlnet.nl)
 
 [![NLnet Logo](http://sockethub.org/res/img/nlnet-logo.svg)](https://nlnet.nl)
