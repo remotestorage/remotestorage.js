@@ -208,8 +208,7 @@ declare class RemoteStorage {
      * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
      */
     setApiKeys(apiKeys: {
-        type: string;
-        key: string;
+        [key in ApiKeyType]?: string;
     }): void | boolean;
     /**
      * Set redirect URI to be used for the OAuth redirect within the
@@ -348,6 +347,10 @@ declare class RemoteStorage {
     };
 }
 interface RemoteStorage extends EventHandling {
+}
+declare enum ApiKeyType {
+    GOOGLE = "googledrive",
+    DROPBOX = "dropbox"
 }
 export = RemoteStorage;
 //# sourceMappingURL=remotestorage.d.ts.map
