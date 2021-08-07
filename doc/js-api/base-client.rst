@@ -393,7 +393,7 @@ the change event handler, nor by chaining Promises. :func:`storeObject` or
 :func:`storeFile` must not be called until the next iteration of the JavaScript
 Task Queue, using for example `setTimeout()`_.
 
-If no algorithm exists, conflict resolution typically involves displaing local
+If no algorithm exists, conflict resolution typically involves displaying local
 and remote versions to the user, and having the user merge them, or choose
 which version to keep.
 

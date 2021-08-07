@@ -243,6 +243,8 @@ class BaseClient {
    *
    * @returns {Promise} Resolves with revision on success. Rejects with
    *                    a ValidationError, if validations fail.
+   *
+   * For any given `path`, must not be called more frequently than once per second.
    */
   // TODO add real return type
   storeObject (typeAlias: string, path: string, object: object): Promise<unknown> {
