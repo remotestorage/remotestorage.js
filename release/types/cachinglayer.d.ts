@@ -1,3 +1,5 @@
+import type { QueuedRequestResponse } from './interfaces/queued_request_response';
+import type { RSNode, RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 /**
  * This module defines functions that are mixed into remoteStorage.local when
