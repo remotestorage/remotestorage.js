@@ -32,6 +32,7 @@
  * @interface
  */
 
+import type { RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import CachingLayer from './cachinglayer';
 import log from './log';

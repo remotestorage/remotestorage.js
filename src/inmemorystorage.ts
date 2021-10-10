@@ -1,3 +1,4 @@
+import type { RSNode, RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import CachingLayer from './cachinglayer';
 import { applyMixins } from './util';

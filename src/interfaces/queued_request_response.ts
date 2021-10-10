@@ -1,5 +1,5 @@
-declare interface QueuedRequestResponse {
+export type QueuedRequestResponse = {
   statusCode: number;
   body?: object;
   contentType?: string;
-}
+};

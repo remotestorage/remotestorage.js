@@ -1,5 +1,6 @@
 'use strict';
 
+import type { StorageInfo } from './interfaces/storage_info';
 import config from './config';
 import log from './log';
 import {
