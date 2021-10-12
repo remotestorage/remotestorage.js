@@ -246,12 +246,42 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
       },
 
       {
-        desc: "#connect throws unauthorized when userAddress doesn't contain an @",
+        desc: "#connect throws unauthorized when userAddress doesn't contain an @ or URL",
         run: function(env, test) {
           env.rs.on('error', function(e) {
             test.assert(e instanceof RemoteStorage.DiscoveryError, true);
           });
           env.rs.connect('somestring');
+        }
+      },
+
+      {
+        desc: "#connect accepts URLs for the userAddress",
+        run: function(env, test) {
+          env.rs.on('error', function(e) {
+            test.fail('URL userAddress was not accepted.');
+          });
+
+          env.rs.remote = new FakeRemote(false);
+          env.rs.remote.configure = function (options) {
+            test.assert(options.userAddress, 'https://personal.ho.st');
+          }
+          env.rs.connect('https://personal.ho.st');
+        }
+      },
+
+      {
+        desc: "#connect adds missing https:// to URLs",
+        run: function(env, test) {
+          env.rs.on('error', function(e) {
+            test.fail('URL userAddress was not accepted.');
+          });
+
+          env.rs.remote = new FakeRemote(false);
+          env.rs.remote.configure = function (options) {
+            test.assert(options.userAddress, 'https://personal.ho.st');
+          }
+          env.rs.connect('personal.ho.st');
         }
       },
 
