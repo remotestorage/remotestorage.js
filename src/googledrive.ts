@@ -545,11 +545,12 @@ class GoogleDrive {
       }
 
       const query = '\'' + id + '\' in parents';
-      const fields = 'items(downloadUrl,etag,fileSize,id,mimeType,title)';
+      const fields = 'items(downloadUrl,etag,fileSize,id,mimeType,title,labels)';
       return this._request('GET', BASE_URL + '/drive/v2/files?'
           + 'q=' + encodeURIComponent(query)
           + '&fields=' + encodeURIComponent(fields)
-          + '&maxResults=1000',
+          + '&maxResults=1000'
+          + '&trashed=false',
           {})
       .then((response) => {
         if (response.status !== 200) {
@@ -564,6 +565,8 @@ class GoogleDrive {
 
         itemsMap = {};
         for (const item of data.items) {
+          if (item.labels?.trashed) continue; // ignore deleted files
+
           etagWithoutQuotes = removeQuotes(item.etag);
           if (item.mimeType === GD_DIR_MIME_TYPE) {
             this._fileIdCache.set(path + cleanPath(item.title) + '/', item.id);
