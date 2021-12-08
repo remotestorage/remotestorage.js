@@ -565,7 +565,7 @@ class GoogleDrive {
 
         itemsMap = {};
         for (const item of data.items) {
-          if (item.labels?.trashed) continue; // ignore deleted files
+          if (item.labels?.trashed) { continue; } // ignore deleted files
 
           etagWithoutQuotes = removeQuotes(item.etag);
           if (item.mimeType === GD_DIR_MIME_TYPE) {
