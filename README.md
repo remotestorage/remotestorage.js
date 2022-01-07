@@ -23,7 +23,8 @@ production.
     * [JavaScript API](https://remotestoragejs.readthedocs.io/en/latest/js-api.html)
     * [Usage with Node.js](https://remotestoragejs.readthedocs.io/en/latest/nodejs.html)
 * Ask questions on the [community forums](https://community.remotestorage.io/)
-* Ask questions on IRC in [#remotestorage on Freenode](irc://irc.freenode.net:7000/remotestorage)
+* Ask questions on IRC in [#remotestorage on Libera.Chat](ircs://irc.libera.chat:6697/remotestorage)
+  ([Web Chat](https://web.libera.chat/#remotestorage))
   (wait a bit, if nobody's responding right away)
 * If you found a potential bug, or want to propose a change, [open an issue on
   GitHub](https://github.com/remotestorage/remotestorage.js/issues). New issues
