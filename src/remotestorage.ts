@@ -327,14 +327,19 @@ class RemoteStorage {
    *    tokens in all requests later on. This is useful for example when using
    *    Kerberos and similar protocols.
    *
-   * @param {string} userAddress - The user address (user@host) to connect to.
+   * @param {string} userAddress - The user address (user@host) or URL to connect to.
    * @param {string} token       - (optional) A bearer token acquired beforehand
    */
   connect (userAddress: string, token?: string): void {
     this.setBackend('remotestorage');
-    if (userAddress.indexOf('@') < 0) {
-      this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
+    if (userAddress.indexOf('@') < 0 && !userAddress.match(/^(https?:\/\/)?[^\s\/$\.?#]+\.[^\s]*$/)) {
+      this._emit('error', new RemoteStorage.DiscoveryError("Not a valid user address or URL."));
       return;
+    }
+
+    // Prefix URL with https:// if it's missing
+    if (userAddress.indexOf('@') < 0 && !userAddress.match(/^https?:\/\//)) {
+      userAddress = `https://${userAddress}`;
     }
 
     if (globalContext.cordova) {
