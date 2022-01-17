@@ -240,8 +240,9 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
           test.assertAnd(getMockRequestMethod(), 'GET');
           test.assertAnd(getMockRequestUrl(), 'https://www.googleapis.com/drive/v2/files?'
             + 'q=' + encodeURIComponent('\'abcd\' in parents')
-            + '&fields=' + encodeURIComponent('items(downloadUrl,etag,fileSize,id,mimeType,title)')
-            + '&maxResults=1000');
+            + '&fields=' + encodeURIComponent('items(downloadUrl,etag,fileSize,id,mimeType,title,labels)')
+            + '&maxResults=1000'
+            + '&trashed=false');
         });
         env.connectedClient.get('/foo/')
         .then(function (r) {
@@ -269,14 +270,80 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
               {
                 etag: '"1234"',
                 mimeType: 'application/vnd.google-apps.folder',
-                title: 'bar'
+                title: 'bar',
+                labels: {
+                  trashed: false
+                }
               },
               {
                 etag: '"1234"',
                 mimeType: 'image/png',
                 fileSize: 25003,
-                title: 'baz.png'
+                title: 'baz.png',
+                labels: {
+                  trashed: false
+                }
               }
+            ] })
+          });
+        }, 10);
+      }
+    },
+
+    {
+      desc: "#get to folder omits trashed files",
+      run: function (env, test) {
+        env.connectedClient._fileIdCache.set('/remotestorage/foo/', 'abcd');
+        env.connectedClient.get('/foo/')
+        .then(function (r) {
+          test.assertAnd(r.statusCode, 200);
+          test.assertAnd(r.body, {
+            'bar/': {
+              ETag: '1234'
+            },
+            'baz.png': {
+              ETag: '1234',
+              'Content-Type': 'image/png',
+              'Content-Length': 25003
+            }
+          });
+          test.assert(r.contentType, 'application/json; charset=UTF-8');
+          test.done();
+        }, function (err) {
+          test.result(false, err);
+        });
+
+        setTimeout(function () {
+          mockRequestSuccess({
+            status: 200,
+            responseText: JSON.stringify({ items: [
+              {
+                etag: '"1234"',
+                mimeType: 'application/vnd.google-apps.folder',
+                title: 'bar',
+                labels: {
+                  trashed: false
+                }
+              },
+              {
+                etag: '"1234"',
+                mimeType: 'image/png',
+                fileSize: 25003,
+                title: 'baz.png',
+                labels: {
+                  trashed: false
+                }
+              },
+              {
+                etag: '"1234"',
+                mimeType: 'image/jpeg',
+                fileSize: 25003,
+                title: 'foo.jpg',
+                labels: {
+                  trashed: true
+                }
+              },
+
             ] })
           });
         }, 10);
@@ -418,7 +485,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
           mockRequestSuccess({
             status: 200,
             responseText: JSON.stringify({ items: [
-              { etag: '"1234"', title: 'abcd' }
+              { etag: '"1234"', title: 'abcd', labels: { trashed: false } }
             ] })
           });
         }, 10);
