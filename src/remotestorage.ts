@@ -49,12 +49,12 @@ function emitUnauthorized(r) {
 }
 
 /**
-* Check if interval is valid: numeric and between 1000ms and 3600000ms
+* Check if interval is valid: numeric and between 1s and 1hr inclusive
 */
 function isValidInterval(interval: unknown): interval is number {
   return (typeof interval === 'number' &&
-          interval > 1000 &&
-          interval < 3600000);
+          interval >= 1000 &&
+          interval <= 3600000);
 }
 
 /**

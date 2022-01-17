@@ -165,8 +165,8 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
       {
         desc: "Update sync interval",
         run: function(env, test) {
-          env.rs.setSyncInterval(60000);
-          test.assert(env.rs.getSyncInterval(), 60000);
+          env.rs.setSyncInterval(1000);
+          test.assert(env.rs.getSyncInterval(), 1000);
         }
       },
 
@@ -183,6 +183,35 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
           }
         }
       },
+
+      {
+        desc: "Setting a sync interval too short throws an error",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          try {
+            env.rs.setSyncInterval(999);
+            test.result(false, "setSyncInterval() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
+      {
+        desc: "Setting a sync interval too long throws an error",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          try {
+            env.rs.setSyncInterval(3600001);
+            test.result(false, "setSyncInterval() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
       {
         desc: "Sync calls doTasks, and goes to collectTasks only if necessary",
         run: function(env, test) {
