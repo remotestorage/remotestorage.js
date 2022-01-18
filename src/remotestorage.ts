@@ -49,12 +49,12 @@ function emitUnauthorized(r) {
 }
 
 /**
-* Check if interval is valid: numeric and between 1000ms and 3600000ms
+* Check if interval is valid: numeric and between 2s and 1hr inclusive
 */
 function isValidInterval(interval: unknown): interval is number {
   return (typeof interval === 'number' &&
-          interval > 1000 &&
-          interval < 3600000);
+          interval >= 2000 &&
+          interval <= 3600000);
 }
 
 /**
@@ -715,7 +715,7 @@ class RemoteStorage {
   /**
    * Set the value of the sync interval when application is in the foreground
    *
-   * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
+   * @param interval - Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
    */
   setSyncInterval (interval: number): void {
     if (!isValidInterval(interval)) {
@@ -739,7 +739,7 @@ class RemoteStorage {
    * Set the value of the sync interval when the application is in the
    * background
    *
-   * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
+   * @param interval - Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
    */
   setBackgroundSyncInterval (interval: number): void {
     if (!isValidInterval(interval)) {
