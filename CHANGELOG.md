@@ -2,11 +2,12 @@
 
 All releases can also be found and downloaded on the [releases page][1] on GitHub.
 
-## 2.0.0 (August 2021)
+## 2.0.0 (January 2022)
 
 ### Breaking changes
 
 * Remove Bower package support (#1231)
+* Minimum sync interval is now 2000ms (#1260)
 
 ### Enhancements
 
@@ -18,12 +19,15 @@ All releases can also be found and downloaded on the [releases page][1] on GitHu
 * Improve documentation (#1219, #1227, #1241, #1242)
 * Make ReadTheDocs work with current node.js/npm, TypeDoc, etc. (#1220, #1230)
 * Don't include unnecessary files in npm package (#1232)
+* Improve validation of custom sync interval settings (#1260)
+* Allow to connect via URL (#1250)
 
 ### Bugfixes
 
 * Fix WireClient initialization when localStorage settings data corrupted/missing (#1210)
 * Handle Google Drive paths with special characters (#1181)
 * Fix potentially wrong command in warning message (#1218)
+* Don't list trashed files in GDrive folder listings (#1257)
 
 ## 1.2.3 (January 2020)
 
