@@ -1,3 +1,4 @@
+import type { RSNodes } from './interfaces/rs_node';
 import CachingLayer from './cachinglayer';
 import EventHandling from './eventhandling';
 import log from './log';

@@ -1,6 +1,7 @@
 'use strict';
 
 import WebFinger from 'webfinger.js';
+import type { StorageInfo } from './interfaces/storage_info';
 import log from './log';
 import { globalContext, localStorageAvailable } from './util';
 

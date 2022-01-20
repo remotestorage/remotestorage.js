@@ -1,3 +1,4 @@
+import type { RSNode, RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 interface ResponseStatus {
     statusCode: string | number;

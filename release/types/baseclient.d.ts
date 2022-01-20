@@ -1,4 +1,5 @@
 import tv4 from 'tv4';
+import type { ChangeObj } from './interfaces/change_obj';
 import EventHandling from './eventhandling';
 import RemoteStorage from './remotestorage';
 /**

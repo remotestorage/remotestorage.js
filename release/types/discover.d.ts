@@ -1,3 +1,4 @@
+import type { StorageInfo } from './interfaces/storage_info';
 /**
  * This function deals with the Webfinger lookup, discovering a connecting
  * user's storage details.

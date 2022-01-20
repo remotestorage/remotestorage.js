@@ -1,4 +1,5 @@
 import tv4 from 'tv4';
+import type { ChangeObj } from './interfaces/change_obj';
 import Types from './types';
 import SchemaNotFound from './schema-not-found-error';
 import EventHandling from './eventhandling';

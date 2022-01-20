@@ -1,4 +1,4 @@
 // TODO make definition more specific if possible
-declare interface ChangeObj {
+export type ChangeObj = {
   [key: string]: any;
-}
+};
