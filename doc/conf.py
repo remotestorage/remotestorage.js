@@ -196,7 +196,7 @@ texinfo_documents = [
 #
 # Manually add custom Node.js/npm from conda to PATH
 python_executable_directory = Path(sys.executable).parent
-sys.path.insert(0, python_executable_directory)
+sys.path.insert(0, str(python_executable_directory))
 os.environ["PATH"] = f"{python_executable_directory}:{os.environ['PATH']}"
 # Verify Node.js version is correct
 os.system('node --version')
