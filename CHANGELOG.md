@@ -11,7 +11,7 @@ All releases can also be found and downloaded on the [releases page][1] on GitHu
 
 ### Enhancements
 
-* Convert source code to TypeScript (#1175, #1196, #1199, #1211, #1214, #1233, #1239)
+* Convert source code to TypeScript (#1175, #1196, #1199, #1211, #1214, #1233, #1239, #1249)
 * Update dependencies (#1206, #1226)
 * Switch from Travis CI to GitHub Actions (#1223, #1224, #1225)
 * Don't add trailing slash as only pathname to redirect_uri param (#1213)
