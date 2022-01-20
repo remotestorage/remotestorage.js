@@ -149,7 +149,7 @@ declare class RemoteStorage {
      *    tokens in all requests later on. This is useful for example when using
      *    Kerberos and similar protocols.
      *
-     * @param {string} userAddress - The user address (user@host) to connect to.
+     * @param {string} userAddress - The user address (user@host) or URL to connect to.
      * @param {string} token       - (optional) A bearer token acquired beforehand
      */
     connect(userAddress: string, token?: string): void;
@@ -280,7 +280,7 @@ declare class RemoteStorage {
     /**
      * Set the value of the sync interval when application is in the foreground
      *
-     * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
+     * @param interval - Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
      */
     setSyncInterval(interval: number): void;
     /**
@@ -293,7 +293,7 @@ declare class RemoteStorage {
      * Set the value of the sync interval when the application is in the
      * background
      *
-     * @param interval - Sync interval in milliseconds (between 1000 and 3600000)
+     * @param interval - Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
      */
     setBackgroundSyncInterval(interval: number): void;
     /**

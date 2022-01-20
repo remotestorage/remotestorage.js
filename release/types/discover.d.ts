@@ -3,7 +3,7 @@ import type { StorageInfo } from './interfaces/storage_info';
  * This function deals with the Webfinger lookup, discovering a connecting
  * user's storage details.
  *
- * @param {string} userAddress - user@host
+ * @param {string} userAddress - user@host or URL
  *
  * @returns {Promise} A promise for an object with the following properties.
  *          href - Storage base URL,

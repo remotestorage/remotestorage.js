@@ -88,6 +88,8 @@ declare class BaseClient {
      * See ``declareType()`` and :doc:`data types </data-modules/defining-data-types>`
      * for an explanation of types
      *
+     * For any given `path`, must not be called more frequently than once per second.
+     *
      * @param {string} typeAlias   - Unique type of this object within this module.
      * @param {string} path   - Path relative to the module root.
      * @param {object} object - A JavaScript object to be stored at the given
