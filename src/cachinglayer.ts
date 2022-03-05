@@ -1,7 +1,7 @@
 import type { ChangeObj } from './interfaces/change_obj';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
 import type { RSEvent } from './interfaces/rs_event';
-import type { RSNode, RSNodes } from './interfaces/rs_node';
+import type { RSNode, RSNodes, ProcessNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import config from './config';
 import log from './log';
@@ -170,15 +170,15 @@ abstract class CachingLayer {
     }
   }
 
-  put(path: string, body: any, contentType: string): Promise<RSNodes> {
+  put (path: string, body: unknown, contentType: string): Promise<RSNodes> {
     const paths = pathsFromRoot(path);
 
-    function _processNodes(nodePaths, nodes) {
+    function _processNodes(nodePaths: string[], nodes: RSNodes): RSNodes {
       try {
         for (let i = 0, len = nodePaths.length; i < len; i++) {
           const nodePath = nodePaths[i];
           let node = nodes[nodePath];
-          let previous;
+          let previous: RSNode;
 
           if (!node) {
             nodes[nodePath] = node = makeNode(nodePath);
@@ -252,7 +252,7 @@ abstract class CachingLayer {
 
   flush(path: string): unknown {
 
-    return this._getAllDescendentPaths(path).then((paths) => {
+    return this._getAllDescendentPaths(path).then((paths: string[]) => {
       return this.getNodes(paths);
     }).then((nodes: RSNodes) => {
       for (const nodePath in nodes) {
@@ -273,19 +273,16 @@ abstract class CachingLayer {
     });
   }
 
-  private _emitChange(obj: ChangeObj) {
+  private _emitChange(obj: ChangeObj): void {
     if (config.changeEvents[obj.origin]) {
       this._emit('change', obj);
     }
   }
 
-  fireInitial() {
-    if (!config.changeEvents.local) {
-      return;
-    }
+  fireInitial (): void {
+    if (!config.changeEvents.local) { return; }
 
     this.forAllNodes((node) => {
-
       if (isDocument(node.path)) {
         const latest = getLatest(node);
         if (latest) {
@@ -329,7 +326,7 @@ abstract class CachingLayer {
   }
 
 
-  private _updateNodes(paths: string[], _processNodes): Promise<RSNodes> {
+  private _updateNodes(paths: string[], _processNodes: ProcessNodes): Promise<RSNodes> {
     return new Promise((resolve, reject) => {
       this._doUpdateNodes(paths, _processNodes, {
         resolve: resolve,
@@ -338,7 +335,7 @@ abstract class CachingLayer {
     });
   }
 
-  private _doUpdateNodes(paths, _processNodes, promise) {
+  private _doUpdateNodes(paths: string[], _processNodes: ProcessNodes, promise) {
     if (this._updateNodesRunning) {
       this._updateNodesQueued.push({
         paths: paths,
