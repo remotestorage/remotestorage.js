@@ -14,6 +14,87 @@ import {
   pathsFromRoot
 } from './util';
 
+function getLatest(node: RSNode): any {
+  if (typeof (node) !== 'object' || typeof (node.path) !== 'string') {
+    return;
+  }
+  if (isFolder(node.path)) {
+    if (node.local && node.local.itemsMap) {
+      return node.local;
+    }
+    if (node.common && node.common.itemsMap) {
+      return node.common;
+    }
+  } else {
+    if (node.local) {
+      if (node.local.body && node.local.contentType) {
+        return node.local;
+      }
+      if (node.local.body === false) {
+        return;
+      }
+    }
+    if (node.common && node.common.body && node.common.contentType) {
+      return node.common;
+    }
+    // Migration code! Once all apps use at least this version of the lib, we
+    // can publish clean-up code that migrates over any old-format data, and
+    // stop supporting it. For now, new apps will support data in both
+    // formats, thanks to this:
+    if (node.body && node.contentType) {
+      return {
+        body: node.body,
+        contentType: node.contentType
+      };
+    }
+  }
+}
+
+function isOutdated(nodes: RSNodes, maxAge: number): boolean {
+  for (const path in nodes) {
+    if (nodes[path] && nodes[path].remote) {
+      return true;
+    }
+    const nodeVersion = getLatest(nodes[path]);
+    if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
+      return false;
+    } else if (!nodeVersion) {
+      return true;
+    }
+  }
+  return true;
+}
+
+
+function makeNode(path: string): RSNode {
+  const node: RSNode = {path: path, common: {}};
+
+  if (isFolder(path)) {
+    node.common.itemsMap = {};
+  }
+  return node;
+}
+
+function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
+  if (!node.common) {
+    node.common = {
+      itemsMap: {}
+    };
+  }
+  if (!node.common.itemsMap) {
+    node.common.itemsMap = {};
+  }
+  if (!node.local) {
+    node.local = deepClone(node.common);
+  }
+  if (!node.local.itemsMap) {
+    node.local.itemsMap = node.common.itemsMap;
+  }
+  node.local.itemsMap[itemName] = true;
+
+  return node;
+}
+
 /**
  * This module defines functions that are mixed into remoteStorage.local when
  * it is instantiated (currently one of indexeddb.js, localstorage.js, or
@@ -357,87 +438,6 @@ abstract class CachingLayer {
   }
 }
 
-
-function getLatest(node: RSNode): any {
-  if (typeof (node) !== 'object' || typeof (node.path) !== 'string') {
-    return;
-  }
-  if (isFolder(node.path)) {
-    if (node.local && node.local.itemsMap) {
-      return node.local;
-    }
-    if (node.common && node.common.itemsMap) {
-      return node.common;
-    }
-  } else {
-    if (node.local) {
-      if (node.local.body && node.local.contentType) {
-        return node.local;
-      }
-      if (node.local.body === false) {
-        return;
-      }
-    }
-    if (node.common && node.common.body && node.common.contentType) {
-      return node.common;
-    }
-    // Migration code! Once all apps use at least this version of the lib, we
-    // can publish clean-up code that migrates over any old-format data, and
-    // stop supporting it. For now, new apps will support data in both
-    // formats, thanks to this:
-    if (node.body && node.contentType) {
-      return {
-        body: node.body,
-        contentType: node.contentType
-      };
-    }
-  }
-}
-
-function isOutdated(nodes: RSNodes, maxAge: number): boolean {
-  for (const path in nodes) {
-    if (nodes[path] && nodes[path].remote) {
-      return true;
-    }
-    const nodeVersion = getLatest(nodes[path]);
-    if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
-      return false;
-    } else if (!nodeVersion) {
-      return true;
-    }
-  }
-  return true;
-}
-
-
-function makeNode(path: string): RSNode {
-  const node: RSNode = {path: path, common: {}};
-
-  if (isFolder(path)) {
-    node.common.itemsMap = {};
-  }
-  return node;
-}
-
-function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
-  if (!node.common) {
-    node.common = {
-      itemsMap: {}
-    };
-  }
-  if (!node.common.itemsMap) {
-    node.common.itemsMap = {};
-  }
-  if (!node.local) {
-    node.local = deepClone(node.common);
-  }
-  if (!node.local.itemsMap) {
-    node.local.itemsMap = node.common.itemsMap;
-  }
-  node.local.itemsMap[itemName] = true;
-
-  return node;
-}
 
 interface CachingLayer extends EventHandling {}
 applyMixins(CachingLayer, [EventHandling]);
