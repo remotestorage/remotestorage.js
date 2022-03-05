@@ -1,6 +1,8 @@
 import log from './log';
+import RemoteStorage from './remotestorage';
 import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
+import { EventHandler } from './interfaces/event_handling';
 
 interface AuthOptions {
   authURL: string;
@@ -17,11 +19,20 @@ interface AuthResult {
   state?: string;
 }
 
+interface InAppBrowserEvent extends Event {
+  type: 'loadstart'|'loadstop'|'loaderror'|'message'|'exit';
+  url: string;
+  code?: number;
+  message?: string;
+  data?: string;
+}
+
 // This is set in _rs_init and needed for removal in _rs_cleanup
-let onFeaturesLoaded: () => void;
+let onFeaturesLoaded: EventHandler;
 
 function extractParams (url?: string): AuthResult {
   // FF already decodes the URL fragment in document.location.hash, so use this instead:
+  // eslint-disable-next-line
   const location = url || Authorize.getLocation().href;
   const hashPos  = location.indexOf('#');
   if (hashPos === -1) { return; }
@@ -75,9 +86,9 @@ function buildOAuthURL (authURL: string, redirectUri: string, scope: string, cli
 class Authorize {
   static IMPLIED_FAKE_TOKEN = false;
 
-  static authorize (remoteStorage, { authURL, scope, redirectUri, clientId }: AuthOptions): void {
+  static authorize (remoteStorage: RemoteStorage, { authURL, scope, redirectUri, clientId }: AuthOptions): void {
     log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
-    
+
     if (!scope) {
       throw new Error("Cannot authorize due to undefined or empty scope; did you forget to access.claim()?");
     }
@@ -129,23 +140,21 @@ class Authorize {
   /**
    * Open new InAppBrowser window for OAuth in Cordova
    */
-  static openWindow = function (url, redirectUri, options): Promise<any> {
-    return new Promise((resolve, reject): any => {
+  static openWindow = function (url: string, redirectUri: string, options: string): Promise<AuthResult|string|void> {
+    return new Promise<AuthResult|string|void>((resolve, reject) => {
 
       const newWindow = open(url, '_blank', options);
 
       if (!newWindow || newWindow.closed) {
-        return reject('Authorization popup was blocked');
+        reject('Authorization popup was blocked'); return;
       }
 
-      function handleExit () {
-        return reject('Authorization was canceled');
+      function handleExit (): void {
+        reject('Authorization was canceled');
       }
 
-      function handleLoadstart (event) {
-        if (event.url.indexOf(redirectUri) !== 0) {
-          return;
-        }
+      function handleLoadstart (event: InAppBrowserEvent): void {
+        if (event.url.indexOf(redirectUri) !== 0) { return; }
 
         newWindow.removeEventListener('exit', handleExit);
         newWindow.close();
@@ -153,10 +162,10 @@ class Authorize {
         const authResult: AuthResult = extractParams(event.url);
 
         if (!authResult) {
-          return reject('Authorization error');
+          reject('Authorization error'); return;
         }
 
-        return resolve(authResult);
+        resolve(authResult);
       }
 
       newWindow.addEventListener('loadstart', handleLoadstart);
@@ -183,16 +192,17 @@ class Authorize {
     return typeof(document) !== 'undefined';
   }
 
-  static _rs_init = function (remoteStorage): void {
+  static _rs_init = function (remoteStorage: RemoteStorage): void {
     const params = extractParams();
-    let location;
+    let location: Location;
 
     if (params) {
       location = Authorize.getLocation();
       location.hash = '';
     }
 
-    onFeaturesLoaded = function() {
+    // eslint-disable-next-line
+    onFeaturesLoaded = function(): void {
       let authParamsUsed = false;
 
       if (!params) {
@@ -237,7 +247,7 @@ class Authorize {
     remoteStorage.on('features-loaded', onFeaturesLoaded);
   };
 
-  static _rs_cleanup (remoteStorage): void {
+  static _rs_cleanup (remoteStorage: RemoteStorage): void {
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   }
 }

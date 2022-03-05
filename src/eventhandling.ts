@@ -1,7 +1,5 @@
 import log from './log';
-
-// TODO add real type for event
-type EventHandler = (event?: unknown) => void;
+import { EventHandler } from './interfaces/event_handling';
 
 class EventHandling {
   _handlers: { [key: string]: EventHandler[] };
@@ -52,7 +50,7 @@ class EventHandling {
     }
   }
 
-  _emit (eventName: string, ...args): void {
+  _emit (eventName: string, ...args: unknown[]): void {
     this._validateEvent(eventName);
     this._handlers[eventName].slice().forEach((handler) => {
       handler.apply(this, args);
