@@ -134,13 +134,13 @@ abstract class CachingLayer {
   // TODO: improve our code structure so that this function
   // could call sync.queueGetRequest directly instead of needing
   // this hacky third parameter as a callback
-  get (path: string, maxAge: number, queueGetRequest: (path2: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
+  async get (path: string, maxAge: number, queueGetRequest: (path2: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
 
     if (typeof (maxAge) === 'number') {
-
       return this.getNodes(pathsFromRoot(path))
         .then((objs) => {
           const node: RSNode = getLatest(objs[path]);
+
           if (isOutdated(objs, maxAge)) {
             return queueGetRequest(path);
           } else if (node) {
@@ -178,7 +178,7 @@ abstract class CachingLayer {
     }
   }
 
-  put (path: string, body: unknown, contentType: string): Promise<RSNodes> {
+  async put (path: string, body: unknown, contentType: string): Promise<RSNodes> {
     const paths = pathsFromRoot(path);
 
     function _processNodes(nodePaths: string[], nodes: RSNodes): RSNodes {
