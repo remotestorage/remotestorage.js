@@ -9,6 +9,11 @@ import config from './config';
 import { applyMixins, cleanPath, isFolder } from './util';
 import RemoteStorage from './remotestorage';
 
+function getModuleNameFromBase(path: string): string {
+  const parts = path.split('/');
+  return path.length > 2 ? parts[1] : 'root';
+}
+
 /**
  * Provides a high-level interface to access data below a given root path.
  */
@@ -42,16 +47,7 @@ class BaseClient {
 
     this.storage = storage;
     this.base = base;
-
-    /**
-     * TODO: document
-     */
-    const parts = this.base.split('/');
-    if (parts.length > 2) {
-      this.moduleName = parts[1];
-    } else {
-      this.moduleName = 'root';
-    }
+    this.moduleName = getModuleNameFromBase(this.base);
 
     this.addEvents(['change']);
     this.on = this.on.bind(this);
@@ -108,7 +104,7 @@ class BaseClient {
     }
 
     return this.storage.get(this.makePath(path), maxAge).then((r: QueuedRequestResponse) => {
-      if (r.statusCode === 404) { return {}; };
+      if (r.statusCode === 404) { return {}; }
       if (typeof r.body === 'object') {
         const keys = Object.keys(r.body);
         // treat this like 404. it probably means a folder listing that
