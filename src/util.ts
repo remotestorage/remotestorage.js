@@ -65,7 +65,7 @@ export const containingFolder = (path: string): string => {
 };
 
 export const isFolder = (path: string): boolean => {
-  return path.substr(-1) === '/';
+  return path.slice(-1) === '/';
 };
 
 export const isDocument = (path: string): boolean => {
