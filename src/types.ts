@@ -1,5 +1,4 @@
-type JsonSchemas = { [key: string]: tv4.JsonSchema };
-
+import type { JsonSchemas } from './interfaces/json_schema';
 /**
  * - Manages and validates types of remoteStorage objects, using JSON-LD and
  *   JSON Schema

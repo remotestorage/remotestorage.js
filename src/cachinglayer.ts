@@ -156,7 +156,8 @@ abstract class CachingLayer {
     } else {
       return this.getNodes([path])
         .then((objs) => {
-          const node = getLatest(objs[path]);
+          const node: RSNode = getLatest(objs[path]);
+
           if (node) {
             if (isFolder(path)) {
               for (const i in node.itemsMap) {
