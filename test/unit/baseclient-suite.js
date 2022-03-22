@@ -94,7 +94,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
 
   suites.push({
     desc: "BaseClient folder handling",
-    setup: function(env, test) {
+    setup: function(_env, test) {
       if (typeof(RemoteStorage) !== 'function') {
         global.RemoteStorage = function() {};
         RemoteStorage.prototype = {
@@ -117,7 +117,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         run: function(env, test) {
           env.storage.get = function (path) {
             test.assert(path, '/foo/bar/');
-            return Promise.resolve({statusCode: 404});
+            return Promise.resolve({ statusCode: 404 });
           };
           env.client.getListing('bar/');
         }
@@ -126,8 +126,8 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
       {
         desc: "#getListing results in an empty object when it sees '404'",
         run: function (env, test) {
-          env.storage.get = function (path) {
-            return Promise.resolve({statusCode: 404});
+          env.storage.get = function (_path) {
+            return Promise.resolve({ statusCode: 404 });
           };
           env.client.getListing('bar/').then(function (result) {
             test.assert(result, {});
@@ -149,8 +149,8 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
       {
         desc: "#getListing accepts an empty path",
         run: function(env, test) {
-          env.storage.get = function(path) {
-            return Promise.resolve({statusCode: 404});
+          env.storage.get = function(_path) {
+            return Promise.resolve({ statusCode: 404 });
           };
           try {
             env.client.getListing('');
@@ -164,11 +164,19 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
       {
         desc: "#getListing forwards folder listing object",
         run: function (env, test) {
-          env.storage.get = function (path) {
-            return Promise.resolve({statusCode: 200, body: { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} }});
+          env.storage.get = function (_path) {
+            return Promise.resolve({
+              statusCode: 200, body: {
+                'foo': { 'ETag': 'bar' },
+                'baz/': { 'ETag': 'bla'}
+              }
+            });
           };
           env.client.getListing('').then(function (result) {
-            test.assert(result, { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} });
+            test.assert(result, {
+              'foo': { 'ETag': 'bar' },
+              'baz/': { 'ETag': 'bla' }
+            });
           });
         }
       },
@@ -176,7 +184,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
       {
         desc: "#getListing rejects the promise on error",
         run: function (env, test) {
-          env.storage.get = function (path) {
+          env.storage.get = function (_path) {
             return Promise.reject('Broken');
           };
           env.client.getListing('').then(function () {
@@ -193,7 +201,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         run: function (env, test) {
           env.storage.get = function (path) {
             test.assert(path, '/foo/');
-            return Promise.resolve({statusCode: 404});
+            return Promise.resolve({ statusCode: 404 });
           };
           env.client.getListing();
         }
@@ -202,8 +210,8 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
       {
         desc: "#getAll returns an empty object when it sees a 404",
         run: function (env, test) {
-          env.storage.get = function (path) {
-            return Promise.resolve({statusCode: 404});
+          env.storage.get = function (_path) {
+            return Promise.resolve({ statusCode: 404 });
           };
           env.client.getAll('').then(function (result) {
             test.assert(result, {});
@@ -214,8 +222,8 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
       {
         desc: "#getAll returns an empty object when there are no objects",
         run: function (env, test) {
-          env.storage.get = function (path) {
-            return Promise.resolve({statusCode: 200, body: {}});
+          env.storage.get = function (_path) {
+            return Promise.resolve({ statusCode: 200, body: {} });
           };
           env.client.getAll('').then(function(result) {
             test.assert(result, {});
@@ -230,9 +238,15 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
           env.storage.get = function (path) {
             delete expected[path];
             if (path === '/foo/') {
-              return Promise.resolve({statusCode: 200, body: { bar: true, baz: true }});
+              return Promise.resolve({
+                statusCode: 200,
+                body: { bar: true, baz: true }
+              });
             } else {
-              return Promise.resolve({statusCode: 200, body: "content of " + path});
+              return Promise.resolve({
+                statusCode: 200,
+                body: "content of " + path
+              });
             }
           };
           env.client.getAll('').then(function () {
@@ -250,9 +264,15 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         run: function(env, test) {
           env.storage.get = function(path) {
             if (path === '/foo/') {
-              return Promise.resolve({statusCode: 200, body: { bar: true, baz: true }});
+              return Promise.resolve({
+                statusCode: 200,
+                body: { bar: true, baz: true }
+              });
             } else {
-              return Promise.resolve({statusCode: 200, body: JSON.stringify({ "content of ": path })});
+              return Promise.resolve({
+                statusCode: 200,
+                body: JSON.stringify({ "content of ": path })
+              });
             }
           };
           env.client.getAll('').then(function(result) {
@@ -269,7 +289,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         run: function(env, test) {
           env.storage.get = function(path) {
             test.assert(path, '/foo/');
-            return Promise.resolve({statusCode: 404});
+            return Promise.resolve({ statusCode: 404 });
           };
           env.client.getAll();
         }
@@ -289,7 +309,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         desc: "#cache enables caching for a given path",
         run: function(env, test) {
           env.client.cache('bar/');
-          test.assert(env.storage.caching._rootPaths, {'/foo/bar/': 'ALL'});
+          test.assert(env.storage.caching._rootPaths, { '/foo/bar/': 'ALL' });
         }
       },
 
@@ -297,7 +317,10 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         desc: "#cache calls can be chained",
         run: function(env, test) {
           env.client.cache('bar/').cache('baz/');
-          test.assert(env.storage.caching._rootPaths, {'/foo/bar/': 'ALL', '/foo/baz/': 'ALL'});
+          test.assert(env.storage.caching._rootPaths, {
+            '/foo/bar/': 'ALL',
+            '/foo/baz/': 'ALL'
+          });
         }
       },
 
@@ -313,7 +336,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
       {
         desc: "#storeFile",
         run: function(env, test) {
-          env.storage.put = function(path, body, contentType, incoming) {
+          env.storage.put = function(path, body, _contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar', 'path is '+path+' not /foo/foo/bar');
             test.assertAnd(body, 'abc');
             test.assertType(incoming, 'undefined');
@@ -334,7 +357,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
             },
             required: ['locale']
           });
-          env.client.storeObject('todo-item', 'foo/bar', {test: 1}).then(function() {
+          env.client.storeObject('todo-item', 'foo/bar', { test: 1 }).then(function() {
             test.result(false, 'should have rejected');
           }, function(err) {
             test.assertAnd(err.error.message, "Missing required property: locale");
@@ -347,7 +370,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         desc: "storeObject adds @context and sets application/json Content-Type",
         run: function(env, test) {
           env.client.declareType('test', {});
-          env.storage.put = function(path, body, contentType, incoming) {
+          env.storage.put = function(path, body, contentType, _incoming) {
             test.assertAnd(path, '/foo/foo/bar');
             test.assertAnd(body, JSON.stringify({
               test: 1,
@@ -355,26 +378,26 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
             }));
             test.assertAnd(contentType, 'application/json; charset=UTF-8');
             test.result(true);
-            return Promise.resolve({statusCode: 200});
+            return Promise.resolve({ statusCode: 200 });
           };
-          env.client.storeObject('test', 'foo/bar', {test: 1});
+          env.client.storeObject('test', 'foo/bar', { test: 1 });
         }
       },
 
       {
         desc: "storeObject adds correct @context for types with custom context",
         run: function(env, test) {
-          env.storage.put = function(path, body, contentType, incoming) {
+          env.storage.put = function(path, body, _contentType, _incoming) {
             test.assertAnd(path, '/foo/foo/bar');
             test.assertAnd(body, JSON.stringify({
               test: 1,
               '@context': 'http://to.do/spec/item'
             }));
             test.result(true);
-            return Promise.resolve({statusCode: 200});
+            return Promise.resolve({ statusCode: 200 });
           };
           env.client.declareType('todo-item', 'http://to.do/spec/item', {});
-          env.client.storeObject('todo-item', 'foo/bar', {test: 1});
+          env.client.storeObject('todo-item', 'foo/bar', { test: 1 });
         }
       },
 
@@ -387,7 +410,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
             test.assertAnd(contentType, 'def');
             test.assertType(incoming, 'undefined');
             test.result(true);
-            return Promise.resolve({statusCode: 200});
+            return Promise.resolve({ statusCode: 200 });
           };
           env.client.storeFile('def', 'A%2FB /C/%bla//', 'abc');
         }
@@ -397,7 +420,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         desc: "#getItemURL returns the full item URL",
         run: function(env, test) {
           env.storage.connected = true;
-          env.storage.remote = {href: 'http://example.com/test'};
+          env.storage.remote = { href: 'http://example.com/test' };
 
           var itemURL = env.client.getItemURL('A%2FB /C/%bla//D');
           test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
@@ -408,7 +431,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         desc: "#getItemURL encodes quote characters",
         run: function(env, test) {
           env.storage.connected = true;
-          env.storage.remote = {href: 'http://example.com/test'};
+          env.storage.remote = { href: 'http://example.com/test' };
 
           test.assert(env.client.getItemURL("Capture d'écran"),
                       'http://example.com/test/foo/Capture%20d%27%C3%A9cran');
@@ -454,7 +477,7 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
 
       {
         desc: "values in change events are JSON-parsed when possible",
-        run: function(env, test) {
+        run: function(_env, test) {
           var storage = new RemoteStorage();
           var client = new BaseClient(storage, '/foo/');
           var expected = [{

@@ -112,7 +112,7 @@ class BaseClient {
       if (r.statusCode === 404) {
         return {};
       }
-      if (typeof (r.body) === 'object') {
+      if (typeof r.body === 'object') {
         const keys = Object.keys(r.body);
         if (keys.length === 0) {
           // treat this like 404. it probably means a folder listing that
@@ -155,7 +155,7 @@ class BaseClient {
    */
   // TODO add real return type
   getFile (path: string, maxAge?: false | number): Promise<unknown> {
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getFile must be a string');
     }
     return this.storage.get(this.makePath(path), maxAge).then(function (r) {
@@ -177,13 +177,13 @@ class BaseClient {
    * @returns {Promise} A promise for the created/updated revision (ETag)
    */
   storeFile (mimeType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string> {
-    if (typeof (mimeType) !== 'string') {
+    if (typeof mimeType !== 'string') {
       return Promise.reject('Argument \'mimeType\' of baseClient.storeFile must be a string');
     }
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.storeFile must be a string');
     }
-    if (typeof (body) !== 'string' && typeof (body) !== 'object') {
+    if ((typeof body !== 'string') && (typeof body !== 'object')) {
       return Promise.reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
     }
     if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
@@ -213,19 +213,19 @@ class BaseClient {
 
   // TODO add real return type
   getObject (path: string, maxAge?: false | number): Promise<unknown> {
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getObject must be a string');
     }
     return this.storage.get(this.makePath(path), maxAge).then((r) => {
-      if (typeof (r.body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
+      if (typeof r.body === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
         return r.body;
-      } else if (typeof (r.body) === 'string') {
+      } else if (typeof r.body === 'string') {
         try {
           return JSON.parse(r.body);
         } catch (e) {
           throw new Error("Not valid JSON: " + this.makePath(path));
         }
-      } else if (typeof (r.body) !== 'undefined' && r.statusCode === 200) {
+      } else if (typeof r.body !== 'undefined' && r.statusCode === 200) {
         return Promise.reject("Not an object: " + this.makePath(path));
       }
     });
@@ -249,13 +249,13 @@ class BaseClient {
    */
   // TODO add real return type
   storeObject (typeAlias: string, path: string, object: object): Promise<unknown> {
-    if (typeof (typeAlias) !== 'string') {
+    if (typeof typeAlias !== 'string') {
       return Promise.reject('Argument \'typeAlias\' of baseClient.storeObject must be a string');
     }
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.storeObject must be a string');
     }
-    if (typeof (object) !== 'object') {
+    if (typeof object !== 'object') {
       return Promise.reject('Argument \'object\' of baseClient.storeObject must be an object');
     }
 
@@ -287,7 +287,7 @@ class BaseClient {
    */
   // TODO add real return type
   remove (path: string): Promise<unknown> {
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
     }
     if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
@@ -305,7 +305,7 @@ class BaseClient {
    * @returns {string} The full URL of the item, including the storage origin
    */
   getItemURL (path: string): string {
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       throw 'Argument \'path\' of baseClient.getItemURL must be a string';
     }
     if (this.storage.connected) {
@@ -403,7 +403,8 @@ class BaseClient {
    */
   schemas = {
     configurable: true,
-    get: function () {
+
+    get (): JsonSchemas {
       return BaseClient.Types.inScope(this.moduleName);
     }
   };
@@ -445,7 +446,7 @@ class BaseClient {
       ['new', 'old', 'lastCommon'].forEach(function (fieldNamePrefix) {
         if ((!event[fieldNamePrefix + 'ContentType'])
           || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix + 'ContentType']))) {
-          if (typeof (event[fieldNamePrefix + 'Value']) === 'string') {
+          if (typeof event[fieldNamePrefix + 'Value'] === 'string') {
             try {
               event[fieldNamePrefix + 'Value'] = JSON.parse(event[fieldNamePrefix + 'Value']);
             } catch (e) {

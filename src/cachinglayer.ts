@@ -14,7 +14,7 @@ import {
   pathsFromRoot
 } from './util';
 
-function getLatest(node: RSNode): any {
+function getLatest (node: RSNode): any {
   if (typeof (node) !== 'object' || typeof (node.path) !== 'string') {
     return;
   }
@@ -50,7 +50,7 @@ function getLatest(node: RSNode): any {
   }
 }
 
-function isOutdated(nodes: RSNodes, maxAge: number): boolean {
+function isOutdated (nodes: RSNodes, maxAge: number): boolean {
   for (const path in nodes) {
     if (nodes[path] && nodes[path].remote) {
       return true;
@@ -66,7 +66,7 @@ function isOutdated(nodes: RSNodes, maxAge: number): boolean {
 }
 
 
-function makeNode(path: string): RSNode {
+function makeNode (path: string): RSNode {
   const node: RSNode = {path: path, common: {}};
 
   if (isFolder(path)) {
@@ -75,7 +75,7 @@ function makeNode(path: string): RSNode {
   return node;
 }
 
-function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
+function updateFolderNodeWithItemName (node: RSNode, itemName: string): RSNode {
   if (!node.common) {
     node.common = {
       itemsMap: {}
@@ -144,9 +144,13 @@ abstract class CachingLayer {
           if (isOutdated(objs, maxAge)) {
             return queueGetRequest(path);
           } else if (node) {
-            return {statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType};
+            return {
+              statusCode: 200,
+              body: node.body || node.itemsMap,
+              contentType: node.contentType
+            };
           } else {
-            return {statusCode: 404};
+            return { statusCode: 404 };
           }
         });
     } else {
@@ -162,7 +166,11 @@ abstract class CachingLayer {
                 }
               }
             }
-            return {statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType};
+            return {
+              statusCode: 200,
+              body: node.body || node.itemsMap,
+              contentType: node.contentType
+            };
           } else {
             return {statusCode: 404};
           }
@@ -210,7 +218,7 @@ abstract class CachingLayer {
     return this._updateNodes(paths, _processNodes);
   }
 
-  delete(path: string): unknown {
+  delete (path: string): unknown {
     const paths = pathsFromRoot(path);
 
     return this._updateNodes(paths, function (nodePaths, nodes) {
