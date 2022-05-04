@@ -282,11 +282,21 @@ Example:
      oldValue: oldBody,
      // New body of the changed node (remote version in conflicts; undefined if deletion)
      newValue: newBody,
+     // Body when local and remote last agreed; only present in conflict events
+     lastCommonValue: lastCommonBody,
      // Old contentType of the changed node (local version for conflicts; undefined if creation)
      oldContentType: oldContentType,
      // New contentType of the changed node (remote version for conflicts; undefined if deletion)
-     newContentType: newContentType
+     newContentType: newContentType,
+     // ContentType when local and remote last agreed; only present in conflict events
+     lastCommonContentType: lastCommonContentType
    }
+
+In general, the dataType of the document can be extracted thus:
+
+.. code:: javascript
+
+   const context = evt.newValue?.['@context'] || evt.oldValue?.['@context'] || evt.lastCommonValue?.['@context'];
 
 ``local``
 ^^^^^^^^^
