@@ -79,7 +79,7 @@ class Authorize {
     log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
     
     if (!scope) {
-      throw new Error("Cannot authorize due to invalid scope (undefined/empty), did you forget to access.claim()?");
+      throw new Error("Cannot authorize due to undefined or empty scope; did you forget to access.claim()?");
     }
 
     // TODO add a test for this
