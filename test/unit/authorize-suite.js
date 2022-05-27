@@ -109,6 +109,27 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
       },
 
       {
+        desc: "#authorize fails with useful error when there's no scope provided",
+        run: function(env, test) {
+          var authURL = 'http://storage.provider.com/oauth';
+          var scope = undefined;
+          var redirectUri = 'http://awesome.app.com/#custom/path';
+          var clientId = 'http://awesome.app.com/';
+
+          this.localStorageAvailable = function() { return true; };
+
+          var sawError = false;
+          try {
+          env.Authorize.authorize(this, {authURL, scope, redirectUri, clientId});
+          } catch (e) {
+            test.assert(e.message.includes("scope"), true, "Did not throw an error that had a message describing the problem");
+            sawError = true;
+          }
+          test.assert(sawError, true, "Did not throw an error when scope was not set");
+        }
+      },
+
+      {
         desc: "document.location getter",
         run: function(env, test) {
           document.location.href = 'http://foo/bar';

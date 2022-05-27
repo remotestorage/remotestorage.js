@@ -77,6 +77,10 @@ class Authorize {
 
   static authorize (remoteStorage, { authURL, scope, redirectUri, clientId }: AuthOptions): void {
     log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+    
+    if (!scope) {
+      throw new Error("Cannot authorize due to invalid scope (undefined/empty), did you forget to access.claim()?");
+    }
 
     // TODO add a test for this
     // keep track of the discovery data during redirect if we can't save it in localStorage
