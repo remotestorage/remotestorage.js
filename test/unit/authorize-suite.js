@@ -120,12 +120,12 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
 
           var sawError = false;
           try {
-          env.Authorize.authorize(this, {authURL, scope, redirectUri, clientId});
+            env.Authorize.authorize(this, {authURL, scope, redirectUri, clientId});
           } catch (e) {
-            test.assert(e.message.includes("scope"), true, "Did not throw an error that had a message describing the problem");
+            test.assert(e.message.includes("scope"), true, "Thrown Error must have a message mentioning 'scope'");
             sawError = true;
           }
-          test.assert(sawError, true, "Did not throw an error when scope was not set");
+          test.assert(sawError, true, "Must throw an error when scope is not set");
         }
       },
 
