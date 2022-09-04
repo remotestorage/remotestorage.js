@@ -48,6 +48,7 @@ import {
 
 let hasLocalStorage;
 const AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
+const OAUTH_SCOPE = 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write';
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const PATH_PREFIX = '/remotestorage';
 
@@ -130,7 +131,7 @@ class Dropbox {
       if (this.token) {
         hookIt(this.rs);
       } else {
-        this.rs.authorize({authURL: AUTH_URL, scope: '', clientId: this.clientId, additionalParam: {/*token_access_type: 'offline'*/}});
+        this.rs.authorize({authURL: AUTH_URL, scope: OAUTH_SCOPE, clientId: this.clientId});
       }
     } catch (err) {
       console.error('Dropbox authorization failed:', err);
