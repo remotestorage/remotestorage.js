@@ -7,10 +7,12 @@ interface AuthOptions {
   scope?: string;
   clientId?: string;
   redirectUri?: string;
+  additionalParam?: object;
 }
 
 interface AuthResult {
   access_token?: string;
+  refresh_token?: string;
   rsDiscovery?: object;
   error?: string;
   remotestorage?: string;
@@ -55,29 +57,38 @@ function extractParams (url?: string): AuthResult {
   }, {});
 }
 
-function buildOAuthURL (authURL: string, redirectUri: string, scope: string, clientId: string): string {
-  const hashPos = redirectUri.indexOf('#');
-  let url = authURL;
+function buildOAuthURL (authURL: string, redirectUri: string, scope: string, clientId: string, additionalParam: object = {}): string {
+  const redirect = new URL(redirectUri);
+  const state = redirect.hash ? redirect.hash.substring(1) : '';
 
-  url += authURL.indexOf('?') > 0 ? '&' : '?';
-  url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
-  url += '&scope=' + encodeURIComponent(scope);
-  url += '&client_id=' + encodeURIComponent(clientId);
+  const url = new URL(authURL);
 
-  if (hashPos !== - 1 && hashPos+1 !== redirectUri.length) {
-    url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
+  // We don't add a trailing slash as only pathname to redirectUri.
+  url.searchParams.set('redirect_uri', redirectUri.replace(/#.*$/, ''));
+  url.searchParams.set('scope', scope);
+  url.searchParams.set('client_id', clientId);
+
+  if (state) {
+    url.searchParams.set('state', state);
   }
-  url += '&response_type=token';
+  // @ts-ignore
+  if (! additionalParam.response_type) {
+    url.searchParams.set('response_type', 'token');
+  }
 
-  return url;
+  for (const [key, value] of Object.entries(additionalParam)) {
+    url.searchParams.set(key, value);
+  }
+
+  return url.href;
 }
 
 class Authorize {
   static IMPLIED_FAKE_TOKEN = false;
 
-  static authorize (remoteStorage, { authURL, scope, redirectUri, clientId }: AuthOptions): void {
-    log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
-    
+  static authorize (remoteStorage, { authURL, scope, redirectUri, clientId, additionalParam }: AuthOptions): void {
+    log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId, 'additionalParam =', additionalParam );
+
     if (!scope) {
       throw new Error("Cannot authorize due to undefined or empty scope; did you forget to access.claim()?");
     }
@@ -97,7 +108,7 @@ class Authorize {
       redirectUri += 'rsDiscovery=' + toBase64(JSON.stringify(discoveryData));
     }
 
-    const url = buildOAuthURL(authURL, redirectUri, scope, clientId);
+    const url = buildOAuthURL(authURL, redirectUri, scope, clientId, additionalParam);
 
     // FIXME declare potential `cordonva` property on global somehow, so we don't have to
     // use a string accessor here.

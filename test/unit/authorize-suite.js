@@ -130,6 +130,24 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
       },
 
       {
+        desc: "#authorize appends additional parameters to the URL",
+        run: function(env, test) {
+          const authURL = 'https://www.dropbox.com/oauth2/authorize';
+          const scope = 'notes:rw';
+          const redirectUri = 'https://note.app.com/#CSRF-protection';
+          const clientId = 'http://note.app.com/';
+          const additionalParam = {token_access_type: 'offline', locale: 'de'};
+
+          this.localStorageAvailable = function() { return true; };
+
+          env.Authorize.authorize(this, {authURL, scope, redirectUri, clientId, additionalParam});
+
+          const expectedUrl = 'https://www.dropbox.com/oauth2/authorize?redirect_uri=https%3A%2F%2Fnote.app.com%2F&scope=notes%3Arw&client_id=http%3A%2F%2Fnote.app.com%2F&state=CSRF-protection&response_type=token&token_access_type=offline&locale=de';
+          test.assert(document.location.href, expectedUrl);
+        }
+      },
+
+      {
         desc: "document.location getter",
         run: function(env, test) {
           document.location.href = 'http://foo/bar';

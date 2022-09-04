@@ -125,11 +125,17 @@ class Dropbox {
    */
   connect () {
     // TODO handling when token is already present
-    this.rs.setBackend('dropbox');
-    if (this.token){
-      hookIt(this.rs);
-    } else {
-      this.rs.authorize({ authURL: AUTH_URL, scope: '', clientId: this.clientId });
+    try {
+      this.rs.setBackend('dropbox');
+      if (this.token) {
+        hookIt(this.rs);
+      } else {
+        this.rs.authorize({authURL: AUTH_URL, scope: '', clientId: this.clientId, additionalParam: {/*token_access_type: 'offline'*/}});
+      }
+    } catch (err) {
+      console.error('Dropbox authorization failed:', err);
+      this.rs._emit('error', err);
+      this.rs.setBackend(undefined);
     }
   }
 
@@ -336,7 +342,7 @@ class Dropbox {
         return Promise.resolve({statusCode: status});
       }
       meta = resp.getResponseHeader('Dropbox-API-Result');
-      //first encode the response as text, and later check if 
+      //first encode the response as text, and later check if
       //text appears to actually be binary data
       return getTextFromArrayBuffer(resp.response, 'UTF-8').then(responseText => {
         body = responseText;
@@ -680,8 +686,8 @@ class Dropbox {
 
       return this._request('POST', url, { body: requestBody }).then(response => {
         if (response.status === 401) {
-          this.rs._emit('error', new UnauthorizedError());
-          return Promise.resolve(args);
+          const err = new UnauthorizedError();
+          throw err;
         }
 
         if (response.status !== 200 && response.status !== 409) {
