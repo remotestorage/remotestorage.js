@@ -54,13 +54,23 @@ export class RemoteBase extends EventHandling {
   }
 }
 
+
+export interface RemoteSettings {
+  userAddress?: string;
+  href?: string;              // remoteStorage server's base URL
+  storageApi?: string;        // spec version
+  token?: string | false;   // OAuth2 access token
+  refreshToken?: string;      // OAuth2 refresh token
+  tokenType?: string;         // type of access token; usually 'bearer'
+  properties?: object;
+}
+
 export interface RemoteResponse {
   statusCode: number;
   revision?: string;
-  contentType?: string,
+  contentType?: string;
   body?: any;
 }
-
 
 /**
  * The public interface for WireClient, GoogleDrive & Dropbox
@@ -95,18 +105,23 @@ export interface Remote {
   /** the JSON-parsed properties object from the user's WebFinger record */
   properties?: object;
 
+  clientId?: string;   // OAuth2
+  TOKEN_URL?: string;   // OAuth2 PKCE
+
   configure (settings): void   // TODO: harmonize settings & use type
+
+  configure (settings: RemoteSettings): void;
 
   /**
    * Initiate the authorization flow's OAuth dance.
    */
-  connect? (): void
+  connect? (): void;
 
-  stopWaitingForToken (): void
+  stopWaitingForToken (): void;
 
-  get (path: string, options: { ifMatch?: string; ifNoneMatch?: string }): Promise<RemoteResponse>
+  get (path: string, options: { ifMatch?: string; ifNoneMatch?: string }): Promise<RemoteResponse>;
 
   put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string }): Promise<RemoteResponse>
 
-  delete (path: string, options: { ifMatch?: string }): Promise<RemoteResponse>
+  delete (path: string, options: { ifMatch?: string }): Promise<RemoteResponse>;
 }

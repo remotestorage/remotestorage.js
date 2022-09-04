@@ -11,6 +11,7 @@ import Dropbox from "../../src/dropbox";
 
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const ACCOUNT_URL = 'https://api.dropboxapi.com/2/users/get_current_account';
+const TOKEN_URL = 'https://api.dropboxapi.com/oauth2/token';
 const FOLDER_URL = 'https://api.dropboxapi.com/2/files/list_folder';
 const DOWNLOAD_URL = 'https://content.dropboxapi.com/2/files/download';
 const UPLOAD_URL = 'https://content.dropboxapi.com/2/files/upload';
@@ -37,6 +38,7 @@ function httpHeaderSafeJson(obj) {
 
 
 describe('Dropbox backend', () => {
+  const CLIENT_ID = 'some-client-id';
   const sandbox = sinon.createSandbox();
   const originalTimeout = config.requestTimeout;
   let rs, dropbox;
@@ -45,7 +47,7 @@ describe('Dropbox backend', () => {
   beforeEach(() => {
     localStorage.removeItem(SETTINGS_KEY);
     rs = new RemoteStorage();
-    rs.setApiKeys({dropbox: 'swcj8jbc9i1jf1m'});   // an app would do this
+    rs.setApiKeys({dropbox: CLIENT_ID});   // an app would do this
 
     dropbox = rs.dropbox;
     dropbox.configure({
@@ -102,11 +104,92 @@ describe('Dropbox backend', () => {
     });
 
     it("fetchDelta fails when offline", async () => {
+      const errorSpy = sinon.spy();
+      const wireBusySpy = sinon.spy();
+      const wireDoneSpy = sinon.spy();
+      const networkOfflineSpy = sinon.spy();
+      rs.on('error', errorSpy);
+      rs.on('wire-busy', wireBusySpy);
+      rs.on('wire-done', wireDoneSpy);
+      rs.on('network-offline', networkOfflineSpy);
+
       fetchMock.mock(
         {name: 'postFolder', method: 'POST', url: FOLDER_URL},
         {throws: new TypeError("Failed to fetch")},
       );
       await expect(dropbox.fetchDelta()).to.be.rejected;
+
+      expect(errorSpy.callCount).to.equal(1);
+      expect(wireBusySpy.callCount).to.equal(1);
+      expect(wireDoneSpy.callCount).to.equal(1);
+      expect(networkOfflineSpy.callCount).to.equal(1);
+    });
+
+    it("fetchDelta, when access token is expired, makes two attempts to obtain new access token", async () => {
+      const configureSpy = sinon.spy(dropbox, 'configure');
+      const errorSpy = sinon.spy();
+      const wireBusySpy = sinon.spy();
+      const wireDoneSpy = sinon.spy();
+      const networkOfflineSpy = sinon.spy();
+      rs.on('error', errorSpy);
+      rs.on('wire-busy', wireBusySpy);
+      rs.on('wire-done', wireDoneSpy);
+      rs.on('network-offline', networkOfflineSpy);
+
+      fetchMock.mock(
+        {name: 'postFolder', method: 'POST', url: FOLDER_URL},
+        {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})}
+      );
+      const newAccessToken = 'ALLTHETHINGS';
+      const tokenResponse = {
+        access_token: newAccessToken,
+        expires_in: 14_400,
+        token_type: 'bearer',
+        scope: 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write',
+        account_id: 'dbid:AAH4f99',
+        refresh_token: REFRESH_TOKEN,
+      };
+      fetchMock.mock(
+        {name: 'postToken', method: 'POST', url: TOKEN_URL},
+        {status: 200, body:JSON.stringify(tokenResponse)}
+      );
+      await expect(dropbox.fetchDelta()).to.be.rejected;
+
+      expect(configureSpy.callCount).to.equal(4);
+      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null);
+      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken);
+      expect(configureSpy.getCall(2).args[0]).to.have.property('token', null);
+      expect(configureSpy.getCall(3).args[0]).to.have.property('token', newAccessToken);
+
+      expect(errorSpy.called).to.equal(true);
+      expect(wireBusySpy.called).to.equal(true);
+      expect(wireDoneSpy.called).to.equal(true);
+      expect(wireDoneSpy.callCount).to.equal(wireBusySpy.callCount);
+      expect(networkOfflineSpy.called).to.equal(false);
+
+      const folderCalls = fetchMock.calls('postFolder');
+      expect(folderCalls).to.have.lengthOf(3);
+      for (let c=0; c < 3; ++c) {
+        expect(folderCalls[c][1]).to.have.property('headers');
+        // The first download does use the original token - it appears to be
+        // a bug in fetch-mock that this test doesn't observe that.
+        expect(folderCalls[c][1].headers).to.have.property('Authorization', 'Bearer ' + newAccessToken);
+        expect(folderCalls[c][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);
+        expect(folderCalls[c][1].body).to.equal(JSON.stringify({path: '/remotestorage', recursive: true, include_deleted: true}));
+      }
+
+      const authCalls = fetchMock.calls('postToken');
+      expect(authCalls).to.have.length(2);
+      for (let a=0; a < 2; ++a) {
+        expect(authCalls[a][1]).to.have.property('headers');
+        expect(authCalls[a][1].headers).to.have.property('Content-Type', 'application/x-www-form-urlencoded');
+        const formValues = new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: CLIENT_ID,
+          refresh_token: REFRESH_TOKEN,
+        });
+        expect(authCalls[a][1].body).to.equal(formValues.toString());
+      }
     });
 
     it("hooks itself into sync cycle when activated", async () => {
@@ -149,18 +232,18 @@ describe('Dropbox backend', () => {
       expect(dropbox.token).to.equal('another-token');
       expect(dropbox.userAddress).to.equal('bob@bob.org');
 
-      // await dropbox.configure({refreshToken: 'refresh-token'});
-      // expect(dropbox.refreshToken).to.equal('refresh-token');
-      // expect(dropbox.token).to.equal('another-token');
-      // expect(dropbox.userAddress).to.equal('bob@bob.org');
+      await dropbox.configure({refreshToken: 'refresh-token'});
+      expect(dropbox.refreshToken).to.equal('refresh-token');
+      expect(dropbox.token).to.equal('another-token');
+      expect(dropbox.userAddress).to.equal('bob@bob.org');
 
       const persistent = JSON.parse(await localStorage.getItem(SETTINGS_KEY));
       expect(persistent.userAddress).to.equal('bob@bob.org');
       expect(persistent.token).to.equal('another-token');
-      // expect(persistent.refreshToken).to.equal('refresh-token');
+      expect(persistent.refreshToken).to.equal('refresh-token');
 
       await dropbox.configure({userAddress: null, token: null, refreshToken: null});
-      // expect(dropbox.refreshToken).to.be.null;
+      expect(dropbox.refreshToken).to.be.null;
       expect(dropbox.token).to.be.null;
       expect(dropbox.userAddress).to.be.null;
 
@@ -623,19 +706,56 @@ describe('Dropbox backend', () => {
       expect(result).to.have.property('body', CONTENT);
     });
 
-    it("passes on status 401 Unauthorized from the server", async () => {
+    it("when access token is expired, makes two attempts to obtain new access token", async () => {
+      const configureSpy = sinon.spy(dropbox, 'configure');
       fetchMock.mock(
         {name: 'getFile', url: DOWNLOAD_URL},
         {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})}
       );
+      const newAccessToken = 'READWRITEEVERYTHING';
+      const tokenResponse = {
+        access_token: newAccessToken,
+        expires_in: 14_400,
+        token_type: 'bearer',
+        scope: 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write',
+        account_id: 'lkdjflkeo345l09v90vf80',
+        refresh_token: REFRESH_TOKEN,
+      };
+      fetchMock.mock(
+        {name: 'postToken', method: 'POST', url: TOKEN_URL},
+        {status: 200, body:JSON.stringify(tokenResponse)}
+      );
       const result = await dropbox.get('/xyzzy');
 
-      const calls = fetchMock.calls('getFile');
-      expect(calls).to.have.lengthOf(1);
-      expect(calls[0][1]).to.have.property('headers');
-      expect(calls[0][1].headers).to.have.property('Authorization', 'Bearer ' + ACCESS_TOKEN);
-      expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({path: '/remotestorage/xyzzy'}));
-      expect(calls[0][1].headers).not.to.have.property('If-None-Match');
+      expect(configureSpy.callCount).to.equal(4);
+      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null)
+      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken)
+      expect(configureSpy.getCall(2).args[0]).to.have.property('token', null)
+      expect(configureSpy.getCall(3).args[0]).to.have.property('token', newAccessToken)
+
+      const getCalls = fetchMock.calls('getFile');
+      expect(getCalls).to.have.lengthOf(3);
+      for (let c=0; c < 3; ++c) {
+        expect(getCalls[c][1]).to.have.property('headers');
+        // The first download does use the original token - it appears to be
+        // a bug in fetch-mock that this test doesn't observe that.
+        expect(getCalls[c][1].headers).to.have.property('Authorization', 'Bearer ' + newAccessToken);
+        expect(getCalls[c][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({path: '/remotestorage/xyzzy'}));
+        expect(getCalls[c][1].headers).not.to.have.property('If-None-Match');
+      }
+
+      const authCalls = fetchMock.calls('postToken');
+      expect(authCalls).to.have.length(2);
+      for (let a=0; a < 2; ++a) {
+        expect(authCalls[a][1]).to.have.property('headers');
+        expect(authCalls[a][1].headers).to.have.property('Content-Type', 'application/x-www-form-urlencoded');
+        const formValues = new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: CLIENT_ID,
+          refresh_token: REFRESH_TOKEN,
+        });
+        expect(authCalls[a][1].body).to.equal(formValues.toString());
+      }
       expect(result).to.have.property('statusCode', 401);
     });
 
@@ -947,7 +1067,10 @@ describe('Dropbox backend', () => {
     it("returns the error status it received from DropBox", async () => {
       fetchMock.mock(
         {name: 'postUpload', method: 'POST', url: UPLOAD_URL},
-        {status: 401}
+        {status: 409, body: JSON.stringify({
+            "error": {".tag": "other"},
+            "error_summary": "other/..."}
+          )}
       );
       const result = await dropbox.put('/titi/toto', 'more data', 'text/plain');
 
@@ -956,7 +1079,7 @@ describe('Dropbox backend', () => {
       expect(calls[0][0]).to.equal(UPLOAD_URL);
       expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({"path":"/remotestorage/titi/toto","mode":{".tag":"overwrite"},"mute":true}));
       expect(calls[0][1].body).to.equal('more data');
-      expect(result).to.have.property('statusCode', 401);
+      expect(result).to.have.property('statusCode', 409);
       expect(result).not.to.have.property('revision');
       expect(dropbox._revCache.get('/titi/toto')).to.be.a('string');
     });
@@ -1032,7 +1155,10 @@ describe('Dropbox backend', () => {
     it("returns the erroneous status it received from DropBox", async () => {
       fetchMock.mock(
         {name: 'postDelete', method: 'POST', url: DELETE_URL},
-        {status: 401}
+        {status: 409, body: JSON.stringify({
+            "error": {".tag": "too_many_write_operations"},
+            "error_summary": "too_many_write_operations/..."
+          })}
       );
       const result = await dropbox.delete('/widget/gadget');
 
@@ -1042,7 +1168,7 @@ describe('Dropbox backend', () => {
       expect(calls[0][1]).to.have.property('method', 'POST');
       expect(calls[0][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);
       expect(calls[0][1]).to.have.property('body', JSON.stringify({path: "/remotestorage/widget/gadget"}));
-      expect(result).to.have.property('statusCode', 401);
+      expect(result).to.have.property('statusCode', 409);
     });
   });
 });

@@ -9,7 +9,22 @@ import log from "./log";
 import config from "./config";
 
 
-export let isArrayBufferView: { (arg0: unknown): any; (object: any): boolean; (object: any): boolean; };
+/**
+ * Extracts a retry interval from header,
+ * defaulting to three tries and a pause, within sync interval
+ * */
+export function retryAfterMs(xhr: XMLHttpRequest): number {
+  const serverMs = parseInt(xhr.getResponseHeader('Retry-After')) * 1000;
+  if (serverMs >= 1000) {   // sanity check
+    return serverMs;
+  } else {   // value is NaN if no such header, or malformed
+    // three tries and a pause, within sync interval,
+    // with lower & upper bounds
+    return Math.max(1500, Math.min(60_000, Math.round(config.syncInterval / (2.9 + Math.random() * 0.2))));
+  }
+}
+
+export let isArrayBufferView: { (arg0: unknown): any; (object: any): boolean; (object: any): boolean };
 
 if (typeof ((global || window as any).ArrayBufferView) === 'function') {
   isArrayBufferView = function (object) {
@@ -72,7 +87,7 @@ async function _fetchRequestWithTimeout(method: string, url: string, options: Re
       status: response.status,
       statusText: response.statusText,
       response: undefined,
-      getResponseHeader: (headerName: string): unknown => {
+      getResponseHeader: (headerName: string): string => {
         return responseHeaders[headerName.toUpperCase()] || null;
       },
       // responseText: 'foo',

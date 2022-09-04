@@ -45,7 +45,7 @@ import {
   shouldBeTreatedAsBinary
 } from './util';
 import {requestWithTimeout, isArrayBufferView} from "./requests";
-import {Remote, RemoteBase, RemoteResponse} from "./Remote";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./Remote";
 
 let hasLocalStorage;
 const SETTINGS_KEY = 'remotestorage:wireclient';
@@ -68,15 +68,6 @@ function readSettings () {
   const { userAddress, href, storageApi, token, properties } = settings;
 
   return { userAddress, href, storageApi, token, properties };
-}
-
-// TODO double check
-interface WireClientSettings {
-  userAddress: string;
-  href: string;
-  storageApi: string;
-  token: string;
-  properties: object;
 }
 
 function determineCharset (mimeType: string): string {
@@ -115,7 +106,7 @@ class WireClient extends RemoteBase implements Remote {
    *   remoteStorage.remote.token
    *   // -> 'DEADBEEF01=='
    */
-  token: string;
+  token: string | false;
 
   /**
    * Holds the server's base URL, as obtained in the Webfinger discovery
@@ -281,7 +272,7 @@ class WireClient extends RemoteBase implements Remote {
    *              the user disconnected their storage, or you found that the
    *              token you have has expired, simply set that field to `null`.
    */
-  configure (settings: WireClientSettings): void {
+  configure (settings: RemoteSettings): void {
     if (typeof settings !== 'object') {
       throw new Error('WireClient configure settings parameter should be an object');
     }

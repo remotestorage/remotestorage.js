@@ -5,16 +5,17 @@ import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import {
   applyMixins,
-  cleanPath,
   isFolder,
   shouldBeTreatedAsBinary,
   getJSONFromLocalStorage,
   getTextFromArrayBuffer,
-  localStorageAvailable
+  localStorageAvailable,
+  generateCodeVerifier,
 } from './util';
-import {requestWithTimeout, RequestOptions, isArrayBufferView} from "./requests";
-import {Remote, RemoteBase, RemoteResponse} from "./Remote";
+import {requestWithTimeout, isArrayBufferView, retryAfterMs} from "./requests";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./Remote";
 import RemoteStorage from "./remotestorage";
+import Authorize from "./authorize";
 
 /**
  * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
@@ -51,6 +52,8 @@ import RemoteStorage from "./remotestorage";
 let hasLocalStorage;
 const AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
 const ACCOUNT_URL = 'https://api.dropboxapi.com/2/users/get_current_account';
+const TOKEN_URL = 'https://api.dropboxapi.com/oauth2/token';
+const OAUTH_SCOPE = 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write';
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const FOLDER_URL = 'https://api.dropboxapi.com/2/files/list_folder';
 const CONTINUE_URL = 'https://api.dropboxapi.com/2/files/list_folder/continue';
@@ -61,36 +64,37 @@ const METADATA_URL = 'https://api.dropboxapi.com/2/files/get_metadata';
 const CREATE_SHARED_URL = 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings';
 const LIST_SHARED_URL = 'https://api.dropbox.com/2/sharing/list_shared_links';
 const PATH_PREFIX = '/remotestorage';
+const NUM_RETRIES = 3;
 
 interface Metadata {
-  ".tag": "folder" | "file",
-  id: string,
-  name: string,
-  path_display: string,
-  path_lower: string,
-  property_groups: any[],
+  ".tag": "folder" | "file";
+  id: string;
+  name: string;
+  path_display: string;
+  path_lower: string;
+  property_groups: any[];
   sharing_info: {
-    no_access?: boolean,
-    parent_shared_folder_id: string,
-    read_only: boolean,
-    traverse_only?: boolean,
-    modified_by?: string
-  },
+    no_access?: boolean;
+    parent_shared_folder_id: string;
+    read_only: boolean;
+    traverse_only?: boolean;
+    modified_by?: string;
+  };
 
-  client_modified?: string,   // date
-  content_hash?: string,
+  client_modified?: string;   // date
+  content_hash?: string;
   file_lock_info?: {
-    created: string,   // date
-    is_lockholder: boolean,
-    lockholder_name: string
-  },
-  has_explicit_shared_members?: boolean,
-  is_downloadable?: boolean,
-  rev?: string,
-  server_modified?: string,   // date
-  size?: number,
+    created: string;   // date
+    is_lockholder: boolean;
+    lockholder_name: string;
+  };
+  has_explicit_shared_members?: boolean;
+  is_downloadable?: boolean;
+  rev?: string;
+  server_modified?: string;   // date
+  size?: number;
 
-  preview_url?: string
+  preview_url?: string;
 }
 
 /**
@@ -129,13 +133,17 @@ function isBinaryData (data): boolean {
  */
 class Dropbox extends RemoteBase implements Remote {
   clientId: string;
+  TOKEN_URL: string;   // OAuth2 PKCE
   token: string;
+  refreshToken: string;   // OAuth2 PKCE
+  tokenType: string;   // OAuth2 PKCE
+  userAddress: string;
 
   _initialFetchDone: boolean;
   _revCache: RevisionCache;
-  _fetchDeltaCursor: any;
-  _fetchDeltaPromise: any;
-  _itemRefs: any;
+  _fetchDeltaCursor: string;
+  _fetchDeltaPromise: Promise<undefined[]>;
+  _itemRefs: { [key: string]: string };
 
   // TODO remove when refactoring eventhandling
   _emit: any;
@@ -149,6 +157,7 @@ class Dropbox extends RemoteBase implements Remote {
     this.addEvents(['connected', 'not-connected']);
 
     this.clientId = rs.apiKeys.dropbox.appKey;
+    this.TOKEN_URL = TOKEN_URL;
     this._revCache = new RevisionCache('rev');
     this._fetchDeltaCursor = null;
     this._fetchDeltaPromise = null;
@@ -159,7 +168,7 @@ class Dropbox extends RemoteBase implements Remote {
     if (hasLocalStorage){
       const settings = getJSONFromLocalStorage(SETTINGS_KEY);
       if (settings) {
-        this.configure(settings);
+        this.configure(settings);   // can't await in constructor
       }
       this._itemRefs = getJSONFromLocalStorage(`${SETTINGS_KEY}:shares`) || {};
     }
@@ -172,13 +181,31 @@ class Dropbox extends RemoteBase implements Remote {
    * Set the backed to 'dropbox' and start the authentication flow in order
    * to obtain an API token from Dropbox.
    */
-  connect () {
+  async connect () {
     // TODO handling when token is already present
-    this.rs.setBackend('dropbox');
-    if (this.token){
-      hookIt(this.rs);
-    } else {
-      this.rs.authorize({ authURL: AUTH_URL, scope: '', clientId: this.clientId });
+    try {
+      this.rs.setBackend('dropbox');
+      if (this.token) {
+        hookIt(this.rs);
+      } else {   // OAuth2 PKCE
+        const {codeVerifier, codeChallenge, state} = await generateCodeVerifier();
+        sessionStorage.setItem('remotestorage:codeVerifier', codeVerifier);
+        sessionStorage.setItem('remotestorage:state', state);
+        this.rs.authorize({
+          authURL: AUTH_URL,
+          scope: OAUTH_SCOPE,
+          clientId: this.clientId,
+          response_type: 'code',
+          state: state,
+          code_challenge: codeChallenge,
+          code_challenge_method: 'S256',
+          token_access_type: 'offline'
+        });
+      }
+    } catch (err) {
+      this.rs._emit('error', err);
+      this.rs.setBackend(undefined);
+      throw err;
     }
   }
 
@@ -188,49 +215,57 @@ class Dropbox extends RemoteBase implements Remote {
    * @param {Object} settings
    * @param {string} [settings.userAddress] - The user's email address
    * @param {string} [settings.token] - Authorization token
+   * @param {string} [settings.refreshToken] - OAuth2 PKCE refresh token
+   * @param {string} [settings.tokenType] - usually 'bearer' - no support for 'mac' tokens yet
    *
    * @protected
    **/
-  configure (settings) {
+  async configure (settings: RemoteSettings): Promise<void> {
     // We only update this.userAddress if settings.userAddress is set to a string or to null:
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
     // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
-    if (typeof settings.token !== 'undefined') { this.token = settings.token; }
+    if (typeof settings.token !== 'undefined') { this.token = settings.token as string; }
+    if (typeof settings.refreshToken !== 'undefined') { this.refreshToken = settings.refreshToken; }
+    if (typeof settings.tokenType !== 'undefined') { this.tokenType = settings.tokenType; }
 
-    const writeSettingsToCache = function() {
+    const writeSettingsToCache = () => {
       if (hasLocalStorage) {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify({
           userAddress: this.userAddress,
-          token: this.token
+          token: this.token,
+          refreshToken: this.refreshToken,
+          tokenType: this.tokenType,
         }));
       }
     };
 
-    const handleError = function() {
+    const handleError = () => {
       this.connected = false;
       if (hasLocalStorage) {
         localStorage.removeItem(SETTINGS_KEY);
       }
+      this.rs.setBackend(undefined);
     };
 
-    if (this.token) {
+    if (this.refreshToken || this.token) {
       this.connected = true;
       if (this.userAddress) {
         this._emit('connected');
-        writeSettingsToCache.apply(this);
+        writeSettingsToCache();
       } else {
-        this.info().then(function (info){
+        try {
+          const info = await this.info();
           this.userAddress = info.email;
           this._emit('connected');
-          writeSettingsToCache.apply(this);
-        }.bind(this)).catch(function() {
+          writeSettingsToCache();
+        } catch (err) {
           this.connected = false;
           this.rs._emit('error', new Error('Could not fetch user info.'));
           writeSettingsToCache.apply(this);
-        }.bind(this));
+        }
       }
     } else {
-      handleError.apply(this);
+      handleError();
     }
   }
 
@@ -355,7 +390,7 @@ class Dropbox extends RemoteBase implements Remote {
     }
 
     // use _getFolder for folders
-    if (path.substr(-1) === '/') {
+    if (path.slice(-1) === '/') {
       return this._getFolder(path);
     }
 
@@ -400,7 +435,7 @@ class Dropbox extends RemoteBase implements Remote {
         mime = resp.getResponseHeader('Content-Type');
         rev = meta.rev;
         this._revCache.set(path, rev);
-        this._shareIfNeeded(path); // It's not necessary to wait for this promise
+        this._shareIfNeeded(path);   // There doesn't appear to be a need to await this.
 
         if (shouldBeTreatedAsBinary(responseText, mime)) {
           // return unprocessed response
@@ -493,7 +528,7 @@ class Dropbox extends RemoteBase implements Remote {
       }
     }
     const result = await this._uploadSimple(uploadParams);
-    this._shareIfNeeded(path);
+    this._shareIfNeeded(path);   // There doesn't appear to be a need to await this.
     return result;
   }
 
@@ -552,7 +587,7 @@ class Dropbox extends RemoteBase implements Remote {
    *
    * @private
    */
-  share (path: string): Promise<any> {
+  share (path: string): Promise<string> {
     const url = CREATE_SHARED_URL;
     const options = {
       body: {path: getDropboxPath(path)}
@@ -626,14 +661,17 @@ class Dropbox extends RemoteBase implements Remote {
    * @param {string} method - Request method
    * @param {string} url - Target URL
    * @param {object} options - Request options
+   * @param {number} numAttempts - # of times same request repeated
    * @returns {Promise} Resolves with the response of the network request
    *
    * @private
    */
-  _request (method: string, url: string, options): Promise<any> {
+  async _request (method: string, url: string, options, numAttempts = 1): Promise<any> {
     if (this.isForbiddenRequestMethod(method, url)) {
-      return Promise.reject(`Don't use ${method} on directories!`);
+      throw `Don't use ${method} on directories!`;
     }
+
+    if (! this.token) { throw new UnauthorizedError("No access token"); }
 
     if (!options.headers) { options.headers = {}; }
     options.headers['Authorization'] = 'Bearer ' + this.token;
@@ -648,29 +686,55 @@ class Dropbox extends RemoteBase implements Remote {
       isFolder: isFolder(url)
     });
 
-    return requestWithTimeout(method, url, options).then(xhr => {
-      // 503 means retry this later
-      if (xhr && xhr.status === 503) {
+    try {
+      const xhr = await requestWithTimeout(method, url, options);
+      if (!this.online) {
+        this.online = true;
+        this.rs._emit('network-online');
+      }
+      this.rs._emit('wire-done', {
+        method: method,
+        isFolder: isFolder(url),
+        success: true
+      });
+      if (xhr?.status === 401 && this.refreshToken) {
+        if (numAttempts >= NUM_RETRIES) {
+          console.error(`Abandoned after ${numAttempts} attempts: ${method} ${url}`);
+          return xhr;
+        } else {
+          this.rs._emit('wire-busy', {
+            method: method,
+            isFolder: isFolder(url)
+          });
+          await Authorize.refreshAccessToken(this.rs, this, this.refreshToken);
+          this.rs._emit('wire-done', {
+            method: method,
+            isFolder: isFolder(url),
+            success: true
+          });
+          // re-runs original request
+          return this._request(method, url, options, numAttempts + 1);
+        }
+      } else if ([503, 429].includes(xhr?.status)) {
+        // 503 Service Unavailable; 429 Too Many Requests
         if (this.online) {
           this.online = false;
           this.rs._emit('network-offline');
         }
-        // TODO: refactor so the request can be re-run after a delay
-        return Promise.reject(new ProgressEvent("server is busy"));
-      } else {
-        if (!this.online) {
-          this.online = true;
-          this.rs._emit('network-online');
-        }
-        this.rs._emit('wire-done', {
-          method: method,
-          isFolder: isFolder(url),
-          success: true
-        });
 
-        return Promise.resolve(xhr);
+        if (numAttempts >= NUM_RETRIES) {
+          console.warn(`Abandoned after ${numAttempts} attempts: ${method} ${url}`);
+          return xhr;
+        } else {
+          await new Promise(resolve => setTimeout(resolve, retryAfterMs(xhr)));
+          // re-runs original request
+          return this._request(method, url, options, numAttempts+1);
+        }
+      } else {
+
+        return xhr;
       }
-    }, error => {
+    } catch (error) {
       if (this.online) {
         this.online = false;
         this.rs._emit('network-offline');
@@ -680,9 +744,8 @@ class Dropbox extends RemoteBase implements Remote {
         isFolder: isFolder(url),
         success: false
       });
-
-      return Promise.reject(error);
-    });
+      throw error;
+    }
   }
 
   /**
@@ -692,14 +755,15 @@ class Dropbox extends RemoteBase implements Remote {
    *
    * @private
    */
-  fetchDelta (...args): Promise<unknown> {
+  fetchDelta (...args: undefined[]): Promise<undefined[]> {
     // If fetchDelta was already called, and didn't finish, return the existing
     // promise instead of calling Dropbox API again
     if (this._fetchDeltaPromise) {
       return this._fetchDeltaPromise;
     }
 
-    const fetch = (cursor) => {
+    /** This should resolve (with no value) on success, and reject on error. */
+    const fetch = async (cursor: string) => {
       let url = FOLDER_URL;
       let requestBody;
 
@@ -714,14 +778,14 @@ class Dropbox extends RemoteBase implements Remote {
         };
       }
 
-      return this._request('POST', url, { body: requestBody }).then(response => {
+      try {
+        const response = await this._request('POST', url, {body: requestBody});
         if (response.status === 401) {
-          this.rs._emit('error', new UnauthorizedError());
-          return Promise.resolve(args);
+          throw new UnauthorizedError();
         }
 
         if (response.status !== 200 && response.status !== 409) {
-          return Promise.reject(new Error('Invalid response status: ' + response.status));
+          throw new Error('Invalid response status: ' + response.status);
         }
 
         let responseBody;
@@ -729,7 +793,7 @@ class Dropbox extends RemoteBase implements Remote {
         try {
           responseBody = JSON.parse(response.responseText);
         } catch (e) {
-          return Promise.reject(new Error('Invalid response body: ' + response.responseText));
+          throw new Error('Invalid response body: ' + response.responseText);
         }
 
         if (response.status === 409) {
@@ -740,7 +804,7 @@ class Dropbox extends RemoteBase implements Remote {
               has_more: false
             };
           } else {
-            return Promise.reject(new Error('API returned an error: ' + responseBody.error_summary));
+            throw new Error('API returned an error: ' + responseBody.error_summary);
           }
         }
 
@@ -750,7 +814,7 @@ class Dropbox extends RemoteBase implements Remote {
         }
 
         responseBody.entries.forEach(entry => {
-          const path = entry.path_lower.substr(PATH_PREFIX.length);
+          const path = entry.path_lower.slice(PATH_PREFIX.length);
 
           if (entry['.tag'] === 'deleted') {
             // there's no way to know whether the entry was a file or a folder
@@ -768,14 +832,14 @@ class Dropbox extends RemoteBase implements Remote {
           this._revCache.activatePropagation();
           this._initialFetchDone = true;
         }
-      }).catch(error => {
-        if (error === 'timeout' || error instanceof ProgressEvent) {
+      } catch (error) {
+        if (error === 'timeout') {
           // Offline is handled elsewhere already, just ignore it here
-          return Promise.resolve();
+          return;
         } else {
-          return Promise.reject(error);
+          throw error;
         }
-      });
+      }
     };
 
     this._fetchDeltaPromise = fetch(this._fetchDeltaCursor).catch(error => {
@@ -784,6 +848,7 @@ class Dropbox extends RemoteBase implements Remote {
       } else {
         error = `Dropbox: fetchDelta: ${error}`;
       }
+      this.rs._emit('error', error);
       this._fetchDeltaPromise = null;
       return Promise.reject(error);
     }).then(() => {
@@ -892,7 +957,8 @@ class Dropbox extends RemoteBase implements Remote {
             });
           });
         }
-        return Promise.reject(new Error('API error: ' + body.error_summary));
+        this.rs._emit('error', new Error(body.error_summary));
+        return Promise.resolve({statusCode: response.status});
       }
 
       this._revCache.set(params.path, body.rev);
@@ -932,10 +998,10 @@ class Dropbox extends RemoteBase implements Remote {
         if (compareApiError(responseBody, ['path_lookup', 'not_found'])) {
           return Promise.resolve({statusCode: 404});
         }
-        return Promise.reject(new Error('API error: ' + responseBody.error_summary));
+        this.rs._emit('error', new Error(responseBody.error_summary));
       }
 
-      return Promise.resolve({statusCode: 200});
+      return Promise.resolve({statusCode: response.status});
     }).then(result => {
       if (result.statusCode === 200 || result.statusCode === 404) {
         this._revCache.delete(path);
@@ -1071,6 +1137,7 @@ function unHookSync(rs): void {
  * after RemoteStorage.sync is initialized, so we can then hook
  * the sync function
  * @param {object} rs RemoteStorage instance
+ * @param {array} args remaining arguments
  */
 function hookSyncCycle(rs, ...args): void  {
   if (rs._dropboxOrigSyncCycle) { return; } // already hooked

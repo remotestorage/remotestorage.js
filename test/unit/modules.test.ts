@@ -4,6 +4,7 @@ import 'mocha';
 import { expect } from 'chai';
 import RemoteStorage from '../../src/remotestorage';
 import {Remote} from "../../src/Remote";
+import {RemoteResponse, RemoteSettings} from "../../src/Remote";
 
 describe('RemoteStorage module initialization', () => {
   const env = {

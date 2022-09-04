@@ -10,7 +10,7 @@ import {
   localStorageAvailable
 } from './util';
 import {requestWithTimeout, RequestOptions} from "./requests";
-import {Remote, RemoteBase, RemoteResponse} from "./Remote";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./Remote";
 
 const BASE_URL = 'https://www.googleapis.com';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -191,11 +191,11 @@ class GoogleDrive extends RemoteBase implements Remote {
    *
    * @protected
    */
-  configure (settings) { // Settings parameter compatible with WireClient
+  configure (settings: RemoteSettings) { // Settings parameter compatible with WireClient
     // We only update this.userAddress if settings.userAddress is set to a string or to null
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
     // Same for this.token. If only one of these two is set, we leave the other one at its existing value
-    if (typeof settings.token !== 'undefined') { this.token = settings.token; }
+    if (typeof settings.token !== 'undefined') { this.token = settings.token as string; }
 
     const writeSettingsToCache = function() {
       if (hasLocalStorage) {

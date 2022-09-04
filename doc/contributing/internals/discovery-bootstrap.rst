@@ -28,4 +28,9 @@ the user to that URL. When the dance comes back, the library will detect
 the ``access_token`` from the window location during the page load, and
 from that point onwards, the remote is connected.
 
+If the OAuth flow is PKCE, the window location will contain a ``code``
+parameter instead of ``access_token``. RS then makes a fetch to
+remote.TOKEN_URL with the code, to retrieve the access token, and possibly
+a refresh token as well.
+
 .. _storage-first section: https://tools.ietf.org/html/draft-dejong-remotestorage-09#section-11

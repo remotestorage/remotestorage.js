@@ -37,10 +37,15 @@ Dropbox
 An app key can be obtained by `registering your app
 <https://www.dropbox.com/developers/apps>`_.
 
-* Create a new app for the "Dropbox API", with "Full Dropbox access"
+* Create a new "scoped" app for the "Dropbox API", with these scopes:
+    * account_info.read
+    * files.metadata.read
+    * files.metadata.write
+    * files.content.read
+    * files.content.write
 * You need to set one or more OAuth2 redirect URIs for all routes a user can
-  connect from, for example ``http://localhost:8000/`` for an app you are
-  developing locally.
+  connect from, for example ``http://localhost:8000`` for an app you are
+  developing locally.  If the path is '/', remoteStorage drops it.
 
 Known issues
 ^^^^^^^^^^^^
