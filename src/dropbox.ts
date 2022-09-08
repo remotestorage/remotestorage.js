@@ -1,5 +1,4 @@
 import EventHandling from './eventhandling';
-import WireClient from './wireclient';
 import BaseClient from './baseclient';
 import RevisionCache from './revisioncache';
 import SyncError from './sync-error';
@@ -13,6 +12,7 @@ import {
   getTextFromArrayBuffer,
   localStorageAvailable
 } from './util';
+import {requestWithTimeout, RequestOptions, isArrayBufferView} from "./requests";
 
 /**
  * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
@@ -83,12 +83,12 @@ function httpHeaderSafeJson(obj) {
   );
 }
 
-function compareApiError (response, expect) {
+function compareApiError (response: {error_summary: string}, expect: string[]): boolean {
   return new RegExp('^' + expect.join('\\/') + '(\\/|$)').test(response.error_summary);
 }
 
-function isBinaryData (data) {
-  return data instanceof ArrayBuffer || WireClient.isArrayBufferView(data);
+function isBinaryData (data): boolean {
+  return data instanceof ArrayBuffer || isArrayBufferView(data);
 }
 
 /**
@@ -228,7 +228,7 @@ class Dropbox {
    *
    * @private
    */
-  _getFolder (path) {
+  _getFolder (path: string) {
     const url = FOLDER_URL;
     const revCache = this._revCache;
 
@@ -312,7 +312,7 @@ class Dropbox {
    *
    * @protected
    */
-  get (path, options) {
+  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
     if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
     const url = DOWNLOAD_URL;
 
@@ -382,7 +382,7 @@ class Dropbox {
         mime = resp.getResponseHeader('Content-Type');
         rev = meta.rev;
         this._revCache.set(path, rev);
-        this._shareIfNeeded(path);
+        this._shareIfNeeded(path); // It's not necessary to wait for this promise
 
         if (shouldBeTreatedAsBinary(responseText, mime)) {
           // return unprocessed response
@@ -416,6 +416,8 @@ class Dropbox {
    * Calls ``Dropbox.share`` afterwards to fill ``_itemRefs``.
    *
    * @param {string} path - path of the folder to put, with leading slash
+   * @param {XMLHttpRequestBodyInit} body - Blob | BufferSource | FormData | URLSearchParams | string
+   * @param {string} contentType - MIME type of body
    * @param {Object} options
    * @param {string} options.ifNoneMatch - When *, only create or update the file if it doesn't yet exist
    * @param {string} options.ifMatch - Only saves if this matches current revision
@@ -423,7 +425,7 @@ class Dropbox {
    *                    content-type and revision
    * @protected
    */
-  async put (path, body, contentType, options) {
+  async put (path: string, body, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
     if (!this.connected) {
       throw new Error("not connected (path: " + path + ")");
     }
@@ -490,7 +492,7 @@ class Dropbox {
    *
    * @protected
    */
-  async 'delete' (path, options) {
+  async 'delete' (path: string, options: { ifMatch?: string } = {}) {
     if (!this.connected) {
       throw new Error("not connected (path: " + path + ")");
     }
@@ -516,12 +518,11 @@ class Dropbox {
 
   /**
    * Calls share, if the provided path resides in a public folder.
-   *
    * @private
    */
-  _shareIfNeeded (path) {
+  _shareIfNeeded (path: string): Promise<any> {
     if (path.match(/^\/public\/.*[^/]$/) && this._itemRefs[path] === undefined) {
-      this.share(path);
+      return this.share(path);
     }
   }
 
@@ -533,7 +534,7 @@ class Dropbox {
    *
    * @private
    */
-  share (path) {
+  share (path: string): Promise<any> {
     const url = CREATE_SHARED_URL;
     const options = {
       body: {path: getDropboxPath(path)}
@@ -582,26 +583,27 @@ class Dropbox {
    *
    * @protected
    */
-  info () {
+  info (): Promise<{email: string}> {
     const url = ACCOUNT_URL;
 
     return this._request('POST', url, {}).then(function (response) {
-      let info = response.responseText;
+      let email;
 
       try {
-        info = JSON.parse(info);
+        const info = JSON.parse(response.responseText);
+        email = info?.email;
       } catch (e) {
-        return Promise.reject(new Error('Could not query current account info: Invalid API response: ' + info));
+        return Promise.reject(new Error('Could not query current account info: Invalid API response: ' + response.responseText));
       }
 
       return Promise.resolve({
-        email: info.email
+        email: email
       });
     });
   }
 
   /**
-   * Make a network request.
+   * Makes a network request.
    *
    * @param {string} method - Request method
    * @param {string} url - Target URL
@@ -610,7 +612,7 @@ class Dropbox {
    *
    * @private
    */
-  _request (method, url, options) {
+  _request (method: string, url: string, options): Promise<any> {
     if (!options.headers) { options.headers = {}; }
     options.headers['Authorization'] = 'Bearer ' + this.token;
 
@@ -624,14 +626,15 @@ class Dropbox {
       isFolder: isFolder(url)
     });
 
-    return WireClient.request.call(this, method, url, options).then(xhr => {
+    return requestWithTimeout(method, url, options).then(xhr => {
       // 503 means retry this later
       if (xhr && xhr.status === 503) {
         if (this.online) {
           this.online = false;
           this.rs._emit('network-offline');
         }
-        return setTimeout(this._request(method, url, options), 3210);
+        // TODO: refactor so the request can be re-run after a delay
+        return Promise.reject(new ProgressEvent("server is busy"));
       } else {
         if (!this.online) {
           this.online = true;
@@ -816,12 +819,11 @@ class Dropbox {
    * Upload a simple file (the size is no more than 150MB).
    *
    * @param {Object} params
-   * @param {string} options.ifMatch - Only update the file if its ETag
+   * @param {string} params.ifMatch - Only update the file if its ETag
    *                                   matches this string
-   * @param {string} options.path - path of the file
-   * @param {string} options.body - contents of the file to upload
-   * @param {string} options.contentType - mime type of the file
-   *
+   * @param {string} params.path - path of the file
+   * @param {string} params.body - contents of the file to upload
+   * @param {string} params.contentType - mime type of the file   *
    * @return {Promise} A promise for an object with the following structure:
    *         statusCode - HTTP status code
    *         revision - revision of the newly-created file, if any
@@ -851,12 +853,12 @@ class Dropbox {
         return Promise.resolve({statusCode: response.status});
       }
 
-      let body = response.responseText;
+      let body;
 
       try {
-        body = JSON.parse(body);
+        body = JSON.parse(response.responseText);
       } catch (e) {
-        return Promise.reject(new Error('Invalid API result: ' + body));
+        return Promise.reject(new Error('Invalid API result: ' + response.responseText));
       }
 
       if (response.status === 409) {
@@ -896,12 +898,12 @@ class Dropbox {
         return Promise.resolve({statusCode: response.status});
       }
 
-      let responseBody = response.responseText;
+      let responseBody;
 
       try {
-        responseBody = JSON.parse(responseBody);
+        responseBody = JSON.parse(response.responseText);
       } catch (e) {
-        return Promise.reject(new Error('Invalid response body: ' + responseBody));
+        return Promise.reject(new Error('Invalid response body: ' + response.responseText));
       }
 
       if (response.status === 409) {
@@ -956,7 +958,7 @@ class Dropbox {
       }
 
       if (response.status === 409) {
-        return Promise.reject(new Error('API error: ' + response.error_summary));
+        return Promise.reject(new Error('API error: ' + body?.error_summary || response.responseText));
       }
 
       if (!body.links.length) {
@@ -973,7 +975,7 @@ class Dropbox {
   /**
    * Initialize the Dropbox backend.
    *
-   * @param {object} remoteStorage - RemoteStorage instance
+   * @param {object} rs - RemoteStorage instance
    *
    * @protected
    */
@@ -990,7 +992,6 @@ class Dropbox {
   /**
    * Inform about the availability of the Dropbox backend.
    *
-   * @param {object} rs - RemoteStorage instance
    * @returns {Boolean}
    *
    * @protected
@@ -1002,7 +1003,7 @@ class Dropbox {
   /**
    * Remove Dropbox as a backend.
    *
-   * @param {object} remoteStorage - RemoteStorage instance
+   * @param {object} rs - RemoteStorage instance
    *
    * @protected
    */

@@ -1,10 +1,10 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./build/sync', './build/sync-error', './build/wireclient',
+define(['./build/sync', './build/sync-error', './build/requests', './build/wireclient',
         './build/authorize', './build/eventhandling', './build/config',
         './build/util', 'test/behavior/backend', 'test/helpers/mocks'],
-       function(Sync, SyncError, WireClient, Authorize, EventHandling,
+       function(Sync, SyncError, Requests, WireClient, Authorize, EventHandling,
                 config, util, backend, mocks, undefined) {
 
   var suites = [];
@@ -34,7 +34,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
       token: env.token
     });
 
-    env.requestOrig = WireClient.request;
+    env.requestOrig = Requests.requestWithTimeout;
 
     mocks.defineMocks(env);
 
@@ -63,7 +63,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
   function afterEach(env, test) {
     mocks.undefineMocks(env);
     delete env.client;
-    WireClient.request = env.requestOrig;
+    Requests.requestWithTimeout = env.requestOrig;
     test.done();
   }
 
@@ -629,7 +629,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
             storageApi: 'draft-dejong-remotestorage-01'
           });
 
-          WireClient.request = function(method, url, options) {
+          Requests.requestWithTimeout = function(method, url, options) {
             test.assert(url, 'https://example.com/storage/test/foo/A%252FB/bar', url);
           };
 
@@ -644,7 +644,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
             storageApi: 'draft-dejong-remotestorage-01'
           });
 
-          WireClient.request = function(method, url, options) {
+          Requests.requestWithTimeout = function(method, url, options) {
             test.assert(url, 'https://example.com/storage/test/foo/A%20B/bar', url);
           };
 
@@ -659,7 +659,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
             storageApi: 'draft-dejong-remotestorage-01'
           });
 
-          WireClient.request = function(method, url, options) {
+          Requests.requestWithTimeout = function(method, url, options) {
             test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
           };
 
@@ -674,7 +674,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
             storageApi: 'draft-dejong-remotestorage-01'
           });
 
-          WireClient.request = function(method, url, options) {
+          Requests.requestWithTimeout = function(method, url, options) {
             test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
           };
 
@@ -978,7 +978,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
       {
         desc: "#Wireclient.request with success fulfills its promise with text response if responseType is not set",
         run: function(env, test) {
-          WireClient.request('GET','/foo/bar', {}).
+          Requests.requestWithTimeout('GET','/foo/bar', {}).
             then(function (r) {
               test.assertAnd(r.status, 200);
               test.assertAnd(r.responseText, 'response-body');

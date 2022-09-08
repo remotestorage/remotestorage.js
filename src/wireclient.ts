@@ -34,7 +34,6 @@ import RemoteStorage from './remotestorage';
 import Authorize from './authorize';
 import EventHandling from './eventhandling';
 import UnauthorizedError from './unauthorized-error';
-import config from './config';
 import log from './log';
 import {
   applyMixins,
@@ -45,6 +44,7 @@ import {
   localStorageAvailable,
   shouldBeTreatedAsBinary
 } from './util';
+import {requestWithTimeout, isArrayBufferView} from "./requests";
 
 let hasLocalStorage;
 const SETTINGS_KEY = 'remotestorage:wireclient';
@@ -67,27 +67,6 @@ function readSettings () {
   const { userAddress, href, storageApi, token, properties } = settings;
 
   return { userAddress, href, storageApi, token, properties };
-}
-
-let isArrayBufferView;
-
-if (typeof ((global || window as any).ArrayBufferView) === 'function') {
-  isArrayBufferView = function (object) {
-    return object && (object instanceof (global || window as any).ArrayBufferView);
-  };
-} else {
-  const arrayBufferViews = [
-    Int8Array, Uint8Array, Int16Array, Uint16Array,
-    Int32Array, Uint32Array, Float32Array, Float64Array
-  ];
-  isArrayBufferView = function (object): boolean {
-    for (let i = 0; i < 8; i++) {
-      if (object instanceof arrayBufferViews[i]) {
-        return true;
-      }
-    }
-    return false;
-  };
 }
 
 // TODO double check
@@ -240,7 +219,7 @@ class WireClient {
     }
   }
 
-  async _request (method: string, uri: string, token: string | false, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
+  async _request (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
     if (isForbiddenRequestMethod(method, uri)) {
       return Promise.reject(`Don't use ${method} on directories!`);
     }
@@ -256,7 +235,7 @@ class WireClient {
       isFolder: isFolder(uri)
     });
 
-    return WireClient.request(method, uri, {
+    return requestWithTimeout(method, uri, {
       body: body,
       headers: headers,
       responseType: 'arraybuffer'
@@ -458,7 +437,7 @@ class WireClient {
       });
   }
 
-  put (path: string, body: unknown, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
+  put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
@@ -494,138 +473,6 @@ class WireClient {
     return this._request('DELETE', this.href + cleanPath(path), this.token,
       headers,
       undefined, this.supportsRevs);
-  }
-
-  // Shared isArrayBufferView used by WireClient and Dropbox
-  static isArrayBufferView = isArrayBufferView;
-
-  // TODO add proper definition for options
-  // Shared request function used by WireClient, GoogleDrive and Dropbox.
-  static async request (method: string, url: string, options: unknown): Promise<XMLHttpRequest | Response> {
-    if (typeof fetch === 'function') {
-      return WireClient._fetchRequest(method, url, options);
-    } else if (typeof XMLHttpRequest === 'function') {
-      return WireClient._xhrRequest(method, url, options);
-    } else {
-      log('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
-      return Promise.reject('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
-    }
-  }
-
-  /** options includes body, headers and responseType */
-  static _fetchRequest (method: string, url: string, options): Promise<Response> {
-    let syntheticXhr;
-    const responseHeaders = {};
-    let abortController;
-    if (typeof AbortController === 'function') {
-      abortController = new AbortController();
-    }
-    const networkPromise: Promise<Response> = fetch(url, {
-      method: method,
-      headers: options.headers,
-      body: options.body,
-      signal: abortController ? abortController.signal : undefined
-    }).then((response) => {
-      log('[WireClient fetch]', response);
-
-      response.headers.forEach((value: string, headerName: string) => {
-        responseHeaders[headerName.toUpperCase()] = value;
-      });
-
-      syntheticXhr = {
-        readyState: 4,
-        status: response.status,
-        statusText: response.statusText,
-        response: undefined,
-        getResponseHeader: (headerName: string): unknown => {
-          return responseHeaders[headerName.toUpperCase()] || null;
-        },
-        // responseText: 'foo',
-        responseType: options.responseType,
-        responseURL: url,
-      };
-      switch (options.responseType) {
-        case 'arraybuffer':
-          return response.arrayBuffer();
-        case 'blob':
-          return response.blob();
-        case 'json':
-          return response.json();
-        case undefined:
-        case '':
-        case 'text':
-          return response.text();
-        default:   // document
-          throw new Error("responseType 'document' is not currently supported using fetch");
-      }
-    }).then((processedBody) => {
-      syntheticXhr.response = processedBody;
-      if (!options.responseType || options.responseType === 'text') {
-        syntheticXhr.responseText = processedBody;
-      }
-      return syntheticXhr;
-    });
-
-    const timeoutPromise: Promise<Response> = new Promise((resolve, reject) => {
-      setTimeout(() => {
-        reject('timeout');
-        if (abortController) {
-          abortController.abort();
-        }
-      }, config.requestTimeout);
-    });
-
-    return Promise.race([networkPromise, timeoutPromise]);
-  }
-
-  static _xhrRequest (method, url, options): Promise<XMLHttpRequest> {
-    return new Promise((resolve, reject) => {
-
-      log('[WireClient]', method, url);
-
-      let timedOut = false;
-
-      const timer = setTimeout(() => {
-        timedOut = true;
-        reject('timeout');
-      }, config.requestTimeout);
-
-      const xhr = new XMLHttpRequest();
-      xhr.open(method, url, true);
-
-      if (options.responseType) {
-        xhr.responseType = options.responseType;
-      }
-
-      if (options.headers) {
-        for (const key in options.headers) {
-          xhr.setRequestHeader(key, options.headers[key]);
-        }
-      }
-
-      xhr.onload = (): void => {
-        if (timedOut) {
-          return;
-        }
-        clearTimeout(timer);
-        resolve(xhr);
-      };
-
-      xhr.onerror = (error): void => {
-        if (timedOut) {
-          return;
-        }
-        clearTimeout(timer);
-        reject(error);
-      };
-
-      let body = options.body;
-
-      if (typeof (body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
-        body = new Uint8Array(body);
-      }
-      xhr.send(body);
-    });
   }
 
   static _rs_init (remoteStorage): void {

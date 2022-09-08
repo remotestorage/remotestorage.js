@@ -1,5 +1,4 @@
 import BaseClient from './baseclient';
-import WireClient from './wireclient';
 import EventHandling from './eventhandling';
 import {
   applyMixins,
@@ -10,6 +9,7 @@ import {
   getTextFromArrayBuffer,
   localStorageAvailable
 } from './util';
+import {requestWithTimeout, RequestOptions} from "./requests";
 
 const BASE_URL = 'https://www.googleapis.com';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -277,7 +277,7 @@ class GoogleDrive {
    *
    * @protected
    */
-  get (path, options) {
+  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
     if (isFolder(path)) {
       return this._getFolder(googleDrivePath(path));
     } else {
@@ -299,7 +299,7 @@ class GoogleDrive {
    *
    * @protected
    */
-  put (path, body, contentType, options) {
+  put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
     const fullPath = googleDrivePath(path);
 
     function putDone(response) {
@@ -337,7 +337,7 @@ class GoogleDrive {
    *
    * @protected
    */
-  delete (path, options) {
+  delete (path: string, options: { ifMatch?: string } = {}) {
     const fullPath = googleDrivePath(path);
 
     return this._getFileId(fullPath).then((id) => {
@@ -496,7 +496,7 @@ class GoogleDrive {
           }
         }
 
-        const params = {
+        const params: RequestOptions = {
           responseType: 'arraybuffer'
         };
         return this._request('GET', meta.downloadUrl, params).then((response) => {
@@ -531,13 +531,12 @@ class GoogleDrive {
    * Request a directory.
    *
    * @param {string} path - Directory path
-   * @param {Object} options
    * @returns {Promise} Resolves with an object containing the status code,
    *                    body and content-type
    *
    * @private
    */
-  _getFolder (path) {
+  _getFolder (path: string) {
     return this._getFileId(path).then((id) => {
       let data, etagWithoutQuotes, itemsMap;
       if (! id) {
@@ -704,7 +703,7 @@ class GoogleDrive {
    *
    * @private
    */
-  _request (method, url, options) {
+  _request (method: string, url: string, options: RequestOptions) {
     if (! options.headers) { options.headers = {}; }
     options.headers['Authorization'] = 'Bearer ' + this.token;
 
@@ -713,7 +712,7 @@ class GoogleDrive {
       isFolder: isFolder(url)
     });
 
-    return WireClient.request.call(this, method, url, options).then((xhr) => {
+    return requestWithTimeout(method, url, options).then((xhr) => {
       // Google tokens expire from time to time...
       if (xhr && xhr.status === 401) {
         this.connect();
@@ -769,7 +768,6 @@ class GoogleDrive {
   /**
    * Inform about the availability of the Google Drive backend.
    *
-   * @param {Object} rs - RemoteStorage instance
    * @returns {Boolean}
    *
    * @protected
