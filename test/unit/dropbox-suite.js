@@ -70,11 +70,11 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
       beforeEach(env, test);
       mocks.defineXMLHttpRequestMock(env);
     }
-  
+
     function beforeEachFetch(env, test) {
       beforeEach(env, test);
       mocks.defineFetchMock(env);
-    }    
+    }
 
     function afterEach(env, test) {
       mocks.undefineMocks(env);
@@ -191,7 +191,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                 },
                 status: 200,
                 arrayBuffer: new ArrayBufferMock('{"foo":"response-body"}')
-              });              
+              });
             }, 10);
           }
         },
@@ -212,7 +212,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                 },
                 status: 200,
                 arrayBuffer: new ArrayBufferMock('{"foo":"response-body"}')
-              });              
+              });
             }, 10);
           }
         },
@@ -259,7 +259,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                 responseText: JSON.stringify({
                   "email": "john.doe@example.com"
                 })
-              });              
+              });
             }, 10);
           }
         },
@@ -400,7 +400,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
               }, function (error) {
                 test.assert('my-error', error);
               });
-            mockRequestFail('my-error');            
+            mockRequestFail('my-error');
           }
         },
 
@@ -433,8 +433,8 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                 },
                 status: 200,
                 arrayBuffer: new ArrayBufferMock('response-body')
-              });              
-            }, 10);            
+              });
+            }, 10);
           }
         },
 
@@ -455,7 +455,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                 },
                 status: 200,
                 arrayBuffer: new ArrayBufferMock('{"response":"body"}')
-              });              
+              });
             }, 10);
           }
         },
@@ -529,7 +529,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
               mockRequestSuccess({
                 status: 200,
                 responseText: makePayload(3, false)
-              });              
+              });
             });
 
             env.connectedClient.get('/foo/').
@@ -611,7 +611,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                     {
                       '.tag': 'folder',
                       path_lower: '/remotestorage/foo',
-                    },                    
+                    },
                     {
                       '.tag': 'file',
                       path_lower: '/remotestorage/foo/bar',
@@ -627,13 +627,13 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                     '.tag': 'file',
                     path_lower: '/remotestorage/file',
                     rev: '1'
-                  }, 
+                  },
                   {
                     '.tag': 'folder',
                     path_lower: '/remotestorage/foo',
                   }]
               })
-            });            
+            });
           }
         },
 
@@ -656,7 +656,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                   path: '/remotestorage/foo/bar',
                   rev: 'bar'
                 })
-              });            
+              });
             }, 100);
           }
         },
@@ -683,7 +683,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                 responseText: JSON.stringify({
                   rev: 'bar'
                 })
-              });              
+              });
             }, 100);
           }
         },
@@ -710,7 +710,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                   hash: 'hash123',
                   rev: 'foo'
                 })
-              });              
+              });
             }, 100);
           }
         },
@@ -762,7 +762,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
             setTimeout(function () {
               mockRequestSuccess({
                 status: 401,
-              });              
+              });
             }, 100);
           }
         },
@@ -807,7 +807,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
               test.assertAnd(getMockRequestMethod(), 'POST');
               test.assertAnd(getMockRequestUrl(), 'https://api.dropboxapi.com/2/files/delete');
               test.assertAnd(JSON.parse(getMockRequestBody()).path, '/remotestorage/foo/bar');
-    
+
 
             setTimeout(function () {
               mockRequestSuccess({
@@ -904,7 +904,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
             mockRequestSuccess({
               status: 404,
               response: 'response-body'
-            });  
+            });
           }
         },
 
@@ -951,7 +951,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
         {
           desc: "share gets called after getting a public path without touching the fullfilments",
           run: function (env, test) {
-            oldShare = env.connectedClient.share;
+            const oldShare = env.connectedClient.share;
             env.connectedClient.share = function(path) {
               oldShare.bind(env.connectedClient)(path)
                 .then(function (r) {
@@ -980,16 +980,16 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                 responseText: JSON.stringify( {
                   url: 'http://dropbox.shareing/url'
                 })
-              });  
+              });
             });
             env.connectedClient.get('/public/foo').then(function (r){
               test.assertAnd(r.statusCode, 200, 'status = '+r.statusCode);
               test.assertAnd(r.revision, 'rev',r.revision)
-              test.assertAnd(r.body, 'response-body', 'body = '+ r.body);            
+              test.assertAnd(r.body, 'response-body', 'body = '+ r.body);
             })
           }
         },
-        
+
 
         {
           desc: "Dropbox adapter hooks itself into sync cycle when activated",
@@ -1046,7 +1046,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
         setup: setup,
         beforeEach: beforeEachXHR,
         afterEach: afterEach,
-        tests: xhrTests      
+        tests: xhrTests
     });
 
     suites.push({
@@ -1055,7 +1055,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
       setup: setup,
       beforeEach: beforeEachFetch,
       afterEach: afterEach,
-      tests: tests      
+      tests: tests
     });
 
 

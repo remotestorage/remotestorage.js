@@ -1,6 +1,7 @@
 import log from './log';
 import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
+import WireClient from "./wireclient";
 
 interface AuthOptions {
   authURL: string;
@@ -12,6 +13,7 @@ interface AuthOptions {
 
 interface AuthResult {
   access_token?: string;
+  code?: string;
   refresh_token?: string;
   rsDiscovery?: object;
   error?: string;
@@ -25,11 +27,17 @@ let onFeaturesLoaded: Function;
 function extractParams (url?: string): AuthResult {
   // FF already decodes the URL fragment in document.location.hash, so use this instead:
   const location = url || Authorize.getLocation().href;
+
+  const queryParam = {};
+  for (const [key, value] of new URL(location).searchParams) {
+    queryParam[key] = value;
+  }
+
   const hashPos  = location.indexOf('#');
-  if (hashPos === -1) { return; }
+  if (hashPos === -1) { return queryParam; }
   const urlFragment = location.substring(hashPos+1);
   // if hash is not of the form #key=val&key=val, it's probably not for us
-  if (!urlFragment.includes('=')) { return; }
+  if (!urlFragment.includes('=')) { return queryParam; }
 
   return urlFragment.split('&').reduce(function(params, kvs) {
     const kv = kvs.split('=');
@@ -54,7 +62,7 @@ function extractParams (url?: string): AuthResult {
     }
 
     return params;
-  }, {});
+  }, queryParam);
 }
 
 function buildOAuthURL (authURL: string, redirectUri: string, scope: string, clientId: string, additionalParam: object = {}): string {
@@ -71,8 +79,7 @@ function buildOAuthURL (authURL: string, redirectUri: string, scope: string, cli
   if (state) {
     url.searchParams.set('state', state);
   }
-  // @ts-ignore
-  if (! additionalParam.response_type) {
+  if (! additionalParam['response_type']) {
     url.searchParams.set('response_type', 'token');
   }
 
@@ -236,10 +243,64 @@ class Authorize {
         Authorize.setLocation(location.href.split('#')[0]+'#'+params.state);
       }
 
+      if (params.code) {
+        fetchTokens(params.code);
+        authParamsUsed = true;
+      }
+
       if (!authParamsUsed) {
         remoteStorage.remote.stopWaitingForToken();
       }
     };
+
+    // OAuth2 PKCE flow
+    function fetchTokens(code) {
+      const codeVerifier = sessionStorage.getItem('remotestorage:dropbox:codeVerifier');
+      if (!codeVerifier) {
+        console.warn("Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
+        return;
+      }
+      location = Authorize.getLocation();
+      let redirectUri = location.origin;
+      if (location.pathname !== '/') {
+        redirectUri += location.pathname;
+      }
+      const formValues = new URLSearchParams({
+        code: code,
+        grant_type: 'authorization_code',
+        client_id: remoteStorage.remote.clientId,
+        redirect_uri: redirectUri,
+        code_verifier: codeVerifier
+      });
+      WireClient.request.call(remoteStorage.remote,
+          'POST',
+          remoteStorage.remote.TOKEN_URL,
+          {
+            headers: {'Content-type': 'application/x-www-form-urlencoded'},
+            body: formValues.toString(),
+            responseType: 'json'
+          }
+      ).then(xhr => {
+        switch (xhr.status) {
+          case 200:
+            log(`[Authorize] access token good for ${xhr?.response?.expires_in} seconds`);
+            const settings = {
+              token: xhr?.response?.access_token,
+              refreshToken: xhr?.response?.refresh_token,
+              tokenType: xhr?.response?.token_type,
+            };
+            if (settings.token) {
+              remoteStorage.remote.configure(settings);
+            } else {
+              remoteStorage._emit('error', new Error(`no access_token in "successful" response: ${xhr.response}`));
+            }
+            sessionStorage.removeItem('remotestorage:dropbox:codeVerifier');
+            break;
+          default:
+            remoteStorage._emit('error', new Error(`${xhr.statusText}: ${xhr.response}`));
+        }
+      });
+    }
 
     remoteStorage.on('features-loaded', onFeaturesLoaded);
   };

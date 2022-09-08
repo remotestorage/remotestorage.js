@@ -11,8 +11,10 @@ import {
   shouldBeTreatedAsBinary,
   getJSONFromLocalStorage,
   getTextFromArrayBuffer,
-  localStorageAvailable
+  localStorageAvailable,
+  generateCodeVerifier,
 } from './util';
+import log from "./log";
 
 /**
  * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
@@ -48,6 +50,7 @@ import {
 
 let hasLocalStorage;
 const AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
+const TOKEN_URL = 'https://api.dropboxapi.com/oauth2/token';
 const OAUTH_SCOPE = 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write';
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const PATH_PREFIX = '/remotestorage';
@@ -80,7 +83,10 @@ class Dropbox {
   connected: boolean;
   online: boolean;
   clientId: string;
+  TOKEN_URL: string;   // OAuth2 PKCE
   token: string;
+  refreshToken: string;   // OAuth2 PKCE
+  tokenType: string;   // OAuth2 PKCE
   userAddress: string;
 
   _initialFetchDone: boolean;
@@ -101,6 +107,7 @@ class Dropbox {
     this.addEvents(['connected', 'not-connected']);
 
     this.clientId = rs.apiKeys.dropbox.appKey;
+    this.TOKEN_URL = TOKEN_URL;
     this._revCache = new RevisionCache('rev');
     this._fetchDeltaCursor = null;
     this._fetchDeltaPromise = null;
@@ -124,17 +131,30 @@ class Dropbox {
    * Set the backed to 'dropbox' and start the authentication flow in order
    * to obtain an API token from Dropbox.
    */
-  connect () {
+  async connect () {
     // TODO handling when token is already present
     try {
       this.rs.setBackend('dropbox');
       if (this.token) {
         hookIt(this.rs);
-      } else {
-        this.rs.authorize({authURL: AUTH_URL, scope: OAUTH_SCOPE, clientId: this.clientId});
+      } else {   // OAuth2 PKCE
+        const {codeVerifier, codeChallenge, state} = await generateCodeVerifier();
+        sessionStorage.setItem('remotestorage:dropbox:codeVerifier', codeVerifier);
+        sessionStorage.setItem('remotestorage:dropbox:state', state);
+        this.rs.authorize({
+          authURL: AUTH_URL,
+          scope: OAUTH_SCOPE,
+          clientId: this.clientId,
+          additionalParam: {
+            response_type: 'code',
+            state: state,
+            code_challenge: codeChallenge,
+            code_challenge_method: 'S256',
+            token_access_type: 'offline'
+          }
+        });
       }
     } catch (err) {
-      console.error('Dropbox authorization failed:', err);
       this.rs._emit('error', err);
       this.rs.setBackend(undefined);
     }
@@ -146,6 +166,8 @@ class Dropbox {
    * @param {Object} settings
    * @param {string} [settings.userAddress] - The user's email address
    * @param {string} [settings.token] - Authorization token
+   * @param {string} [settings.refreshToken] - OAuth2 PKCE refresh token
+   * @param {string} [settings.tokenType] - usually 'bearer' - no support for 'mac' tokens yet
    *
    * @protected
    **/
@@ -154,40 +176,44 @@ class Dropbox {
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
     // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
     if (typeof settings.token !== 'undefined') { this.token = settings.token; }
+    if (typeof settings.refreshToken !== 'undefined') { this.refreshToken = settings.refreshToken; }
+    if (typeof settings.tokenType !== 'undefined') { this.tokenType = settings.tokenType; }
 
-    const writeSettingsToCache = function() {
+    const writeSettingsToCache = () => {
       if (hasLocalStorage) {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify({
           userAddress: this.userAddress,
-          token: this.token
+          token: this.token,
+          refreshToken: this.refreshToken,
+          tokenType: this.tokenType,
         }));
       }
     };
 
-    const handleError = function() {
+    const handleError = () => {
       this.connected = false;
       if (hasLocalStorage) {
         localStorage.removeItem(SETTINGS_KEY);
       }
     };
 
-    if (this.token) {
+    if (this.refreshToken || this.token) {
       this.connected = true;
       if (this.userAddress) {
         this._emit('connected');
-        writeSettingsToCache.apply(this);
+        writeSettingsToCache();
       } else {
         this.info().then(function (info){
           this.userAddress = info.email;
           this._emit('connected');
-          writeSettingsToCache.apply(this);
+          writeSettingsToCache();
         }.bind(this)).catch(function() {
-          handleError.apply(this);
+          handleError();
           this.rs._emit('error', new Error('Could not fetch user info.'));
         }.bind(this));
       }
     } else {
-      handleError.apply(this);
+      handleError();
     }
   }
 
@@ -621,8 +647,35 @@ class Dropbox {
     });
 
     return WireClient.request.call(this, method, url, options).then(xhr => {
-      // 503 means retry this later
-      if (xhr && xhr.status === 503) {
+      if (xhr?.status === 401 && this.refreshToken) {
+        this.configure({token: null});
+        const formValues = new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: this.clientId,
+          refresh_token: this.refreshToken,
+        });
+        return WireClient.request.call(this, 'POST', TOKEN_URL, {
+          headers: {'Content-type': 'application/x-www-form-urlencoded'},
+          body: formValues.toString(),
+          responseType: 'json'
+        }).then(xhr2 => {
+          if (xhr2?.status === 200) {
+            log(`[Authorize] access token good for ${xhr2?.response?.expires_in} seconds`);
+            const settings = {
+              token: xhr2?.response?.access_token,
+              tokenType: xhr2?.response?.token_type,
+            };
+            if (settings.token) {
+              this.configure(settings);
+            } else {
+              this.rs._emit('error', new Error(`no access_token in "successful" refresh: ${xhr2.response}`));
+            }
+          } else {
+            this.configure({refreshToken: null});
+            throw new UnauthorizedError("refresh token rejected:" + JSON.stringify(xhr2.response));
+          }
+        }).then(this._request(method, url, options));
+      } else if (xhr?.status === 503) {   // 503 means retry this later
         if (this.online) {
           this.online = false;
           this.rs._emit('network-offline');
