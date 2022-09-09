@@ -13,6 +13,8 @@ import {
   localStorageAvailable
 } from './util';
 import {requestWithTimeout, RequestOptions, isArrayBufferView} from "./requests";
+import {Remote, RemoteBase, RemoteResponse} from "./Remote";
+import RemoteStorage from "./remotestorage";
 
 /**
  * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
@@ -40,7 +42,7 @@ import {requestWithTimeout, RequestOptions, isArrayBufferView} from "./requests"
  *
  *   - Storing files larger than 150MB is not yet supported
  *   - Listing and deleting folders with more than 10'000 files will cause problems
- *   - Content-Type is not fully supported due to limitations of the Dropbox API
+ *   - Content-Type is not supported; TODO: use file_properties
  *   - Dropbox preserves cases but is not case-sensitive
  *   - getItemURL is asynchronous which means it returns useful values
  *     after the syncCycle
@@ -59,6 +61,37 @@ const METADATA_URL = 'https://api.dropboxapi.com/2/files/get_metadata';
 const CREATE_SHARED_URL = 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings';
 const LIST_SHARED_URL = 'https://api.dropbox.com/2/sharing/list_shared_links';
 const PATH_PREFIX = '/remotestorage';
+
+interface Metadata {
+  ".tag": "folder" | "file",
+  id: string,
+  name: string,
+  path_display: string,
+  path_lower: string,
+  property_groups: any[],
+  sharing_info: {
+    no_access?: boolean,
+    parent_shared_folder_id: string,
+    read_only: boolean,
+    traverse_only?: boolean,
+    modified_by?: string
+  },
+
+  client_modified?: string,   // date
+  content_hash?: string,
+  file_lock_info?: {
+    created: string,   // date
+    is_lockholder: boolean,
+    lockholder_name: string
+  },
+  has_explicit_shared_members?: boolean,
+  is_downloadable?: boolean,
+  rev?: string,
+  server_modified?: string,   // date
+  size?: number,
+
+  preview_url?: string
+}
 
 /**
  * Maps a remoteStorage path to a path in Dropbox.
@@ -94,13 +127,9 @@ function isBinaryData (data): boolean {
 /**
  * @class
  */
-class Dropbox {
-  rs: any;
-  connected: boolean;
-  online: boolean;
+class Dropbox extends RemoteBase implements Remote {
   clientId: string;
   token: string;
-  userAddress: string;
 
   _initialFetchDone: boolean;
   _revCache: RevisionCache;
@@ -112,9 +141,9 @@ class Dropbox {
   _emit: any;
 
   constructor (rs) {
-    this.rs = rs;
-    this.connected = false;
+    super(rs);
     this.online = true; // TODO implement offline detection on failed request
+    this.storageApi = 'draft-dejong-remotestorage-19';
     this._initialFetchDone = false;
 
     this.addEvents(['connected', 'not-connected']);
@@ -202,17 +231,6 @@ class Dropbox {
       }
     } else {
       handleError.apply(this);
-    }
-  }
-
-  /**
-   * Stop waiting for the token and emit not-connected
-   *
-   * @protected
-   */
-  stopWaitingForToken () {
-    if (!this.connected) {
-      this._emit('not-connected');
     }
   }
 
@@ -312,7 +330,7 @@ class Dropbox {
    *
    * @protected
    */
-  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
+  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
     const url = DOWNLOAD_URL;
 
@@ -425,7 +443,7 @@ class Dropbox {
    *                    content-type and revision
    * @protected
    */
-  async put (path: string, body, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
+  async put (path: string, body, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (!this.connected) {
       throw new Error("not connected (path: " + path + ")");
     }
@@ -492,7 +510,7 @@ class Dropbox {
    *
    * @protected
    */
-  async 'delete' (path: string, options: { ifMatch?: string } = {}) {
+  async 'delete' (path: string, options: { ifMatch?: string } = {}): Promise<RemoteResponse> {
     if (!this.connected) {
       throw new Error("not connected (path: " + path + ")");
     }
@@ -613,6 +631,10 @@ class Dropbox {
    * @private
    */
   _request (method: string, url: string, options): Promise<any> {
+    if (this.isForbiddenRequestMethod(method, url)) {
+      return Promise.reject(`Don't use ${method} on directories!`);
+    }
+
     if (!options.headers) { options.headers = {}; }
     options.headers['Authorization'] = 'Bearer ' + this.token;
 
@@ -670,7 +692,7 @@ class Dropbox {
    *
    * @private
    */
-  fetchDelta (...args) {
+  fetchDelta (...args): Promise<unknown> {
     // If fetchDelta was already called, and didn't finish, return the existing
     // promise instead of calling Dropbox API again
     if (this._fetchDeltaPromise) {
@@ -781,7 +803,7 @@ class Dropbox {
    *
    * @private
    */
-  _getMetadata (path) {
+  _getMetadata (path: string): Promise<Metadata> {
     const url = METADATA_URL;
     const requestBody = {
       path: getDropboxPath(path)
@@ -830,7 +852,7 @@ class Dropbox {
    *
    * @private
    */
-  _uploadSimple (params) {
+  _uploadSimple (params: { body: XMLHttpRequestBodyInit; contentType?: string; path: string; ifMatch?: string; }): Promise<RemoteResponse> {
     const url = UPLOAD_URL;
     const args = {
       path: getDropboxPath(params.path),
@@ -889,7 +911,7 @@ class Dropbox {
    *
    * @private
    */
-  _deleteSimple (path) {
+  _deleteSimple (path: string): Promise<RemoteResponse> {
     const url = DELETE_URL;
     const requestBody = { path: getDropboxPath(path) };
 
@@ -979,7 +1001,7 @@ class Dropbox {
    *
    * @protected
    */
-  static _rs_init (rs): void {
+  static _rs_init (rs: RemoteStorage): void {
     hasLocalStorage = localStorageAvailable();
     if ( rs.apiKeys.dropbox ) {
       rs.dropbox = new Dropbox(rs);
@@ -1007,7 +1029,7 @@ class Dropbox {
    *
    * @protected
    */
-  static _rs_cleanup (rs): void {
+  static _rs_cleanup (rs: RemoteStorage): void {
     unHookIt(rs);
     if (hasLocalStorage){
       localStorage.removeItem(SETTINGS_KEY);
@@ -1021,7 +1043,7 @@ class Dropbox {
  *
  * TODO: document
  */
-function hookSync(rs, ...args) {
+function hookSync(rs, ...args): void {
   if (rs._dropboxOrigSync) { return; } // already hooked
   rs._dropboxOrigSync = rs.sync.sync.bind(rs.sync);
   rs.sync.sync = function () {
@@ -1038,7 +1060,7 @@ function hookSync(rs, ...args) {
  *
  * TODO: document
  */
-function unHookSync(rs) {
+function unHookSync(rs): void {
   if (! rs._dropboxOrigSync) { return; } // not hooked
   rs.sync.sync = rs._dropboxOrigSync;
   delete rs._dropboxOrigSync;
@@ -1050,7 +1072,7 @@ function unHookSync(rs) {
  * the sync function
  * @param {object} rs RemoteStorage instance
  */
-function hookSyncCycle(rs, ...args) {
+function hookSyncCycle(rs, ...args): void  {
   if (rs._dropboxOrigSyncCycle) { return; } // already hooked
   rs._dropboxOrigSyncCycle = rs.syncCycle;
   rs.syncCycle = () => {
@@ -1068,7 +1090,7 @@ function hookSyncCycle(rs, ...args) {
  * Restore RemoteStorage's syncCycle original implementation
  * @param {object} rs RemoteStorage instance
  */
-function unHookSyncCycle(rs) {
+function unHookSyncCycle(rs): void  {
   if (!rs._dropboxOrigSyncCycle) { return; } // not hooked
   rs.syncCycle = rs._dropboxOrigSyncCycle;
   delete rs._dropboxOrigSyncCycle;
@@ -1083,7 +1105,7 @@ function unHookSyncCycle(rs) {
  *
  * @private
  */
-function hookGetItemURL (rs) {
+function hookGetItemURL (rs): void {
   if (rs._origBaseClientGetItemURL) { return; }
   rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
   BaseClient.prototype.getItemURL = function (/*path*/) {
@@ -1098,7 +1120,7 @@ function hookGetItemURL (rs) {
  *
  * @private
  */
-function unHookGetItemURL(rs){
+function unHookGetItemURL(rs): void {
   if (! rs._origBaseClientGetItemURL) { return; }
   BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
   delete rs._origBaseClientGetItemURL;
@@ -1107,7 +1129,7 @@ function unHookGetItemURL(rs){
 /**
  * TODO: document
  */
-function hookRemote(rs){
+function hookRemote(rs): void {
   if (rs._origRemote) { return; }
   rs._origRemote = rs.remote;
   rs.remote = rs.dropbox;
@@ -1116,7 +1138,7 @@ function hookRemote(rs){
 /**
  * TODO: document
  */
-function unHookRemote(rs){
+function unHookRemote(rs): void {
   if (rs._origRemote) {
     rs.remote = rs._origRemote;
     delete rs._origRemote;
@@ -1126,7 +1148,7 @@ function unHookRemote(rs){
 /**
  * TODO: document
  */
-function hookIt(rs){
+function hookIt(rs: RemoteStorage): void {
   hookRemote(rs);
   if (rs.sync) {
     hookSync(rs);
@@ -1141,7 +1163,7 @@ function hookIt(rs){
 /**
  * TODO: document
  */
-function unHookIt(rs){
+function unHookIt(rs: RemoteStorage): void {
   unHookRemote(rs);
   unHookSync(rs);
   unHookGetItemURL(rs);

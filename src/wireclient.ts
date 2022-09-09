@@ -45,6 +45,7 @@ import {
   shouldBeTreatedAsBinary
 } from './util';
 import {requestWithTimeout, isArrayBufferView} from "./requests";
+import {Remote, RemoteBase, RemoteResponse} from "./Remote";
 
 let hasLocalStorage;
 const SETTINGS_KEY = 'remotestorage:wireclient';
@@ -75,32 +76,7 @@ interface WireClientSettings {
   href: string;
   storageApi: string;
   token: string;
-  properties: unknown;
-}
-
-interface WireRequestResponse {
-  statusCode: number;
-  revision: string | undefined;
-  body?: any;
-}
-
-function addQuotes (str: string): string {
-  if (typeof (str) !== 'string') {
-    return str;
-  }
-  if (str === '*') {
-    return '*';
-  }
-
-  return '"' + str + '"';
-}
-
-function stripQuotes (str: string): string {
-  if (typeof (str) !== 'string') {
-    return str;
-  }
-
-  return str.replace(/^["']|["']$/g, '');
+  properties: object;
 }
 
 function determineCharset (mimeType: string): string {
@@ -129,20 +105,7 @@ function isErrorStatus (status: number): boolean {
   return [401, 403, 404, 412].indexOf(status) >= 0;
 }
 
-function isForbiddenRequestMethod(method: string, uri: string): boolean {
-  if (method === 'PUT' || method === 'DELETE') {
-    return isFolder(uri);
-  } else {
-    return false;
-  }
-}
-
-class WireClient {
-  rs: RemoteStorage;
-  connected: boolean;
-  online: boolean;
-  userAddress: string;
-
+class WireClient extends RemoteBase implements Remote {
   /**
    * Holds the bearer token of this WireClient, as obtained in the OAuth dance
    *
@@ -165,29 +128,15 @@ class WireClient {
    */
   href: string;
 
-  /**
-   * Holds the spec version the server claims to be compatible with
-   *
-   * Example:
-   *   (start code)
-   *
-   *   remoteStorage.remote.storageApi
-   *   // -> 'draft-dejong-remotestorage-01'
-   */
-  storageApi: string;
-  // TODO implement TS validation for incoming type
-
   supportsRevs: boolean;
 
   _revisionCache: { [key: string]: any } = {};
 
-  properties: any;
+  properties: object;
 
   constructor (rs: RemoteStorage) {
+    super(rs);
     hasLocalStorage = localStorageAvailable();
-
-    this.rs = rs;
-    this.connected = false;
 
     /**
      * Event: connected
@@ -219,8 +168,8 @@ class WireClient {
     }
   }
 
-  async _request (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
-    if (isForbiddenRequestMethod(method, uri)) {
+  async _request (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
+    if (this.isForbiddenRequestMethod(method, uri)) {
       return Promise.reject(`Don't use ${method} on directories!`);
     }
 
@@ -239,7 +188,7 @@ class WireClient {
       body: body,
       headers: headers,
       responseType: 'arraybuffer'
-    }).then((response: XMLHttpRequest): Promise<WireRequestResponse> => {
+    }).then((response: XMLHttpRequest): Promise<RemoteResponse> => {
       if (!this.online) {
         this.online = true;
         this.rs._emit('network-online');
@@ -253,7 +202,7 @@ class WireClient {
       if (isErrorStatus(response.status)) {
         log('[WireClient] Error response status', response.status);
         if (getEtag) {
-          revision = stripQuotes(response.getResponseHeader('ETag'));
+          revision = this.stripQuotes(response.getResponseHeader('ETag'));
         } else {
           revision = undefined;
         }
@@ -265,13 +214,13 @@ class WireClient {
         return Promise.resolve({statusCode: response.status, revision: revision});
       } else if (isSuccessStatus(response.status) ||
         (response.status === 200 && method !== 'GET')) {
-        revision = stripQuotes(response.getResponseHeader('ETag'));
+        revision = this.stripQuotes(response.getResponseHeader('ETag'));
         log('[WireClient] Successful request', revision);
         return Promise.resolve({statusCode: response.status, revision: revision});
       } else {
         const mimeType = response.getResponseHeader('Content-Type');
         if (getEtag) {
-          revision = stripQuotes(response.getResponseHeader('ETag'));
+          revision = this.stripQuotes(response.getResponseHeader('ETag'));
         } else {
           revision = (response.status === 200) ? fakeRevision : undefined;
         }
@@ -374,13 +323,7 @@ class WireClient {
     }
   }
 
-  stopWaitingForToken (): void {
-    if (!this.connected) {
-      this._emit('not-connected');
-    }
-  }
-
-  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
+  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
@@ -388,7 +331,7 @@ class WireClient {
     const headers = {};
     if (this.supportsRevs) {
       if (options.ifNoneMatch) {
-        headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
+        headers['If-None-Match'] = this.addQuotes(options.ifNoneMatch);
       }
     }
     // commenting it out as this is doing nothing and jshint is complaining -les
@@ -437,7 +380,7 @@ class WireClient {
       });
   }
 
-  put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
+  put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
@@ -447,17 +390,17 @@ class WireClient {
     const headers = {'Content-Type': contentType};
     if (this.supportsRevs) {
       if (options.ifMatch) {
-        headers['If-Match'] = addQuotes(options.ifMatch);
+        headers['If-Match'] = this.addQuotes(options.ifMatch);
       }
       if (options.ifNoneMatch) {
-        headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
+        headers['If-None-Match'] = this.addQuotes(options.ifNoneMatch);
       }
     }
     return this._request('PUT', this.href + cleanPath(path), this.token,
       headers, body, this.supportsRevs);
   }
 
-  delete (path: string, options: { ifMatch?: string } = {}) {
+  delete (path: string, options: { ifMatch?: string } = {}): Promise<RemoteResponse> {
     if (!this.connected) {
       throw new Error('not connected (path: ' + path + ')');
     }
@@ -467,7 +410,7 @@ class WireClient {
     const headers = {};
     if (this.supportsRevs) {
       if (options.ifMatch) {
-        headers['If-Match'] = addQuotes(options.ifMatch);
+        headers['If-Match'] = this.addQuotes(options.ifMatch);
       }
     }
     return this._request('DELETE', this.href + cleanPath(path), this.token,

@@ -10,6 +10,7 @@ import {
   localStorageAvailable
 } from './util';
 import {requestWithTimeout, RequestOptions} from "./requests";
+import {Remote, RemoteBase, RemoteResponse} from "./Remote";
 
 const BASE_URL = 'https://www.googleapis.com';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -77,18 +78,6 @@ function baseName (path: string): string {
  */
 function googleDrivePath (path: string): string {
   return cleanPath(`${PATH_PREFIX}/${path}`);
-}
-
-/**
- * Remove surrounding quotes from a string.
- *
- * @param {string} string - string with surrounding quotes
- * @returns {string} string without surrounding quotes
- *
- * @private
- */
-function removeQuotes (str: string): string {
-  return str.replace(/^["'](.*)["']$/, "$1");
 }
 
 /**
@@ -165,20 +154,18 @@ function unHookGetItemURL (rs): void {
  *
  * Docs: https://developers.google.com/drive/v3/web/quickstart/js
 **/
-class GoogleDrive {
-  rs: any;
+class GoogleDrive extends RemoteBase implements Remote {
   clientId: string;
-  userAddress: string;
   token: string;
-  connected = false;
-  online = true;
 
   _fileIdCache: FileIdCache;
 
   constructor(remoteStorage, clientId) {
+    super(remoteStorage);
+    this.online = true;
+    this.storageApi = 'draft-dejong-remotestorage-19';
     this.addEvents(['connected', 'not-connected']);
 
-    this.rs = remoteStorage;
     this.clientId = clientId;
 
     this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
@@ -257,17 +244,6 @@ class GoogleDrive {
   }
 
   /**
-   * Stop the authorization process.
-   *
-   * @protected
-   */
-  stopWaitingForToken (): void {
-    if (!this.connected) {
-      this._emit('not-connected');
-    }
-  }
-
-  /**
    * Request a resource (file or directory).
    *
    * @param {string} path - Path of the resource
@@ -277,7 +253,7 @@ class GoogleDrive {
    *
    * @protected
    */
-  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
+  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (isFolder(path)) {
       return this._getFolder(googleDrivePath(path));
     } else {
@@ -299,13 +275,13 @@ class GoogleDrive {
    *
    * @protected
    */
-  put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
+  put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     const fullPath = googleDrivePath(path);
 
     function putDone(response) {
       if (response.status >= 200 && response.status < 300) {
         const meta = JSON.parse(response.responseText);
-        const etagWithoutQuotes = removeQuotes(meta.etag);
+        const etagWithoutQuotes: string = this.stripQuotes(meta.etag);
         return Promise.resolve({statusCode: 200, contentType: meta.mimeType, revision: etagWithoutQuotes});
       } else if (response.status === 412) {
         return Promise.resolve({statusCode: 412, revision: 'conflict'});
@@ -337,7 +313,7 @@ class GoogleDrive {
    *
    * @protected
    */
-  delete (path: string, options: { ifMatch?: string } = {}) {
+  delete (path: string, options: { ifMatch?: string } = {}): Promise<RemoteResponse> {
     const fullPath = googleDrivePath(path);
 
     return this._getFileId(fullPath).then((id) => {
@@ -349,7 +325,7 @@ class GoogleDrive {
       return this._getMeta(id).then((meta) => {
         let etagWithoutQuotes;
         if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
-          etagWithoutQuotes = removeQuotes(meta.etag);
+          etagWithoutQuotes = this.stripQuotes(meta.etag);
         }
         if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
           return {statusCode: 412, revision: etagWithoutQuotes};
@@ -409,7 +385,7 @@ class GoogleDrive {
     };
 
     if (options && options.ifMatch) {
-      headers['If-Match'] = '"' + options.ifMatch + '"';
+      headers['If-Match'] = this.addQuotes(options.ifMatch);
     }
 
     return this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
@@ -477,7 +453,7 @@ class GoogleDrive {
       return this._getMeta(id).then((meta) => {
         let etagWithoutQuotes;
         if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
-          etagWithoutQuotes = removeQuotes(meta.etag);
+          etagWithoutQuotes = this.stripQuotes(meta.etag);
         }
 
         if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
@@ -566,7 +542,7 @@ class GoogleDrive {
         for (const item of data.items) {
           if (item.labels?.trashed) { continue; } // ignore deleted files
 
-          etagWithoutQuotes = removeQuotes(item.etag);
+          etagWithoutQuotes = this.stripQuotes(item.etag);
           if (item.mimeType === GD_DIR_MIME_TYPE) {
             this._fileIdCache.set(path + cleanPath(item.title) + '/', item.id);
             itemsMap[item.title + '/'] = {
@@ -704,6 +680,10 @@ class GoogleDrive {
    * @private
    */
   _request (method: string, url: string, options: RequestOptions) {
+    if (this.isForbiddenRequestMethod(method, url)) {
+      return Promise.reject(`Don't use ${method} on directories!`);
+    }
+
     if (! options.headers) { options.headers = {}; }
     options.headers['Authorization'] = 'Bearer ' + this.token;
 
