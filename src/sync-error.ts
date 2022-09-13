@@ -1,5 +1,5 @@
 class SyncError extends Error {
-  originalError: Error
+  originalError: Error;
 
   constructor (originalError: string | Error) {
     super();

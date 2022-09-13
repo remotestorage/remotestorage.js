@@ -16,7 +16,7 @@ class UnauthorizedError extends Error {
     }
 
     this.stack = (new Error()).stack;
-  };
+  }
 }
 
 export = UnauthorizedError;

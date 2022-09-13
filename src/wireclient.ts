@@ -67,7 +67,7 @@ function readSettings () {
   const { userAddress, href, storageApi, token, properties } = settings;
 
   return { userAddress, href, storageApi, token, properties };
-};
+}
 
 let isArrayBufferView;
 
@@ -124,8 +124,8 @@ function stripQuotes (str: string): string {
   return str.replace(/^["']|["']$/g, '');
 }
 
-function determineCharset (mimeType: string): BufferEncoding {
-  let charset: BufferEncoding = 'utf-8';
+function determineCharset (mimeType: string): string {
+  let charset = 'utf-8';
   let charsetMatch;
 
   if (mimeType) {
@@ -644,7 +644,7 @@ class WireClient {
   }
 }
 
-interface WireClient extends EventHandling {};
+interface WireClient extends EventHandling {}
 applyMixins(WireClient, [EventHandling]);
 
 export = WireClient;

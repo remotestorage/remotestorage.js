@@ -98,7 +98,7 @@ function removeQuotes (str: string): string {
  */
 class FileIdCache {
   maxAge: number;
-  _items = {}
+  _items = {};
 
   constructor(maxAge?: number) {
     this.maxAge = maxAge;
@@ -117,7 +117,7 @@ class FileIdCache {
       t: new Date().getTime()
     };
   }
-};
+}
 
 /**
  * Overwrite BaseClient's getItemURL with our own implementation
@@ -776,7 +776,7 @@ class GoogleDrive {
    */
   static _rs_supported (): boolean {
     return true;
-  };
+  }
 
   /**
    * Remove Google Drive as a backend.
@@ -792,10 +792,10 @@ class GoogleDrive {
       delete remoteStorage._origRemote;
     }
     unHookGetItemURL(remoteStorage);
-  };
+  }
 }
 
-interface GoogleDrive extends EventHandling {};
+interface GoogleDrive extends EventHandling {}
 applyMixins(GoogleDrive, [EventHandling]);
 
 export = GoogleDrive;

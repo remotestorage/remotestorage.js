@@ -18,7 +18,7 @@ interface AuthResult {
 }
 
 // This is set in _rs_init and needed for removal in _rs_cleanup
-let onFeaturesLoaded: Function;
+let onFeaturesLoaded: () => void;
 
 function extractParams (url?: string): AuthResult {
   // FF already decodes the URL fragment in document.location.hash, so use this instead:
@@ -77,7 +77,7 @@ class Authorize {
 
   static authorize (remoteStorage, { authURL, scope, redirectUri, clientId }: AuthOptions): void {
     log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
-    
+
     if (!scope) {
       throw new Error("Cannot authorize due to undefined or empty scope; did you forget to access.claim()?");
     }
@@ -136,7 +136,7 @@ class Authorize {
 
       function handleExit () {
         return reject('Authorization was canceled');
-      };
+      }
 
       function handleLoadstart (event) {
         if (event.url.indexOf(redirectUri) !== 0) {
@@ -153,7 +153,7 @@ class Authorize {
         }
 
         return resolve(authResult);
-      };
+      }
 
       newWindow.addEventListener('loadstart', handleLoadstart);
       newWindow.addEventListener('exit', handleExit);
@@ -173,11 +173,11 @@ class Authorize {
     } else {
       throw "Invalid location " + location;
     }
-  };
+  }
 
   static _rs_supported (): boolean {
     return typeof(document) !== 'undefined';
-  };
+  }
 
   static _rs_init = function (remoteStorage): void {
     const params = extractParams();
@@ -194,7 +194,7 @@ class Authorize {
       if (!params) {
         remoteStorage.remote.stopWaitingForToken();
         return;
-      };
+      }
 
       if (params.error) {
         if (params.error === 'access_denied') {
@@ -235,7 +235,7 @@ class Authorize {
 
   static _rs_cleanup (remoteStorage): void {
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
-  };
-};
+  }
+}
 
 export = Authorize;

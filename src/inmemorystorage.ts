@@ -86,7 +86,7 @@ class InMemoryStorage extends CachingLayer {
 }
 
 // TODO move to CachingLayer, same for all layers
-interface InMemoryStorage extends EventHandling {};
+interface InMemoryStorage extends EventHandling {}
 applyMixins(InMemoryStorage, [EventHandling]);
 
 export = InMemoryStorage;

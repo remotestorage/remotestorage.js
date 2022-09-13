@@ -61,15 +61,15 @@ const PATH_PREFIX = '/remotestorage';
  */
 function getDropboxPath (path: string): string {
   return cleanPath(PATH_PREFIX + '/' + path).replace(/\/$/, '');
-};
+}
 
 function compareApiError (response, expect) {
   return new RegExp('^' + expect.join('\\/') + '(\\/|$)').test(response.error_summary);
-};
+}
 
 function isBinaryData (data) {
   return data instanceof ArrayBuffer || WireClient.isArrayBufferView(data);
-};
+}
 
 /**
  * @class
@@ -1136,7 +1136,7 @@ function unHookIt(rs){
   unHookSyncCycle(rs);
 }
 
-interface Dropbox extends EventHandling {};
+interface Dropbox extends EventHandling {}
 applyMixins(Dropbox, [EventHandling]);
 
 export = Dropbox;
