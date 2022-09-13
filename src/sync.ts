@@ -101,16 +101,16 @@ function handleVisibility (env, rs): void {
  **/
 class Sync {
   // TODO remove when RS is defined, or if unnecessary
-  rs: { [propName: string]: any }
+  rs: { [propName: string]: any };
 
-  numThreads: number
-  done: boolean
-  stopped: boolean
+  numThreads: number;
+  done: boolean;
+  stopped: boolean;
 
   // TODO define in more detail
-  _tasks: object
-  _running: object
-  _timeStarted: object
+  _tasks: object;
+  _running: object;
+  _timeStarted: object;
 
   constructor (remoteStorage: object) {
     this.rs = remoteStorage;
@@ -650,7 +650,7 @@ class Sync {
             subPaths[path+itemName] = true;
           }
         }
-      };
+      }
 
       for (const path in nodes) {
         const node = nodes[path];
@@ -707,7 +707,7 @@ class Sync {
             }
           }
         }
-      };
+      }
 
       if (typeof(node) !== 'object'  ||
           node.path !== path ||
@@ -1005,7 +1005,7 @@ class Sync {
     }, function (err) { throw err; });
   }
 
-  public addTask (path: string, cb?: Function): void {
+  public addTask (path: string, cb?): void {
     if (!this._tasks[path]) {
       this._tasks[path] = [];
     }
@@ -1076,9 +1076,9 @@ class Sync {
     remoteStorage.sync = undefined;
     delete remoteStorage.sync;
   }
-};
+}
 
-interface Sync extends EventHandling {};
+interface Sync extends EventHandling {}
 applyMixins(Sync, [EventHandling]);
 
 export = Sync;

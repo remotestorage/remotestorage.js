@@ -53,7 +53,7 @@ abstract class CachingLayer {
   // TODO: improve our code structure so that this function
   // could call sync.queueGetRequest directly instead of needing
   // this hacky third parameter as a callback
-  get (path: string, maxAge: number, queueGetRequest: (path: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
+  get (path: string, maxAge: number, queueGetRequest: (path2: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
 
     if (typeof (maxAge) === 'number') {
 
@@ -439,7 +439,7 @@ function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
   return node;
 }
 
-interface CachingLayer extends EventHandling {};
+interface CachingLayer extends EventHandling {}
 applyMixins(CachingLayer, [EventHandling]);
 
 export = CachingLayer;

@@ -89,7 +89,7 @@ class LocalStorage extends CachingLayer {
    */
   static _rs_supported(): boolean {
     return localStorageAvailable();
-  };
+  }
 
   /**
    * Remove LocalStorage as a backend.
@@ -112,11 +112,11 @@ class LocalStorage extends CachingLayer {
       log('[LocalStorage] Removing', key);
       delete localStorage[key];
     });
-  };
+  }
 }
 
 // TODO move to CachingLayer, same for all layers
-interface LocalStorage extends EventHandling {};
+interface LocalStorage extends EventHandling {}
 applyMixins(LocalStorage, [EventHandling]);
 
 export = LocalStorage;

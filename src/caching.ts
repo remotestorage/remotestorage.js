@@ -9,7 +9,7 @@ import log from './log';
 class Caching {
   pendingActivations: string[] = [];
   // TODO add correct type
-  activateHandler: Function;
+  activateHandler: (firstPending: string) => void;
 
   private _rootPaths: object;
 
