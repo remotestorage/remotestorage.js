@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         # Support LTS versions based on https://nodejs.org/en/about/releases/
-        node-version: ['14', '16', '18']
+        node-version: ['14', '16']
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
@@ -20,7 +20,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies
         run: npm ci
-      - name: Run jaribu tests
+      - name: Run jaribu tests   # These must be replaced before we can support Node v18
         run: npm test
       - name: Run mocha tests
         run: npm run test:mocha
