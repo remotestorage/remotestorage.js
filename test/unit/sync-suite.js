@@ -12,18 +12,18 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
     setup: function(env, test){
       mocks.defineMocks(env);
 
-      global.Authorize = require('./build/authorize').default;
-      global.UnauthorizedError = require('./build/unauthorized-error').default;
-      global.config = require('./build/config').default;
-      global.EventHandling = require('./build/eventhandling').default;
-      global.Sync = require('./build/sync').default;
-      global.InMemoryStorage = require('./build/inmemorystorage').default;
+      global.Authorize = require('./build/authorize');
+      global.UnauthorizedError = require('./build/unauthorized-error');
+      global.config = require('./build/config');
+      global.EventHandling = require('./build/eventhandling');
+      global.Sync = require('./build/sync');
+      global.InMemoryStorage = require('./build/inmemorystorage');
 
       class RemoteStorage { static log () {} }
       util.applyMixins(RemoteStorage, [EventHandling]);
       global.RemoteStorage = RemoteStorage;
 
-      var RS = require('./build/remotestorage').default;
+      var RS = require('./build/remotestorage');
       RemoteStorage.prototype.stopSync = RS.prototype.stopSync;
       RemoteStorage.prototype.startSync = RS.prototype.startSync;
       RemoteStorage.prototype.getSyncInterval = RS.prototype.getSyncInterval;
@@ -165,8 +165,8 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
       {
         desc: "Update sync interval",
         run: function(env, test) {
-          env.rs.setSyncInterval(60000);
-          test.assert(env.rs.getSyncInterval(), 60000);
+          env.rs.setSyncInterval(2000);
+          test.assert(env.rs.getSyncInterval(), 2000);
         }
       },
 
@@ -183,6 +183,35 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
           }
         }
       },
+
+      {
+        desc: "Setting a sync interval too short throws an error",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          try {
+            env.rs.setSyncInterval(1999);
+            test.result(false, "setSyncInterval() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
+      {
+        desc: "Setting a sync interval too long throws an error",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          try {
+            env.rs.setSyncInterval(3600001);
+            test.result(false, "setSyncInterval() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
       {
         desc: "Sync calls doTasks, and goes to collectTasks only if necessary",
         run: function(env, test) {

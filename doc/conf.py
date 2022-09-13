@@ -15,8 +15,10 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import datetime
 import os
 import sys
+from pathlib import Path
 sys.path.insert(0, os.path.abspath('.'))
 
 from version import __version__
@@ -43,7 +45,7 @@ templates_path = ['_templates']
 
 # Used to extract JSDoc function/class docs from source
 js_language = 'typescript'
-js_source_path = '../src'
+js_source_path = '../src/'
 jsdoc_config_path = '../tsconfig.json'
 primary_domain = 'js'
 
@@ -61,7 +63,9 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'remoteStorage.js'
-copyright = '2012-2020, RS Contributors'
+copyright = '2012-{current_year}, RS Contributors'.format(
+    current_year=datetime.date.today().strftime("%Y")
+)
 author = 'RS Contributors'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -184,3 +188,34 @@ texinfo_documents = [
      author, 'remoteStoragejs', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+#
+# HACKFIX WARNING
+# TODO Remove this when RTD updates their Node.js version
+# https://github.com/readthedocs/readthedocs-docker-images/issues/107
+#
+# Manually add custom Node.js/npm from conda to PATH
+python_executable_directory = Path(sys.executable).parent
+sys.path.insert(0, str(python_executable_directory))
+os.environ["PATH"] = f"{python_executable_directory}:{os.environ['PATH']}"
+# Verify Node.js version is correct
+os.system('node --version')
+os.system('npm --version')
+
+#
+# HACKFIX WARNING
+# TODO Remove this when there is official support for pre-build steps on RTD
+# https://github.com/readthedocs/readthedocs.org/issues/6662
+#
+typedoc_directory = Path('../node_modules/typedoc/bin').resolve()
+if not typedoc_directory.exists():
+    os.system('npm install')
+assert typedoc_directory.exists(), "There was an issue with the `npm install`, please check the logs."
+#
+# HACKFIX WARNING
+# TODO Remove this when RTD updates their Node.js version
+# https://github.com/readthedocs/readthedocs-docker-images/issues/107
+#
+# Manually add typedoc to PATH
+os.system(f'chmod +x {typedoc_directory / "typedoc"}')
+os.environ["PATH"] = f"{typedoc_directory}:{os.environ['PATH']}"

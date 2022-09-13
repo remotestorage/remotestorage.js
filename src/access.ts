@@ -18,7 +18,7 @@ interface ScopeModeMap {
  *
  * Keeps track of claimed access and scopes.
  */
-export default class Access {
+class Access {
   scopeModeMap: ScopeModeMap;
   rootPaths: string[];
   storageType: string;
@@ -177,3 +177,5 @@ export default class Access {
     this.storageType = type;
   }
 }
+
+export = Access;

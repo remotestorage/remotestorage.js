@@ -21,11 +21,6 @@ as the redirect URL during the OAuth flow.
 When a user connects their storage, the OAuth dialog will open in an
 in-app browser window, set to show the address to prevent phishing attacks.
 
-.. image:: ../_images/cordova_oauth.png
-   :width: 188px
-   :align: right
-   :alt: Screenshot of the OAuth dialog
-
 After the user authorizes the app, the server will redirect to the
 configured redirect URL with the authorization token added as a
 parameter. remoteStorage.js will intercept this redirect, extract the

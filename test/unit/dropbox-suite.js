@@ -8,10 +8,6 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                  buildUtil, backend, mocks) {
 
     var suites = [];
-    var Dropbox = Dropbox.default;
-    var WireClient = WireClient.default;
-    var EventHandling = EventHandling.default;
-    var config = config.default;
 
     function setup(env, test) {
       class RemoteStorage {
@@ -32,7 +28,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
         return false;
       };
 
-      global.Authorize = require('./build/authorize').default;
+      global.Authorize = require('./build/authorize');
 
       test.done();
     }

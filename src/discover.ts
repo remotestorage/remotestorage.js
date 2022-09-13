@@ -1,6 +1,7 @@
 'use strict';
 
 import WebFinger from 'webfinger.js';
+import type { StorageInfo } from './interfaces/storage_info';
 import log from './log';
 import { globalContext, localStorageAvailable } from './util';
 
@@ -18,7 +19,7 @@ let cachedInfo = {};
  * This function deals with the Webfinger lookup, discovering a connecting
  * user's storage details.
  *
- * @param {string} userAddress - user@host
+ * @param {string} userAddress - user@host or URL
  *
  * @returns {Promise} A promise for an object with the following properties.
  *          href - Storage base URL,
@@ -105,4 +106,4 @@ Discover._rs_cleanup = function (): void {
 };
 
 
-export default Discover;
+export = Discover;

@@ -149,14 +149,14 @@ const Features = {
   },
 
   featureSupported (featureName, success) {
-    log(`[RemoteStorage] [FEATURE ${featureName}]  ${success ? '' : ' not'} supported`);
+    log(`[RemoteStorage] [FEATURE ${featureName}]${success ? '' : 'not '} supported`);
     if (!success) {
       this.featureDone();
     }
   },
 
   featureInitialized (featureName) {
-    log(`[RemoteStorage] [FEATURE ${featureName}] initialized.`);
+    log(`[RemoteStorage] [FEATURE ${featureName}] initialized`);
     this.features.push({
       name : featureName,
       init :  this.featureModules[featureName]._rs_init,
@@ -197,7 +197,7 @@ const Features = {
   },
 
   featuresLoaded () {
-    log(`[REMOTESTORAGE] All features loaded !`);
+    log(`[RemoteStorage] All features loaded`);
 
     this._setCachingModule();
     // eslint-disable-next-line new-cap
@@ -254,4 +254,4 @@ const Features = {
   }
 };
 
-export default Features;
+export = Features;

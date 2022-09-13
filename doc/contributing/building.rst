@@ -9,7 +9,7 @@ Building
 Development
 -----------
 
-.. CODE:: bash
+.. CODE:: console
 
    $ npm run dev
 
@@ -18,17 +18,16 @@ This will watch ``src/`` for changes and build ``remotestorage.js`` in the
 rs.js changes with an app, for example by creating a symlink to
 ``release/remotestorage.js``.
 
-This build includes [source
-maps](https://www.html5rocks.com/en/tutorials/developertools/sourcemaps/)
+This build includes `source maps <https://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_
 directly, so you can easily place ``debugger`` statements in the code and step
 through the actual source code in your browser's debugger tool.
 
 Production
 ----------
 
-.. CODE:: bash
+.. CODE:: console
 
-   $ npm run build
+   $ npm run build:release
 
 This creates the minified production build in ``release/``.
 

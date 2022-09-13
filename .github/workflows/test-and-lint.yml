@@ -1,0 +1,28 @@
+name: test-and-lint
+on:
+  push:
+    branches: [ master, stable ]
+  pull_request:
+    branches: [ master, stable ]
+jobs:
+  build:
+    name: node.js
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Support LTS versions based on https://nodejs.org/en/about/releases/
+        node-version: ['14', '16', '18']
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Run jaribu tests
+        run: npm test
+      - name: Run mocha tests
+        run: npm run test:mocha
+      - name: Run linter
+        run: npm run lint

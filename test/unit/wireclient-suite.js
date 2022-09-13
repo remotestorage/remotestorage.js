@@ -8,12 +8,6 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
                 config, util, backend, mocks, undefined) {
 
   var suites = [];
-  var Sync = Sync.default;
-  var SyncError = SyncError.default;
-  var WireClient = WireClient.default;
-  var Authorize = Authorize.default;
-  var EventHandling = EventHandling.default;
-  var config = config.default;
 
   function setup(env, test) {
     class RemoteStorage {
@@ -93,6 +87,39 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
         desc: "reports it is not supported here",
         run: function(env,test){
           test.assert(WireClient._rs_supported(), false);
+        }
+      }
+    ]
+  });
+
+  suites.push({
+    name: "WireClient initialization",
+    desc: "check that instance initialization works without errors",
+    setup: function (env, test) {
+      class RemoteStorage {}
+      util.applyMixins(RemoteStorage, [EventHandling]);
+      global.RemoteStorage = RemoteStorage;
+      test.done();
+    },
+    beforeEach: function (env, test) {
+      env.rs = new RemoteStorage();
+
+      env.oldLocalStorageAvailable = util.localStorageAvailable;
+      util.localStorageAvailable = function() { return true; };
+
+      test.done();
+    },
+    afterEach: function (env, test) {
+      util.localStorageAvailable = env.oldLocalStorageAvailable;
+      test.done();
+    },
+    tests: [
+      {
+        desc: "works when there are no settings in localStorage",
+        run: function(env, test) {
+          WireClient._rs_init(env.rs);
+
+          test.result(true);
         }
       }
     ]
@@ -986,8 +1013,9 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
           test.assertTypeAnd(req._onerror, 'function');
           test.done();
         }
-      },
+      }
     ]);
+
     suites.push({
        name: "WireClient (using XMLHttpRequest)",
        desc: "Low-level remotestorage client",
@@ -998,8 +1026,8 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
     });
 
     var fetchTests = tests.concat([
-
     ]);
+
     suites.push({
        name: "WireClient (using fetch)",
        desc: "Low-level remotestorage client",

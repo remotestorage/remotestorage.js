@@ -5,20 +5,20 @@ As soon as your :doc:`RemoteStorage </js-api/remotestorage>` instance is ready
 for action (signaled by the ``ready`` event), we can start reading and writing
 data.
 
-Anonymous mode
---------------
+"Anonymous mode"
+----------------
 
 One of the unique features of rs.js is that users are not required to have
-their storage connected, before using your app [#f1]_. Any data which is
-written to the local store before connecting an account, is automatically
-synced to the remote storage, whenever one is being connected [#f2]_.
+their storage connected in order to use the app; you can require connecting
+storage if it fits your use case. Any data written locally is automatically
+synced to the remote storage server when connecting an account.
 
 Using BaseClient
 ----------------
 
-A ``BaseClient`` instance is the main endpoint you will use for interacting
-with a connected storage: listing, reading, creating, updating and deleting
-documents, as well as handling incoming changes.
+A ``BaseClient`` instance is the main endpoint for interacting with storage:
+listing, reading, creating, updating and deleting documents, as well as
+handling change events.
 
 Check out the :doc:`BaseClient API docs </js-api/base-client>` in order to
 learn about all functions available for reading and writing data and how to use
@@ -52,7 +52,3 @@ which are available in so-called :doc:`data modules </data-modules>`. Continue
 to the next section in order to learn about them.
 
 .. rubric:: Footnotes
-
-.. [#f1] You may intentionally require them to connect their storage first, if
-         it improves the UX, of course.
-.. [#f2] We call the state before connecting a storage "anonymous mode".

@@ -30,7 +30,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
   FakeRemote.prototype.get = fakeRequest;
   FakeRemote.prototype.put = fakeRequest;
   FakeRemote.prototype.delete = fakeRequest;
-  util.applyMixins(FakeRemote, [EventHandling.default]);
+  util.applyMixins(FakeRemote, [EventHandling]);
 
   function FakeLocal() {}
 
@@ -67,14 +67,14 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
       global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
-      global.SyncedGetPutDelete = require('./build/syncedgetputdelete').default;
-      global.Authorize = require('./build/authorize').default;
-      global.UnauthorizedError = require('./build/unauthorized-error').default;
-      global.Sync = require('./build/sync').default;
-      global.config = require('./build/config').default;
-      global.log = require('./build/log').default;
-      global.Dropbox = require('./build/dropbox').default;
-      global.RemoteStorage = require('./build/remotestorage').default;
+      global.SyncedGetPutDelete = require('./build/syncedgetputdelete');
+      global.Authorize = require('./build/authorize');
+      global.UnauthorizedError = require('./build/unauthorized-error');
+      global.Sync = require('./build/sync');
+      global.config = require('./build/config');
+      global.log = require('./build/log');
+      global.Dropbox = require('./build/dropbox');
+      global.RemoteStorage = require('./build/remotestorage');
 
       global.Discover = function(userAddress) {
         var pending = Promise.defer();
@@ -246,12 +246,42 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
       },
 
       {
-        desc: "#connect throws unauthorized when userAddress doesn't contain an @",
+        desc: "#connect throws unauthorized when userAddress doesn't contain an @ or URL",
         run: function(env, test) {
           env.rs.on('error', function(e) {
             test.assert(e instanceof RemoteStorage.DiscoveryError, true);
           });
           env.rs.connect('somestring');
+        }
+      },
+
+      {
+        desc: "#connect accepts URLs for the userAddress",
+        run: function(env, test) {
+          env.rs.on('error', function(e) {
+            test.fail('URL userAddress was not accepted.');
+          });
+
+          env.rs.remote = new FakeRemote(false);
+          env.rs.remote.configure = function (options) {
+            test.assert(options.userAddress, 'https://personal.ho.st');
+          }
+          env.rs.connect('https://personal.ho.st');
+        }
+      },
+
+      {
+        desc: "#connect adds missing https:// to URLs",
+        run: function(env, test) {
+          env.rs.on('error', function(e) {
+            test.fail('URL userAddress was not accepted.');
+          });
+
+          env.rs.remote = new FakeRemote(false);
+          env.rs.remote.configure = function (options) {
+            test.assert(options.userAddress, 'https://personal.ho.st');
+          }
+          env.rs.connect('personal.ho.st');
         }
       },
 
@@ -653,6 +683,8 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -674,6 +706,8 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -694,6 +728,8 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -722,6 +758,8 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         run: function (env, test) {
           global.document = {
             location: {
+              origin: 'https://app.com:5000',
+              pathname: '/foo/bar',
               href: 'https://app.com:5000/foo/bar',
               toString: function() { return this.href; }
             }
@@ -737,6 +775,29 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
           delete global.document;
         }
       },
+
+      {
+        desc: "#authorize does not add a trailing slash as only pathname to redirectUri",
+        run: function (env, test) {
+            global.document = {
+              location: {
+                origin: 'https://app.com:5000',
+                pathname: '/',
+                href: 'https://app.com:5000/',
+                toString: function() { return this.href; }
+              }
+            };
+
+            const authURL = 'https://provider.com/oauth';
+
+            env.rs.authorize({ authURL, scope: 'custom-scope' });
+
+            test.assert(document.location.href, 'https://provider.com/oauth?redirect_uri=https%3A%2F%2Fapp.com%3A5000&scope=custom-scope&client_id=https%3A%2F%2Fapp.com%3A5000&response_type=token');
+
+            delete global.document;
+        }
+      },
+
     ]
   });
 
@@ -749,7 +810,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
     },
 
     beforeEach: function(env, test) {
-      global.log = require('./build/log').default;
+      global.log = require('./build/log');
       fakeLogs = [];
       test.done();
     },

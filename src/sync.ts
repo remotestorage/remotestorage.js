@@ -1,3 +1,4 @@
+import type { RSNode, RSNodes } from './interfaces/rs_node';
 import config from './config';
 import Env from './env';
 import EventHandling from './eventhandling';
@@ -1080,4 +1081,4 @@ class Sync {
 interface Sync extends EventHandling {};
 applyMixins(Sync, [EventHandling]);
 
-export default Sync;
+export = Sync;

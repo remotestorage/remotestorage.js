@@ -1,3 +1,7 @@
+import type { ChangeObj } from './interfaces/change_obj';
+import type { QueuedRequestResponse } from './interfaces/queued_request_response';
+import type { RSEvent } from './interfaces/rs_event';
+import type { RSNode, RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import config from './config';
 import log from './log';
@@ -438,4 +442,4 @@ function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
 interface CachingLayer extends EventHandling {};
 applyMixins(CachingLayer, [EventHandling]);
 
-export default CachingLayer;
+export = CachingLayer;

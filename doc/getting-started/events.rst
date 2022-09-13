@@ -23,9 +23,9 @@ so::
    })
 
 Check out the :doc:`RemoteStorage API doc</js-api/remotestorage>` for a
-complete list of events and when exacty they are emitted.
+complete list of events and when they're emitted.
 
 Also check out *Change events* in the :doc:`BaseClient API
 doc</js-api/base-client>`, which you can use to handle incoming data and
-changes from the remote storage.
+changes from the remote storage server.
 

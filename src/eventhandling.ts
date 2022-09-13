@@ -3,7 +3,7 @@ import log from './log';
 // TODO add real type for event
 type EventHandler = (event?: unknown) => void;
 
-export default class EventHandling {
+class EventHandling {
   _handlers: { [key: string]: EventHandler[] };
 
   /**
@@ -78,3 +78,5 @@ export default class EventHandling {
     this._handlers[eventName] = [];
   }
 }
+
+export = EventHandling;

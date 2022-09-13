@@ -6,7 +6,7 @@ interface AuthOptions {
   authURL: string;
   scope?: string;
   clientId?: string;
-  redirectUri: string;
+  redirectUri?: string;
 }
 
 interface AuthResult {
@@ -72,11 +72,15 @@ function buildOAuthURL (authURL: string, redirectUri: string, scope: string, cli
   return url;
 }
 
-export default class Authorize {
+class Authorize {
   static IMPLIED_FAKE_TOKEN = false;
 
   static authorize (remoteStorage, { authURL, scope, redirectUri, clientId }: AuthOptions): void {
     log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+    
+    if (!scope) {
+      throw new Error("Cannot authorize due to undefined or empty scope; did you forget to access.claim()?");
+    }
 
     // TODO add a test for this
     // keep track of the discovery data during redirect if we can't save it in localStorage
@@ -187,7 +191,10 @@ export default class Authorize {
     onFeaturesLoaded = function() {
       let authParamsUsed = false;
 
-      if (!params) { return; };
+      if (!params) {
+        remoteStorage.remote.stopWaitingForToken();
+        return;
+      };
 
       if (params.error) {
         if (params.error === 'access_denied') {
@@ -230,3 +237,5 @@ export default class Authorize {
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
 };
+
+export = Authorize;

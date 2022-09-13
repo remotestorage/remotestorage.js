@@ -32,6 +32,7 @@
  * @interface
  */
 
+import type { RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import CachingLayer from './cachinglayer';
 import log from './log';
@@ -388,7 +389,7 @@ class IndexedDB extends CachingLayer {
    * @protected
    */
   // TODO add real type once known
-  static _rs_init (remoteStorage: unknown): Promise<unknown> {
+  static _rs_init (remoteStorage: unknown): Promise<void> {
 
     return new Promise((resolve, reject) => {
 
@@ -464,14 +465,13 @@ class IndexedDB extends CachingLayer {
    *
    * @protected
    */
-  // TODO add real type once defined
   static _rs_cleanup (remoteStorage: any) {
     return new Promise((resolve/*, reject*/) => {
       if (remoteStorage.local) {
         remoteStorage.local.closeDB();
       }
 
-      IndexedDB.clean(DEFAULT_DB_NAME, resolve);
+      IndexedDB.clean(DEFAULT_DB_NAME, resolve as () => void);
     });
   }
 
@@ -484,4 +484,4 @@ class IndexedDB extends CachingLayer {
 interface IndexedDB extends EventHandling {};
 applyMixins(IndexedDB, [EventHandling]);
 
-export default IndexedDB;
+export = IndexedDB;

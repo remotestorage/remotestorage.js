@@ -215,7 +215,7 @@ export const localStorageAvailable = (): boolean => {
  *
  * @returns {object} parsed object or undefined
  */
-export const getJSONFromLocalStorage = (key: string): object => {
+export const getJSONFromLocalStorage = (key: string): { [key: string]: any } => {
   const context = getGlobalContext() as Window;
 
   try {
@@ -245,7 +245,7 @@ export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType:
  * @param {string} encoding
  * @returns {Promise} Resolves with a string containing the data
  */
-export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding: string): Promise<string | ArrayBuffer> => {
+export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding: BufferEncoding): Promise<string | ArrayBuffer> => {
   return new Promise((resolve/*, reject*/) => {
     if (typeof Blob === 'undefined') {
       const buffer = new Buffer(new Uint8Array(arrayBuffer));

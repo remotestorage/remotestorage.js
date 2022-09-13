@@ -1,3 +1,4 @@
+import type { RSNodes } from './interfaces/rs_node';
 import CachingLayer from './cachinglayer';
 import EventHandling from './eventhandling';
 import log from './log';
@@ -118,4 +119,4 @@ class LocalStorage extends CachingLayer {
 interface LocalStorage extends EventHandling {};
 applyMixins(LocalStorage, [EventHandling]);
 
-export default LocalStorage;
+export = LocalStorage;

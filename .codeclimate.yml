@@ -1,9 +1,9 @@
 ---
 version: "2"
-engines:
+plugins:
   eslint:
     enabled: true
-    channel: "eslint-4"
+    channel: "eslint-7"
   duplication:
     enabled: true
     config:
@@ -12,10 +12,7 @@ engines:
 checks:
   file-lines:
     enabled: false
-ratings:
-  paths:
-    - src/**
-exclude_paths:
+exclude_patterns:
   - doc/
   - node_modules/
   - release/

@@ -1,9 +1,7 @@
 # remoteStorage.js
 
 [![npm](https://img.shields.io/npm/v/remotestoragejs.svg)](https://www.npmjs.com/package/remotestoragejs)
-[![Build Status](http://img.shields.io/travis/remotestorage/remotestorage.js.svg?style=flat)](http://travis-ci.org/remotestorage/remotestorage.js)
-[![Dependency Status](http://img.shields.io/david/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=dependencies)
-[![devDependency Status](http://img.shields.io/david/dev/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=devDependencies)
+[![Build Status](https://github.com/remotestorage/remotestorage.js/actions/workflows/test-and-lint.yml/badge.svg)](https://github.com/remotestorage/remotestorage.js/actions/workflows/test-and-lint.yml?query=branch%3Amaster)
 
 remoteStorage.js is a JavaScript library for storing user data locally in the
 browser, as well as connecting to [remoteStorage](http://remotestorage.io)
@@ -25,7 +23,8 @@ production.
     * [JavaScript API](https://remotestoragejs.readthedocs.io/en/latest/js-api.html)
     * [Usage with Node.js](https://remotestoragejs.readthedocs.io/en/latest/nodejs.html)
 * Ask questions on the [community forums](https://community.remotestorage.io/)
-* Ask questions on IRC in [#remotestorage on Freenode](irc://irc.freenode.net:7000/remotestorage)
+* Ask questions on IRC in [#remotestorage on Libera.Chat](ircs://irc.libera.chat:6697/remotestorage)
+  ([Web Chat](https://web.libera.chat/#remotestorage))
   (wait a bit, if nobody's responding right away)
 * If you found a potential bug, or want to propose a change, [open an issue on
   GitHub](https://github.com/remotestorage/remotestorage.js/issues). New issues
@@ -35,12 +34,13 @@ production.
 
 To develop remoteStorage-enabled apps, you need to have a
 remoteStorage-compatible storage account. We recommend
-[php-remote-storage](https://github.com/fkooman/php-remote-storage) (PHP) or
+[php-remote-storage](https://github.com/fkooman/php-remote-storage) (PHP), or
+[armadietto](https://github.com/remotestorage/armadietto) (node.js), or
 [mysteryshack](https://github.com/untitaker/mysteryshack) (Rust) for running a
 local test server, or for self-hosting an RS server.
 
-You can also get an account with a hoster, or use one of the various other
-remoteStorage server implementations: [Servers](https://wiki.remotestorage.io/Servers).
+You can also get an account with a hoster, or use another
+remoteStorage server implementation: [Servers](https://wiki.remotestorage.io/Servers).
 
 ### Developing, Contributing
 
@@ -71,6 +71,6 @@ Original authors: Niklas Cathor, Michiel de Jong
 
 See [list of all contributors](https://github.com/remotestorage/remotestorage.js/graphs/contributors)
 
-Sponsored by [NLnet](https://nlnet.nl)
+Previously sponsored by [NLnet](https://nlnet.nl)
 
 [![NLnet Logo](http://sockethub.org/res/img/nlnet-logo.svg)](https://nlnet.nl)

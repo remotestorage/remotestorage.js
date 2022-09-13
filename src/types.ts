@@ -1,12 +1,10 @@
+type JsonSchemas = { [key: string]: tv4.JsonSchema };
+
 /**
- * @class BaseClient.Types
- *
  * - Manages and validates types of remoteStorage objects, using JSON-LD and
  *   JSON Schema
  * - Adds schema declaration/validation methods to BaseClient instances.
  **/
-type JsonSchemas = { [key: string]: tv4.JsonSchema };
-
 export class BaseClientTypes {
   /**
    * <alias> -> <uri>
@@ -27,7 +25,7 @@ export class BaseClientTypes {
 
   /**
    * Called via public function BaseClient.declareType()
-   * ! Not intended to be used as public API !
+   *
    * @private
    */
   declare (moduleName: string, alias: string, uri: string, schema: tv4.JsonSchema): void {

@@ -6,7 +6,7 @@ import RemoteStorage from '../../src/remotestorage';
 
 describe('RemoteStorage module initialization', () => {
   const env = {
-    rs: new RemoteStorage()
+    rs: new RemoteStorage() as Record<string, any>
   };
 
   before(() => {
@@ -37,7 +37,7 @@ describe('RemoteStorage module initialization', () => {
             return { exports: { it: 'worked' } };
           }
         }
-      ]});
+      ]}) as Record<string, any>;
 
       expect(rs.bar.it).to.equal('worked');
     });

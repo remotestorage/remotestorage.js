@@ -143,25 +143,53 @@ List of functions
 .. autofunction:: BaseClient#getAll(path, maxAge)
   :short-name:
 
-  Example response object:
-
-  .. code:: javascript
-
-     // TODO
-
-  For items that are not JSON-stringified objects (e.g. stored using
-  `storeFile` instead of `storeObject`), the object's value is filled in
-  with `true`.
-
   Example usage:
 
   .. code:: javascript
 
-     client.getAll('').then(objects => {
+     client.getAll('example-subdirectory/').then(objects => {
        for (var path in objects) {
          console.log(path, objects[path]);
        }
      });
+
+  Example response object:
+
+  .. code:: javascript
+
+    {
+      "27b8dc16483734625fff9de653a14e03": {
+        "@context": "http://remotestorage.io/spec/modules/bookmarks/archive-bookmark",
+        "id": "27b8dc16483734625fff9de653a14e03",
+        "url": "https://unhosted.org/",
+        "title": "Unhosted Web Apps",
+        "description": "Freedom from web 2.0's monopoly platforms",
+        "tags": [
+          "unhosted",
+          "remotestorage"
+        ],
+        "createdAt": "2017-11-02T15:22:25.289Z",
+        "updatedAt": "2019-11-07T17:52:22.643Z"
+      },
+      "900a5ca174bf57c56b79af0653053bdc": {
+        "@context": "http://remotestorage.io/spec/modules/bookmarks/archive-bookmark",
+        "id": "900a5ca174bf57c56b79af0653053bdc",
+        "url": "https://remotestorage.io/",
+        "title": "remoteStorage",
+        "description": "An open protocol for per-user storage on the Web",
+        "tags": [
+          "unhosted",
+          "remotestorage"
+        ],
+        "createdAt": "2019-11-07T17:59:34.883Z"
+      }
+    }
+
+  .. HINT::
+
+    For items that are not JSON-stringified objects (for example stored using
+    :func:`storeFile` instead of :func:`storeObject`), the object's value is
+    filled in with ``true``.
 
 .. autofunction:: BaseClient#getFile(path, maxAge)
   :short-name:
@@ -254,11 +282,21 @@ Example:
      oldValue: oldBody,
      // New body of the changed node (remote version in conflicts; undefined if deletion)
      newValue: newBody,
+     // Body when local and remote last agreed; only present in conflict events
+     lastCommonValue: lastCommonBody,
      // Old contentType of the changed node (local version for conflicts; undefined if creation)
      oldContentType: oldContentType,
      // New contentType of the changed node (remote version for conflicts; undefined if deletion)
-     newContentType: newContentType
+     newContentType: newContentType,
+     // ContentType when local and remote last agreed; only present in conflict events
+     lastCommonContentType: lastCommonContentType
    }
+
+In general, the dataType of the document can be extracted thus:
+
+.. code:: javascript
+
+   const context = evt.newValue?.['@context'] || evt.oldValue?.['@context'] || evt.lastCommonValue?.['@context'];
 
 ``local``
 ^^^^^^^^^
@@ -350,6 +388,26 @@ your local value of 'blue':
       // Most recent known common ancestor contentType of local and remote
       lastCommonContentType: 'text/plain'
     }
+
+Conflict Resolution
+"""""""""""""""""""
+
+Conflicts are resolved by calling :func:`storeObject` or :func:`storeFile` on
+the device where the conflict surfaced. Other devices are not aware of the
+conflict.
+
+If there is an algorithm to merge the differences between local and remote
+versions of the data, conflicts may be automatically resolved.
+:func:`storeObject` or :func:`storeFile` must not be called synchronously from
+the change event handler, nor by chaining Promises. :func:`storeObject` or
+:func:`storeFile` must not be called until the next iteration of the JavaScript
+Task Queue, using for example `setTimeout()`_.
+
+If no algorithm exists, conflict resolution typically involves displaying local
+and remote versions to the user, and having the user merge them, or choose
+which version to keep.
+
+.. _setTimeout(): https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout
 
 Data types
 ----------

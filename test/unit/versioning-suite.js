@@ -8,10 +8,6 @@ define(['./build/config', './build/eventhandling', './build/inmemorystorage',
                  mocks) {
 
   var suites = [];
-  var config = config.default;
-  var EventHandling = EventHandling.default;
-  var InMemoryStorage = InMemoryStorage.default;
-  var Sync = Sync.default;
 
   function flatten(array){
     var flat = [];

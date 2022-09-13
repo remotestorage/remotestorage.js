@@ -1,8 +1,33 @@
 # remoteStorage.js Changelog
 
-All releases can also be found and downloaded on the
-[releases page](https://github.com/remotestorage/remotestorage.js/releases)
-at GitHub.
+All releases can also be found and downloaded on the [releases page][1] on GitHub.
+
+## 2.0.0 (January 2022)
+
+### Breaking changes
+
+* Remove Bower package support (#1231)
+* Minimum sync interval is now 2000ms (#1260)
+
+### Enhancements
+
+* Convert source code to TypeScript (#1175, #1196, #1199, #1211, #1214, #1233, #1239, #1249)
+* Update dependencies (#1206, #1226)
+* Switch from Travis CI to GitHub Actions (#1223, #1224, #1225)
+* Don't add trailing slash as only pathname to redirect_uri param (#1213)
+* BaseClient#getObject: Throw error instead of string when JSON parsing fails (#1215)
+* Improve documentation (#1219, #1227, #1241, #1242)
+* Make ReadTheDocs work with current node.js/npm, TypeDoc, etc. (#1220, #1230)
+* Don't include unnecessary files in npm package (#1232)
+* Improve validation of custom sync interval settings (#1260)
+* Allow to connect via URL (#1250)
+
+### Bugfixes
+
+* Fix WireClient initialization when localStorage settings data corrupted/missing (#1210)
+* Handle Google Drive paths with special characters (#1181)
+* Fix potentially wrong command in warning message (#1218)
+* Don't list trashed files in GDrive folder listings (#1257)
 
 ## 1.2.3 (January 2020)
 
@@ -13,7 +38,6 @@ at GitHub.
 ### Bugfixes
 
 * Fix wrong comparison in Sync class (#1164)
-
 
 ## 1.2.2 (March 2019)
 
@@ -522,3 +546,5 @@ in the next release via https://github.com/remotestorage/remotestorage.js/issues
 ## 0.4.2
 
 * First public version of this library implementing http://unhosted.org/#developer
+
+[1]: https://github.com/remotestorage/remotestorage.js/releases
