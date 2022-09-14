@@ -729,6 +729,7 @@ define(['./build/sync', './build/sync-error', './build/wireclient',
 
       {
         desc: "WireClient is not marked offline after SyncError",
+        timeout: 30_000,
         run: function(env, test){
           env.connectedClient.online = true;
           env.rs._emit('error', new SyncError('Houston, we have a problem.'));

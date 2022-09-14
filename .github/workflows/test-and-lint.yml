@@ -8,6 +8,7 @@ jobs:
   build:
     name: node.js
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       matrix:
         # Support LTS versions based on https://nodejs.org/en/about/releases/

@@ -16,7 +16,7 @@ const plugins = isProd ? [
 module.exports = {
   entry: ['./src/remotestorage.ts'],
   devtool: 'source-map',
-  // the only external dependecy is xmlhttprequest because it is
+  // the only external dependency is fetch or xmlhttprequest because it is
   // different in browser and in node env so user has to manage with that
   externals: ['xmlhttprequest'],
   plugins: plugins,
@@ -32,6 +32,7 @@ module.exports = {
   resolve: {
     extensions: ['.ts'],
   },
+  target: 'web',
   output: {
     path: path.resolve(__dirname, 'release'),
     filename: 'remotestorage.js',
