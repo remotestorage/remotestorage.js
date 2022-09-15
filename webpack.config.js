@@ -32,7 +32,6 @@ module.exports = {
   resolve: {
     extensions: ['.ts'],
   },
-  target: 'web',
   output: {
     path: path.resolve(__dirname, 'release'),
     filename: 'remotestorage.js',

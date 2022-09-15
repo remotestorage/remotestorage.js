@@ -43,10 +43,10 @@
     "esformatter": "^0.11.3",
     "eslint": "^8.23.1",
     "jaribu": "^2.2.3",
-    "ts-loader": "^9.3.1",
+    "ts-loader": "^8.4.0",
     "typedoc": "^0.23.14",
     "typescript": "^4.8.3",
-    "webpack": "^5.74.0",
+    "webpack": "^4.46.0",
     "webpack-cli": "^4.10.0",
     "mocha": "^10.0.0",
     "ts-node": "^10.9.1"
