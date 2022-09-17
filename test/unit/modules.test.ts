@@ -19,7 +19,7 @@ describe('RemoteStorage module initialization', () => {
         return { exports: { it: 'worked' } };
       }});
 
-      expect(env.rs.foo.it).to.equal('worked');
+      expect(env.rs['foo'].it).to.equal('worked');
     });
 
     it('allows hyphens in module names', () => {
@@ -27,7 +27,7 @@ describe('RemoteStorage module initialization', () => {
         return { exports: { it: 'worked' } };
       }});
 
-      expect(env.rs.foo.it).to.equal('worked');
+      expect(env.rs['foo'].it).to.equal('worked');
     });
 
     it('is called when passing a module to the RemoteStorage constructor', () => {
@@ -39,7 +39,7 @@ describe('RemoteStorage module initialization', () => {
         }
       ]});
 
-      expect(rs.bar.it).to.equal('worked');
+      expect(rs['bar'].it).to.equal('worked');
     });
   });
 });
