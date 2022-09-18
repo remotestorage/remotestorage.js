@@ -478,10 +478,10 @@ class IndexedDB extends CachingLayer {
   diffHandler() {
     // empty
   }
-};
+}
 
 // TODO move to CachingLayer, same for all layers
-interface IndexedDB extends EventHandling {};
+interface IndexedDB extends EventHandling {}
 applyMixins(IndexedDB, [EventHandling]);
 
 export = IndexedDB;

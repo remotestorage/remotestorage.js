@@ -67,9 +67,9 @@ class Env {
   static _rs_cleanup (/* remoteStorage */): void {
     return;
   }
-};
+}
 
-interface Env extends EventHandling {};
+interface Env extends EventHandling {}
 applyMixins(Env, [EventHandling]);
 
 export = Env;

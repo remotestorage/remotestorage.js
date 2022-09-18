@@ -1,7 +1,7 @@
 module.exports = {
   parser: "@typescript-eslint/parser",
   parserOptions: {
-    ecmaVersion: 2019
+    ecmaVersion: 2020
   },
   extends: [
     "plugin:@typescript-eslint/recommended"
@@ -22,6 +22,13 @@ module.exports = {
     "Uint32Array": true,
     "Float32Array": true,
     "Float64Array": true,
+    // Mocha
+    "describe": true,
+    "before": true,
+    "beforeEach": true,
+    "after": true,
+    "afterEach": true,
+    "it": true
   },
   rules: {
     "complexity": ["warn"],
@@ -40,10 +47,11 @@ module.exports = {
     "no-loop-func": 0,
     "no-caller": 2,
     "no-script-url": 2,
-    "no-shadow": 2,
+    "@typescript-eslint/no-shadow": ["warn"],
+    "no-shadow": "off",
     "no-new-func": 0,
     "no-new-wrappers": 0,
-    "no-undef": 2,
+    "no-undef": "off",
     "new-cap": [
       "error", {
         "capIsNewExceptions": [ "Authorize", "Discover" ]
@@ -72,7 +80,6 @@ module.exports = {
     "@typescript-eslint/camelcase": 0,
     "@typescript-eslint/no-var-requires": 1,
     "@typescript-eslint/no-use-before-define": 1,
-    "@typescript-eslint/no-var-requires": 0,
     "@typescript-eslint/no-empty-interface": 1
   },
   "ignorePatterns": [

@@ -31,7 +31,7 @@ import * as util from './util';
 
 interface RSModule {
   name: string;
-  builder: Function; // TODO detailed type
+  builder; // TODO detailed type
 }
 
 const globalContext = getGlobalContext();
@@ -132,7 +132,7 @@ class RemoteStorage {
   dropbox: Dropbox;
   googledrive: GoogleDrive;
 
-  fireInitial: Function;
+  fireInitial;
 
   on: any;
 
@@ -170,7 +170,7 @@ class RemoteStorage {
      * @param {string} eventName - Name of the event
      * @param {function} handler - Event handler
      */
-    this.on = function (eventName: string, handler: Function): void {
+    this.on = function (eventName: string, handler): void {
       if (this._allLoaded) {
         // check if the handler should be called immediately, because the
         // event has happened already
@@ -443,7 +443,7 @@ class RemoteStorage {
     };
 
     if (n > 0) {
-      this._cleanups.forEach((cleanup: Function) => {
+      this._cleanups.forEach((cleanup: (thisarg: object) => Promise<void>) => {
         const cleanupResult = cleanup(this);
         if (typeof(cleanupResult) === 'object' && typeof(cleanupResult.then) === 'function') {
           cleanupResult.then(oneDone);
@@ -483,7 +483,7 @@ class RemoteStorage {
    * @param {string} path - Absolute path to attach handler to
    * @param {function} handler - Handler function
    */
-  onChange (path: string, handler: Function): void {
+  onChange (path: string, handler): void {
     if (! this._pathHandlers.change[path]) {
       this._pathHandlers.change[path] = [];
     }
@@ -616,7 +616,7 @@ class RemoteStorage {
    * TODO: document
    * @private
    */
-  _pendingGPD (methodName): Function {
+  _pendingGPD (methodName): () => Promise<unknown> {
     return (...args) => {
       const methodArguments = Array.prototype.slice.call(args);
       return new Promise((resolve, reject) => {
@@ -655,7 +655,7 @@ class RemoteStorage {
    * TODO: document
    * @private
    */
-  _bindChange (object: { on: Function }): void {
+  _bindChange (object: { on }): void {
     object.on('change', this._dispatchEvent.bind(this, 'change'));
   }
 
@@ -667,7 +667,7 @@ class RemoteStorage {
     Object.keys(this._pathHandlers[eventName]).forEach((path: string) => {
       const pl = path.length;
       if (event.path.substr(0, pl) === path) {
-        this._pathHandlers[eventName][path].forEach((handler: Function) => {
+        this._pathHandlers[eventName][path].forEach((handler) => {
           const ev: { relativePath?: string } = {};
           for (const key in event) { ev[key] = event[key]; }
           ev.relativePath = event.path.replace(new RegExp('^' + path), '');
@@ -907,7 +907,7 @@ class RemoteStorage {
    * Load module
    * @private
    */
-  _loadModule (moduleName: string, moduleBuilder: Function): { [key: string]: unknown }  {
+  _loadModule (moduleName: string, moduleBuilder): { [key: string]: unknown }  {
     if (moduleBuilder) {
       const module = moduleBuilder(
         new BaseClient(this, '/' + moduleName + '/'),
@@ -959,7 +959,7 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
   }
 });
 
-interface RemoteStorage extends EventHandling {};
+interface RemoteStorage extends EventHandling {}
 applyMixins(RemoteStorage, [EventHandling]);
 
 enum ApiKeyType {

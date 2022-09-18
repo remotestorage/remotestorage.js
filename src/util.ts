@@ -1,7 +1,5 @@
 // Reusable utility functions
 
-import Global = NodeJS.Global;
-
 /**
  * Takes an object and its copy as produced by the _deepClone function
  * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
@@ -245,7 +243,7 @@ export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType:
  * @param {string} encoding
  * @returns {Promise} Resolves with a string containing the data
  */
-export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding: string): Promise<string | ArrayBuffer> => {
+export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding): Promise<string | ArrayBuffer> => {
   return new Promise((resolve/*, reject*/) => {
     if (typeof Blob === 'undefined') {
       const buffer = new Buffer(new Uint8Array(arrayBuffer));
