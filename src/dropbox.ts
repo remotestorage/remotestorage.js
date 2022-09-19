@@ -336,7 +336,7 @@ class Dropbox {
         return Promise.resolve({statusCode: status});
       }
       meta = resp.getResponseHeader('Dropbox-API-Result');
-      //first encode the response as text, and later check if 
+      //first encode the response as text, and later check if
       //text appears to actually be binary data
       return getTextFromArrayBuffer(resp.response, 'UTF-8').then(responseText => {
         body = responseText;
