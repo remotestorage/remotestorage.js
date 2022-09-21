@@ -1,3 +1,4 @@
+MarkupSafe == 2.0.1
 sphinx-js >= 3.1
 sphinx-issues
 sphinx-autobuild
