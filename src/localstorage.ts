@@ -1,4 +1,4 @@
-import type { RSNodes } from './interfaces/rs_node';
+import type { RSNode, RSNodes } from './interfaces/rs_node';
 import CachingLayer from './cachinglayer';
 import EventHandling from './eventhandling';
 import log from './log';
@@ -54,8 +54,8 @@ class LocalStorage extends CachingLayer {
     return Promise.resolve();
   }
 
-  forAllNodes(cb: (node) => any): Promise<void> {
-    let node;
+  forAllNodes(cb: (node: RSNode) => void): Promise<void> {
+    let node: RSNode | undefined;
 
     for (let i = 0, len = localStorage.length; i < len; i++) {
       if (isNodeKey(localStorage.key(i))) {

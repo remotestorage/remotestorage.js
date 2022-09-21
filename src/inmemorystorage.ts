@@ -41,14 +41,14 @@ class InMemoryStorage extends CachingLayer {
     return Promise.resolve();
   }
 
-  forAllNodes(cb: (node: RSNode) => Promise<void>): Promise<void> {
+  forAllNodes(cb: (node: RSNode) => void): Promise<void> {
     for (const path in this._storage) {
       cb(this.migrate(this._storage[path]));
     }
     return Promise.resolve();
   }
 
-  diffHandler() {
+  diffHandler(): void {
     // empty
   }
 

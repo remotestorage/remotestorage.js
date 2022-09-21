@@ -1,11 +1,18 @@
 import tv4 from 'tv4';
+import type { JsonSchemas } from './interfaces/json_schema';
 import type { ChangeObj } from './interfaces/change_obj';
+import type { QueuedRequestResponse } from './interfaces/queued_request_response';
 import Types from './types';
 import SchemaNotFound from './schema-not-found-error';
 import EventHandling from './eventhandling';
 import config from './config';
-import { applyMixins, cleanPath } from './util';
+import { applyMixins, cleanPath, isFolder } from './util';
 import RemoteStorage from './remotestorage';
+
+function getModuleNameFromBase(path: string): string {
+  const parts = path.split('/');
+  return path.length > 2 ? parts[1] : 'root';
+}
 
 /**
  * Provides a high-level interface to access data below a given root path.
@@ -40,16 +47,7 @@ class BaseClient {
 
     this.storage = storage;
     this.base = base;
-
-    /**
-     * TODO: document
-     */
-    const parts = this.base.split('/');
-    if (parts.length > 2) {
-      this.moduleName = parts[1];
-    } else {
-      this.moduleName = 'root';
-    }
+    this.moduleName = getModuleNameFromBase(this.base);
 
     this.addEvents(['change']);
     this.on = this.on.bind(this);
@@ -78,17 +76,15 @@ class BaseClient {
    * @returns {Promise} A promise for an object representing child nodes
    */
   // TODO add real return type
-  getListing (path: string, maxAge?: false | number): Promise<unknown> {
-    if (typeof (path) !== 'string') {
-      path = '';
-    } else if (path.length > 0 && path[path.length - 1] !== '/') {
+  async getListing (path?: string, maxAge?: false | number): Promise<unknown> {
+    if (typeof path !== 'string') { path = ''; }
+    else if (path.length > 0 && !isFolder(path)) {
       return Promise.reject("Not a folder: " + path);
     }
-    return this.storage.get(this.makePath(path), maxAge).then(
-      function (r) {
-        return (r.statusCode === 404) ? {} : r.body;
-      }
-    );
+
+    return this.storage.get(this.makePath(path), maxAge).then((r: QueuedRequestResponse) => {
+      return r.statusCode === 404 ? {} : r.body;
+    });
   }
 
   /**
@@ -101,43 +97,34 @@ class BaseClient {
    * @returns {Promise} A promise for an object
    */
   // TODO add real return type
-  getAll (path: string, maxAge?: false | number): Promise<unknown> {
-    if (typeof (path) !== 'string') {
-      path = '';
-    } else if (path.length > 0 && path[path.length - 1] !== '/') {
+  async getAll (path: string, maxAge?: false | number): Promise<unknown> {
+    if (typeof path !== 'string') { path = ''; }
+    else if (path.length > 0 && !isFolder(path)) {
       return Promise.reject("Not a folder: " + path);
     }
 
-    return this.storage.get(this.makePath(path), maxAge).then((r) => {
-      if (r.statusCode === 404) {
-        return {};
-      }
-      if (typeof (r.body) === 'object') {
+    return this.storage.get(this.makePath(path), maxAge).then((r: QueuedRequestResponse) => {
+      if (r.statusCode === 404) { return {}; }
+      if (typeof r.body === 'object') {
         const keys = Object.keys(r.body);
-        if (keys.length === 0) {
-          // treat this like 404. it probably means a folder listing that
-          // has changes that haven't been pushed out yet.
-          return {};
-        }
+        // treat this like 404. it probably means a folder listing that
+        // has changes that haven't been pushed out yet.
+        if (keys.length === 0) { return {}; }
 
         const calls = keys.map((key: string) => {
           return this.storage.get(this.makePath(path + key), maxAge)
-            .then(function (o) {
-              if (typeof (o.body) === 'string') {
-                try {
-                  o.body = JSON.parse(o.body);
-                } catch (e) {
-                  // empty
-                }
+            .then((o: QueuedRequestResponse) => {
+              if (typeof o.body === 'string') {
+                try { o.body = JSON.parse(o.body); }
+                catch (e) { /* empty */ }
               }
-              if (typeof (o.body) === 'object') {
+              if (typeof o.body === 'object') {
                 r.body[key] = o.body;
               }
             });
         });
-        return Promise.all(calls).then(function () {
-          return r.body;
-        });
+
+        return Promise.all(calls).then(() => { return r.body; });
       }
     });
   }
@@ -154,11 +141,12 @@ class BaseClient {
    * @returns {Promise} A promise for an object
    */
   // TODO add real return type
-  getFile (path: string, maxAge?: false | number): Promise<unknown> {
-    if (typeof (path) !== 'string') {
+  async getFile (path: string, maxAge?: false | number): Promise<unknown> {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getFile must be a string');
     }
-    return this.storage.get(this.makePath(path), maxAge).then(function (r) {
+
+    return this.storage.get(this.makePath(path), maxAge).then((r: QueuedRequestResponse) => {
       return {
         data: r.body,
         contentType: r.contentType,
@@ -176,21 +164,21 @@ class BaseClient {
    *
    * @returns {Promise} A promise for the created/updated revision (ETag)
    */
-  storeFile (mimeType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string> {
-    if (typeof (mimeType) !== 'string') {
+  async storeFile (mimeType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string> {
+    if (typeof mimeType !== 'string') {
       return Promise.reject('Argument \'mimeType\' of baseClient.storeFile must be a string');
     }
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.storeFile must be a string');
     }
-    if (typeof (body) !== 'string' && typeof (body) !== 'object') {
+    if ((typeof body !== 'string') && (typeof body !== 'object')) {
       return Promise.reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
     }
     if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
       console.warn('WARNING: Editing a document to which only read access (\'r\') was claimed');
     }
 
-    return this.storage.put(this.makePath(path), body, mimeType).then((r) => {
+    return this.storage.put(this.makePath(path), body, mimeType).then((r: QueuedRequestResponse) => {
       if (r.statusCode === 200 || r.statusCode === 201) {
         return r.revision;
       } else {
@@ -212,20 +200,21 @@ class BaseClient {
    */
 
   // TODO add real return type
-  getObject (path: string, maxAge?: false | number): Promise<unknown> {
-    if (typeof (path) !== 'string') {
+  async getObject (path: string, maxAge?: false | number): Promise<unknown> {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getObject must be a string');
     }
-    return this.storage.get(this.makePath(path), maxAge).then((r) => {
-      if (typeof (r.body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
+
+    return this.storage.get(this.makePath(path), maxAge).then((r: QueuedRequestResponse) => {
+      if (typeof r.body === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
         return r.body;
-      } else if (typeof (r.body) === 'string') {
+      } else if (typeof r.body === 'string') {
         try {
           return JSON.parse(r.body);
         } catch (e) {
           throw new Error("Not valid JSON: " + this.makePath(path));
         }
-      } else if (typeof (r.body) !== 'undefined' && r.statusCode === 200) {
+      } else if (typeof r.body !== 'undefined' && r.statusCode === 200) {
         return Promise.reject("Not an object: " + this.makePath(path));
       }
     });
@@ -248,14 +237,14 @@ class BaseClient {
    *                    a ValidationError, if validations fail.
    */
   // TODO add real return type
-  storeObject (typeAlias: string, path: string, object: object): Promise<unknown> {
-    if (typeof (typeAlias) !== 'string') {
+  async storeObject (typeAlias: string, path: string, object: object): Promise<unknown> {
+    if (typeof typeAlias !== 'string') {
       return Promise.reject('Argument \'typeAlias\' of baseClient.storeObject must be a string');
     }
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.storeObject must be a string');
     }
-    if (typeof (object) !== 'object') {
+    if (typeof object !== 'object') {
       return Promise.reject('Argument \'object\' of baseClient.storeObject must be an object');
     }
 
@@ -270,7 +259,7 @@ class BaseClient {
       return Promise.reject(exc);
     }
 
-    return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then((r) => {
+    return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then((r: QueuedRequestResponse) => {
       if (r.statusCode === 200 || r.statusCode === 201) {
         return r.revision;
       } else {
@@ -287,7 +276,7 @@ class BaseClient {
    */
   // TODO add real return type
   remove (path: string): Promise<unknown> {
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
     }
     if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
@@ -305,7 +294,7 @@ class BaseClient {
    * @returns {string} The full URL of the item, including the storage origin
    */
   getItemURL (path: string): string {
-    if (typeof (path) !== 'string') {
+    if (typeof path !== 'string') {
       throw 'Argument \'path\' of baseClient.getItemURL must be a string';
     }
     if (this.storage.connected) {
@@ -328,23 +317,21 @@ class BaseClient {
    *
    * @returns {BaseClient} The same instance this is called on to allow for method chaining
    */
-  cache (path: string, strategy: 'ALL' | 'SEEN' | 'FLUSH' = 'ALL') {
+  cache (path: string, strategy: 'ALL' | 'SEEN' | 'FLUSH' = 'ALL'): BaseClient {
     if (typeof path !== 'string') {
       throw 'Argument \'path\' of baseClient.cache must be a string';
     }
-
     if (typeof strategy !== 'string') {
       throw 'Argument \'strategy\' of baseClient.cache must be a string or undefined';
     }
-
     if (strategy !== 'FLUSH' &&
       strategy !== 'SEEN' &&
       strategy !== 'ALL') {
       throw 'Argument \'strategy\' of baseclient.cache must be one of '
       + '["FLUSH", "SEEN", "ALL"]';
     }
-    this.storage.caching.set(this.makePath(path), strategy);
 
+    this.storage.caching.set(this.makePath(path), strategy);
     return this;
   }
 
@@ -367,14 +354,16 @@ class BaseClient {
    * @param {uri}    uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
    * @param {object} schema - A JSON Schema object describing the object type
    **/
-  declareType (alias: any, uriOrSchema: any, schema?: any): void {
+  declareType (alias: string, uriOrSchema: string|tv4.JsonSchema, schema?: tv4.JsonSchema): void {
     let uri: string;
 
-    if (!schema) {
+    if (schema && typeof uriOrSchema === 'string') {
+      uri = uriOrSchema;
+    } else if (!schema && typeof uriOrSchema !== 'string') {
       schema = uriOrSchema;
       uri = this._defaultTypeURI(alias);
-    } else {
-      uri = uriOrSchema;
+    } else if (!schema && typeof uriOrSchema === 'string')  {
+      throw new Error('declareType() requires a JSON Schema object to be passed, in order to validate object types/formats');
     }
 
     BaseClient.Types.declare(this.moduleName, alias, uri, schema);
@@ -403,7 +392,8 @@ class BaseClient {
    */
   schemas = {
     configurable: true,
-    get: function () {
+
+    get (): JsonSchemas {
       return BaseClient.Types.inScope(this.moduleName);
     }
   };
@@ -440,12 +430,12 @@ class BaseClient {
    *
    * @private
    */
-  _fireChange (event: ChangeObj) {
+  _fireChange (event: ChangeObj): void {
     if (config.changeEvents[event.origin]) {
       ['new', 'old', 'lastCommon'].forEach(function (fieldNamePrefix) {
         if ((!event[fieldNamePrefix + 'ContentType'])
           || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix + 'ContentType']))) {
-          if (typeof (event[fieldNamePrefix + 'Value']) === 'string') {
+          if (typeof event[fieldNamePrefix + 'Value'] === 'string') {
             try {
               event[fieldNamePrefix + 'Value'] = JSON.parse(event[fieldNamePrefix + 'Value']);
             } catch (e) {

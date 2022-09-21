@@ -1,7 +1,7 @@
 import type { ChangeObj } from './interfaces/change_obj';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
 import type { RSEvent } from './interfaces/rs_event';
-import type { RSNode, RSNodes } from './interfaces/rs_node';
+import type { RSNode, RSNodes, ProcessNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import config from './config';
 import log from './log';
@@ -13,6 +13,87 @@ import {
   isFolder,
   pathsFromRoot
 } from './util';
+
+function getLatest (node: RSNode): any {
+  if (typeof (node) !== 'object' || typeof (node.path) !== 'string') {
+    return;
+  }
+  if (isFolder(node.path)) {
+    if (node.local && node.local.itemsMap) {
+      return node.local;
+    }
+    if (node.common && node.common.itemsMap) {
+      return node.common;
+    }
+  } else {
+    if (node.local) {
+      if (node.local.body && node.local.contentType) {
+        return node.local;
+      }
+      if (node.local.body === false) {
+        return;
+      }
+    }
+    if (node.common && node.common.body && node.common.contentType) {
+      return node.common;
+    }
+    // Migration code! Once all apps use at least this version of the lib, we
+    // can publish clean-up code that migrates over any old-format data, and
+    // stop supporting it. For now, new apps will support data in both
+    // formats, thanks to this:
+    if (node.body && node.contentType) {
+      return {
+        body: node.body,
+        contentType: node.contentType
+      };
+    }
+  }
+}
+
+function isOutdated (nodes: RSNodes, maxAge: number): boolean {
+  for (const path in nodes) {
+    if (nodes[path] && nodes[path].remote) {
+      return true;
+    }
+    const nodeVersion = getLatest(nodes[path]);
+    if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
+      return false;
+    } else if (!nodeVersion) {
+      return true;
+    }
+  }
+  return true;
+}
+
+
+function makeNode (path: string): RSNode {
+  const node: RSNode = {path: path, common: {}};
+
+  if (isFolder(path)) {
+    node.common.itemsMap = {};
+  }
+  return node;
+}
+
+function updateFolderNodeWithItemName (node: RSNode, itemName: string): RSNode {
+  if (!node.common) {
+    node.common = {
+      itemsMap: {}
+    };
+  }
+  if (!node.common.itemsMap) {
+    node.common.itemsMap = {};
+  }
+  if (!node.local) {
+    node.local = deepClone(node.common);
+  }
+  if (!node.local.itemsMap) {
+    node.local.itemsMap = node.common.itemsMap;
+  }
+  node.local.itemsMap[itemName] = true;
+
+  return node;
+}
 
 /**
  * This module defines functions that are mixed into remoteStorage.local when
@@ -53,25 +134,30 @@ abstract class CachingLayer {
   // TODO: improve our code structure so that this function
   // could call sync.queueGetRequest directly instead of needing
   // this hacky third parameter as a callback
-  get (path: string, maxAge: number, queueGetRequest: (path2: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
+  async get (path: string, maxAge: number, queueGetRequest: (path2: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
 
     if (typeof (maxAge) === 'number') {
-
       return this.getNodes(pathsFromRoot(path))
         .then((objs) => {
           const node: RSNode = getLatest(objs[path]);
+
           if (isOutdated(objs, maxAge)) {
             return queueGetRequest(path);
           } else if (node) {
-            return {statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType};
+            return {
+              statusCode: 200,
+              body: node.body || node.itemsMap,
+              contentType: node.contentType
+            };
           } else {
-            return {statusCode: 404};
+            return { statusCode: 404 };
           }
         });
     } else {
       return this.getNodes([path])
         .then((objs) => {
-          const node = getLatest(objs[path]);
+          const node: RSNode = getLatest(objs[path]);
+
           if (node) {
             if (isFolder(path)) {
               for (const i in node.itemsMap) {
@@ -81,7 +167,11 @@ abstract class CachingLayer {
                 }
               }
             }
-            return {statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType};
+            return {
+              statusCode: 200,
+              body: node.body || node.itemsMap,
+              contentType: node.contentType
+            };
           } else {
             return {statusCode: 404};
           }
@@ -89,15 +179,15 @@ abstract class CachingLayer {
     }
   }
 
-  put(path: string, body: any, contentType: string): Promise<RSNodes> {
+  async put (path: string, body: unknown, contentType: string): Promise<RSNodes> {
     const paths = pathsFromRoot(path);
 
-    function _processNodes(nodePaths, nodes) {
+    function _processNodes(nodePaths: string[], nodes: RSNodes): RSNodes {
       try {
         for (let i = 0, len = nodePaths.length; i < len; i++) {
           const nodePath = nodePaths[i];
           let node = nodes[nodePath];
-          let previous;
+          let previous: RSNode;
 
           if (!node) {
             nodes[nodePath] = node = makeNode(nodePath);
@@ -129,7 +219,7 @@ abstract class CachingLayer {
     return this._updateNodes(paths, _processNodes);
   }
 
-  delete(path: string): unknown {
+  delete (path: string): unknown {
     const paths = pathsFromRoot(path);
 
     return this._updateNodes(paths, function (nodePaths, nodes) {
@@ -171,7 +261,7 @@ abstract class CachingLayer {
 
   flush(path: string): unknown {
 
-    return this._getAllDescendentPaths(path).then((paths) => {
+    return this._getAllDescendentPaths(path).then((paths: string[]) => {
       return this.getNodes(paths);
     }).then((nodes: RSNodes) => {
       for (const nodePath in nodes) {
@@ -192,19 +282,16 @@ abstract class CachingLayer {
     });
   }
 
-  private _emitChange(obj: ChangeObj) {
+  private _emitChange(obj: ChangeObj): void {
     if (config.changeEvents[obj.origin]) {
       this._emit('change', obj);
     }
   }
 
-  fireInitial() {
-    if (!config.changeEvents.local) {
-      return;
-    }
+  fireInitial (): void {
+    if (!config.changeEvents.local) { return; }
 
     this.forAllNodes((node) => {
-
       if (isDocument(node.path)) {
         const latest = getLatest(node);
         if (latest) {
@@ -248,7 +335,7 @@ abstract class CachingLayer {
   }
 
 
-  private _updateNodes(paths: string[], _processNodes): Promise<RSNodes> {
+  private _updateNodes(paths: string[], _processNodes: ProcessNodes): Promise<RSNodes> {
     return new Promise((resolve, reject) => {
       this._doUpdateNodes(paths, _processNodes, {
         resolve: resolve,
@@ -257,7 +344,7 @@ abstract class CachingLayer {
     });
   }
 
-  private _doUpdateNodes(paths, _processNodes, promise) {
+  private _doUpdateNodes(paths: string[], _processNodes: ProcessNodes, promise) {
     if (this._updateNodesRunning) {
       this._updateNodesQueued.push({
         paths: paths,
@@ -357,87 +444,6 @@ abstract class CachingLayer {
   }
 }
 
-
-function getLatest(node: RSNode): any {
-  if (typeof (node) !== 'object' || typeof (node.path) !== 'string') {
-    return;
-  }
-  if (isFolder(node.path)) {
-    if (node.local && node.local.itemsMap) {
-      return node.local;
-    }
-    if (node.common && node.common.itemsMap) {
-      return node.common;
-    }
-  } else {
-    if (node.local) {
-      if (node.local.body && node.local.contentType) {
-        return node.local;
-      }
-      if (node.local.body === false) {
-        return;
-      }
-    }
-    if (node.common && node.common.body && node.common.contentType) {
-      return node.common;
-    }
-    // Migration code! Once all apps use at least this version of the lib, we
-    // can publish clean-up code that migrates over any old-format data, and
-    // stop supporting it. For now, new apps will support data in both
-    // formats, thanks to this:
-    if (node.body && node.contentType) {
-      return {
-        body: node.body,
-        contentType: node.contentType
-      };
-    }
-  }
-}
-
-function isOutdated(nodes: RSNodes, maxAge: number): boolean {
-  for (const path in nodes) {
-    if (nodes[path] && nodes[path].remote) {
-      return true;
-    }
-    const nodeVersion = getLatest(nodes[path]);
-    if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
-      return false;
-    } else if (!nodeVersion) {
-      return true;
-    }
-  }
-  return true;
-}
-
-
-function makeNode(path: string): RSNode {
-  const node: RSNode = {path: path, common: {}};
-
-  if (isFolder(path)) {
-    node.common.itemsMap = {};
-  }
-  return node;
-}
-
-function updateFolderNodeWithItemName(node: RSNode, itemName: string): RSNode {
-  if (!node.common) {
-    node.common = {
-      itemsMap: {}
-    };
-  }
-  if (!node.common.itemsMap) {
-    node.common.itemsMap = {};
-  }
-  if (!node.local) {
-    node.local = deepClone(node.common);
-  }
-  if (!node.local.itemsMap) {
-    node.local.itemsMap = node.common.itemsMap;
-  }
-  node.local.itemsMap[itemName] = true;
-
-  return node;
-}
 
 interface CachingLayer extends EventHandling {}
 applyMixins(CachingLayer, [EventHandling]);

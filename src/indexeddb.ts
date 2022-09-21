@@ -32,7 +32,7 @@
  * @interface
  */
 
-import type { RSNodes } from './interfaces/rs_node';
+import type { RSNode, RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import CachingLayer from './cachinglayer';
 import log from './log';
@@ -275,8 +275,7 @@ class IndexedDB extends CachingLayer {
   /**
    * TODO: Document
    */
-  // TODO add real types once known
-  async forAllNodes (cb: (p: unknown) => unknown): Promise<void> {
+  async forAllNodes (cb: (node: RSNode) => void): Promise<void> {
     return new Promise((resolve/*, reject*/) => {
 
       const transaction = this.db.transaction(['nodes'], 'readonly');
