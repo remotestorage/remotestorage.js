@@ -26,6 +26,6 @@ jobs:
       - name: Run mocha tests
         run: npm run test:mocha
       - name: Run linter
-        run: npm run lint
+        run: npm run lint:quiet
       - name: Run webpack
         run: npm run build:release
