@@ -12,7 +12,7 @@ declare class InMemoryStorage extends CachingLayer {
     constructor();
     getNodes(paths: string[]): Promise<RSNodes>;
     setNodes(nodes: RSNodes): Promise<void>;
-    forAllNodes(cb: (node: RSNode) => Promise<void>): Promise<void>;
+    forAllNodes(cb: (node: RSNode) => void): Promise<void>;
     diffHandler(): void;
     /**
      * Initialize the InMemoryStorage backend.

@@ -31,7 +31,7 @@
  *
  * @interface
  */
-import type { RSNodes } from './interfaces/rs_node';
+import type { RSNode, RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import CachingLayer from './cachinglayer';
 declare class IndexedDB extends CachingLayer {
@@ -79,7 +79,7 @@ declare class IndexedDB extends CachingLayer {
     /**
      * TODO: Document
      */
-    forAllNodes(cb: (p: unknown) => unknown): Promise<void>;
+    forAllNodes(cb: (node: RSNode) => void): Promise<void>;
     closeDB(): void;
     /**
      * TODO: Document

@@ -1,7 +1,5 @@
-/// <reference types="node" />
-import Global = NodeJS.Global;
 export declare const logError: (error: string | Error) => void;
-export declare const globalContext: (Window & typeof globalThis) | (Global & typeof globalThis);
+export declare const globalContext: typeof globalThis;
 export declare const getGlobalContext: () => any;
 export declare const extend: (...args: any[]) => unknown;
 export declare const containingFolder: (path: string) => string;
@@ -40,7 +38,7 @@ export declare const shouldBeTreatedAsBinary: (content: string | ArrayBuffer, mi
  * @param {string} encoding
  * @returns {Promise} Resolves with a string containing the data
  */
-export declare const getTextFromArrayBuffer: (arrayBuffer: ArrayBuffer, encoding: string) => Promise<string | ArrayBuffer>;
+export declare const getTextFromArrayBuffer: (arrayBuffer: ArrayBuffer, encoding: any) => Promise<string | ArrayBuffer>;
 /**
  * Encode string in base64
  * @param {String} str

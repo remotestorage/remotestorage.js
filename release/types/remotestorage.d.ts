@@ -12,7 +12,7 @@ import UnauthorizedError from './unauthorized-error';
 import * as util from './util';
 interface RSModule {
     name: string;
-    builder: Function;
+    builder: any;
 }
 /**
  * Constructor for the remoteStorage object/instance
@@ -75,7 +75,7 @@ declare class RemoteStorage {
     local: IndexedDB | LocalStorage | InMemoryStorage;
     dropbox: Dropbox;
     googledrive: GoogleDrive;
-    fireInitial: Function;
+    fireInitial: any;
     on: any;
     constructor(cfg?: object);
     /**
@@ -181,7 +181,7 @@ declare class RemoteStorage {
      * @param {string} path - Absolute path to attach handler to
      * @param {function} handler - Handler function
      */
-    onChange(path: string, handler: Function): void;
+    onChange(path: string, handler: any): void;
     /**
      * TODO: do we still need this, now that we always instantiate the prototype?
      *
@@ -240,7 +240,7 @@ declare class RemoteStorage {
      * TODO: document
      * @private
      */
-    _pendingGPD(methodName: any): Function;
+    _pendingGPD(methodName: any): () => Promise<unknown>;
     /**
      * TODO: document
      * @private
@@ -251,7 +251,7 @@ declare class RemoteStorage {
      * @private
      */
     _bindChange(object: {
-        on: Function;
+        on: any;
     }): void;
     /**
      * TODO: document
@@ -342,7 +342,7 @@ declare class RemoteStorage {
      * Load module
      * @private
      */
-    _loadModule(moduleName: string, moduleBuilder: Function): {
+    _loadModule(moduleName: string, moduleBuilder: any): {
         [key: string]: unknown;
     };
 }

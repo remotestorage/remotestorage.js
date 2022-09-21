@@ -79,7 +79,7 @@ declare class Sync {
     finishTask(task: SyncTask): void | Promise<void>;
     doTasks(): boolean;
     collectTasks(alsoCheckRefresh?: boolean): Promise<void>;
-    addTask(path: string, cb?: Function): void;
+    addTask(path: string, cb?: any): void;
     /**
      * Method: sync
      **/

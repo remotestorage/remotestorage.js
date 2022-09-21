@@ -1,4 +1,4 @@
-declare type EventHandler = (event?: unknown) => void;
+import { EventHandler } from './interfaces/event_handling';
 declare class EventHandling {
     _handlers: {
         [key: string]: EventHandler[];
@@ -18,7 +18,7 @@ declare class EventHandling {
      * Remove a previously installed event handler
      */
     removeEventListener(eventName: string, handler: EventHandler): void;
-    _emit(eventName: string, ...args: any[]): void;
+    _emit(eventName: string, ...args: unknown[]): void;
     _validateEvent(eventName: string): void;
     _delegateEvent(eventName: string, target: any): void;
     _addEvent(eventName: string): void;

@@ -1,4 +1,4 @@
-import type { RSNodes } from './interfaces/rs_node';
+import type { RSNode, RSNodes } from './interfaces/rs_node';
 import CachingLayer from './cachinglayer';
 import EventHandling from './eventhandling';
 declare class LocalStorage extends CachingLayer {
@@ -6,7 +6,7 @@ declare class LocalStorage extends CachingLayer {
     diffHandler(...args: any[]): void;
     getNodes(paths: string[]): Promise<RSNodes>;
     setNodes(nodes: RSNodes): Promise<void>;
-    forAllNodes(cb: (node: any) => any): Promise<void>;
+    forAllNodes(cb: (node: RSNode) => void): Promise<void>;
     /**
      * Initialize the LocalStorage backend.
      *

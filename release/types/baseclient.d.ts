@@ -1,4 +1,5 @@
 import tv4 from 'tv4';
+import type { JsonSchemas } from './interfaces/json_schema';
 import type { ChangeObj } from './interfaces/change_obj';
 import EventHandling from './eventhandling';
 import RemoteStorage from './remotestorage';
@@ -37,7 +38,7 @@ declare class BaseClient {
      *
      * @returns {Promise} A promise for an object representing child nodes
      */
-    getListing(path: string, maxAge?: false | number): Promise<unknown>;
+    getListing(path?: string, maxAge?: false | number): Promise<unknown>;
     /**
      * Get all objects directly below a given path.
      *
@@ -126,7 +127,7 @@ declare class BaseClient {
      *
      * @returns {BaseClient} The same instance this is called on to allow for method chaining
      */
-    cache(path: string, strategy?: 'ALL' | 'SEEN' | 'FLUSH'): this;
+    cache(path: string, strategy?: 'ALL' | 'SEEN' | 'FLUSH'): BaseClient;
     /**
      * TODO: document
      *
@@ -142,7 +143,7 @@ declare class BaseClient {
      * @param {uri}    uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
      * @param {object} schema - A JSON Schema object describing the object type
      **/
-    declareType(alias: any, uriOrSchema: any, schema?: any): void;
+    declareType(alias: string, uriOrSchema: string | tv4.JsonSchema, schema?: tv4.JsonSchema): void;
     /**
      * Validate an object against the associated schema.
      *
@@ -162,9 +163,7 @@ declare class BaseClient {
      */
     schemas: {
         configurable: boolean;
-        get: () => {
-            [key: string]: tv4.JsonSchema;
-        };
+        get(): JsonSchemas;
     };
     /**
      * The default JSON-LD @context URL for RS types/objects/documents

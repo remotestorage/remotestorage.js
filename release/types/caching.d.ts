@@ -5,7 +5,7 @@
  **/
 declare class Caching {
     pendingActivations: string[];
-    activateHandler: Function;
+    activateHandler: (firstPending: string) => void;
     private _rootPaths;
     constructor();
     /**
