@@ -6,7 +6,7 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import config from "../../src/config";
 import RemoteStorage from '../../src/remotestorage';
-import Dropbox from '../../src/dropbox';
+import Dropbox from "../../src/dropbox";
 
 
 const SETTINGS_KEY = 'remotestorage:dropbox';
@@ -24,6 +24,18 @@ const REFRESH_TOKEN = '4-_IbSBsp5wAAA';
 chai.use(chaiAsPromised);
 
 
+// This function is simple and has OK performance compared to more
+// complicated ones: http://jsperf.com/json-escape-unicode/4
+const charsToEncode = /[\u007f-\uffff]/g;
+function httpHeaderSafeJson(obj) {
+  return JSON.stringify(obj).replace(charsToEncode,
+    function(c) {
+      return '\\u'+('000'+c.charCodeAt(0).toString(16)).slice(-4);
+    }
+  );
+}
+
+
 describe('Dropbox backend', () => {
   const sandbox = sinon.createSandbox();
   const originalTimeout = config.requestTimeout;
@@ -31,6 +43,7 @@ describe('Dropbox backend', () => {
   const textEncoder = new TextEncoder();
 
   beforeEach(() => {
+    localStorage.removeItem(SETTINGS_KEY);
     rs = new RemoteStorage();
     rs.setApiKeys({dropbox: 'swcj8jbc9i1jf1m'});   // an app would do this
 
@@ -69,7 +82,7 @@ describe('Dropbox backend', () => {
         size: CONTENT.length,
         content_hash: "3489e9a9d9"
       };
-      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': JSON.stringify(apiResult)}}, {delay: 10_000});
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}}, {delay: 10_000});
       await expect(dropbox.get('/wug/blicket')).to.be.rejectedWith(/timeout/);
 
       config.requestTimeout = originalTimeout;
@@ -190,8 +203,9 @@ describe('Dropbox backend', () => {
       expect(rs2.dropbox.connected).to.equal(false);
       expect(rs2.dropbox.token).to.equal('some-access-token');
       expect(rs2.dropbox.userAddress).to.be.undefined;
-      // TODO: a network error should not prevent setting remotestorage:dropbox
-      // expect(localStorage.getItem(SETTINGS_KEY)).to.be.null;
+      expect(localStorage.getItem(SETTINGS_KEY)).to.be.a('string');
+      const persistent = JSON.parse(await localStorage.getItem(SETTINGS_KEY));
+      expect(persistent).to.have.property('token', 'some-access-token');
     });
   });
 
@@ -350,7 +364,7 @@ describe('Dropbox backend', () => {
               path_display: "/Category/Folder" + num + "/File" + num,
               id: "id:T-bOiISzOEQAAAAAA" + num,
               client_modified: "2022-04-26T13:55:03Z",
-              server_modified: "2022-04-26T13:55:03Z",
+              server_modified: "2022-04-27T13:55:03Z",
               rev: "5dd8f0a21b2fb006" + num,
               size: 280 + num,
               is_downloadable: true,
@@ -377,8 +391,8 @@ describe('Dropbox backend', () => {
       expect(result.body['folder1/']).to.have.property('ETag').which.is.a('string').which.is.not.empty;
       expect(result.body).to.have.property('file1');
       expect(result.body['file1']).to.have.property('ETag', '5dd8f0a21b2fb0061');
-      // expect(result.body['file1']).to.have.property('Content-Length').which.is.a('string');
-      // expect(result.body['file1']).to.have.property('Last-Modified').which.is.a('string');
+      expect(result.body['file1']).to.have.property('Content-Length', 281);
+      expect(result.body['file1']).to.have.property('Last-Modified').which.matches(/^\w\w\w, \d\d \w\w\w \d\d\d\d \d\d:\d\d:\d\d GMT$/);
       // expect(result.body['file1']).to.have.property('Content-Type').which.is.a('number');
       expect(result.body).to.have.property('folder2/');
       expect(result.body['folder2/']).to.have.property('ETag').which.is.a('string').which.is.not.empty;
@@ -388,8 +402,8 @@ describe('Dropbox backend', () => {
       expect(result.body['folder3/']).to.have.property('ETag').which.is.a('string').which.is.not.empty;
       expect(result.body).to.have.property('file3');
       expect(result.body['file3']).to.have.property('ETag', '5dd8f0a21b2fb0063');
-      // expect(result.body['file3']).to.have.property('Content-Length').which.is.a('string');
-      // expect(result.body['file3']).to.have.property('Last-Modified').which.is.a('string');
+      expect(result.body['file3']).to.have.property('Content-Length', 283);
+      expect(result.body['file3']).to.have.property('Last-Modified').which.matches(/^\w\w\w, \d\d \w\w\w \d\d\d\d \d\d:\d\d:\d\d GMT$/);
       // expect(result.body['file3']).to.have.property('Content-Type').which.is.a('number');
     });
 
@@ -418,7 +432,7 @@ describe('Dropbox backend', () => {
         is_downloadable: true,
         content_hash: "f7e2cc8d4c6"
       };
-      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': JSON.stringify(apiResult), 'Content-Type': 'application/octet-stream'}});
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult), 'Content-Type': 'application/octet-stream'}});
       const result = await dropbox.get('/corge/grault', {});
 
       const calls = fetchMock.calls('getFile');
@@ -455,14 +469,13 @@ describe('Dropbox backend', () => {
           is_downloadable: true,
           content_hash: "cde930a"
         };
-        fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: data, headers: {'Content-Type': 'application/octet-stream', 'Dropbox-API-Result': JSON.stringify(apiResult)}}, {sendAsJson: false});
+        fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: data, headers: {'Content-Type': 'application/octet-stream', 'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}}, {sendAsJson: false});
         const result = await dropbox.get('/' + type);
 
         const calls = fetchMock.calls('getFile');
         expect(calls).to.have.lengthOf(1);
         expect(calls[0][1]).to.have.property('headers');
-        // let encodedPath = '/remotestorage/' + type;
-        // expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({path: encodedPath}));
+        expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({path: '/remotestorage/' + type}));
         expect(result).to.have.property('statusCode', 200);
         expect(result).to.have.property('body').which.equals(content);
         // expect(result).to.have.property('contentType', type);
@@ -492,7 +505,7 @@ describe('Dropbox backend', () => {
         is_downloadable: true,
         content_hash: "f7e2cc8d4c6"
       };
-      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Content-Type': 'application/octet-stream', 'Dropbox-API-Result': JSON.stringify(apiResult)}});
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Content-Type': 'application/octet-stream', 'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}});
       const result = await dropbox.get('/garply/waldo');
 
       const calls = fetchMock.calls('getFile');
@@ -523,14 +536,13 @@ describe('Dropbox backend', () => {
           is_downloadable: true,
           content_hash: "cde930a"
         };
-        fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: data, headers: {'Content-Type': 'application/octet-stream', 'Dropbox-API-Result': JSON.stringify(apiResult)}}, {sendAsJson: false});
+        fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: data, headers: {'Content-Type': 'application/octet-stream', 'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}}, {sendAsJson: false});
         const result = await dropbox.get('/' + type);
 
         const calls = fetchMock.calls('getFile');
         expect(calls).to.have.lengthOf(1);
         expect(calls[0][1]).to.have.property('headers');
-        // let encodedPath = '/remotestorage/' + type;
-        // expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({path: encodedPath}));
+        expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({path: '/remotestorage/' + type}));
         expect(result).to.have.property('statusCode', 200);
         // expect(result).to.have.property('contentType', type);
         expect(result).to.have.property('revision', revision);
@@ -540,15 +552,13 @@ describe('Dropbox backend', () => {
       });
     });
 
-    /* Dropbox appears to always set Content-Type to application/octet-stream, so this
-       test is probably useless. */
-    it("returns untyped binary data in an ArrayBuffer", async () => {
+    it("JSON encodes a Dropbox-API-Arg header", async () => {
       const data = new Uint16Array([21, 31, 65536, 42, 0, 69]);
       const revision = '2001';
       const apiResult = {
-        name: "doff",
-        path_lower: "/remotestorage/coodle/doff",
-        path_display: "/remotestorage/coodle/doff",
+        name: "café.txt",
+        path_lower: "/remotestorage/straße/café.txt",
+        path_display: "/remotestorage/straße/café.txt",
         id: "id:T-oisjl",
         client_modified: "2022-09-17T02:48:10Z",
         server_modified: "2022-09-18T12:00:00Z",
@@ -558,13 +568,13 @@ describe('Dropbox backend', () => {
         content_hash: "f7e2cc8d4c6"
       };
 
-      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: data, headers: {'Dropbox-API-Result': JSON.stringify(apiResult)}}, {sendAsJson: false});
-      const result = await dropbox.get('/coodle/doff');
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: data, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}}, {sendAsJson: false});
+      const result = await dropbox.get('/straße/café.txt');
 
       const calls = fetchMock.calls('getFile');
       expect(calls).to.have.lengthOf(1);
       expect(calls[0][1]).to.have.property('headers');
-      expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({path: '/remotestorage/coodle/doff'}));
+      expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', '{"path":"/remotestorage/stra\\u00dfe/cafe\\u0301.txt"}');
       expect(result).to.have.property('statusCode', 200);
       expect(result).to.have.property('contentType', null);
       expect(result).to.have.property('revision', revision);
@@ -572,10 +582,6 @@ describe('Dropbox backend', () => {
       expect(ArrayBuffer.isView(result.body)).to.equal(false);
       expect(new Uint16Array(result.body)).to.deep.equal(data);
     });
-
-    // TODO: Test that the Dropbox-API-Arg header is "HTTP header safe". This means using
-    // JSON-style "\uXXXX" escape codes for the character 0x7F and all non-ASCII characters.
-    // It must **not** be URI encoded
 
     it("responds with status 304 Not Modified if revision matches the server", async () => {
       fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 304});
@@ -605,7 +611,7 @@ describe('Dropbox backend', () => {
         is_downloadable: true,
         content_hash: "939d9a9e9"
       };
-      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': JSON.stringify(apiResult)}});
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}});
       const result = await dropbox.get('/orlap/gimbal', { ifNoneMatch: '1001' });
 
       const calls = fetchMock.calls('getFile');
@@ -743,7 +749,7 @@ describe('Dropbox backend', () => {
         content_hash: "f7e2cc8d4c6"
       };
       fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL},
-        {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': JSON.stringify(apiResult)}});
+        {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}});
       fetchMock.mock({name: 'postSharing', method: 'POST', url: SHARING_URL},
         {status: 200, body: JSON.stringify({
             name: 'announcement',
@@ -776,7 +782,7 @@ describe('Dropbox backend', () => {
   });
 
   describe("put", () => {
-    xit('rejects a promise if not connected', async () => {
+    it('rejects a promise if not connected', async () => {
       dropbox.connected = false;
 
       const p = dropbox.put('/bar', 'spam', 'text/plain', {});
@@ -787,19 +793,19 @@ describe('Dropbox backend', () => {
     it("responds with status 200 on successful unconditional put", async () => {
       fetchMock.mock(
         {name: 'postUpload', method: 'POST', url: UPLOAD_URL},
-        {status: 200, body: JSON.stringify({path: '/remotestorage/tata/tete', rev: '101'})}
+        {status: 200, body: JSON.stringify({path: '/remotestorage/straße/Það.txt', rev: '101'})}
       );
-      const result = await dropbox.put('/tata/tete', 'some data', 'text/plain');
+      const result = await dropbox.put('/straße/Það.txt', 'some data', 'text/plain');
 
       const calls = fetchMock.calls();
       expect(calls).to.have.lengthOf(1);
       expect(calls[0][0]).to.equal(UPLOAD_URL);
       expect(calls[0][1].headers).to.have.property('Authorization', 'Bearer ' + ACCESS_TOKEN);
-      expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({"path":"/remotestorage/tata/tete","mode":{".tag":"overwrite"},"mute":true}));
+      expect(calls[0][1].headers).to.have.property('Dropbox-API-Arg', '{"path":"/remotestorage/stra\\u00dfe/\\u00dea\\u00f0.txt","mode":{".tag":"overwrite"},"mute":true}');
       expect(calls[0][1].body).to.equal('some data');
       expect(result).to.have.property('statusCode', 200);
       expect(result).to.have.property('revision', '101');
-      expect(dropbox._revCache.get('/tata/tete')).to.equal('101');
+      expect(dropbox._revCache.get('/straße/Það.txt')).to.equal('101');
     });
 
     it("causes the revision to propagate down in revCache", async () => {
@@ -957,7 +963,7 @@ describe('Dropbox backend', () => {
   });
 
   describe("delete", () => {
-    xit('rejects a promise if not connected', async () => {
+    it('rejects a promise if not connected', async () => {
       dropbox.connected = false;
 
       const p = dropbox.delete('/spam', {});
