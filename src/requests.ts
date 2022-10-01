@@ -63,12 +63,22 @@ export async function requestWithTimeout(method: string, url: string, options: R
 }
 
 async function _fetchRequestWithTimeout(method: string, url: string, options: RequestOptions): Promise<XMLHttpRequest> {
+  const abortController = typeof AbortController === 'function' ?
+    new AbortController() :
+    null;
+  let timeoutId;
+
+  const timeoutPromise: Promise<never> = new Promise((_resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      if (abortController) {
+        abortController.abort();
+      }
+      reject('timeout');
+    }, config.requestTimeout);
+  });
+
   let syntheticXhr;
   const responseHeaders = {};
-  let abortController;
-  if (typeof AbortController === 'function') {
-    abortController = new AbortController();
-  }
 
   const networkPromise: Promise<XMLHttpRequest> = fetch(url, {
     method: method,
@@ -114,15 +124,8 @@ async function _fetchRequestWithTimeout(method: string, url: string, options: Re
       syntheticXhr.responseText = processedBody;
     }
     return syntheticXhr;
-  });
-
-  const timeoutPromise: Promise<XMLHttpRequest> = new Promise((resolve, reject) => {
-    setTimeout(() => {
-      reject('timeout');
-      if (abortController) {
-        abortController.abort();
-      }
-    }, config.requestTimeout);
+  }).finally(() => {
+    clearTimeout(timeoutId);
   });
 
   return Promise.race([networkPromise, timeoutPromise]);

@@ -62,6 +62,9 @@ describe('Dropbox backend', () => {
   });
 
   afterEach(() => {
+    rs.stopSync();
+    rs.disconnect();
+    Dropbox._rs_cleanup(rs);
     fetchMock.reset();
     sandbox.restore();
   });
@@ -885,9 +888,14 @@ describe('Dropbox backend', () => {
       expect(result).to.have.property('statusCode', 200);
       expect(result.body).to.equal(CONTENT);
 
-      await new Promise(resolve => setInterval(() => {
-        if (fetchMock.calls().length >= 2) { resolve(null); }
-      }, 5));
+      await new Promise(resolve => {
+        const id = setInterval(() => {
+          if (fetchMock.calls().length >= 2) {
+            clearTimeout(id);
+            resolve(null);
+          }
+        }, 5)
+      });
       calls = fetchMock.calls();
       expect(calls[1][0]).to.equal(SHARING_URL);
       expect(calls[1][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);

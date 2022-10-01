@@ -24,7 +24,7 @@ jobs:
       - name: Run jaribu tests   # These must be replaced before we can use Node v18 in CI
         run: npm test
       - name: Run mocha tests
-        run: npm run test:mocha
+        run: npm run test:mocha -- --exit
       - name: Run linter
         run: npm run lint:quiet
       - name: Run webpack
