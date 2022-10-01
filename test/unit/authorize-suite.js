@@ -87,27 +87,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
       },
 
       {
-        desc: "#authorize redirects to the provider's OAuth location using PKCE parameters",
-        run: function(env, test) {
-          const options = {
-            authURL: 'https://www.dropbox.com/oauth2/authorize',
-            scope: 'notes:rw',
-            redirectUri: 'https://note.app.com/#CSRF-protection',
-            clientId: 'http://note.app.com/',
-            code_challenge: 'ABCDEFGHI',
-            code_challenge_method: 'plain'
-          }
-
-          this.localStorageAvailable = function() { return true; };
-
-          env.Authorize.authorize(this, options);
-
-          const expectedUrl = 'https://www.dropbox.com/oauth2/authorize?redirect_uri=https%3A%2F%2Fnote.app.com%2F&scope=notes%3Arw&client_id=http%3A%2F%2Fnote.app.com%2F&state=CSRF-protection&response_type=token&code_challenge=ABCDEFGHI&code_challenge_method=plain';
-          test.assert(document.location.href, expectedUrl);
-        }
-      },
-
-      {
         desc: "#authorize doesn't redirect, but opens an in-app-browser window",
         run: function(env, test) {
           document.location.href = 'file:///some/cordova/path';
@@ -171,40 +150,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
       },
 
       {
-        desc: "#refreshAccessToken clears access token on start & sets access token on success",
-        run: async function (env, test) {
-
-          addMockRequestCallback(() => {
-            mockRequestSuccess({
-              status: 200,
-              responseText: JSON.stringify({
-                access_token: "ABCD",
-                token_type:	"bearer",
-                expires_in:	14400
-              })
-            });
-          });
-
-          const mockConfigure = new test.Stub(function(settings) {
-            if (1 === mockConfigure.numCalled) {
-              test.assertAnd(settings.token, null);
-              test.assertAnd(settings.tokenType, null);
-            } else {
-              test.assertAnd(settings.token, 'ABCD');
-              test.assertAnd(settings.tokenType, 'bearer');
-            }
-          });
-          const mockRemote = {
-            configure: mockConfigure
-          };
-
-          await env.Authorize.refreshAccessToken(new RemoteStorage(), mockRemote);
-
-          test.assert(mockConfigure.numCalled, 2);
-        }
-      },
-
-      {
         desc: "_rs_init removes params from the fragment",
         run: function(env, test) {
           document.location.href = 'http://foo/bar#foo=bar';
@@ -259,7 +204,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
           test.done();
         }
       },
-
       {
         desc: "the 'features-loaded' handler configures the WireClient if it sees an access token",
         run: function(env, test) {
@@ -274,7 +218,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
           storage._handlers['features-loaded'][0]();
         }
       },
-
       {
         desc: "the 'features-loaded' handler adds the state param to the location when given",
         run: function(env, test) {
@@ -289,7 +232,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
           test.assert(document.location.href, 'http://foo/bar#custom/path');
         }
       },
-
       {
         desc: "the 'features-loaded' handler initiates a connection attempt, when it sees a user address",
         run: function(env, test) {
@@ -302,85 +244,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
           storage._handlers['features-loaded'][0]();
         }
       },
-
-      {
-        desc: "the 'features-loaded' handler, when it sees a code but no code verifier, doesn't call remote.configure()",
-        run: function (env, test) {
-          sessionStorage = {
-            getItem: new test.Stub(() => {})
-          }
-          const storage = new RemoteStorage();
-          storage.remote = {
-            configure: new test.Stub(function () {
-              test.fail('remote.configure should not be called')
-            })
-          };
-          document.location.href = 'https://example.com/?code=foo&state=bar';
-          env.Authorize._rs_init(storage);
-
-          addMockRequestCallback(function (req) {
-            mockRequestSuccess({
-              status: 200,
-              responseText: JSON.stringify({
-                access_token: "ABCD",
-                refresh_token: "WXYZ",
-                token_type: "bearer",
-              })
-            });
-          });
-
-          storage._handlers['features-loaded'][0]();
-
-          test.assertAnd(sessionStorage.getItem.numCalled, 1);
-          test.assert(storage.remote.configure.numCalled, 0);
-        }
-      },
-
-      {
-        desc: "the 'features-loaded' handler, when it sees a code & code verifier, calls the token endpoint & sets the access token",
-        run: async function(env, test) {
-          sessionStorage = {
-            getItem: new test.Stub(() => 'elephant'),
-            removeItem: new test.Stub(key => {
-              test.assertAnd(key, 'remotestorage:codeVerifier')
-            })
-          }
-          const storage = new RemoteStorage();
-          const mockConfigure = new test.Stub(function(settings) {
-            test.assertAnd(settings.token, "ABCD");
-            test.assertAnd(settings.refreshToken, "WXYZ");
-            test.assertAnd(settings.tokenType, "bearer");
-          });
-          storage.remote = {
-            clientId: "ruristan.gov",
-            configure: mockConfigure
-          };
-          document.location.href = 'https://example.com/?code=foo&state=bar';
-          env.Authorize._rs_init(storage);
-
-          addMockRequestCallback(function(req) {
-            mockRequestSuccess({
-              status: 200,
-              responseText: JSON.stringify({
-                access_token: "ABCD",
-                refresh_token: "WXYZ",
-                token_type:	"bearer",
-              })
-            });
-          });
-
-          storage._handlers['features-loaded'][0]();
-          // Features.featuresLoaded() doesn't wait for async handlers, so
-          // the 'features-loaded' handler can't be async, so we can't await
-          // this call returning.
-          await new Promise(resolve => setTimeout(resolve, 100));
-
-          test.assertAnd(sessionStorage.getItem.numCalled, 1);
-          test.assertAnd(mockConfigure.numCalled, 1);
-          test.assert(sessionStorage.removeItem.numCalled, 1);
-        }
-      },
-
       {
         desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when it sees no access_token and no user address",
         run: function(env, test) {
@@ -398,7 +261,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
           storage._handlers['features-loaded'][0]();
         }
       },
-
       {
         desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when there are no params",
         run: function(env, test) {
