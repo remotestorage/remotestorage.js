@@ -235,7 +235,7 @@ class Dropbox {
 
       const listing = body.entries.reduce((map, item) => {
         const isDir = item['.tag'] === 'folder';
-        const itemName = item.path_lower.split('/').slice(-1)[0] + (isDir ? '/' : '');
+        const itemName = item.path_display.split('/').slice(-1)[0] + (isDir ? '/' : '');
         if (isDir){
           map[itemName] = { ETag: revCache.get(path+itemName) };
         } else {
@@ -714,7 +714,7 @@ class Dropbox {
         }
 
         responseBody.entries.forEach(entry => {
-          const path = entry.path_lower.substr(PATH_PREFIX.length);
+          const path = entry.path_display.substr(PATH_PREFIX.length);
 
           if (entry['.tag'] === 'deleted') {
             // there's no way to know whether the entry was a file or a folder
