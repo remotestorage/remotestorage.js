@@ -473,24 +473,24 @@ describe('Dropbox backend', () => {
       expect(result).to.have.property('revision');
       expect(result).to.have.property('contentType').and.match(/^application\/json\b/);
       expect(result).to.have.property('body').which.is.an('object');
-      expect(result.body).to.have.property('folder1/');
-      expect(result.body['folder1/']).to.have.property('ETag').which.is.a('string').which.is.not.empty;
-      expect(result.body).to.have.property('file1');
-      expect(result.body['file1']).to.have.property('ETag', '5dd8f0a21b2fb0061');
-      expect(result.body['file1']).to.have.property('Content-Length', 281);
-      expect(result.body['file1']).to.have.property('Last-Modified').which.matches(/^\w\w\w, \d\d \w\w\w \d\d\d\d \d\d:\d\d:\d\d GMT$/);
-      // expect(result.body['file1']).to.have.property('Content-Type').which.is.a('number');
-      expect(result.body).to.have.property('folder2/');
-      expect(result.body['folder2/']).to.have.property('ETag').which.is.a('string').which.is.not.empty;
-      expect(result.body).to.have.property('file2');
-      expect(result.body['file2']).to.have.property('ETag', '5dd8f0a21b2fb0062');
-      expect(result.body).to.have.property('folder3/');
-      expect(result.body['folder3/']).to.have.property('ETag').which.is.a('string').which.is.not.empty;
-      expect(result.body).to.have.property('file3');
-      expect(result.body['file3']).to.have.property('ETag', '5dd8f0a21b2fb0063');
-      expect(result.body['file3']).to.have.property('Content-Length', 283);
-      expect(result.body['file3']).to.have.property('Last-Modified').which.matches(/^\w\w\w, \d\d \w\w\w \d\d\d\d \d\d:\d\d:\d\d GMT$/);
-      // expect(result.body['file3']).to.have.property('Content-Type').which.is.a('number');
+      expect(result.body).to.have.property('Folder1/');
+      expect(result.body['Folder1/']).to.have.property('ETag').which.is.a('string').which.is.not.empty;
+      expect(result.body).to.have.property('File1');
+      expect(result.body['File1']).to.have.property('ETag', '5dd8f0a21b2fb0061');
+      expect(result.body['File1']).to.have.property('Content-Length', 281);
+      expect(result.body['File1']).to.have.property('Last-Modified').which.matches(/^\w\w\w, \d\d \w\w\w \d\d\d\d \d\d:\d\d:\d\d GMT$/);
+      // expect(result.body['File1']).to.have.property('Content-Type').which.is.a('string');
+      expect(result.body).to.have.property('Folder2/');
+      expect(result.body['Folder2/']).to.have.property('ETag').which.is.a('string').which.is.not.empty;
+      expect(result.body).to.have.property('File2');
+      expect(result.body['File2']).to.have.property('ETag', '5dd8f0a21b2fb0062');
+      expect(result.body).to.have.property('Folder3/');
+      expect(result.body['Folder3/']).to.have.property('ETag').which.is.a('string').which.is.not.empty;
+      expect(result.body).to.have.property('File3');
+      expect(result.body['File3']).to.have.property('ETag', '5dd8f0a21b2fb0063');
+      expect(result.body['File3']).to.have.property('Content-Length', 283);
+      expect(result.body['File3']).to.have.property('Last-Modified').which.matches(/^\w\w\w, \d\d \w\w\w \d\d\d\d \d\d:\d\d:\d\d GMT$/);
+      // expect(result.body['File3']).to.have.property('Content-Type').which.is.a('string');
     });
 
     /* happy path */
@@ -801,8 +801,8 @@ describe('Dropbox backend', () => {
 
     it("reports changes in subfolders after sync", async () => {
       const initialEntries = [
-        {'.tag': 'file', path_lower: '/remotestorage/file', rev: '1'},
-        {'.tag': 'folder', path_lower: '/remotestorage/foo'}
+        {'.tag': 'file', path_lower: '/remotestorage/file', path_display: '/remotestorage/file', rev: '1'},
+        {'.tag': 'folder', path_lower: '/remotestorage/foo', path_display: '/remotestorage/foo'}
       ];
       fetchMock.config.overwriteRoutes = false;
       fetchMock.mock(
@@ -834,7 +834,7 @@ describe('Dropbox backend', () => {
         {name: 'postFolder', method: 'POST', url: FOLDER_URL, repeat: 1},
         {status: 200, body: JSON.stringify({
             entries: [...initialEntries,
-              {'.tag': 'file', path_lower: '/remotestorage/foo/bar', rev: '1'},
+              {'.tag': 'file', path_lower: '/remotestorage/foo/bar', path_display: '/remotestorage/foo/bar', rev: '1'},
             ]
           })},
         {repeat: 2}

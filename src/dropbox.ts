@@ -308,14 +308,18 @@ class Dropbox extends RemoteBase implements Remote {
       }
 
       const listing = body.entries.reduce((map, item) => {
-        const isDir = item['.tag'] === 'folder';
-        const itemName = item.path_lower.split('/').slice(-1)[0] + (isDir ? '/' : '');
-        if (isDir){
-          map[itemName] = { ETag: revCache.get(path+itemName) };
-        } else {
-          const date = new Date(item.server_modified);
-          map[itemName] = { ETag: item.rev, 'Content-Length': item.size, 'Last-Modified': date.toUTCString() };
-          this._revCache.set(path+itemName, item.rev);
+        try {
+          const isDir = item['.tag'] === 'folder';
+          const itemName = item.path_display.split('/').slice(-1)[0] + (isDir ? '/' : '');
+          if (isDir) {
+            map[itemName] = {ETag: revCache.get(path + itemName)};
+          } else {
+            const date = new Date(item.server_modified);
+            map[itemName] = {ETag: item.rev, 'Content-Length': item.size, 'Last-Modified': date.toUTCString()};
+            this._revCache.set(path + itemName, item.rev);
+          }
+        } catch (err) {
+          console.error(`[Dropbox] folder “${path}” has entry ${JSON.stringify(item)}:`, err);
         }
         return map;
       }, {});
@@ -814,7 +818,7 @@ class Dropbox extends RemoteBase implements Remote {
         }
 
         responseBody.entries.forEach(entry => {
-          const path = entry.path_lower.slice(PATH_PREFIX.length);
+          const path = entry.path_display.slice(PATH_PREFIX.length);
 
           if (entry['.tag'] === 'deleted') {
             // there's no way to know whether the entry was a file or a folder

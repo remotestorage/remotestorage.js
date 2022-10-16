@@ -506,7 +506,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
             var makePayload = function (num, more) {
               return JSON.stringify({
                 entries: [
-                  {'.tag': 'file', path_lower: '/foo/file'+num, rev: 'rev'+num}
+                  {'.tag': 'file', path_display: '/foo/file'+num, rev: 'rev'+num}
                 ],
                 has_more: more,
                 cursor: more ? 'cur'+num : undefined
@@ -590,12 +590,12 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                   responseText: JSON.stringify({
                     entries: [{
                       '.tag': 'file',
-                      path_lower: '/remotestorage/file',
+                      path_display: '/remotestorage/file',
                       rev: '1'
                     },
                     {
                       '.tag': 'folder',
-                      path_lower: '/remotestorage/foo',
+                      path_display: '/remotestorage/foo',
                     }]
                   })
                 });
@@ -605,16 +605,16 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
                 responseText: JSON.stringify({
                   entries: [{
                       '.tag': 'file',
-                      path_lower: '/remotestorage/file',
+                      path_display: '/remotestorage/file',
                       rev: '1'
                     },
                     {
                       '.tag': 'folder',
-                      path_lower: '/remotestorage/foo',
+                      path_display: '/remotestorage/foo',
                     },
                     {
                       '.tag': 'file',
-                      path_lower: '/remotestorage/foo/bar',
+                      path_display: '/remotestorage/foo/bar',
                       rev: '1'
                   }]
                 })
@@ -625,12 +625,12 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
               responseText: JSON.stringify({
                 entries: [{
                     '.tag': 'file',
-                    path_lower: '/remotestorage/file',
+                    path_display: '/remotestorage/file',
                     rev: '1'
                   },
                   {
                     '.tag': 'folder',
-                    path_lower: '/remotestorage/foo',
+                    path_display: '/remotestorage/foo',
                   }]
               })
             });
