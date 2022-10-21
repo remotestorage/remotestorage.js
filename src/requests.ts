@@ -1,7 +1,7 @@
 /**
  * This file implements an HTTP request with timeout, on top of fetch or XHR.
  * The returned value always looks like an XHR.
- * It is used by used by authorize.ts, wireclient.ts, googledrive.ts and dropbox.ts.
+ * It is used by authorize.ts, wireclient.ts, googledrive.ts and dropbox.ts.
  * The timeout is set by RemoteStorage#setRequestTimeout(timeout)
  */
 
