@@ -10,7 +10,7 @@ import {
   localStorageAvailable
 } from './util';
 import {requestWithTimeout, RequestOptions} from "./requests";
-import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./Remote";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
 
 const BASE_URL = 'https://www.googleapis.com';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';

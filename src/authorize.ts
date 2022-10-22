@@ -5,7 +5,7 @@ import UnauthorizedError from './unauthorized-error';
 import { EventHandler } from './interfaces/event_handling';
 import {requestWithTimeout} from "./requests";
 import {AuthorizeOptions} from "./interfaces/authorize_options";
-import {Remote} from "./Remote";
+import {Remote} from "./remote";
 
 
 interface AuthResult {

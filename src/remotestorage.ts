@@ -25,7 +25,7 @@ import Discover from './discover';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import Features from './features';
-import {Remote} from "./Remote";
+import {Remote} from "./remote";
 
 // TODO this is assigned to RemoteStorage.util later; check if still needed
 import * as util from './util';

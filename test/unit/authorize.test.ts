@@ -8,7 +8,7 @@ import fetchMock from 'fetch-mock';
 import {localStorageAvailable} from "../../src/util";
 import RemoteStorage from '../../src/remotestorage';
 import Authorize from '../../src/authorize';
-import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "../../src/Remote";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "../../src/remote";
 
 chai.use(chaiAsPromised);
 

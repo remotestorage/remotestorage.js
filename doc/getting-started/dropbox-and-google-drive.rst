@@ -45,7 +45,7 @@ An app key can be obtained by `registering your app
     * files.content.write
 * You need to set one or more OAuth2 redirect URIs for all routes a user can
   connect from, for example ``http://localhost:8000`` for an app you are
-  developing locally.  If the path is '/', remoteStorage drops it.
+  developing locally.  If the path is '/', rs.js drops it.
 
 Known issues
 ^^^^^^^^^^^^

@@ -45,7 +45,7 @@ import {
   shouldBeTreatedAsBinary
 } from './util';
 import {requestWithTimeout, isArrayBufferView} from "./requests";
-import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./Remote";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
 
 let hasLocalStorage;
 const SETTINGS_KEY = 'remotestorage:wireclient';

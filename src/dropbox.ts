@@ -13,7 +13,7 @@ import {
   generateCodeVerifier,
 } from './util';
 import {requestWithTimeout, isArrayBufferView, retryAfterMs} from "./requests";
-import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./Remote";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
 import RemoteStorage from "./remotestorage";
 import Authorize from "./authorize";
 
@@ -282,7 +282,6 @@ class Dropbox extends RemoteBase implements Remote {
    * @private
    */
   _getFolder (path: string) {
-    const url = FOLDER_URL;
     const revCache = this._revCache;
 
     const processResponse = (resp) => {
@@ -334,15 +333,14 @@ class Dropbox extends RemoteBase implements Remote {
     };
 
     const loadNext = (cursor) => {
-      const continueURL = CONTINUE_URL;
       const params = {
         body: { cursor: cursor }
       };
 
-      return this._request('POST', continueURL, params).then(processResponse);
+      return this._request('POST', CONTINUE_URL, params).then(processResponse);
     };
 
-    return this._request('POST', url, {
+    return this._request('POST', FOLDER_URL, {
       body: {
         path: getDropboxPath(path)
       }
@@ -371,8 +369,6 @@ class Dropbox extends RemoteBase implements Remote {
    */
   get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
-    const url = DOWNLOAD_URL;
-
     const savedRev = this._revCache.get(path);
     if (savedRev === null) {
       // file was deleted server side
@@ -408,7 +404,7 @@ class Dropbox extends RemoteBase implements Remote {
       params.headers['If-None-Match'] = options.ifNoneMatch;
     }
 
-    return this._request('GET', url, params).then(resp => {
+    return this._request('GET', DOWNLOAD_URL, params).then(resp => {
       const status = resp.status;
       let meta, body, mime, rev;
       if (status !== 200 && status !== 409) {
@@ -592,12 +588,11 @@ class Dropbox extends RemoteBase implements Remote {
    * @private
    */
   share (path: string): Promise<string> {
-    const url = CREATE_SHARED_URL;
     const options = {
       body: {path: getDropboxPath(path)}
     };
 
-    return this._request('POST', url, options).then((response) => {
+    return this._request('POST', CREATE_SHARED_URL, options).then((response) => {
       if (response.status !== 200 && response.status !== 409) {
         return Promise.reject(new Error('Invalid response status:' + response.status));
       }
@@ -641,9 +636,7 @@ class Dropbox extends RemoteBase implements Remote {
    * @protected
    */
   info (): Promise<{email: string}> {
-    const url = ACCOUNT_URL;
-
-    return this._request('POST', url, {}).then(function (response) {
+    return this._request('POST', ACCOUNT_URL, {}).then(function (response) {
       let email;
 
       try {
@@ -768,13 +761,14 @@ class Dropbox extends RemoteBase implements Remote {
 
     /** This should resolve (with no value) on success, and reject on error. */
     const fetch = async (cursor: string) => {
-      let url = FOLDER_URL;
+      let url;
       let requestBody;
 
       if (typeof cursor === 'string') {
-        url += '/continue';
+        url = CONTINUE_URL;
         requestBody = { cursor };
       } else {
+        url = FOLDER_URL;
         requestBody = {
           path: PATH_PREFIX,
           recursive: true,
@@ -873,12 +867,11 @@ class Dropbox extends RemoteBase implements Remote {
    * @private
    */
   _getMetadata (path: string): Promise<Metadata> {
-    const url = METADATA_URL;
     const requestBody = {
       path: getDropboxPath(path)
     };
 
-    return this._request('POST', url, { body: requestBody }).then((response) => {
+    return this._request('POST', METADATA_URL, { body: requestBody }).then((response) => {
       if (response.status !== 200 && response.status !== 409) {
         return Promise.reject(new Error('Invalid response status:' + response.status));
       }
@@ -922,7 +915,6 @@ class Dropbox extends RemoteBase implements Remote {
    * @private
    */
   _uploadSimple (params: { body: XMLHttpRequestBodyInit; contentType?: string; path: string; ifMatch?: string; }): Promise<RemoteResponse> {
-    const url = UPLOAD_URL;
     const args = {
       path: getDropboxPath(params.path),
       mode: { '.tag': 'overwrite', update: undefined },
@@ -933,7 +925,7 @@ class Dropbox extends RemoteBase implements Remote {
       args.mode = { '.tag': 'update', update: params.ifMatch };
     }
 
-    return this._request('POST', url, {
+    return this._request('POST', UPLOAD_URL, {
       body: params.body,
       headers: {
         'Content-Type': 'application/octet-stream',
@@ -982,10 +974,9 @@ class Dropbox extends RemoteBase implements Remote {
    * @private
    */
   _deleteSimple (path: string): Promise<RemoteResponse> {
-    const url = DELETE_URL;
     const requestBody = { path: getDropboxPath(path) };
 
-    return this._request('POST', url, { body: requestBody }).then((response) => {
+    return this._request('POST', DELETE_URL, { body: requestBody }).then((response) => {
       if (response.status !== 200 && response.status !== 409) {
         return Promise.resolve({statusCode: response.status});
       }
@@ -1028,7 +1019,6 @@ class Dropbox extends RemoteBase implements Remote {
    * @private
    */
   async _getSharedLink (path: string): Promise<string> {
-    const url = LIST_SHARED_URL;
     const options = {
       body: {
         path: getDropboxPath(path),
@@ -1036,7 +1026,7 @@ class Dropbox extends RemoteBase implements Remote {
       }
     };
 
-    return this._request('POST', url, options).then((response) => {
+    return this._request('POST', LIST_SHARED_URL, options).then((response) => {
       if (response.status !== 200 && response.status !== 409) {
         return Promise.reject(new Error('Invalid response status: ' + response.status));
       }
