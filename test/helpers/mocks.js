@@ -102,7 +102,7 @@ define([], function() {
           iAmA: 'ArrayBufferMock',
           content: str
         };
-      };  
+      };
 
     },
 
@@ -161,27 +161,27 @@ define([], function() {
         requestCallbacks.push(callback);
       };
 
-  
+
       global.getMockRequestMethod = function() {
         var request = XMLHttpRequest.instances[0];
         return request._open[0];
       };
-  
+
       global.getMockRequestUrl = function() {
         var request = XMLHttpRequest.instances[0];
         return request._open[1];
       };
-  
+
       global.getMockRequestHeader = function (headerName) {
         var req = XMLHttpRequest.instances[0];
         return req._headers[headerName];
       };
-  
+
       global.getMockRequestBody = function () {
         var request = XMLHttpRequest.instances[0];
         return request._send[0];
       };
-  
+
       global.mockRequestSuccess = function (param) {
         var req = XMLHttpRequest.instances.shift();
         req._responseHeaders = param.responseHeaders || {};
@@ -190,11 +190,11 @@ define([], function() {
         req.responseText = param.responseText;
         req._onload();
       };
-  
+
       global.mockRequestFail = function (errMsg) {
         var req = XMLHttpRequest.instances.shift();
         req._onerror(errMsg);
-      };      
+      };
     },
 
     defineFetchMock(env) {
@@ -223,30 +223,30 @@ define([], function() {
       global.addMockRequestCallback = function(callback) {
         requestCallbacks.push(callback);
       };
-  
+
       global.getMockRequestMethod = function() {
         var fetchData = fetchesData[0];
         return fetchData.method;
       };
-  
+
       global.getMockRequestUrl = function() {
         var fetchData = fetchesData[0];
         return fetchData.url;
       };
-  
+
       global.getMockRequestHeader = function (headerName) {
         var fetchData = fetchesData[0];
         return fetchData.requestHeaders[headerName];
       };
-  
+
       global.getMockRequestBody = function () {
         var fetchData = fetchesData[0];
         return fetchData.requestBody;
       };
-  
+
       global.mockRequestSuccess = function (param) {
         var fetchData = fetchesData.shift();
-  
+
         var responseHeaders = {   // mock Headers obj
           _headers: param.responseHeaders || {},   // POJSO
           forEach: function (callback, thisArg) {
@@ -279,17 +279,17 @@ define([], function() {
             return Promise.resolve(param.responseText);
           },
           json: function () {
-            throw new Error("not implemented in mock");
+            return Promise.resolve(JSON.parse(param.responseText));
           }
         };
-  
+
         fetchData.resolve(response);
       };
-  
+
       global.mockRequestFail = function (errMsg) {
         var fetchData = fetchesData.shift();
         fetchData.reject(errMsg);
-      };      
+      };
     }
   };
 });

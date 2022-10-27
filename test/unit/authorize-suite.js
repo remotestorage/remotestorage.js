@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define([ 'require', './build/authorize', './build/unauthorized-error'], function(require, Authorize, UnauthorizedError) {
+define([ 'require', './build/authorize', './build/unauthorized-error', 'test/helpers/mocks'], function(require, Authorize, UnauthorizedError, mocks) {
   var suites = [];
 
   suites.push({
@@ -40,10 +40,13 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
         }
       };
       env.Authorize.setLocation({ href: 'http://foo/bar' } );
+      mocks.defineMocks(env);
+      mocks.defineFetchMock(env);
       test.done();
     },
 
     afterEach: function(env, test) {
+      mocks.undefineMocks(env);
       delete global.document;
       test.done();
     },
@@ -201,7 +204,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
           test.done();
         }
       },
-
       {
         desc: "the 'features-loaded' handler configures the WireClient if it sees an access token",
         run: function(env, test) {
@@ -216,7 +218,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
           storage._handlers['features-loaded'][0]();
         }
       },
-
       {
         desc: "the 'features-loaded' handler adds the state param to the location when given",
         run: function(env, test) {
@@ -231,7 +232,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
           test.assert(document.location.href, 'http://foo/bar#custom/path');
         }
       },
-
       {
         desc: "the 'features-loaded' handler initiates a connection attempt, when it sees a user address",
         run: function(env, test) {
@@ -244,7 +244,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
           storage._handlers['features-loaded'][0]();
         }
       },
-
       {
         desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when it sees no access_token and no user address",
         run: function(env, test) {
@@ -262,7 +261,6 @@ define([ 'require', './build/authorize', './build/unauthorized-error'], function
           storage._handlers['features-loaded'][0]();
         }
       },
-
       {
         desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when there are no params",
         run: function(env, test) {

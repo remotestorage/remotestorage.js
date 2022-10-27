@@ -470,7 +470,7 @@ class IndexedDB extends CachingLayer {
         remoteStorage.local.closeDB();
       }
 
-      IndexedDB.clean(DEFAULT_DB_NAME, resolve);
+      IndexedDB.clean(DEFAULT_DB_NAME, resolve as () => void);
     });
   }
 

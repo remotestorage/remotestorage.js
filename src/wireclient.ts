@@ -34,7 +34,6 @@ import RemoteStorage from './remotestorage';
 import Authorize from './authorize';
 import EventHandling from './eventhandling';
 import UnauthorizedError from './unauthorized-error';
-import config from './config';
 import log from './log';
 import {
   applyMixins,
@@ -45,6 +44,8 @@ import {
   localStorageAvailable,
   shouldBeTreatedAsBinary
 } from './util';
+import {requestWithTimeout, isArrayBufferView} from "./requests";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
 
 let hasLocalStorage;
 const SETTINGS_KEY = 'remotestorage:wireclient';
@@ -67,61 +68,6 @@ function readSettings () {
   const { userAddress, href, storageApi, token, properties } = settings;
 
   return { userAddress, href, storageApi, token, properties };
-}
-
-let isArrayBufferView;
-
-if (typeof ((global || window as any).ArrayBufferView) === 'function') {
-  isArrayBufferView = function (object) {
-    return object && (object instanceof (global || window as any).ArrayBufferView);
-  };
-} else {
-  const arrayBufferViews = [
-    Int8Array, Uint8Array, Int16Array, Uint16Array,
-    Int32Array, Uint32Array, Float32Array, Float64Array
-  ];
-  isArrayBufferView = function (object): boolean {
-    for (let i = 0; i < 8; i++) {
-      if (object instanceof arrayBufferViews[i]) {
-        return true;
-      }
-    }
-    return false;
-  };
-}
-
-// TODO double check
-interface WireClientSettings {
-  userAddress: string;
-  href: string;
-  storageApi: string;
-  token: string;
-  properties: unknown;
-}
-
-interface WireRequestResponse {
-  statusCode: number;
-  revision: string | undefined;
-  body?: any;
-}
-
-function addQuotes (str: string): string {
-  if (typeof (str) !== 'string') {
-    return str;
-  }
-  if (str === '*') {
-    return '*';
-  }
-
-  return '"' + str + '"';
-}
-
-function stripQuotes (str: string): string {
-  if (typeof (str) !== 'string') {
-    return str;
-  }
-
-  return str.replace(/^["']|["']$/g, '');
 }
 
 function determineCharset (mimeType: string): string {
@@ -150,20 +96,7 @@ function isErrorStatus (status: number): boolean {
   return [401, 403, 404, 412].indexOf(status) >= 0;
 }
 
-function isForbiddenRequestMethod(method: string, uri: string): boolean {
-  if (method === 'PUT' || method === 'DELETE') {
-    return isFolder(uri);
-  } else {
-    return false;
-  }
-}
-
-class WireClient {
-  rs: RemoteStorage;
-  connected: boolean;
-  online: boolean;
-  userAddress: string;
-
+class WireClient extends RemoteBase implements Remote {
   /**
    * Holds the bearer token of this WireClient, as obtained in the OAuth dance
    *
@@ -173,7 +106,7 @@ class WireClient {
    *   remoteStorage.remote.token
    *   // -> 'DEADBEEF01=='
    */
-  token: string;
+  token: string | false;
 
   /**
    * Holds the server's base URL, as obtained in the Webfinger discovery
@@ -186,29 +119,15 @@ class WireClient {
    */
   href: string;
 
-  /**
-   * Holds the spec version the server claims to be compatible with
-   *
-   * Example:
-   *   (start code)
-   *
-   *   remoteStorage.remote.storageApi
-   *   // -> 'draft-dejong-remotestorage-01'
-   */
-  storageApi: string;
-  // TODO implement TS validation for incoming type
-
   supportsRevs: boolean;
 
   _revisionCache: { [key: string]: any } = {};
 
-  properties: any;
+  properties: object;
 
   constructor (rs: RemoteStorage) {
+    super(rs);
     hasLocalStorage = localStorageAvailable();
-
-    this.rs = rs;
-    this.connected = false;
 
     /**
      * Event: connected
@@ -240,8 +159,8 @@ class WireClient {
     }
   }
 
-  async _request (method: string, uri: string, token: string | false, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse> {
-    if (isForbiddenRequestMethod(method, uri)) {
+  async _request (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
+    if (this.isForbiddenRequestMethod(method, uri)) {
       return Promise.reject(`Don't use ${method} on directories!`);
     }
 
@@ -256,11 +175,11 @@ class WireClient {
       isFolder: isFolder(uri)
     });
 
-    return WireClient.request(method, uri, {
+    return requestWithTimeout(method, uri, {
       body: body,
       headers: headers,
       responseType: 'arraybuffer'
-    }).then((response: XMLHttpRequest): Promise<WireRequestResponse> => {
+    }).then((response: XMLHttpRequest): Promise<RemoteResponse> => {
       if (!this.online) {
         this.online = true;
         this.rs._emit('network-online');
@@ -274,7 +193,7 @@ class WireClient {
       if (isErrorStatus(response.status)) {
         log('[WireClient] Error response status', response.status);
         if (getEtag) {
-          revision = stripQuotes(response.getResponseHeader('ETag'));
+          revision = this.stripQuotes(response.getResponseHeader('ETag'));
         } else {
           revision = undefined;
         }
@@ -286,13 +205,13 @@ class WireClient {
         return Promise.resolve({statusCode: response.status, revision: revision});
       } else if (isSuccessStatus(response.status) ||
         (response.status === 200 && method !== 'GET')) {
-        revision = stripQuotes(response.getResponseHeader('ETag'));
+        revision = this.stripQuotes(response.getResponseHeader('ETag'));
         log('[WireClient] Successful request', revision);
         return Promise.resolve({statusCode: response.status, revision: revision});
       } else {
         const mimeType = response.getResponseHeader('Content-Type');
         if (getEtag) {
-          revision = stripQuotes(response.getResponseHeader('ETag'));
+          revision = this.stripQuotes(response.getResponseHeader('ETag'));
         } else {
           revision = (response.status === 200) ? fakeRevision : undefined;
         }
@@ -353,7 +272,7 @@ class WireClient {
    *              the user disconnected their storage, or you found that the
    *              token you have has expired, simply set that field to `null`.
    */
-  configure (settings: WireClientSettings): void {
+  configure (settings: RemoteSettings): void {
     if (typeof settings !== 'object') {
       throw new Error('WireClient configure settings parameter should be an object');
     }
@@ -395,13 +314,7 @@ class WireClient {
     }
   }
 
-  stopWaitingForToken (): void {
-    if (!this.connected) {
-      this._emit('not-connected');
-    }
-  }
-
-  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<unknown> {
+  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
@@ -409,7 +322,7 @@ class WireClient {
     const headers = {};
     if (this.supportsRevs) {
       if (options.ifNoneMatch) {
-        headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
+        headers['If-None-Match'] = this.addQuotes(options.ifNoneMatch);
       }
     }
     // commenting it out as this is doing nothing and jshint is complaining -les
@@ -458,7 +371,7 @@ class WireClient {
       });
   }
 
-  put (path: string, body: unknown, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}) {
+  put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
@@ -468,17 +381,17 @@ class WireClient {
     const headers = {'Content-Type': contentType};
     if (this.supportsRevs) {
       if (options.ifMatch) {
-        headers['If-Match'] = addQuotes(options.ifMatch);
+        headers['If-Match'] = this.addQuotes(options.ifMatch);
       }
       if (options.ifNoneMatch) {
-        headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
+        headers['If-None-Match'] = this.addQuotes(options.ifNoneMatch);
       }
     }
     return this._request('PUT', this.href + cleanPath(path), this.token,
       headers, body, this.supportsRevs);
   }
 
-  delete (path: string, options: { ifMatch?: string } = {}) {
+  delete (path: string, options: { ifMatch?: string } = {}): Promise<RemoteResponse> {
     if (!this.connected) {
       throw new Error('not connected (path: ' + path + ')');
     }
@@ -488,144 +401,12 @@ class WireClient {
     const headers = {};
     if (this.supportsRevs) {
       if (options.ifMatch) {
-        headers['If-Match'] = addQuotes(options.ifMatch);
+        headers['If-Match'] = this.addQuotes(options.ifMatch);
       }
     }
     return this._request('DELETE', this.href + cleanPath(path), this.token,
       headers,
       undefined, this.supportsRevs);
-  }
-
-  // Shared isArrayBufferView used by WireClient and Dropbox
-  static isArrayBufferView = isArrayBufferView;
-
-  // TODO add proper definition for options
-  // Shared request function used by WireClient, GoogleDrive and Dropbox.
-  static async request (method: string, url: string, options: unknown): Promise<XMLHttpRequest | Response> {
-    if (typeof fetch === 'function') {
-      return WireClient._fetchRequest(method, url, options);
-    } else if (typeof XMLHttpRequest === 'function') {
-      return WireClient._xhrRequest(method, url, options);
-    } else {
-      log('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
-      return Promise.reject('[WireClient] You need to add a polyfill for fetch or XMLHttpRequest');
-    }
-  }
-
-  /** options includes body, headers and responseType */
-  static _fetchRequest (method: string, url: string, options): Promise<Response> {
-    let syntheticXhr;
-    const responseHeaders = {};
-    let abortController;
-    if (typeof AbortController === 'function') {
-      abortController = new AbortController();
-    }
-    const networkPromise: Promise<Response> = fetch(url, {
-      method: method,
-      headers: options.headers,
-      body: options.body,
-      signal: abortController ? abortController.signal : undefined
-    }).then((response) => {
-      log('[WireClient fetch]', response);
-
-      response.headers.forEach((value: string, headerName: string) => {
-        responseHeaders[headerName.toUpperCase()] = value;
-      });
-
-      syntheticXhr = {
-        readyState: 4,
-        status: response.status,
-        statusText: response.statusText,
-        response: undefined,
-        getResponseHeader: (headerName: string): unknown => {
-          return responseHeaders[headerName.toUpperCase()] || null;
-        },
-        // responseText: 'foo',
-        responseType: options.responseType,
-        responseURL: url,
-      };
-      switch (options.responseType) {
-        case 'arraybuffer':
-          return response.arrayBuffer();
-        case 'blob':
-          return response.blob();
-        case 'json':
-          return response.json();
-        case undefined:
-        case '':
-        case 'text':
-          return response.text();
-        default:   // document
-          throw new Error("responseType 'document' is not currently supported using fetch");
-      }
-    }).then((processedBody) => {
-      syntheticXhr.response = processedBody;
-      if (!options.responseType || options.responseType === 'text') {
-        syntheticXhr.responseText = processedBody;
-      }
-      return syntheticXhr;
-    });
-
-    const timeoutPromise: Promise<Response> = new Promise((resolve, reject) => {
-      setTimeout(() => {
-        reject('timeout');
-        if (abortController) {
-          abortController.abort();
-        }
-      }, config.requestTimeout);
-    });
-
-    return Promise.race([networkPromise, timeoutPromise]);
-  }
-
-  static _xhrRequest (method, url, options): Promise<XMLHttpRequest> {
-    return new Promise((resolve, reject) => {
-
-      log('[WireClient]', method, url);
-
-      let timedOut = false;
-
-      const timer = setTimeout(() => {
-        timedOut = true;
-        reject('timeout');
-      }, config.requestTimeout);
-
-      const xhr = new XMLHttpRequest();
-      xhr.open(method, url, true);
-
-      if (options.responseType) {
-        xhr.responseType = options.responseType;
-      }
-
-      if (options.headers) {
-        for (const key in options.headers) {
-          xhr.setRequestHeader(key, options.headers[key]);
-        }
-      }
-
-      xhr.onload = (): void => {
-        if (timedOut) {
-          return;
-        }
-        clearTimeout(timer);
-        resolve(xhr);
-      };
-
-      xhr.onerror = (error): void => {
-        if (timedOut) {
-          return;
-        }
-        clearTimeout(timer);
-        reject(error);
-      };
-
-      let body = options.body;
-
-      if (typeof (body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
-        body = new Uint8Array(body);
-      }
-      xhr.send(body);
-    });
   }
 
   static _rs_init (remoteStorage): void {

@@ -246,7 +246,7 @@ export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType:
 export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding): Promise<string | ArrayBuffer> => {
   return new Promise((resolve/*, reject*/) => {
     if (typeof Blob === 'undefined') {
-      const buffer = new Buffer(new Uint8Array(arrayBuffer));
+      const buffer = Buffer.from(arrayBuffer);
       resolve(buffer.toString(encoding));
     } else {
       let blob;
@@ -290,6 +290,43 @@ export const toBase64 = (str: string): string => {
     return Buffer.from(str).toString('base64');
   }
 };
+
+/**
+ * Generates values required for OAuth2 PKCE in a cryptographically secure manner.
+ * @param {number} [numChar=128] - length of codeVerifier to generate; from 43 to 128
+ *
+ * @typedef {Object} PkceValues
+ * @property {string} codeVerifier - 43 to 128 chars from the 66-char set
+ * @property {string} codeChallenge - verifier hashed & base-64 URL encoded
+ * @property {string} state - a separate random value. Should be used to check redirect_uri.
+ * @returns PkceValues
+ */
+export async function generateCodeVerifier(numChar = 128) {
+  const randomBytes = new Uint8Array(numChar);
+  crypto.getRandomValues(randomBytes);
+
+  const charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  const randomChar = Array.from(randomBytes).map(byte => charSet[byte % charSet.length]);
+  const codeVerifier = randomChar.join('');
+
+  const charsAsBytes = Uint8Array.from(randomChar.map(ch => ch.charCodeAt(0)));
+  const sha256hash = await crypto.subtle.digest('SHA-256', charsAsBytes);
+  const codeChallenge = base64Urlencode(sha256hash);
+
+  crypto.getRandomValues(randomBytes);
+  const stateRandomChar = Array.from(randomBytes).map(byte => charSet[byte % charSet.length]);
+  const state = stateRandomChar.join('');
+
+  return {codeVerifier, codeChallenge, state};
+}
+
+function base64Urlencode(str) {
+  return btoa(String.fromCharCode.apply(null,
+      new Uint8Array(str)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+}
 
 /*
  * Apply mixins to an object
