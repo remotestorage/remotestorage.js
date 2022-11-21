@@ -32,23 +32,8 @@
  */
 import RemoteStorage from './remotestorage';
 import EventHandling from './eventhandling';
-interface WireClientSettings {
-    userAddress: string;
-    href: string;
-    storageApi: string;
-    token: string;
-    properties: unknown;
-}
-interface WireRequestResponse {
-    statusCode: number;
-    revision: string | undefined;
-    body?: any;
-}
-declare class WireClient {
-    rs: RemoteStorage;
-    connected: boolean;
-    online: boolean;
-    userAddress: string;
+import { Remote, RemoteBase, RemoteResponse, RemoteSettings } from "./remote";
+declare class WireClient extends RemoteBase implements Remote {
     /**
      * Holds the bearer token of this WireClient, as obtained in the OAuth dance
      *
@@ -58,7 +43,7 @@ declare class WireClient {
      *   remoteStorage.remote.token
      *   // -> 'DEADBEEF01=='
      */
-    token: string;
+    token: string | false;
     /**
      * Holds the server's base URL, as obtained in the Webfinger discovery
      *
@@ -69,24 +54,14 @@ declare class WireClient {
      *   // -> 'https://storage.example.com/users/jblogg/'
      */
     href: string;
-    /**
-     * Holds the spec version the server claims to be compatible with
-     *
-     * Example:
-     *   (start code)
-     *
-     *   remoteStorage.remote.storageApi
-     *   // -> 'draft-dejong-remotestorage-01'
-     */
-    storageApi: string;
     supportsRevs: boolean;
     _revisionCache: {
         [key: string]: any;
     };
-    properties: any;
+    properties: object;
     constructor(rs: RemoteStorage);
     get storageType(): string;
-    _request(method: string, uri: string, token: string | false, headers: object, body: unknown, getEtag: boolean, fakeRevision?: string): Promise<WireRequestResponse>;
+    _request(method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse>;
     /**
      * Sets the userAddress, href, storageApi, token, and properties of a
      * remote store. Also sets connected and online to true and emits the
@@ -105,23 +80,17 @@ declare class WireClient {
      *              the user disconnected their storage, or you found that the
      *              token you have has expired, simply set that field to `null`.
      */
-    configure(settings: WireClientSettings): void;
-    stopWaitingForToken(): void;
+    configure(settings: RemoteSettings): void;
     get(path: string, options?: {
         ifNoneMatch?: string;
-    }): Promise<unknown>;
-    put(path: string, body: unknown, contentType: string, options?: {
+    }): Promise<RemoteResponse>;
+    put(path: string, body: XMLHttpRequestBodyInit, contentType: string, options?: {
         ifMatch?: string;
         ifNoneMatch?: string;
-    }): Promise<WireRequestResponse>;
+    }): Promise<RemoteResponse>;
     delete(path: string, options?: {
         ifMatch?: string;
-    }): Promise<WireRequestResponse>;
-    static isArrayBufferView: any;
-    static request(method: string, url: string, options: unknown): Promise<XMLHttpRequest | Response>;
-    /** options includes body, headers and responseType */
-    static _fetchRequest(method: string, url: string, options: any): Promise<Response>;
-    static _xhrRequest(method: any, url: any, options: any): Promise<XMLHttpRequest>;
+    }): Promise<RemoteResponse>;
     static _rs_init(remoteStorage: any): void;
     static _rs_supported(): boolean;
     static _rs_cleanup(): void;

@@ -45,5 +45,20 @@ export declare const getTextFromArrayBuffer: (arrayBuffer: ArrayBuffer, encoding
  * @returns {String} base64-encoded string
  */
 export declare const toBase64: (str: string) => string;
+/**
+ * Generates values required for OAuth2 PKCE in a cryptographically secure manner.
+ * @param {number} [numChar=128] - length of codeVerifier to generate; from 43 to 128
+ *
+ * @typedef {Object} PkceValues
+ * @property {string} codeVerifier - 43 to 128 chars from the 66-char set
+ * @property {string} codeChallenge - verifier hashed & base-64 URL encoded
+ * @property {string} state - a separate random value. Should be used to check redirect_uri.
+ * @returns PkceValues
+ */
+export declare function generateCodeVerifier(numChar?: number): Promise<{
+    codeVerifier: string;
+    codeChallenge: string;
+    state: string;
+}>;
 export declare function applyMixins(derivedCtor: any, baseCtors: any[]): void;
 //# sourceMappingURL=util.d.ts.map

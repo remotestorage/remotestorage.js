@@ -110,6 +110,7 @@ declare class BaseClient {
     /**
      * Retrieve full URL of a document. Useful for example for sharing the public
      * URL of an item in the ``/public`` folder.
+     * TODO: refactor this into the Remote interface
      *
      * @param {string} path - Path relative to the module root.
      * @returns {string} The full URL of the item, including the storage origin

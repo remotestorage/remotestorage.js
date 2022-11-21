@@ -1,4 +1,6 @@
 import EventHandling from './eventhandling';
+import { RequestOptions } from "./requests";
+import { Remote, RemoteBase, RemoteResponse, RemoteSettings } from "./remote";
 /**
  * Internal cache object for storing Google file IDs.
  *
@@ -26,13 +28,9 @@ declare class FileIdCache {
  *
  * Docs: https://developers.google.com/drive/v3/web/quickstart/js
 **/
-declare class GoogleDrive {
-    rs: any;
+declare class GoogleDrive extends RemoteBase implements Remote {
     clientId: string;
-    userAddress: string;
     token: string;
-    connected: boolean;
-    online: boolean;
     _fileIdCache: FileIdCache;
     constructor(remoteStorage: any, clientId: any);
     /**
@@ -46,17 +44,11 @@ declare class GoogleDrive {
      *
      * @protected
      */
-    configure(settings: any): void;
+    configure(settings: RemoteSettings): void;
     /**
      * Initiate the authorization flow's OAuth dance.
      */
     connect(): void;
-    /**
-     * Stop the authorization process.
-     *
-     * @protected
-     */
-    stopWaitingForToken(): void;
     /**
      * Request a resource (file or directory).
      *
@@ -67,7 +59,9 @@ declare class GoogleDrive {
      *
      * @protected
      */
-    get(path: any, options: any): any;
+    get(path: string, options?: {
+        ifNoneMatch?: string;
+    }): Promise<RemoteResponse>;
     /**
      * Create or update a file.
      *
@@ -82,7 +76,10 @@ declare class GoogleDrive {
      *
      * @protected
      */
-    put(path: any, body: any, contentType: any, options: any): any;
+    put(path: string, body: XMLHttpRequestBodyInit, contentType: string, options?: {
+        ifMatch?: string;
+        ifNoneMatch?: string;
+    }): Promise<RemoteResponse>;
     /**
      * Delete a file.
      *
@@ -94,7 +91,9 @@ declare class GoogleDrive {
      *
      * @protected
      */
-    delete(path: any, options: any): any;
+    delete(path: string, options?: {
+        ifMatch?: string;
+    }): Promise<RemoteResponse>;
     /**
      * Fetch the user's info from Google.
      *
@@ -102,7 +101,7 @@ declare class GoogleDrive {
      *
      * @protected
      */
-    info(): any;
+    info(): Promise<any>;
     /**
      * Update an existing file.
      *
@@ -117,7 +116,7 @@ declare class GoogleDrive {
      *
      * @private
      */
-    _updateFile(id: any, path: any, body: any, contentType: any, options: any): any;
+    _updateFile(id: any, path: any, body: any, contentType: any, options: any): Promise<XMLHttpRequest>;
     /**
      * Create a new file.
      *
@@ -146,13 +145,12 @@ declare class GoogleDrive {
      * Request a directory.
      *
      * @param {string} path - Directory path
-     * @param {Object} options
      * @returns {Promise} Resolves with an object containing the status code,
      *                    body and content-type
      *
      * @private
      */
-    _getFolder(path: any): any;
+    _getFolder(path: string): any;
     /**
      * Get the ID of a parent path.
      *
@@ -192,7 +190,7 @@ declare class GoogleDrive {
      *
      * @private
      */
-    _getMeta(id: any): any;
+    _getMeta(id: any): Promise<any>;
     /**
      * Make a network request.
      *
@@ -203,7 +201,7 @@ declare class GoogleDrive {
      *
      * @private
      */
-    _request(method: any, url: any, options: any): any;
+    _request(method: string, url: string, options: RequestOptions): Promise<XMLHttpRequest>;
     /**
      * Initialize the Google Drive backend.
      *
@@ -215,7 +213,6 @@ declare class GoogleDrive {
     /**
      * Inform about the availability of the Google Drive backend.
      *
-     * @param {Object} rs - RemoteStorage instance
      * @returns {Boolean}
      *
      * @protected

@@ -1,12 +1,10 @@
 import RemoteStorage from './remotestorage';
-interface AuthOptions {
-    authURL: string;
-    scope?: string;
-    clientId?: string;
-    redirectUri?: string;
-}
+import { AuthorizeOptions } from "./interfaces/authorize_options";
+import { Remote } from "./remote";
 interface AuthResult {
     access_token?: string;
+    refresh_token?: string;
+    code?: string;
     rsDiscovery?: object;
     error?: string;
     remotestorage?: string;
@@ -14,7 +12,14 @@ interface AuthResult {
 }
 declare class Authorize {
     static IMPLIED_FAKE_TOKEN: boolean;
-    static authorize(remoteStorage: RemoteStorage, { authURL, scope, redirectUri, clientId }: AuthOptions): void;
+    /**
+     * Navigates browser to provider's OAuth page. When user grants access,
+     * browser will navigate back to redirectUri and OAuth will continue
+     * with onFeaturesLoaded.
+     */
+    static authorize(remoteStorage: RemoteStorage, options: AuthorizeOptions): void;
+    /** On success, calls remote.configure() with new access token */
+    static refreshAccessToken(rs: RemoteStorage, remote: Remote, refreshToken: string): Promise<void>;
     /**
      * Get current document location
      *
