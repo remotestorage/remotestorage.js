@@ -111,6 +111,7 @@ class Sync {
   _tasks: object;
   _running: object;
   _timeStarted: object;
+  _finishedTasks: Array<SyncTask> = [];
 
   constructor (remoteStorage: object) {
     this.rs = remoteStorage;
@@ -907,11 +908,22 @@ class Sync {
     }
   }
 
-  public finishTask (task: SyncTask): void | Promise<void> {
+  public finishTask (task: SyncTask, queueTask = true): void | Promise<void> {
     if (task.action === undefined) {
       delete this._running[task.path];
       return;
     }
+
+    if (queueTask){
+      log("[Sync] queue finished task:", task.path);
+      this._finishedTasks.push(task);
+      if (this._finishedTasks.length > 1) {
+        log("[Sync] delaying finished task:", task.path);
+        return;
+      }
+    }
+
+    log("[Sync] run task:", task.path);
 
     return task.promise
       .then(res => {
@@ -921,6 +933,7 @@ class Sync {
         return this.handleResponse(task.path, task.action, { statusCode: 'offline' });
       })
       .then(completed => {
+        this._finishedTasks.shift();
         delete this._timeStarted[task.path];
         delete this._running[task.path];
 
@@ -934,6 +947,11 @@ class Sync {
         }
 
         this.rs._emit('sync-req-done');
+
+        if (this._finishedTasks.length > 0) {
+          this.finishTask(this._finishedTasks[0], false);
+          return;
+        }
 
         this.collectTasks(false).then(() => {
           // See if there are any more tasks that are not refresh tasks
@@ -952,9 +970,14 @@ class Sync {
         });
       }, err => {
         log('[Sync] Error', err);
+        this._finishedTasks.shift();
         delete this._timeStarted[task.path];
         delete this._running[task.path];
         this.rs._emit('sync-req-done');
+        if (this._finishedTasks.length > 0) {
+          this.finishTask(this._finishedTasks[0], false);
+          return;
+        }
         if (!this.done) {
           this.done = true;
           this.rs._emit('sync-done');
