@@ -1192,7 +1192,179 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
           env.rs.sync.now = function() { return 1234567890123; };
           env.rs.sync.completePush('foo', 'put', true, '123');
         }
-      }
+      },
+
+      {
+        desc: "sync multiple new documents under the same folder while there are local changes should merge folder without missing any document",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          var tmpDoTask = env.rs.sync.doTask;
+
+          env.rs.sync.doTask = function(path) {
+            return Promise.resolve({
+              action: 'get',
+              path,
+              promise: Promise.resolve({
+                statusCode: 200,
+                body: path,
+                contentType: 'text/plain',
+                revision: path
+              })
+            });
+          };
+
+          env.rs.sync.rs.remote.connected = true;
+          env.rs.remote.online = true;
+          env.rs.sync._tasks = {
+            '/foo/2': true,
+            '/foo/3': true,
+            '/foo/4': true,
+            '/foo/5': true,
+            '/foo/6': true,
+            '/foo/7': true,
+            '/foo/8': true,
+            '/foo/9': true,
+            '/foo/10': true,
+            '/foo/11': true,
+          };
+          env.rs.sync._running = {};
+          env.rs.sync.doTasks();
+          test.assertAnd(env.rs.sync._tasks, {
+            '/foo/2': true,
+            '/foo/3': true,
+            '/foo/4': true,
+            '/foo/5': true,
+            '/foo/6': true,
+            '/foo/7': true,
+            '/foo/8': true,
+            '/foo/9': true,
+            '/foo/10': true,
+            '/foo/11': true,
+          });
+          test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).sort(), [
+            '/foo/2',
+            '/foo/3',
+            '/foo/4',
+            '/foo/5',
+            '/foo/6',
+          ].sort());
+          env.rs.caching._responses['/'] = 'ALL';
+          env.rs.caching._responses['/foo/'] = 'ALL';
+          env.rs.caching._responses['/foo/1'] = 'ALL';
+          for (const t of Object.keys(env.rs.sync._tasks)) {
+            env.rs.caching._responses[t] = 'ALL';
+          }
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              common: {
+                itemsMap: {
+                  '1': true,
+                },
+                revision: 'remotefolderrevision',
+                timestamp: 1397210425598,
+              },
+              local: {
+                itemsMap: {
+                  '1': true
+                },
+                revision: 'localfolderrevision',
+                timestamp: 1397210425612
+              }
+            },
+            '/foo/1': {
+              path: '/foo/1',
+              local: { body: '/foo/1', contentType: 'test/plain', timestamp: 1234567891000 }
+            }
+          }).then(() => {
+            setTimeout(function () {
+              env.rs.local.getNodes(['/foo/']).then(function(nodes) {
+                var node = nodes['/foo/'];
+                test.assertAnd(node.local.itemsMap, {
+                  '1': true,
+                  '2': true,
+                  '3': true,
+                  '4': true,
+                  '5': true,
+                  '6': true,
+                  '7': true,
+                  '8': true,
+                  '9': true,
+                  '10': true,
+                  '11': true,
+                });
+                env.rs.sync.doTask = tmpDoTask;
+                test.done()
+              });
+            }, 100)
+          });
+        }
+      },
+
+      {
+        desc: "calling handleResponse multiple times without waiting for it to return should only update index for latest change",
+        run: function(env, test) {
+          env.rs.caching._responses['/'] = 'ALL';
+          env.rs.caching._responses['/foo/'] = 'ALL';
+          env.rs.caching._responses['/foo/2'] = 'ALL';
+          env.rs.caching._responses['/foo/3'] = 'ALL';
+
+          const nodesFetched = [
+            {
+              path: '/foo/2',
+              action: 'get',
+              response: {statusCode: 200, body: { foo: 'new' }, contentType: 'application/json', revision: 'newrevision'},
+            },
+            {
+              path: '/foo/3',
+              action: 'get',
+              response: {statusCode: 200, body: { foo: 'new' }, contentType: 'application/json', revision: 'newrevision'},
+            }
+          ]
+
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              common: {
+                itemsMap: {
+                  '1': false,
+                },
+                revision: 'remotefolderrevision',
+                timestamp: 1397210425598,
+              },
+              local: {
+                itemsMap: {
+                  '1': true
+                },
+                revision: 'localfolderrevision',
+                timestamp: 1397210425612
+              }
+            },
+            '/foo/1': {
+              path: '/foo/1',
+              local: { body: {asdf: 'asdf'}, contentType: 'application/json', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            const promises = []
+            for (const node of nodesFetched){
+              promises.push(env.rs.sync.handleResponse(node.path, node.action, node.response))
+            }
+            return Promise.all(promises)
+          }).then(function(){
+            return env.rs.local.getNodes(['/foo/', '/foo/1', '/foo/2', '/foo/3'])
+          }).then(function(nodes) {
+            var parentNode = nodes['/foo/'];
+            test.assertAnd(parentNode.local.itemsMap, {
+              '1': true,
+              '3': true
+            });
+            test.assertType(nodes['/foo/2'], 'object');
+            test.assertType(nodes['/foo/3'], 'object');
+            test.done()
+          });
+        }
+      },
     ]
   });
 
