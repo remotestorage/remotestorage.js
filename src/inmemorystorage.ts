@@ -1,7 +1,7 @@
 import type { RSNode, RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import CachingLayer from './cachinglayer';
-import { applyMixins } from './util';
+import { applyMixins, deepClone } from './util';
 
 /**
  * In-memory caching adapter. Used when no IndexedDB or localStorage
@@ -23,7 +23,10 @@ class InMemoryStorage extends CachingLayer {
     const nodes: RSNodes = {};
 
     for (let i = 0, len = paths.length; i < len; i++) {
-      nodes[paths[i]] = this._storage[paths[i]];
+      // Should use a clone of whatever we are retrieving to prevent
+      // mutation, also to follow the same behavior as localStorage
+      // and indexeddb.
+      nodes[paths[i]] = deepClone(this._storage[paths[i]]);
     }
 
     return Promise.resolve(nodes);
