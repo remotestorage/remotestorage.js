@@ -44,6 +44,7 @@ declare class Sync {
     _tasks: object;
     _running: object;
     _timeStarted: object;
+    _finishedTasks: Array<SyncTask>;
     constructor(remoteStorage: object);
     now(): number;
     queueGetRequest(path: string): object;
@@ -76,7 +77,7 @@ declare class Sync {
     interpretStatus(statusCode: string | number): ResponseStatus;
     handleGetResponse(path: string, status: ResponseStatus, bodyOrItemsMap: any, contentType: string, revision: string): Promise<boolean>;
     handleResponse(path: string, action: any, r: any): Promise<boolean>;
-    finishTask(task: SyncTask): void | Promise<void>;
+    finishTask(task: SyncTask, queueTask?: boolean): void | Promise<void>;
     doTasks(): boolean;
     collectTasks(alsoCheckRefresh?: boolean): Promise<void>;
     addTask(path: string, cb?: any): void;
