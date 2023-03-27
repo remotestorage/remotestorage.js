@@ -8,7 +8,7 @@ dependencies:
   - python=3.8.5
   - pip:
     - MarkupSafe == 2.0.1
-    - sphinx-js >= 3.1
+    - "git+https://github.com/hoodmane/sphinx-js@typedoc-0.17#egg=sphinx-js"
     - sphinx-issues
     - sphinx-autobuild
     - sphinx_rtd_theme
