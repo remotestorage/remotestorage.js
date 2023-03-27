@@ -6,8 +6,10 @@ do support using it in a Node.js environment as well. See :doc:`this section
 </getting-started>` for getting started.
 
 .. HINT::
-   Node 18 includes `fetch` natively, but earlier versions do not, and so it 
-   may be necessary to set `global.fetch` with a polyfill such as 'node-fetch'.
+   Node 18 includes ``fetch`` natively, but earlier versions do not, and so it
+   may be necessary to set ``global.fetch`` with a polyfill such as `node-fetch`_.
+
+.. _node-fetch: https://www.npmjs.com/package/node-fetch
 
 The main difference between rs.js in a browser and using it on a server or in a
 CLI program is how to connect a storage. The RS protocol uses the OAuth
