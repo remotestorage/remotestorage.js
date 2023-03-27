@@ -6,6 +6,16 @@ Building
    section in ``package.json`` to learn about what they're doing exactly and
    what else is available.
 
+Setup
+-----------
+
+.. CODE:: console
+
+   $ npm install --force
+
+This will install all dependencies. We currently use the ``--force`` flag
+because of an issue with SphinxJS and TypeDoc (see :issue:`1276`).
+
 Development
 -----------
 
