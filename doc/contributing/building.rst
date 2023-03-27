@@ -13,7 +13,8 @@ Setup
 
    $ npm install --force
 
-This will install all dependencies. We currently use the --force flag because of an [issue with Sphinx/SphinxJS/Typescript/Typedoc](https://github.com/remotestorage/remotestorage.js/pull/1276#issue-1434430936).
+This will install all dependencies. We currently use the ``--force`` flag
+because of an issue with SphinxJS and TypeDoc (see :issue:`1276`).
 
 Development
 -----------
