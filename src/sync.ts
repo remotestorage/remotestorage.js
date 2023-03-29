@@ -932,7 +932,7 @@ class Sync {
         log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
         return this.handleResponse(task.path, task.action, { statusCode: 'offline' });
       })
-      .then(completed => {
+      .then(async (completed) => {
         this._finishedTasks.shift();
         delete this._timeStarted[task.path];
         delete this._running[task.path];
@@ -955,7 +955,7 @@ class Sync {
           return;
         }
 
-        this.collectTasks(false).then(() => {
+        await this.collectTasks(false).then(() => {
           // See if there are any more tasks that are not refresh tasks
           if (!this.hasTasks() || this.stopped) {
             log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
