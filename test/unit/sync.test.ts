@@ -1,5 +1,5 @@
 import 'mocha';
-import chai, { expect } from 'chai';
+import { expect } from 'chai';
 import sinon from 'sinon';
 import RemoteStorage from "../../src/remotestorage";
 import Sync from "../../src/sync";
@@ -26,7 +26,7 @@ describe("Sync", () => {
         "/example/one": {
           "action": "get",
           "path": "/example/one",
-          "promise": new Promise((resolve, reject) => {
+          "promise": new Promise(resolve => {
             resolve({
               "statusCode": 200,
               "body": "one",
@@ -38,18 +38,18 @@ describe("Sync", () => {
         "/example/two": {
           "action": "get",
           "path": "/example/two",
-          "promise": new Promise((resolve, reject) => {
+          "promise": new Promise(resolve => {
             resolve({ "statusCode": 500 });
           })
         }
-      }
+      };
       rs.sync._tasks = tasks;
-      rs.sync.doTasks = () => { return; }
+      rs.sync.doTasks = () => { return; };
     });
 
     afterEach(() => {
       rs.stopSync();
-    })
+    });
 
     describe("successfully completed", () => {
       it("emits 'sync-req-done' with the number of remaining tasks", async () => {
@@ -64,7 +64,7 @@ describe("Sync", () => {
 
       describe("last task", () => {
         beforeEach(() => {
-          rs.sync._tasks = { "/example/one": tasks["/example/one"] }
+          rs.sync._tasks = { "/example/one": tasks["/example/one"] };
         });
 
         it("marks the sync as done", async () => {
