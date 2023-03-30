@@ -391,8 +391,8 @@ describe('Dropbox backend', () => {
 
     it("returns an empty listing when the root folder doesn't exist", async () => {
       fetchMock.mock({name: 'postFolder', method: 'POST', url: FOLDER_URL}, {status: 409, body: JSON.stringify({
-          error_summary: 'path/not_found/..'
-        })});
+        error_summary: 'path/not_found/..'
+      })});
       const result = await dropbox.get('/');
 
       const calls = fetchMock.calls('postFolder');
@@ -407,8 +407,8 @@ describe('Dropbox backend', () => {
 
     it("returns an empty listing when a nested folder doesn't exist", async () => {
       fetchMock.mock({name: 'postFolder', method: 'POST', url: FOLDER_URL}, {status: 409, body: JSON.stringify({
-          error_summary: 'path/not_found/.'
-        })});
+        error_summary: 'path/not_found/.'
+      })});
       const result = await dropbox.get('/bookmarks/');
 
       const calls = fetchMock.calls('postFolder');
@@ -422,17 +422,6 @@ describe('Dropbox backend', () => {
     });
 
     it("makes as many requests as needed for folders with many entries", async () => {
-      fetchMock.config.overwriteRoutes = false;
-      fetchMock.mock(
-        {name: 'postFolder', method: 'POST', url: FOLDER_URL, repeat: 1},
-        {status: 200, body: JSON.stringify(payload(1, true))}
-      ).mock(
-        {method: 'POST', url: FOLDER_URL + '/continue', body: {cursor: 'cur1'}},
-        {status: 200, body: JSON.stringify(payload(2, true))}
-      ).mock(
-        {url: FOLDER_URL + '/continue', body: {cursor: 'cur2'}},
-        {status: 200, body: JSON.stringify(payload(3, false))}
-      );
       function payload(num: number, hasMore: boolean) {
         return {
           entries: [
@@ -461,6 +450,17 @@ describe('Dropbox backend', () => {
           cursor: 'cur' + num
         };
       }
+      fetchMock.config.overwriteRoutes = false;
+      fetchMock.mock(
+        {name: 'postFolder', method: 'POST', url: FOLDER_URL, repeat: 1},
+        {status: 200, body: JSON.stringify(payload(1, true))}
+      ).mock(
+        {method: 'POST', url: FOLDER_URL + '/continue', body: {cursor: 'cur1'}},
+        {status: 200, body: JSON.stringify(payload(2, true))}
+      ).mock(
+        {url: FOLDER_URL + '/continue', body: {cursor: 'cur2'}},
+        {status: 200, body: JSON.stringify(payload(3, false))}
+      );
       const result = await dropbox.get('/Category/');
 
       const calls = fetchMock.calls();
@@ -731,10 +731,10 @@ describe('Dropbox backend', () => {
       const result = await dropbox.get('/xyzzy');
 
       expect(configureSpy.callCount).to.equal(4);
-      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null)
-      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken)
-      expect(configureSpy.getCall(2).args[0]).to.have.property('token', null)
-      expect(configureSpy.getCall(3).args[0]).to.have.property('token', newAccessToken)
+      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null);
+      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken);
+      expect(configureSpy.getCall(2).args[0]).to.have.property('token', null);
+      expect(configureSpy.getCall(3).args[0]).to.have.property('token', newAccessToken);
 
       const getCalls = fetchMock.calls('getFile');
       expect(getCalls).to.have.lengthOf(3);
@@ -783,9 +783,9 @@ describe('Dropbox backend', () => {
       fetchMock.mock(
         {name: 'getFile', url: DOWNLOAD_URL},
         {status: 409, body: JSON.stringify({
-            "error_summary": "to/no_write_permission/..",
-            "error": {".tag": "to", "to": {".tag": "no_write_permission"}}
-          })}
+          "error_summary": "to/no_write_permission/..",
+          "error": {".tag": "to", "to": {".tag": "no_write_permission"}}
+        })}
       );
       await expect(dropbox.get('/thud')).to.be.rejectedWith(/no_write_permission/);
 
@@ -833,10 +833,10 @@ describe('Dropbox backend', () => {
       fetchMock.mock(
         {name: 'postFolder', method: 'POST', url: FOLDER_URL, repeat: 1},
         {status: 200, body: JSON.stringify({
-            entries: [...initialEntries,
-              {'.tag': 'file', path_lower: '/remotestorage/foo/bar', path_display: '/remotestorage/foo/bar', rev: '1'},
-            ]
-          })},
+          entries: [...initialEntries,
+            {'.tag': 'file', path_lower: '/remotestorage/foo/bar', path_display: '/remotestorage/foo/bar', rev: '1'},
+          ]
+        })},
         {repeat: 2}
       );
       await expect(dropbox.fetchDelta()).to.be.fulfilled;
@@ -875,9 +875,9 @@ describe('Dropbox backend', () => {
         {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}});
       fetchMock.mock({name: 'postSharing', method: 'POST', url: SHARING_URL},
         {status: 200, body: JSON.stringify({
-            name: 'announcement',
-            path_lower: '/remotestorage/public/announcement',
-            url: 'https://dropbox.sharing/url'
+          name: 'announcement',
+          path_lower: '/remotestorage/public/announcement',
+          url: 'https://dropbox.sharing/url'
         })});
       const result = await dropbox.get('/public/announcement');
 
@@ -894,7 +894,7 @@ describe('Dropbox backend', () => {
             clearTimeout(id);
             resolve(null);
           }
-        }, 5)
+        }, 5);
       });
       calls = fetchMock.calls();
       expect(calls[1][0]).to.equal(SHARING_URL);
@@ -974,9 +974,9 @@ describe('Dropbox backend', () => {
       fetchMock.mock(
         {name: 'postMetadata', method: 'POST', url: METADATA_URL},
         {status: 200, body: JSON.stringify({
-            ".tag": "file",
-            path_display: '/remotestorage/zom/baz', path_lower: '/remotestorage/zom/baz',
-            rev: '102'})}
+          ".tag": "file",
+          path_display: '/remotestorage/zom/baz', path_lower: '/remotestorage/zom/baz',
+          rev: '102'})}
       );
       const result = await dropbox.put('/zom/baz', 'data', 'text/plain', { ifMatch: '101' });
 
@@ -991,9 +991,9 @@ describe('Dropbox backend', () => {
       fetchMock.mock(
         {name: 'postMetadata', method: 'POST', url: METADATA_URL},
         {status: 200, body: JSON.stringify({
-            ".tag": "file",
-            path_display: '/remotestorage/mif/maf', path_lower: '/remotestorage/mif/maf',
-            rev: '101'})}
+          ".tag": "file",
+          path_display: '/remotestorage/mif/maf', path_lower: '/remotestorage/mif/maf',
+          rev: '101'})}
       );
       fetchMock.mock(
         {name: 'postUpload', method: 'POST', url: UPLOAD_URL},
@@ -1041,9 +1041,9 @@ describe('Dropbox backend', () => {
       fetchMock.mock(
         {name: 'postMetadata', method: 'POST', url: METADATA_URL},
         {status: 409, body: JSON.stringify({
-            error_summary: "path/not_found/",
-            error: {".tag": "path", path: {".tag": "not_found"}}
-          })}
+          error_summary: "path/not_found/",
+          error: {".tag": "path", path: {".tag": "not_found"}}
+        })}
       );
       fetchMock.mock(
         {name: 'postUpload', method: 'POST', url: UPLOAD_URL},
@@ -1076,9 +1076,9 @@ describe('Dropbox backend', () => {
       fetchMock.mock(
         {name: 'postUpload', method: 'POST', url: UPLOAD_URL},
         {status: 409, body: JSON.stringify({
-            "error": {".tag": "other"},
-            "error_summary": "other/..."}
-          )}
+          "error": {".tag": "other"},
+          "error_summary": "other/..."}
+        )}
       );
       const result = await dropbox.put('/titi/toto', 'more data', 'text/plain');
 
@@ -1108,8 +1108,8 @@ describe('Dropbox backend', () => {
       fetchMock.mock(
         {name: 'postDelete', method: 'POST', url: DELETE_URL},
         {status: 200, body: JSON.stringify({
-            '.tag': 'file', rev: '1001', name: 'ham',
-            path_display: "/remotestorage/spam/ham", path_lower: "/remotestorage/spam/ham"})}
+          '.tag': 'file', rev: '1001', name: 'ham',
+          path_display: "/remotestorage/spam/ham", path_lower: "/remotestorage/spam/ham"})}
       );
       const result = await dropbox.delete('/spam/ham');
 
@@ -1164,9 +1164,9 @@ describe('Dropbox backend', () => {
       fetchMock.mock(
         {name: 'postDelete', method: 'POST', url: DELETE_URL},
         {status: 409, body: JSON.stringify({
-            "error": {".tag": "too_many_write_operations"},
-            "error_summary": "too_many_write_operations/..."
-          })}
+          "error": {".tag": "too_many_write_operations"},
+          "error_summary": "too_many_write_operations/..."
+        })}
       );
       const result = await dropbox.delete('/widget/gadget');
 

@@ -85,5 +85,15 @@ module.exports = {
   "ignorePatterns": [
     "*.js",
     "node_modules/"
-  ]
+  ],
+  "overrides": [
+    {
+      "files": ["*.test.ts"],
+      "rules": {
+        "max-statements": 0,
+        "@typescript-eslint/no-empty-function": 0,
+        "@typescript-eslint/no-unused-vars": 1
+      }
+    }
+  ],
 };
