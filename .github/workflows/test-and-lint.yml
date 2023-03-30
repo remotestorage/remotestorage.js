@@ -25,7 +25,9 @@ jobs:
         run: npm test
       - name: Run mocha tests
         run: npm run test:mocha -- --exit
-      - name: Run linter
+      - name: Lint source code
         run: npm run lint:quiet
+      - name: Lint mocha specs
+        run: npm run lint:specs:quiet
       - name: Run webpack
         run: npm run build:release

@@ -17,6 +17,8 @@
     "test:watch": "mocha test/unit/*.test.ts --watch --reporter dot",
     "lint": "eslint --ext=ts src/",
     "lint:quiet": "eslint --quiet --ext=ts src/",
+    "lint:specs": "eslint test/unit/*.ts",
+    "lint:specs:quiet": "eslint --quiet test/unit/*.ts",
     "format": "esformatter --config esformatter-config.json -i src/sync.js",
     "build:js": "tsc -d --declarationDir release/types --declarationMap",
     "build:release": "NODE_ENV=production webpack --mode=production",
