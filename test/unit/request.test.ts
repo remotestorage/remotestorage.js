@@ -1,7 +1,6 @@
 import 'mocha';
 import chai, {expect} from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import {requestWithTimeout} from "../../src/requests";
 import config from "../../src/config";
@@ -30,7 +29,7 @@ describe("request", () => {
 
     it("fulfills requests, when they return before timeout", async () => {
       const URL = 'https://example.io/';
-      const BODY = 'Goodbye!'
+      const BODY = 'Goodbye!';
 
       fetchMock.mock({name: 'getFile', url: URL}, {status: 200, body: BODY});
       await expect(requestWithTimeout('GET', URL, {})).to.eventually.be.an('object').with.property('response', BODY);

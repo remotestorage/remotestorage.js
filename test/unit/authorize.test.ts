@@ -70,8 +70,8 @@ describe("authorization", () => {
       redirectUri: 'https://note.app.com/#CSRF-protection',
       clientId: 'opaque',
       code_challenge: 'ABCDEFGHI',
-      code_challenge_method: 'plain' as 'plain'
-    }
+      code_challenge_method: 'plain' as const
+    };
 
     Authorize.authorize(rs, options);
 
@@ -126,7 +126,7 @@ describe("authorization", () => {
     const CODE_VERIFIER = '5lk40gfpjfp4p9';
     sessionStorage.setItem('remotestorage:codeVerifier', CODE_VERIFIER);
 
-    const REDIRECT_URI = 'https://example.org/app/'
+    const REDIRECT_URI = 'https://example.org/app/';
     const CODE = 'fubar';
     document.location.href = `${REDIRECT_URI}?code=${CODE}&state=unused`;
 
