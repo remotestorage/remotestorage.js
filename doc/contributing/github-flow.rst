@@ -44,18 +44,21 @@ If there's no issue yet, create one first!
 Pulling changes
 ---------------
 
-Always use ``--rebase`` when pulling code from the org repo. That way
+Always use ``--rebase`` when pulling code from the remote repo. That way
 your local changes are added on top of the current history, avoiding
-merge commits and the mixing up the commit history. You can set up Git
-to use rebase by default by running
-``git config --global branch.autosetuprebase always`` once.
+merge commits and mixing up the commit history. You can set up Git
+to use rebase on every pull by default by running ``git config --global
+pull.rebase true`` once.
 
-The easiest way to update your local repository with all remote changes,
-including all branches – old and new – is a tool called
-`git-up <https://github.com/aanand/git-up>`__. With that installed you
-can just run ``git up`` instead of ``git pull [options]``, which will
-fetch all branches from all remotes and rebase your commits on top of
-them (as well as stash and unstash uncommitted code, if necessary).
+If you also add the ``autostash`` option, Git will stash any changed files
+before the pull and unstash them afterwards: ``git config --global
+rebase.autoStash true``.
+
+If you don't want to configure both options globally, or you prefer a catchier
+command name for updating a repository with remote changes, we recommend
+configuring an alias, like so: ``git config --global alias.up 'pull --rebase
+--autostash'``. Now you can simply run ``git up`` in select repos, or
+everywhere.
 
 Commit messages
 ---------------
@@ -85,27 +88,20 @@ Reviewing pull requests
 -----------------------
 
 -  Check if it works, if it has unit tests, if the tests pass, and if
-   JSHint and CodeClimate are happy.
+   the linter is happy.
 -  Check if the code is understandable, with clear and unambiguous names for
    functions and variables, and that it has TypeDoc comments and a changelog
    entry.
--  If you use ``git up``, like recommended above, it will automatically
-   create tracked branches for all remote branches. So in order to
-   review/test a branch on the org repo, just do
-   ``git checkout [branchname]``. You can then also add new commits to
-   that branch and push them in order to add your changes to the pull
-   request.
--  If the pull request was issued from a user's own repository, you'll
-   have to fetch the code from there, of course. If you haven't pulled
-   from that user yet, you can add a new remote for the user with
-   ``git remote add [username] [repo-url]``. After that, ``git up`` will
-   fetch code from that remote as well, so you can then check it out
+-  If the pull request was issued from a user's own repository, you will
+   have to fetch the code from there. If you haven't pulled
+   from their fork previously, you can add a new remote for it with
+   ``git remote add [username] [repo-url]``. Then, ``git fetch [username]``
+   will fetch code from this remote, so you can then check out their branch
    using ``git checkout [username]/branchname``.
-
-(This will put you in a so-called 'detached HEAD' state, but don't
-worry, everything is fine! If you want to work on that code, just create
-a new branch from there with the command Git shows you then, or just go
-back to your code with e.g. ``git checkout master`` later.)
+-  This will put you in a so-called 'detached HEAD' state, but don't
+   worry, everything is fine! If you want to work on that code, just create a
+   new branch from there with the command Git tells you then, or just go back
+   to your code with e.g. ``git checkout master`` later.)
 
 Merging pull requests
 ---------------------
