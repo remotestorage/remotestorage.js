@@ -914,7 +914,7 @@ class Sync {
       return;
     }
 
-    if (queueTask){
+    if (queueTask) {
       log("[Sync] queue finished task:", task.path);
       this._finishedTasks.push(task);
       if (this._finishedTasks.length > 1) {
@@ -932,7 +932,7 @@ class Sync {
         log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
         return this.handleResponse(task.path, task.action, { statusCode: 'offline' });
       })
-      .then(completed => {
+      .then(async (completed) => {
         this._finishedTasks.shift();
         delete this._timeStarted[task.path];
         delete this._running[task.path];
@@ -946,20 +946,22 @@ class Sync {
           }
         }
 
-        this.rs._emit('sync-req-done');
+        this.rs._emit('sync-req-done', {
+          tasksRemaining: Object.keys(this._tasks).length
+        });
 
         if (this._finishedTasks.length > 0) {
           this.finishTask(this._finishedTasks[0], false);
           return;
         }
 
-        this.collectTasks(false).then(() => {
+        await this.collectTasks(false).then(() => {
           // See if there are any more tasks that are not refresh tasks
           if (!this.hasTasks() || this.stopped) {
             log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
             if (!this.done) {
               this.done = true;
-              this.rs._emit('sync-done');
+              this.rs._emit('sync-done', { completed: true });
             }
           } else {
             // Use a 10ms timeout to let the JavaScript runtime catch its breath
@@ -970,17 +972,23 @@ class Sync {
         });
       }, err => {
         log('[Sync] Error', err);
+
         this._finishedTasks.shift();
         delete this._timeStarted[task.path];
         delete this._running[task.path];
-        this.rs._emit('sync-req-done');
+
+        this.rs._emit('sync-req-done', {
+          tasksRemaining: Object.keys(this._tasks).length
+        });
+
         if (this._finishedTasks.length > 0) {
           this.finishTask(this._finishedTasks[0], false);
           return;
         }
+
         if (!this.done) {
           this.done = true;
-          this.rs._emit('sync-done');
+          this.rs._emit('sync-done', { completed: false });
         }
       });
   }
