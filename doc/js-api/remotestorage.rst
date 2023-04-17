@@ -117,12 +117,44 @@ List of events
 
 ``sync-req-done``
 """""""""""""""""
-   Emitted when a single sync request has finished
+   Emitted when a single sync request has finished. Callback functions
+   receive an object as argument, informing the client of remaining items
+   in the current sync task queue.
+
+   Example::
+
+      remoteStorage.on('sync-req-done', result => console.log(result));
+
+      // { tasksRemaining: 21 }
+
+   .. NOTE::
+      The internal task queue holds at most 100 items at the same time,
+      regardless of the overall amount of items to sync. Therefore, this number
+      is only an indicator of sync status, not a precise amount of items left
+      to sync. It can be useful to determine if your app should display any
+      kind of sync status/progress information for the cycle or not.
 
 ``sync-done``
 """""""""""""
-   Emitted when all tasks of a sync have been completed and a new sync
-   is scheduled
+   Emitted when a sync cycle has been completed and a new sync is scheduled.
+
+   The callback function receives an object as argument, informing the client
+   if the sync process has completed successfully or not.
+
+   Example::
+
+      remoteStorage.on('sync-done', result => console.log(result));
+
+      // { completed: true }
+
+   If ``completed`` is ``false``, it means that some of the sync requests have
+   failed and will be retried in the next sync cycle (usually a few seconds
+   later in this case). This is not an unusual scenario on mobile networks or
+   when doing a large initial sync for example.
+
+   For an app's user interface, you may want to consider the sync process as
+   ongoing in this case, and wait until your app sees a positive ``completed``
+   status before updating the UI.
 
 ``network-offline``
 """""""""""""""""""
