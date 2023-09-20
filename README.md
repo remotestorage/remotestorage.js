@@ -44,7 +44,7 @@ remoteStorage server implementation: [Servers](https://wiki.remotestorage.io/Ser
 
 ### Visual File Browser
 
-If you'd like a visual UI for inspecting any RS-compatible server, you can try out [RS Inspektor](https://inspektor.5apps.com) or [build it from source](https://gitea.kosmos.org/raucao/inspektor), Feel free to ask questions or propose features for this app on the [RS forums](https://community.remotestorage.io)!
+If you'd like a visual UI for inspecting any RS-compatible account, you can use the [RS Inspektor](https://gitea.kosmos.org/raucao/inspektor) app (which is also implemented using this library).
 
 ### Developing, Contributing
 
