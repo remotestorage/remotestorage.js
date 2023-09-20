@@ -42,6 +42,10 @@ local test server, or for self-hosting an RS server.
 You can also get an account with a hoster, or use another
 remoteStorage server implementation: [Servers](https://wiki.remotestorage.io/Servers).
 
+### Visual File Browser
+
+If you'd like a visual UI for inspecting any RS-compatible account, you can use the [RS Inspektor](https://gitea.kosmos.org/raucao/inspektor) app (which is also implemented using this library).
+
 ### Developing, Contributing
 
 remoteStorage.js is a grassroots project, developed by the community, for the
