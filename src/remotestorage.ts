@@ -21,6 +21,7 @@ import LocalStorage from './localstorage';
 import EventHandling from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
+import Solid from './solid';
 import Discover from './discover';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
@@ -89,9 +90,9 @@ class RemoteStorage {
   _pathHandlers: { [key: string]: any } = { change: {} };
 
   /**
-   * Holds OAuth app keys for Dropbox, Google Drive
+   * Holds OAuth app keys for Dropbox, Google Drive, Solid
    */
-  apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}} = {};
+  apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}; solid?: {providers?: Array<{name: string; authURL: string}>; allowAnyProvider?: boolean}} = {};
 
   /**
    * Holds the feature class instance, added by feature initialization
@@ -115,10 +116,10 @@ class RemoteStorage {
   put: any;
   delete: any;
 
-  backend: 'remotestorage' | 'dropbox' | 'googledrive';
+  backend: 'remotestorage' | 'dropbox' | 'googledrive' | 'solid';
 
   /**
-   * Holds a WireClient, GoogleDrive or Dropbox instance, added by feature initialization
+   * Holds a WireClient, GoogleDrive, Dropbox or Solid instance, added by feature initialization
    */
   remote: Remote;
 
@@ -132,6 +133,7 @@ class RemoteStorage {
 
   dropbox: Dropbox;
   googledrive: GoogleDrive;
+  solid: Solid;
 
   fireInitial;
 
@@ -244,7 +246,7 @@ class RemoteStorage {
    * Initiate the OAuth authorization flow.
    *
    * This function is called by custom storage backend implementations
-   * (e.g. Dropbox or Google Drive).
+   * (e.g. Dropbox, Google Drive or Solid).
    *
    * @param {object} options
    * @param {string} options.authURL - URL of the authorization endpoint
@@ -299,7 +301,7 @@ class RemoteStorage {
    * @property {object} remote
    *
    * Depending on the chosen backend, this is either an instance of ``WireClient``,
-   * ``Dropbox`` or ``GoogleDrive``.
+   * ``Dropbox``, ``GoogleDrive`` or ``Solid``.
    *
    * @property {boolean} remote.connected - Whether or not a remote store is connected
    * @property {boolean} remote.online - Whether last sync action was successful or not
@@ -519,14 +521,14 @@ class RemoteStorage {
   }
 
   /**
-   * Set the OAuth key/ID for either GoogleDrive or Dropbox backend support.
+   * Set the OAuth key/ID for either GoogleDrive, Dropbox or Solid backend support.
    *
    * @param {Object} apiKeys - A config object with these properties:
-   * @param {string} [apiKeys.type] - Backend type: 'googledrive' or 'dropbox'
+   * @param {string} [apiKeys.type] - Backend type: 'googledrive', 'dropbox' or 'solid'
    * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
    */
-  setApiKeys (apiKeys: {[key in ApiKeyType]?: string}): void | boolean {
-    const validTypes: string[] = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX];
+  setApiKeys (apiKeys: {[key in ApiKeyType]?: string}): void | boolean { // TODO fix the input type
+    const validTypes: string[] = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX, ApiKeyType.SOLID];
     if (typeof apiKeys !== 'object' || !Object.keys(apiKeys).every(type => validTypes.includes(type))) {
       console.error('setApiKeys() was called with invalid arguments') ;
       return false;
@@ -549,6 +551,13 @@ class RemoteStorage {
           if (typeof this.googledrive === 'undefined' ||
             this.googledrive.clientId !== key) {
             GoogleDrive._rs_init(this);
+          }
+          break;
+        case ApiKeyType.SOLID:
+          this.apiKeys[ApiKeyType.SOLID] = key;
+          if (typeof this.solid === 'undefined' ||
+            this.solid.providers != key) {
+            Solid._rs_init(this);
           }
           break;
       }
@@ -965,7 +974,8 @@ applyMixins(RemoteStorage, [EventHandling]);
 
 enum ApiKeyType {
   GOOGLE = 'googledrive',
-  DROPBOX = 'dropbox'
+  DROPBOX = 'dropbox',
+  SOLID = 'solid'
 }
 
 export = RemoteStorage;
