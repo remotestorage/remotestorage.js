@@ -163,19 +163,16 @@ function unHookGetItemURL (rs): void {
  * });
 **/
 class Solid extends RemoteBase implements Remote {
-  providers: {providers?: Array<{name: string; authURL: string}>; allowAnyProvider?: boolean};
   authURL: string;
   token: string;
 
   _fileIdCache: FileIdCache;
 
-  constructor(remoteStorage, providers) {
+  constructor(remoteStorage) {
     super(remoteStorage);
     this.online = true;
     this.storageApi = 'draft-dejong-remotestorage-19';
     this.addEvents(['connected', 'not-connected']);
-
-    this.providers = providers;
 
     this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
 
@@ -751,15 +748,12 @@ class Solid extends RemoteBase implements Remote {
    * @protected
    */
   static _rs_init (remoteStorage): void {
-    const config = remoteStorage.apiKeys.solid;
-    if (config) {
-      remoteStorage.solid = new Solid(remoteStorage, config);
-      if (remoteStorage.backend === 'solid') {
-        remoteStorage._origRemote = remoteStorage.remote;
-        remoteStorage.remote = remoteStorage.solid;
+    remoteStorage.solid = new Solid(remoteStorage);
+    if (remoteStorage.backend === 'solid') {
+      remoteStorage._origRemote = remoteStorage.remote;
+      remoteStorage.remote = remoteStorage.solid;
 
-        hookGetItemURL(remoteStorage);
-      }
+      hookGetItemURL(remoteStorage);
     }
   }
 

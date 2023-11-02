@@ -90,9 +90,9 @@ class RemoteStorage {
   _pathHandlers: { [key: string]: any } = { change: {} };
 
   /**
-   * Holds OAuth app keys for Dropbox, Google Drive, Solid
+   * Holds OAuth app keys for Dropbox, Google Drive
    */
-  apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}; solid?: {providers?: Array<{name: string; authURL: string}>; allowAnyProvider?: boolean}} = {};
+  apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}} = {};
 
   /**
    * Holds the feature class instance, added by feature initialization
@@ -520,15 +520,28 @@ class RemoteStorage {
     log.apply(RemoteStorage, args);
   }
 
+  setSolidAuthURL(authURL: string) {
+    if (!authURL) {
+      return;
+    }
+
+    Solid._rs_init(this);
+    this.solid.setAuthURL(authURL);
+
+    if (hasLocalStorage) {
+      localStorage.setItem('remotestorage:solid-auth-url', authURL); // TODO
+    }
+  }
+
   /**
    * Set the OAuth key/ID for either GoogleDrive, Dropbox or Solid backend support.
    *
    * @param {Object} apiKeys - A config object with these properties:
-   * @param {string} [apiKeys.type] - Backend type: 'googledrive', 'dropbox' or 'solid'
+   * @param {string} [apiKeys.type] - Backend type: 'googledrive' or 'dropbox'
    * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
    */
   setApiKeys (apiKeys: {[key in ApiKeyType]?: string}): void | boolean { // TODO fix the input type
-    const validTypes: string[] = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX, ApiKeyType.SOLID];
+    const validTypes: string[] = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX];
     if (typeof apiKeys !== 'object' || !Object.keys(apiKeys).every(type => validTypes.includes(type))) {
       console.error('setApiKeys() was called with invalid arguments') ;
       return false;
@@ -551,13 +564,6 @@ class RemoteStorage {
           if (typeof this.googledrive === 'undefined' ||
             this.googledrive.clientId !== key) {
             GoogleDrive._rs_init(this);
-          }
-          break;
-        case ApiKeyType.SOLID:
-          this.apiKeys[ApiKeyType.SOLID] = key;
-          if (typeof this.solid === 'undefined' ||
-            this.solid.providers != key) {
-            Solid._rs_init(this);
           }
           break;
       }
@@ -974,8 +980,7 @@ applyMixins(RemoteStorage, [EventHandling]);
 
 enum ApiKeyType {
   GOOGLE = 'googledrive',
-  DROPBOX = 'dropbox',
-  SOLID = 'solid'
+  DROPBOX = 'dropbox'
 }
 
 export = RemoteStorage;

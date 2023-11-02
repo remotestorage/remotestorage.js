@@ -9125,7 +9125,7 @@ class RemoteStorage {
          */
         this._pathHandlers = { change: {} };
         /**
-         * Holds OAuth app keys for Dropbox, Google Drive, Solid
+         * Holds OAuth app keys for Dropbox, Google Drive
          */
         this.apiKeys = {};
         //
@@ -9489,15 +9489,25 @@ class RemoteStorage {
     log(...args) {
         log_1.default.apply(RemoteStorage, args);
     }
+    setSolidAuthURL(authURL) {
+        if (!authURL) {
+            return;
+        }
+        solid_1.default._rs_init(this);
+        this.solid.setAuthURL(authURL);
+        if (hasLocalStorage) {
+            localStorage.setItem('remotestorage:solid-auth-url', authURL); // TODO
+        }
+    }
     /**
      * Set the OAuth key/ID for either GoogleDrive, Dropbox or Solid backend support.
      *
      * @param {Object} apiKeys - A config object with these properties:
-     * @param {string} [apiKeys.type] - Backend type: 'googledrive', 'dropbox' or 'solid'
+     * @param {string} [apiKeys.type] - Backend type: 'googledrive' or 'dropbox'
      * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
      */
     setApiKeys(apiKeys) {
-        const validTypes = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX, ApiKeyType.SOLID];
+        const validTypes = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX];
         if (typeof apiKeys !== 'object' || !Object.keys(apiKeys).every(type => validTypes.includes(type))) {
             console.error('setApiKeys() was called with invalid arguments');
             return false;
@@ -9521,13 +9531,6 @@ class RemoteStorage {
                     if (typeof this.googledrive === 'undefined' ||
                         this.googledrive.clientId !== key) {
                         googledrive_1.default._rs_init(this);
-                    }
-                    break;
-                case ApiKeyType.SOLID:
-                    this.apiKeys[ApiKeyType.SOLID] = key;
-                    if (typeof this.solid === 'undefined' ||
-                        this.solid.providers != key) {
-                        solid_1.default._rs_init(this);
                     }
                     break;
             }
@@ -9904,7 +9907,6 @@ var ApiKeyType;
 (function (ApiKeyType) {
     ApiKeyType["GOOGLE"] = "googledrive";
     ApiKeyType["DROPBOX"] = "dropbox";
-    ApiKeyType["SOLID"] = "solid";
 })(ApiKeyType || (ApiKeyType = {}));
 module.exports = RemoteStorage;
 
@@ -10441,7 +10443,12 @@ function unHookGetItemURL(rs) {
 /**
  * @class Solid
  *
- * To use this backend, you need to specify the valid identity providers like so:
+ * To use this backend, you need to specify the authURL like so:
+ *
+ * @example
+ * remoteStorage.setAuthURL('https://login.example.com');
+ *
+ * In order to set the Solid options for the widget you have to specify the valid options like so:
  *
  * @example
  * remoteStorage.setApiKeys({
@@ -10457,12 +10464,11 @@ function unHookGetItemURL(rs) {
  * });
 **/
 class Solid extends remote_1.RemoteBase {
-    constructor(remoteStorage, providers) {
+    constructor(remoteStorage) {
         super(remoteStorage);
         this.online = true;
         this.storageApi = 'draft-dejong-remotestorage-19';
         this.addEvents(['connected', 'not-connected']);
-        this.providers = providers;
         this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
         hasLocalStorage = (0, util_1.localStorageAvailable)();
         if (hasLocalStorage) {
@@ -10527,6 +10533,13 @@ class Solid extends remote_1.RemoteBase {
         else {
             handleError.apply(this);
         }
+    }
+    /**
+     * Set the auth URL
+     * @param {string} authURL - Auth URL
+     */
+    setAuthURL(authURL) {
+        this.authURL = authURL;
     }
     /**
      * Initiate the authorization flow's OAuth dance.
@@ -11011,14 +11024,11 @@ class Solid extends remote_1.RemoteBase {
      * @protected
      */
     static _rs_init(remoteStorage) {
-        const config = remoteStorage.apiKeys.solid;
-        if (config) {
-            remoteStorage.solid = new Solid(remoteStorage, config);
-            if (remoteStorage.backend === 'solid') {
-                remoteStorage._origRemote = remoteStorage.remote;
-                remoteStorage.remote = remoteStorage.solid;
-                hookGetItemURL(remoteStorage);
-            }
+        remoteStorage.solid = new Solid(remoteStorage);
+        if (remoteStorage.backend === 'solid') {
+            remoteStorage._origRemote = remoteStorage.remote;
+            remoteStorage.remote = remoteStorage.solid;
+            hookGetItemURL(remoteStorage);
         }
     }
     /**
