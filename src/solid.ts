@@ -142,7 +142,12 @@ function unHookGetItemURL (rs): void {
 /**
  * @class Solid
  *
- * To use this backend, you need to specify the valid identity providers like so:
+ * To use this backend, you need to specify the authURL like so:
+ * 
+ * @example
+ * remoteStorage.setAuthURL('https://login.example.com');
+ * 
+ * In order to set the Solid options for the widget you have to specify the valid options like so:
  *
  * @example
  * remoteStorage.setApiKeys({
@@ -159,6 +164,7 @@ function unHookGetItemURL (rs): void {
 **/
 class Solid extends RemoteBase implements Remote {
   providers: {providers?: Array<{name: string; authURL: string}>; allowAnyProvider?: boolean};
+  authURL: string;
   token: string;
 
   _fileIdCache: FileIdCache;
@@ -236,6 +242,14 @@ class Solid extends RemoteBase implements Remote {
     } else {
       handleError.apply(this);
     }
+  }
+
+  /**
+   * Set the auth URL
+   * @param {string} authURL - Auth URL
+   */
+  setAuthURL(authURL: string): void {
+    this.authURL = authURL;
   }
 
   /**
