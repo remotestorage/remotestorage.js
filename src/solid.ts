@@ -1,3 +1,22 @@
+import {
+  login,
+  handleIncomingRedirect,
+  getDefaultSession,
+  fetch
+} from "@inrupt/solid-client-authn-browser";
+import {
+  addUrl,
+  addStringNoLocale,
+  createSolidDataset,
+  createThing,
+  getPodUrlAll,
+  getSolidDataset,
+  getThingAll,
+  getStringNoLocale,
+  removeThing,
+  saveSolidDatasetAt,
+  setThing
+} from "@inrupt/solid-client";
 import BaseClient from './baseclient';
 import EventHandling from './eventhandling';
 import {
@@ -255,6 +274,12 @@ class Solid extends RemoteBase implements Remote {
   connect (): void {
     this.rs.setBackend('solid');
     // TODO authorize
+    login({
+      oidcIssuer: this.authURL,
+      redirectUrl: new URL("/", window.location.href).toString(),
+      clientName: "Remote Storage"
+    });
+
     //this.rs.authorize({ authURL: AUTH_URL, scope: AUTH_SCOPE, clientId: this.clientId });
   }
 
@@ -754,6 +779,17 @@ class Solid extends RemoteBase implements Remote {
       remoteStorage.remote = remoteStorage.solid;
 
       hookGetItemURL(remoteStorage);
+
+      (async () => {
+        await handleIncomingRedirect();
+        const session = getDefaultSession();
+        if (session.info.isLoggedIn) {
+          console.log('LOGGGGGED INNNNNNNNN: ');
+          const webId = session.info.webId;
+          const mypods = await getPodUrlAll(webId, { fetch: fetch });
+          console.log('pods: ', mypods[0]);
+        }
+      })();
     }
   }
 
