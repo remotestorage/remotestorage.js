@@ -300,7 +300,7 @@ define(['./build/config', './build/inmemorystorage'], function (config, InMemory
             test.assertAnd(Object.keys(storage), storageKeys);
 
             return env.ims.delete('/foo/bar/baz').then(function (r) {
-              test.assertAnd(r.statusCode, 200, 'Wrong statusCode: '+r.statusCode); //TODO belongs in seperate test
+              test.assertAnd(r.statusCode, 200, 'Wrong statusCode: '+r.statusCode); //TODO belongs in separate test
               test.assertAnd(getLatest(storage['/foo/bar/baz']), undefined);
               test.assertAnd(getLatest(storage['/foo/bar/']).itemsMap, {});
               test.assertAnd(getLatest(storage['/foo/']).itemsMap, {});
