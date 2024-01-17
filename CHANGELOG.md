@@ -95,7 +95,7 @@ Many thanks to @iLiviu for contributing all fixes in this release!
 * `RemoteStorage.defineModule` is no more, and both declaring modules and
   loading them in apps can now be done with a new, improved API. (#974)
 * The connect widget is not part of the core library anymore, but has moved to
-  a seperate add-on library (#862)
+  a separate add-on library (#862)
 * Error events (e.g. unauthorized, sync error, etc.) are identified by name
   instead of type now (#984)
 * Network request timeouts are configured via the `setRequestTimeout` method
