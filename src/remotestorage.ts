@@ -145,7 +145,7 @@ class RemoteStorage {
     if (typeof cfg === 'object') { extend(config, cfg); }
 
     this.addEvents([
-      'ready', 'authing', 'connecting', 'connected', 'disconnected',
+      'ready', 'authing', 'connecting', 'pod-not-selected', 'connected', 'disconnected',
       'not-connected', 'conflict', 'error', 'features-loaded',
       'sync-interval-change', 'sync-req-done', 'sync-done',
       'wire-busy', 'wire-done', 'network-offline', 'network-online'
@@ -194,6 +194,13 @@ class RemoteStorage {
           case 'not-connected':
             if (this.remote && !this.remote.connected) {
               setTimeout(handler, 0);
+            }
+            break;
+          case 'pod-not-selected':
+            if ((this.remote instanceof Solid)
+              && this.remote.getPodURLs().length > 0
+              && this.remote.getPodURL() == null) {
+                setTimeout(handler, 0);
             }
             break;
         }

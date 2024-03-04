@@ -184,6 +184,8 @@ function unHookGetItemURL (rs): void {
 class Solid extends RemoteBase implements Remote {
   authURL: string;
   token: string;
+  podURLs: string[] = [];
+  selectedPodURL: string;
 
   _fileIdCache: FileIdCache;
 
@@ -191,7 +193,7 @@ class Solid extends RemoteBase implements Remote {
     super(remoteStorage);
     this.online = true;
     this.storageApi = 'draft-dejong-remotestorage-19';
-    this.addEvents(['connected', 'not-connected']);
+    this.addEvents(['connected', 'not-connected', 'pod-not-selected']);
 
     this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
 
@@ -266,6 +268,24 @@ class Solid extends RemoteBase implements Remote {
    */
   setAuthURL(authURL: string): void {
     this.authURL = authURL;
+  }
+
+  /**
+   * 
+   * @returns Get the list of pod URLs
+   */
+  getPodURLs(): string[] {
+    return this.podURLs;
+  }
+
+  setPodURL(podURL: string): void {
+    this.selectedPodURL = podURL;
+    console.log('pod URL selected: "' + podURL + '"');
+    this._emit('connected');
+  }
+
+  getPodURL(): string|null {
+    return this.selectedPodURL;
   }
 
   /**
@@ -786,8 +806,10 @@ class Solid extends RemoteBase implements Remote {
         if (session.info.isLoggedIn) {
           console.log('LOGGGGGED INNNNNNNNN: ');
           const webId = session.info.webId;
-          const mypods = await getPodUrlAll(webId, { fetch: fetch });
-          console.log('pods: ', mypods[0]);
+          remoteStorage.solid.userAddress = webId;
+          remoteStorage.solid.podURLs = await getPodUrlAll(webId, { fetch: fetch });
+          console.log('pods: ', remoteStorage.solid.podURLs);
+          remoteStorage._emit('pod-not-selected');
         }
       })();
     }
