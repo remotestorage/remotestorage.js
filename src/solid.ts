@@ -1,8 +1,6 @@
 import {
-  login,
-  handleIncomingRedirect,
-  getDefaultSession,
-  fetch
+  InMemoryStorage,
+  Session
 } from "@inrupt/solid-client-authn-browser";
 import {
   addUrl,
@@ -30,6 +28,8 @@ import {
 } from './util';
 import {requestWithTimeout, RequestOptions} from "./requests";
 import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
+import ConfigObserver from "./solid/configObserver";
+import ConfigStorage from "./solid/solidStorage";
 
 const BASE_URL = 'https://www.googleapis.com';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -181,11 +181,13 @@ function unHookGetItemURL (rs): void {
  *   }
  * });
 **/
-class Solid extends RemoteBase implements Remote {
+class Solid extends RemoteBase implements Remote, ConfigObserver {
   authURL: string;
-  token: string;
   podURLs: string[] = [];
   selectedPodURL: string;
+  sessionProperties: object;
+  configStorage: ConfigStorage;
+  session: Session;
 
   _fileIdCache: FileIdCache;
 
@@ -196,6 +198,12 @@ class Solid extends RemoteBase implements Remote {
     this.addEvents(['connected', 'not-connected', 'pod-not-selected']);
 
     this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
+    
+    this.configStorage = new ConfigStorage(this);
+    this.session = new Session({
+      secureStorage: new InMemoryStorage(),
+      insecureStorage: this.configStorage
+    }, 'any');
 
     hasLocalStorage = localStorageAvailable();
 
@@ -207,56 +215,100 @@ class Solid extends RemoteBase implements Remote {
     }
   }
 
+  onConfigChanged(config: string): void {
+    if (config) {
+      const sessionConfig = JSON.parse(config);
+
+      if (typeof sessionConfig.clientSecret !== 'undefined') {
+        let settings = getJSONFromLocalStorage(SETTINGS_KEY);
+
+        if (!settings) {
+          settings = { };
+        }
+
+        settings.href = this.authURL;
+        settings.properties = {
+          sessionProperties: sessionConfig,
+          podURL: this.selectedPodURL
+        };
+
+        this.sessionProperties = sessionConfig;
+
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        return;
+      }
+    }
+
+    localStorage.removeItem(SETTINGS_KEY);
+  }
+
   /**
-   * Configure the Google Drive backend.
-   *
-   * Fetches the user info from Google when no ``userAddress`` is given.
+   * Configure the Solid backend.
    *
    * @param {Object} settings
-   * @param {string} [settings.userAddress] - The user's email address
-   * @param {string} [settings.token] - Authorization token
+   * @param {string} [settings.userAddress] - The user's identity prodiver URL
+   * @param {string} [settings.href] - The authURL
+   * @param {object} [settings.properties] - All storage for Inrupt session is saved into properties plus the pod URL
    *
    * @protected
    */
   configure (settings: RemoteSettings) { // Settings parameter compatible with WireClient
+    // TODO fix comments
     // We only update this.userAddress if settings.userAddress is set to a string or to null
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
+    // We only update this.userAddress if settings.userAddress is set to a string or to null
+    if (typeof settings.href !== 'undefined') { this.authURL = settings.href; }
     // Same for this.token. If only one of these two is set, we leave the other one at its existing value
-    if (typeof settings.token !== 'undefined') { this.token = settings.token as string; }
+    if (typeof settings.properties !== 'undefined') {
+      const properties = settings.properties as {sessionProperties: object, podURL: string};
+
+      if (properties) {
+        if (typeof properties.sessionProperties !== 'undefined') {
+          this.sessionProperties = properties.sessionProperties;
+        }
+        else {
+          this.sessionProperties = null;
+        }
+        if (typeof properties.podURL !== 'undefined') {
+          this.selectedPodURL = properties.podURL;
+        }
+        else {
+          this.selectedPodURL = null;
+        }
+      }
+      else {
+        this.sessionProperties = null;
+        this.selectedPodURL = null;
+      }
+    }
 
     const writeSettingsToCache = function() {
       if (hasLocalStorage) {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify({
           userAddress: this.userAddress,
-          token: this.token
+          href: this.authURL,
+          properties: {
+            sessionProperties: this.sessionProperties,
+            podURL: this.selectedPodURL
+          }
         }));
       }
     };
 
     const handleError = function() {
       this.connected = false;
-      delete this.token;
+      this.sessionProperties = null;
       if (hasLocalStorage) {
         localStorage.removeItem(SETTINGS_KEY);
       }
     };
 
-    if (this.token) {
-      this.connected = true;
+    if (this.sessionProperties) {
+      this.configStorage.setConfig(JSON.stringify(this.sessionProperties));
+      this.connected = false;
 
-      if (this.userAddress) {
-        this._emit('connected');
-        writeSettingsToCache.apply(this);
-      } else {
-        this.info().then((info) => {
-          this.userAddress = info.user.emailAddress;
-          this._emit('connected');
-          writeSettingsToCache.apply(this);
-        }).catch(() => {
-          handleError.apply(this);
-          this.rs._emit('error', new Error('Could not fetch user info.'));
-        });
-      }
+      // TODO this.connect();
+      writeSettingsToCache.apply(this);
     } else {
       handleError.apply(this);
     }
@@ -280,7 +332,23 @@ class Solid extends RemoteBase implements Remote {
 
   setPodURL(podURL: string): void {
     this.selectedPodURL = podURL;
-    console.log('pod URL selected: "' + podURL + '"');
+
+    if (this.session.info && this.session.info.isLoggedIn) {
+      let settings = getJSONFromLocalStorage(SETTINGS_KEY);
+      if (!settings) {
+        settings = { };
+      }
+
+      settings.userAddress = this.session.info.webId;
+      settings.href = this.authURL;
+      settings.properties = {
+        sessionProperties: this.sessionProperties,
+        podURL: this.selectedPodURL
+      };
+
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    }
+
     this._emit('connected');
   }
 
@@ -293,14 +361,12 @@ class Solid extends RemoteBase implements Remote {
    */
   connect (): void {
     this.rs.setBackend('solid');
-    // TODO authorize
-    login({
+    
+    this.session.login({
       oidcIssuer: this.authURL,
       redirectUrl: new URL("/", window.location.href).toString(),
       clientName: "Remote Storage"
     });
-
-    //this.rs.authorize({ authURL: AUTH_URL, scope: AUTH_SCOPE, clientId: this.clientId });
   }
 
   /**
@@ -793,7 +859,8 @@ class Solid extends RemoteBase implements Remote {
    * @protected
    */
   static _rs_init (remoteStorage): void {
-    remoteStorage.solid = new Solid(remoteStorage);
+    const solid = new Solid(remoteStorage);
+    remoteStorage.solid = solid;
     if (remoteStorage.backend === 'solid') {
       remoteStorage._origRemote = remoteStorage.remote;
       remoteStorage.remote = remoteStorage.solid;
@@ -801,15 +868,22 @@ class Solid extends RemoteBase implements Remote {
       hookGetItemURL(remoteStorage);
 
       (async () => {
-        await handleIncomingRedirect();
-        const session = getDefaultSession();
+        const session = solid.session;
+        await session.handleIncomingRedirect();
         if (session.info.isLoggedIn) {
-          console.log('LOGGGGGED INNNNNNNNN: ');
           const webId = session.info.webId;
-          remoteStorage.solid.userAddress = webId;
-          remoteStorage.solid.podURLs = await getPodUrlAll(webId, { fetch: fetch });
-          console.log('pods: ', remoteStorage.solid.podURLs);
-          remoteStorage._emit('pod-not-selected');
+          solid.userAddress = webId;
+
+          if (solid.selectedPodURL) {
+            solid._emit('connected');
+          }
+          else {
+            solid.podURLs = await getPodUrlAll(webId, { fetch: fetch });
+            remoteStorage._emit('pod-not-selected');
+          }
+        }
+        else if (solid.sessionProperties) {
+          solid.connect();
         }
       })();
     }

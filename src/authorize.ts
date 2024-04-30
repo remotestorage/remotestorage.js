@@ -106,7 +106,7 @@ class Authorize {
    * browser will navigate back to redirectUri and OAuth will continue
    * with onFeaturesLoaded.
    */
-  static authorize (remoteStorage: RemoteStorage, options: AuthorizeOptions): void {
+  static authorize (remoteStoFrage: RemoteStorage, options: AuthorizeOptions): void {
     log('[Authorize] authURL = ', options.authURL, 'scope = ', options.scope, 'redirectUri = ', options.redirectUri, 'clientId = ', options.clientId, 'response_type =', options.response_type );
 
     if (!options.scope) {
