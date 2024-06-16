@@ -66,7 +66,7 @@ const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
       };
 
       if (hasLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify({ cache: cachedInfo }));
       }
 
       return resolve(cachedInfo[userAddress]);
