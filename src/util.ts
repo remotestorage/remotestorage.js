@@ -245,7 +245,7 @@ export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType:
  */
 export const getTextFromArrayBuffer = (arrayBuffer: ArrayBuffer, encoding): Promise<string | ArrayBuffer> => {
   return new Promise((resolve/*, reject*/) => {
-    if (typeof Blob === 'undefined') {
+    if (typeof Blob === 'undefined' || typeof FileReader === 'undefined') {
       const buffer = Buffer.from(arrayBuffer);
       resolve(buffer.toString(encoding));
     } else {
