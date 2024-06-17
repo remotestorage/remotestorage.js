@@ -40,8 +40,8 @@ class MockRemote extends RemoteBase implements Remote {
 }
 
 locationFactory('https://foo/bar');
-global.localStorageAvailable = localStorageAvailable;
-global["sessionStorage"] = sessionStorage;
+globalThis.localStorageAvailable = localStorageAvailable;
+globalThis["sessionStorage"] = sessionStorage;
 
 describe("authorization", () => {
   const sandbox = sinon.createSandbox();
@@ -54,7 +54,7 @@ describe("authorization", () => {
     sessionStorage.removeItem('remotestorage:codeVerifier');
     sessionStorage.removeItem('remotestorage:state');
 
-    global.document.location.href = 'https://foo/bar';
+    globalThis.document.location.href = 'https://foo/bar';
   });
 
   afterEach(() => {

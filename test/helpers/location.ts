@@ -84,10 +84,9 @@ class MockLocation {
   }
 }
 
-
 export default function locationFactory(url) {
-  if (!('document' in global)) {
-    global["document"] = {} as Document;
+  if (!('document' in globalThis)) {
+    globalThis["document"] = {} as Document;
   }
-  global.document.location = new MockLocation(url) as unknown as Location;
+  globalThis.document.location = new MockLocation(url) as unknown as Location;
 }
