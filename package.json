@@ -29,7 +29,10 @@
     "preversion": "npm test && npm run build:js",
     "version": "npm run build:release && git add release/ && npm run update-doc-version && git add doc/version.py",
     "update-doc-version": "bash scripts/update-doc-version.sh",
-    "autobuild-docs": "cd doc && sphinx-autobuild . _build/html"
+    "autobuild-docs": "cd doc && sphinx-autobuild . _build/html",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
     "@babel/core": "^7.19.0",
@@ -51,8 +54,11 @@
     "sinon": "^14.0.0",
     "ts-loader": "^8.4.0",
     "ts-node": "^10.9.1",
-    "typedoc": "^0.19.2",
-    "typescript": "^4.8.3",
+    "typedoc": "^0.25.13",
+    "typedoc-plugin-markdown": "^4.0.3",
+    "typedoc-vitepress-theme": "^1.0.0",
+    "typescript": "^5.4.5",
+    "vitepress": "^1.2.3",
     "webpack": "^5.92.0",
     "webpack-cli": "^5.1.4"
   },

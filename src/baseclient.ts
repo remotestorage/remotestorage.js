@@ -17,17 +17,17 @@ function getModuleNameFromBase(path: string): string {
 /**
  * Provides a high-level interface to access data below a given root path.
  */
-class BaseClient {
+export class BaseClient {
   /**
-   * The <RemoteStorage> instance this <BaseClient> operates on.
+   * The {@link RemoteStorage} instance this {@link BaseClient} operates on.
    */
   storage: RemoteStorage;
 
   /**
-   * Base path, which this <BaseClient> operates on.
+   * Base path, which this {@link BaseClient} operates on.
    *
-   * For the module's privateClient this would be /<moduleName>/, for the
-   * corresponding publicClient /public/<moduleName>/.
+   * For the module's privateClient this would be `<moduleName>`, for the
+   * corresponding publicClient `/public/<moduleName>/`.
    */
   base: string;
 
@@ -456,7 +456,7 @@ class BaseClient {
   }
 }
 
-interface BaseClient extends EventHandling {}
+export interface BaseClient extends EventHandling {}
 applyMixins(BaseClient, [EventHandling]);
 
-export = BaseClient;
+export default BaseClient;
