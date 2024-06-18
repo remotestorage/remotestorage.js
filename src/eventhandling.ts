@@ -2,12 +2,16 @@ import log from './log';
 import { EventHandler } from './interfaces/event_handling';
 
 class EventHandling {
+  /**
+   * @ignore
+   */
   _handlers: { [key: string]: EventHandler[] };
 
   /**
    * Register event names
    *
    * TODO see if necessary, or can be done on the fly in addEventListener
+   * @ignore
    */
   addEvents(additionalEvents: string[]): void {
     additionalEvents.forEach(evName => this._addEvent(evName));
@@ -15,6 +19,7 @@ class EventHandling {
 
   /**
    * Install an event handler for the given event name
+   * @ignore
    */
   addEventListener (eventName: string, handler: EventHandler): void {
     // Check type for public consumption of API
@@ -29,8 +34,9 @@ class EventHandling {
     this._handlers[eventName].push(handler);
   }
 
-  /*
+  /**
    * Alias for addEventListener
+   * @ignore
    */
   on (eventName: string, handler: EventHandler): void {
     return this.addEventListener(eventName, handler);
@@ -38,6 +44,7 @@ class EventHandling {
 
   /**
    * Remove a previously installed event handler
+   * @ignore
    */
   removeEventListener (eventName: string, handler: EventHandler): void {
     this._validateEvent(eventName);
@@ -50,6 +57,9 @@ class EventHandling {
     }
   }
 
+  /**
+   * @ignore
+   */
   _emit (eventName: string, ...args: unknown[]): void {
     this._validateEvent(eventName);
     this._handlers[eventName].slice().forEach((handler) => {
@@ -57,18 +67,27 @@ class EventHandling {
     });
   }
 
+  /**
+   * @ignore
+   */
   _validateEvent (eventName: string): void {
     if (!(eventName in this._handlers)) {
       throw new Error("Unknown event: " + eventName);
     }
   }
 
+  /**
+   * @ignore
+   */
   _delegateEvent (eventName: string, target): void {
     target.on(eventName, (event) => {
       this._emit(eventName, event);
     });
   }
 
+  /**
+   * @ignore
+   */
   _addEvent (eventName: string): void {
     if (typeof this._handlers === 'undefined') {
       this._handlers = {};

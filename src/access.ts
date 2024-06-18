@@ -14,11 +14,11 @@ interface ScopeModeMap {
 }
 
 /**
- * @class Access
+ * @class
  *
  * Keeps track of claimed access and scopes.
  */
-class Access {
+export class Access {
   scopeModeMap: ScopeModeMap;
   rootPaths: string[];
   storageType: string;
@@ -35,8 +35,11 @@ class Access {
   /**
    * Property: scopes
    *
-   * Holds an array of claimed scopes in the form
-   * > { name: "<scope-name>", mode: "<mode>" }
+   * Holds an array of claimed scopes:
+   *
+   * ```js
+   * [{ name: "<scope-name>", mode: "<mode>" }]
+   * ```
    */
   get scopes(): ScopeEntry[] {
     return Object.keys(this.scopeModeMap).map((key) => {
@@ -172,10 +175,11 @@ class Access {
    * Set the storage type of the remote.
    *
    * @param {string} type - Storage type
+   * @internal
    */
   setStorageType (type: string): void {
     this.storageType = type;
   }
 }
 
-export = Access;
+export default Access;

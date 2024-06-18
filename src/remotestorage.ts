@@ -71,70 +71,108 @@ function isValidInterval(interval: unknown): interval is number {
  * @param {object} config - an optional configuration object
  * @class
  */
-class RemoteStorage {
+export class RemoteStorage {
   /**
    * Pending get/put/delete calls
-   * @private
+   * @ignore
    */
   _pending: {[key: string]: any}[] = [];
 
   /**
    * TODO: document
+   * @ignore
    */
   _cleanups: [] = [];
 
   /**
    * TODO: document
+   * @ignore
    */
   _pathHandlers: { [key: string]: any } = { change: {} };
 
   /**
    * Holds OAuth app keys for Dropbox, Google Drive
+   * @ignore
    */
   apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}} = {};
 
   /**
    * Holds the feature class instance, added by feature initialization
    * TODO use type Access
+   * @ignore
    */
   access: any;
   /**
    * Holds the feature class instance, added by feature initialization
    * TODO use type Sync
+   * @ignore
    */
   sync: any;
   /**
    * Holds the feature class instance, added by feature initialization
+   * @ignore
    */
   caching: Caching;
 
-  // TODO use correct types, document
+  /**
+   * TODO use correct types, document
+   * @ignore
+   */
   _syncTimer: any;
+  /**
+   * @ignore
+   */
   syncStopped: any;
+  /**
+   * @ignore
+   */
   get: any;
+  /**
+   * @ignore
+   */
   put: any;
+  /**
+   * @ignore
+   */
   delete: any;
 
+  /**
+   * @ignore
+   */
   backend: 'remotestorage' | 'dropbox' | 'googledrive';
 
   /**
    * Holds a WireClient, GoogleDrive or Dropbox instance, added by feature initialization
+   * @ignore
    */
   remote: Remote;
 
-  /*
+  /**
    * Access to the local caching backend used. Usually either a
    * <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
    *
    * Not available, when caching is turned off.
+   * @ignore
    */
   local: IndexedDB | LocalStorage | InMemoryStorage;
 
+  /**
+   * @ignore
+   */
   dropbox: Dropbox;
+  /**
+   * @ignore
+   */
   googledrive: GoogleDrive;
 
+  /**
+   * @ignore
+   */
   fireInitial;
 
+  /**
+   * @ignore
+   */
   on: any;
 
   constructor (cfg?: object) {
@@ -218,13 +256,17 @@ class RemoteStorage {
 
   /**
    * Indicating if remoteStorage is currently connected.
+   * @ignore
    */
   get connected (): boolean {
     return this.remote.connected;
   }
 
-  // FIXME: Instead of doing this, would be better to only
-  // export setAuthURL / getAuthURL from RemoteStorage prototype
+  /**
+   * FIXME: Instead of doing this, would be better to only
+   * export setAuthURL / getAuthURL from RemoteStorage prototype
+   * @ignore
+   */
   static Authorize = Authorize;
 
   static SyncError = SyncError;
@@ -234,7 +276,7 @@ class RemoteStorage {
 
   /**
    * Load all modules passed as arguments
-   * @private
+   * @ignore
    */
   loadModules(): void {
     config.modules.forEach(this.addModule.bind(this));
@@ -251,7 +293,7 @@ class RemoteStorage {
    * @param {string} [options.scope] - access scope
    * @param {string} [options.clientId] - client identifier (defaults to the
    *                                      origin of the redirectUri)
-   * @private
+   * @ignore
    */
   authorize (options: AuthorizeOptions): void {
     this.access.setStorageType(this.remote.storageApi);
@@ -280,7 +322,7 @@ class RemoteStorage {
 
   /**
    * TODO: document
-   * @private
+   * @ignore
    */
   impliedauth (storageApi?: string, redirectUri?: string): void {
     // TODO shouldn't these be default argument values?
@@ -459,7 +501,7 @@ class RemoteStorage {
 
   /**
    * TODO: document
-   * @private
+   * @ignore
    */
   setBackend (what): void {
     this.backend = what;
@@ -578,19 +620,61 @@ class RemoteStorage {
   // FEATURES INITIALIZATION
   //
 
+  /**
+   * @ignore
+   */
   _init = Features.loadFeatures;
+  /**
+   * @ignore
+   */
   features = Features.features;
+  /**
+   * @ignore
+   */
   loadFeature = Features.loadFeature;
+  /**
+   * @ignore
+   */
   featureSupported = Features.featureSupported;
+  /**
+   * @ignore
+   */
   featureDone = Features.featureDone;
+  /**
+   * @ignore
+   */
   featuresDone = Features.featuresDone;
+  /**
+   * @ignore
+   */
   featuresLoaded = Features.featuresLoaded;
+  /**
+   * @ignore
+   */
   featureInitialized = Features.featureInitialized;
+  /**
+   * @ignore
+   */
   featureFailed = Features.featureFailed;
+  /**
+   * @ignore
+   */
   hasFeature = Features.hasFeature;
+  /**
+   * @ignore
+   */
   _setCachingModule = Features._setCachingModule;
+  /**
+   * @ignore
+   */
   _collectCleanupFunctions = Features._collectCleanupFunctions;
+  /**
+   * @ignore
+   */
   _fireReady = Features._fireReady;
+  /**
+   * @ignore
+   */
   initFeature = Features.initFeature;
 
   //
@@ -599,7 +683,7 @@ class RemoteStorage {
 
   /**
    * TODO: document
-   * @private
+   * @ignore
    */
   _setGPD (impl, context?) {
     function wrap(func) {
@@ -615,7 +699,7 @@ class RemoteStorage {
 
   /**
    * TODO: document
-   * @private
+   * @ignore
    */
   _pendingGPD (methodName): () => Promise<unknown> {
     return (...args) => {
@@ -635,7 +719,7 @@ class RemoteStorage {
 
   /**
    * TODO: document
-   * @private
+   * @ignore
    */
   _processPending (): void {
     this._pending.forEach((pending) => {
@@ -654,7 +738,7 @@ class RemoteStorage {
 
   /**
    * TODO: document
-   * @private
+   * @ignore
    */
   _bindChange (object: { on }): void {
     object.on('change', this._dispatchEvent.bind(this, 'change'));
@@ -662,7 +746,7 @@ class RemoteStorage {
 
   /**
    * TODO: document
-   * @private
+   * @ignore
    */
   _dispatchEvent (eventName: string, event): void {
     Object.keys(this._pathHandlers[eventName]).forEach((path: string) => {
@@ -785,7 +869,7 @@ class RemoteStorage {
 
   /**
    * TODO: document
-   * @private
+   * @ignore
    */
   syncCycle (): void {
     if (!this.sync || this.sync.stopped) { return; }
@@ -906,7 +990,7 @@ class RemoteStorage {
 
   /**
    * Load module
-   * @private
+   * @ignore
    */
   _loadModule (moduleName: string, moduleBuilder): { [key: string]: unknown }  {
     if (moduleBuilder) {
@@ -960,7 +1044,7 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
   }
 });
 
-interface RemoteStorage extends EventHandling {}
+export interface RemoteStorage extends EventHandling {}
 applyMixins(RemoteStorage, [EventHandling]);
 
 enum ApiKeyType {
@@ -968,4 +1052,4 @@ enum ApiKeyType {
   DROPBOX = 'dropbox'
 }
 
-export = RemoteStorage;
+export default RemoteStorage;

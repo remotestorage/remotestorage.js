@@ -1,0 +1,13 @@
+{
+  "name": "remoteStorage.js",
+  "entryPoints": ["./src/remotestorage.ts", "./src/baseclient.ts", "./src/access.ts"],
+  "out": "./docs/rs.js/api",
+  "includeVersion": true,
+  "excludeNotDocumented": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "excludeProtected": true,
+  "excludeReferences": true,
+  "plugin": ["typedoc-plugin-markdown", "typedoc-vitepress-theme"],
+  "hideBreadcrumbs": true
+}
