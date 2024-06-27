@@ -3,17 +3,9 @@ import {
   Session
 } from "@inrupt/solid-client-authn-browser";
 import {
-  addUrl,
-  addStringNoLocale,
-  createSolidDataset,
-  createThing,
-  getPodUrlAll,
-  getSolidDataset,
-  getThingAll,
-  getStringNoLocale,
-  removeThing,
-  saveSolidDatasetAt,
-  setThing
+  getFile, overwriteFile, isRawData, getContentType, getSourceUrl,
+  getPodUrlAll, deleteFile, getContainedResourceUrlAll, getSolidDataset,
+  FetchError, UrlString
 } from "@inrupt/solid-client";
 import BaseClient from './baseclient';
 import EventHandling from './eventhandling';
@@ -30,12 +22,12 @@ import {requestWithTimeout, RequestOptions} from "./requests";
 import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
 import ConfigObserver from "./solid/configObserver";
 import ConfigStorage from "./solid/solidStorage";
+import Blob from "blob";
 
 const BASE_URL = 'https://www.googleapis.com';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
 const AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
 const SETTINGS_KEY = 'remotestorage:googledrive';
-const PATH_PREFIX = '/remotestorage';
 
 const GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
 const RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
@@ -85,18 +77,6 @@ function baseName (path: string): string {
   } else {
     return parts[parts.length-1];
   }
-}
-
-/**
- * Prepend the path with the remoteStorage base directory.
- *
- * @param {string} path - Path
- * @returns {string} Actual path on Google Drive
- *
- * @private
- */
-function googleDrivePath (path: string): string {
-  return cleanPath(`${PATH_PREFIX}/${path}`);
 }
 
 /**
@@ -156,6 +136,36 @@ function unHookGetItemURL (rs): void {
   if (!rs._origBaseClientGetItemURL) { return; }
   BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
   delete rs._origBaseClientGetItemURL;
+}
+
+/**
+ * Convert XMLHttpRequestBodyInit to Blob
+ *
+ * @param {XMLHttpRequestBodyInit} body - Request body
+ * @returns {Blob} Blob equivalent of the body
+ * 
+ * 
+ * @private
+ */
+function requestBodyToBlob(body: XMLHttpRequestBodyInit): Blob {
+  if (typeof(body) === 'object') {
+    if (body instanceof Blob) return body;
+    if (body instanceof DataView) return new Blob([ body ], { type : "application/octet-stream" });
+    if (body instanceof ArrayBuffer) return new Blob([ new DataView(body) ]);
+    if (ArrayBuffer.isView(body)) return new Blob([ body ], { type : "application/octet-stream" });
+    if (body instanceof FormData) {
+      return new Blob([ new URLSearchParams([JSON.parse(JSON.stringify(body.entries()))]).toString() ],
+          { type : 'application/x-www-form-urlencoded' });
+    }
+    if (body instanceof URLSearchParams) {
+      return new Blob([ body.toString() ], { type : 'application/x-www-form-urlencoded' });
+    }
+  }
+  if (typeof(body) === "string") {
+    return new Blob([ body ], { type : 'plain/text' });
+  }
+  
+  return new Blob([ JSON.stringify(body) ], { type : 'application/json' });
 }
 
 /**
@@ -370,6 +380,22 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   }
 
   /**
+   * Convert path to file URL
+   *
+   * @param {string} path - Path of the resource
+   * @returns {string} Full URL of the resource on the pod
+   * 
+   * 
+   * @private
+   */
+  getFileURL(path: string): string {
+    if (path.startsWith('/')) {
+      path = path.substring(1);
+    }
+    return this.selectedPodURL + path;
+  }
+
+  /**
    * Request a resource (file or directory).
    *
    * @param {string} path - Path of the resource
@@ -380,11 +406,67 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    * @protected
    */
   get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
-    if (isFolder(path)) {
-      return this._getFolder(googleDrivePath(path));
-    } else {
-      return this._getFile(googleDrivePath(path), options);
+    const fileURL = this.getFileURL(path);
+
+    if (path.slice(-1) === '/') {
+      return getSolidDataset(fileURL, { fetch: this.session.fetch }).then(containerDataset => {
+        const URLs: UrlString[] = getContainedResourceUrlAll(containerDataset);
+        const listing = URLs.reduce((map, item) => {
+          const itemName = item.substring(fileURL.length);
+          const isFolder = itemName.slice(-1) === '/';
+
+          if (isFolder) {
+            map[itemName] = { }; // We are skipping ETag
+          }
+          else {
+            map[itemName] = {
+              'Content-Length': 1, // TODO FIX THESE
+              'Last-Modified': 1, // date.toUTCString()
+            }
+          }
+
+          return map;
+        }, { });
+        
+        return Promise.resolve({
+          statusCode: 200,
+          body: listing,
+          contentType: 'application/json; charset=UTF-8',
+          // revision: ?
+        } as RemoteResponse);
+      }).catch(error => {
+        if (error instanceof FetchError) {
+          if (error.statusCode === 404) {
+            return Promise.resolve({
+              statusCode: 200,
+              body: { },
+              contentType: 'application/json; charset=UTF-8',
+              // revision: ?
+            } as RemoteResponse);
+          }
+        }
+
+        return Promise.reject('Failed to get container: ' + error.message);
+      });
     }
+
+    return getFile(fileURL, { fetch: this.session.fetch}).then(file => {
+      return {
+        statusCode: 200,
+        body: file,
+        contentType: getContentType(file)
+      } as RemoteResponse;
+    }).catch(error => {
+      const statusCode = error.statusCode;
+
+      if (statusCode === 401 || statusCode === 403 || statusCode === 404) {
+        return {
+          statusCode: statusCode
+        } as RemoteResponse;
+      }
+
+      return Promise.reject('Failed to get the file: ' + error.message);
+    });
   }
 
   /**
@@ -394,7 +476,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    * @param body - File content
    * @param {string} contentType - File content-type
    * @param {Object} options
-   * @param {string} options.ifNoneMatch - Only create of update the file if the
+   * @param {string} options.ifNoneMatch - Only create or update the file if the
    *                                       current ETag doesn't match this string
    * @returns {Promise} Resolves with an object containing the status code,
    *                    content-type and revision
@@ -402,29 +484,37 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    * @protected
    */
   put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
-    const fullPath = googleDrivePath(path);
+    const fileURL = this.getFileURL(path);
+    const fetch = this.session.fetch;
 
-    function putDone(response) {
-      if (response.status >= 200 && response.status < 300) {
-        const meta = JSON.parse(response.responseText);
-        const etagWithoutQuotes: string = this.stripQuotes(meta.etag);
-        return Promise.resolve({statusCode: 200, contentType: meta.mimeType, revision: etagWithoutQuotes});
-      } else if (response.status === 412) {
-        return Promise.resolve({statusCode: 412, revision: 'conflict'});
-      } else {
-        return Promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
-      }
+    const overwrite = function(): Promise<RemoteResponse> {
+      const blob = requestBodyToBlob(body);
+      return overwriteFile(fileURL, blob, {
+        contentType: contentType,
+        fetch: fetch
+      }).then(savedFile => {
+        return {
+          statusCode: 201
+        } as RemoteResponse;
+      }).catch(error => {
+        return Promise.reject("PUT failed with status " + error.statusCode + " (" + error.message + ")");
+      });
     }
 
-    return this._getFileId(fullPath).then((id) => {
-      if (id) {
-        if (options && (options.ifNoneMatch === '*')) {
-          return putDone({ status: 412 });
-        }
-        return this._updateFile(id, fullPath, body, contentType, options).then(putDone);
-      } else {
-        return this._createFile(fullPath, body, contentType).then(putDone);
+    return getFile(fileURL, { fetch: fetch}).then(file => {
+      if (options && (options.ifNoneMatch === '*')) {
+        return {statusCode: 412, revision: 'conflict'} as RemoteResponse;
       }
+
+      return overwrite();
+    }).catch(error => {
+      const statusCode = error.statusCode;
+
+      if (statusCode === 404) {
+        return overwrite();
+      }
+
+      return Promise.reject("PUT failed with status " + statusCode + " (" + error.message + ")");
     });
   }
 
@@ -440,414 +530,18 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    * @protected
    */
   delete (path: string, options: { ifMatch?: string } = {}): Promise<RemoteResponse> {
-    const fullPath = googleDrivePath(path);
+    const fileURL = this.getFileURL(path);
 
-    return this._getFileId(fullPath).then((id) => {
-      if (!id) {
-        // File doesn't exist. Ignore.
-        return Promise.resolve({statusCode: 200});
+    return deleteFile(fileURL, { fetch: this.session.fetch }).then(() => {
+      return {statusCode: 200} as RemoteResponse;
+    }).catch(error => {
+      const statusCode = error.statusCode;
+
+      if (statusCode === 404) {
+        return {statusCode: 200} as RemoteResponse;
       }
 
-      return this._getMeta(id).then((meta) => {
-        let etagWithoutQuotes;
-        if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
-          etagWithoutQuotes = this.stripQuotes(meta.etag);
-        }
-        if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
-          return {statusCode: 412, revision: etagWithoutQuotes};
-        }
-
-        return this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}).then((response) => {
-          if (response.status === 200 || response.status === 204) {
-            return {statusCode: 200};
-          } else {
-            return Promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
-          }
-        });
-      });
-    });
-  }
-
-  /**
-   * Fetch the user's info from Google.
-   *
-   * @returns {Promise} resolves with the user's info.
-   *
-   * @protected
-   */
-  info () {
-    const url = BASE_URL + '/drive/v2/about?fields=user';
-    // requesting user info(mainly for userAdress)
-    return this._request('GET', url, {}).then(function (resp){
-      try {
-        const info = JSON.parse(resp.responseText);
-        return Promise.resolve(info);
-      } catch (e) {
-        return Promise.reject(e);
-      }
-    });
-  }
-
-  /**
-   * Update an existing file.
-   *
-   * @param {string} id - File ID
-   * @param {string} path - File path
-   * @param body - File content
-   * @param {string} contentType - File content-type
-   * @param {Object} options
-   * @param {string} options.ifMatch - Only update the file if its ETag
-   *                                   matches this string
-   * @returns {Promise} Resolves with the response of the network request
-   *
-   * @private
-   */
-  _updateFile (id, path, body, contentType, options) {
-    const metadata = {
-      mimeType: contentType
-    };
-    const headers = {
-      'Content-Type': 'application/json; charset=UTF-8'
-    };
-
-    if (options && options.ifMatch) {
-      headers['If-Match'] = this.addQuotes(options.ifMatch);
-    }
-
-    return this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
-      body: JSON.stringify(metadata),
-      headers: headers
-    }).then((response) => {
-      if (response.status === 412) {
-        return (response);
-      } else {
-        return this._request('PUT', response.getResponseHeader('Location'), {
-          body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
-        });
-      }
-    });
-  }
-
-  /**
-   * Create a new file.
-   *
-   * @param {string} path - File path
-   * @param body - File content
-   * @param {string} contentType - File content-type
-   * @returns {Promise} Resolves with the response of the network request
-   *
-   * @private
-   */
-  _createFile (path, body, contentType) {
-    return this._getParentId(path).then((parentId) => {
-      const fileName = baseName(path);
-      const metadata = {
-        title: metaTitleFromFileName(fileName),
-        mimeType: contentType,
-        parents: [{
-          kind: "drive#fileLink",
-          id: parentId
-        }]
-      };
-      return this._request('POST', BASE_URL + '/upload/drive/v2/files?uploadType=resumable', {
-        body: JSON.stringify(metadata),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8'
-        }
-      }).then((response) => {
-        return this._request('POST', response.getResponseHeader('Location'), {
-          body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
-        });
-      });
-    });
-  }
-
-  /**
-   * Request a file.
-   *
-   * @param {string} path - File path
-   * @param {Object} options
-   * @param {string} [options.ifNoneMath] - Only return the file if its ETag
-   *                                        doesn't match the given string
-   * @returns {Promise} Resolves with an object containing the status code,
-   *                    body, content-type and revision
-   *
-   * @private
-   */
-  _getFile (path, options) {
-    return this._getFileId(path).then((id) => {
-      return this._getMeta(id).then((meta) => {
-        let etagWithoutQuotes;
-        if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
-          etagWithoutQuotes = this.stripQuotes(meta.etag);
-        }
-
-        if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
-          return Promise.resolve({statusCode: 304});
-        }
-
-        if (!meta.downloadUrl) {
-          if (meta.exportLinks && meta.exportLinks['text/html']) {
-            // Documents that were generated inside GoogleDocs have no
-            // downloadUrl, but you can export them to text/html instead:
-            meta.mimeType += ';export=text/html';
-            meta.downloadUrl = meta.exportLinks['text/html'];
-          } else {
-            // empty file
-            return Promise.resolve({statusCode: 200, body: '', contentType: meta.mimeType, revision: etagWithoutQuotes});
-          }
-        }
-
-        const params: RequestOptions = {
-          responseType: 'arraybuffer'
-        };
-        return this._request('GET', meta.downloadUrl, params).then((response) => {
-          //first encode the response as text, and later check if
-          //text appears to actually be binary data
-          return getTextFromArrayBuffer(response.response, 'UTF-8').then(function (responseText) {
-            let body = responseText;
-            if (meta.mimeType.match(/^application\/json/)) {
-              try {
-                body = JSON.parse(body as string);
-              } catch(e) {
-                // body couldn't be parsed as JSON, so we'll just return it as is
-              }
-            } else if (shouldBeTreatedAsBinary(responseText, meta.mimeType)) {
-              //return unprocessed response
-              body = response.response;
-            }
-
-            return {
-              statusCode: 200,
-              body: body,
-              contentType: meta.mimeType,
-              revision: etagWithoutQuotes
-            };
-          });
-        });
-      });
-    });
-  }
-
-  /**
-   * Request a directory.
-   *
-   * @param {string} path - Directory path
-   * @returns {Promise} Resolves with an object containing the status code,
-   *                    body and content-type
-   *
-   * @private
-   */
-  _getFolder (path: string) {
-    return this._getFileId(path).then((id) => {
-      let data, etagWithoutQuotes, itemsMap;
-      if (! id) {
-        return Promise.resolve({statusCode: 404});
-      }
-
-      const query = '\'' + id + '\' in parents';
-      const fields = 'items(downloadUrl,etag,fileSize,id,mimeType,title,labels)';
-      return this._request('GET', BASE_URL + '/drive/v2/files?'
-          + 'q=' + encodeURIComponent(query)
-          + '&fields=' + encodeURIComponent(fields)
-          + '&maxResults=1000'
-          + '&trashed=false',
-          {})
-      .then((response) => {
-        if (response.status !== 200) {
-          return Promise.reject('request failed or something: ' + response.status);
-        }
-
-        try {
-          data = JSON.parse(response.responseText);
-        } catch(e) {
-          return Promise.reject('non-JSON response from GoogleDrive');
-        }
-
-        itemsMap = {};
-        for (const item of data.items) {
-          if (item.labels?.trashed) { continue; } // ignore deleted files
-
-          etagWithoutQuotes = this.stripQuotes(item.etag);
-          if (item.mimeType === GD_DIR_MIME_TYPE) {
-            this._fileIdCache.set(path + cleanPath(item.title) + '/', item.id);
-            itemsMap[item.title + '/'] = {
-              ETag: etagWithoutQuotes
-            };
-          } else {
-            this._fileIdCache.set(path + cleanPath(item.title), item.id);
-            itemsMap[item.title] = {
-              ETag: etagWithoutQuotes,
-              'Content-Type': item.mimeType,
-              'Content-Length': item.fileSize
-            };
-          }
-        }
-
-        // FIXME: add revision of folder!
-        return Promise.resolve({statusCode: 200, body: itemsMap, contentType: RS_DIR_MIME_TYPE, revision: undefined});
-      });
-    });
-  }
-
-  /**
-   * Get the ID of a parent path.
-   *
-   * Creates the directory if it doesn't exist yet.
-   *
-   * @param {string} path - Full path of a directory or file
-   * @returns {Promise} Resolves with ID of the parent directory.
-   *
-   * @private
-   */
-  _getParentId (path) {
-    const foldername = parentPath(path);
-
-    return this._getFileId(foldername).then((parentId) => {
-      if (parentId) {
-        return Promise.resolve(parentId);
-      } else {
-        return this._createFolder(foldername);
-      }
-    });
-  }
-
-  /**
-   * Create a directory.
-   *
-   * Creates all parent directories as well if any of them didn't exist yet.
-   *
-   * @param {string} path - Directory path
-   * @returns {Promise} Resolves with the ID of the new directory
-   *
-   * @private
-   */
-  _createFolder (path) {
-    return this._getParentId(path).then((parentId) => {
-      return this._request('POST', BASE_URL + '/drive/v2/files', {
-        body: JSON.stringify({
-          title: metaTitleFromFileName(baseName(path)),
-          mimeType: GD_DIR_MIME_TYPE,
-          parents: [{
-            id: parentId
-          }]
-        }),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8'
-        }
-      }).then((response) => {
-        const meta = JSON.parse(response.responseText);
-        return Promise.resolve(meta.id);
-      });
-    });
-  }
-
-  /**
-   * Get the ID of a file.
-   *
-   * @param {string} path - File path
-   * @returns {Promise} Resolves with the ID
-   *
-   * @private
-   */
-  _getFileId (path) {
-    let id;
-
-    if (path === '/') {
-      // "root" is a special alias for the fileId of the root folder
-      return Promise.resolve('root');
-    } else if ((id = this._fileIdCache.get(path))) {
-      // id is cached.
-      return Promise.resolve(id);
-    }
-    // id is not cached (or file doesn't exist).
-    // load parent folder listing to propagate / update id cache.
-    return this._getFolder(parentPath(path)).then(() => {
-      id = this._fileIdCache.get(path);
-      if (!id) {
-        if (path.substr(-1) === '/') {
-          return this._createFolder(path).then(() => {
-            return this._getFileId(path);
-          });
-        } else {
-          return Promise.resolve();
-        }
-      }
-      return Promise.resolve(id);
-    });
-  }
-
-  /**
-   * Get the metadata for a given file ID.
-   *
-   * @param {string} id - File ID
-   * @returns {Promise} Resolves with an object containing the metadata
-   *
-   * @private
-   */
-  _getMeta (id) {
-    return this._request('GET', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
-      if (response.status === 200) {
-        return Promise.resolve(JSON.parse(response.responseText));
-      } else {
-        return Promise.reject("request (getting metadata for " + id + ") failed with status: " + response.status);
-      }
-    });
-  }
-
-  /**
-   * Make a network request.
-   *
-   * @param {string} method - Request method
-   * @param {string} url - Target URL
-   * @param {Object} options - Request options
-   * @returns {Promise} Resolves with the response of the network request
-   *
-   * @private
-   */
-  _request (method: string, url: string, options: RequestOptions) {
-    if (this.isForbiddenRequestMethod(method, url)) {
-      return Promise.reject(`Don't use ${method} on directories!`);
-    }
-
-    if (! options.headers) { options.headers = {}; }
-    options.headers['Authorization'] = 'Bearer ' + this.token;
-
-    this.rs._emit('wire-busy', {
-      method: method,
-      isFolder: isFolder(url)
-    });
-
-    return requestWithTimeout(method, url, options).then((xhr) => {
-      // Google tokens expire from time to time...
-      if (xhr && xhr.status === 401) {
-        this.connect();
-        return;
-      } else {
-        if (!this.online) {
-          this.online = true;
-          this.rs._emit('network-online');
-        }
-        this.rs._emit('wire-done', {
-          method: method,
-          isFolder: isFolder(url),
-          success: true
-        });
-
-        return Promise.resolve(xhr);
-      }
-    }, (error) => {
-      if (this.online) {
-        this.online = false;
-        this.rs._emit('network-offline');
-      }
-      this.rs._emit('wire-done', {
-        method: method,
-        isFolder: isFolder(url),
-        success: false
-      });
-
-      return Promise.reject(error);
+      return Promise.reject("DELETE failed with status " + statusCode + " (" + error.message + ")");
     });
   }
 

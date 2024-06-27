@@ -73,7 +73,7 @@ export interface RemoteResponse {
 }
 
 /**
- * The public interface for WireClient, GoogleDrive & Dropbox
+ * The public interface for WireClient, GoogleDrive, Dropbox & Solid
  */
 export interface Remote {
   connected: boolean;
