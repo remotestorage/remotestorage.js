@@ -1,7 +1,7 @@
 {
   "name": "remoteStorage.js",
   "entryPoints": ["./src/remotestorage.ts", "./src/baseclient.ts", "./src/access.ts"],
-  "out": "./docs/rs.js/api",
+  "out": "./docs/api",
   "includeVersion": true,
   "excludeNotDocumented": true,
   "excludePrivate": true,

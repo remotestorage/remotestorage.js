@@ -22,7 +22,7 @@ Holds an array of claimed scopes:
 
 #### Source
 
-[access.ts:44](https://github.com/remotestorage/remotestorage.js/blob/9b126479fa187d3d9af88a42c7c271be1fd71c06/src/access.ts#L44)
+[access.ts:44](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/access.ts#L44)
 
 ## Methods
 
@@ -50,7 +50,7 @@ true if the requested access mode is active, false otherwise
 
 #### Source
 
-[access.ts:120](https://github.com/remotestorage/remotestorage.js/blob/9b126479fa187d3d9af88a42c7c271be1fd71c06/src/access.ts#L120)
+[access.ts:120](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/access.ts#L120)
 
 ***
 
@@ -78,7 +78,7 @@ true if the requested access mode is active, false otherwise
 
 #### Source
 
-[access.ts:108](https://github.com/remotestorage/remotestorage.js/blob/9b126479fa187d3d9af88a42c7c271be1fd71c06/src/access.ts#L108)
+[access.ts:108](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/access.ts#L108)
 
 ***
 
@@ -104,7 +104,7 @@ Access mode. Either "r" for read-only or "rw" for read/write
 
 #### Source
 
-[access.ts:62](https://github.com/remotestorage/remotestorage.js/blob/9b126479fa187d3d9af88a42c7c271be1fd71c06/src/access.ts#L62)
+[access.ts:62](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/access.ts#L62)
 
 ***
 
@@ -128,7 +128,7 @@ Access mode
 
 #### Source
 
-[access.ts:79](https://github.com/remotestorage/remotestorage.js/blob/9b126479fa187d3d9af88a42c7c271be1fd71c06/src/access.ts#L79)
+[access.ts:79](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/access.ts#L79)
 
 ***
 
@@ -150,7 +150,7 @@ Access scope
 
 #### Source
 
-[access.ts:89](https://github.com/remotestorage/remotestorage.js/blob/9b126479fa187d3d9af88a42c7c271be1fd71c06/src/access.ts#L89)
+[access.ts:89](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/access.ts#L89)
 
 ***
 
@@ -166,4 +166,4 @@ Reset all access permissions.
 
 #### Source
 
-[access.ts:132](https://github.com/remotestorage/remotestorage.js/blob/9b126479fa187d3d9af88a42c7c271be1fd71c06/src/access.ts#L132)
+[access.ts:132](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/access.ts#L132)
