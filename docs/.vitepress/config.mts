@@ -2,29 +2,18 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "remoteStorage",
-  description: "An open protocol for per-user storage on the Web",
+  title: "remoteStorage.js",
+  description: "",
   themeConfig: {
     logo: '/logo.svg',
 
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'About', link: '/about/markdown-examples' },
       { text: 'remoteStorage.js', link: '/rs.js/index' }
     ],
 
     sidebar: {
-      '/about/': [
-        {
-          text: 'How it works',
-          items: [
-            { text: 'Getting started', link: '/about/markdown-examples' },
-            { text: 'Protocol', link: '/about/api-examples' }
-          ]
-        }
-      ],
-
       '/rs.js/': [
         {
           text: 'remoteStorage.js',
