@@ -5,32 +5,30 @@ export default defineConfig({
   title: "remoteStorage.js",
   description: "",
   themeConfig: {
-    logo: '/logo.svg',
-
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'remoteStorage.js', link: '/rs.js/index' }
+      { text: 'Guide', link: '/' },
+      { text: 'Reference', link: '/api' },
     ],
 
-    sidebar: {
-      '/rs.js/': [
-        {
-          text: 'remoteStorage.js',
-          items: [
-            { text: 'Welcome', link: '/rs.js/index' },
-          ]
-        },
-        {
-          text: 'JavaScript API',
-          items: [
-            { text: 'RemoteStorage', link: '/rs.js/api/remotestorage/classes/RemoteStorage' },
-            { text: 'BaseClient', link: '/rs.js/api/baseclient/classes/BaseClient' },
-            { text: 'Access', link: '/rs.js/api/access/classes/Access' },
-          ]
-        }
-      ]
-    },
+    sidebar: [
+      {
+        text: 'Guide',
+        link: '/',
+        items: [
+          { text: 'Welcome', link: '/' },
+        ]
+      },
+      {
+        text: 'JavaScript API',
+        link: '/api',
+        items: [
+          { text: 'RemoteStorage', link: '/api/remotestorage/classes/RemoteStorage' },
+          { text: 'BaseClient', link: '/api/baseclient/classes/BaseClient' },
+          { text: 'Access', link: '/api/access/classes/Access' },
+        ]
+      }
+    ],
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/remotestorage/remotestorage.js' }

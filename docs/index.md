@@ -1,2 +1,5 @@
-# remoteStorage.js
+---
+layout: doc
+---
 
+# remoteStorage.js
