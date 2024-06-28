@@ -2,21 +2,26 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "remoteStorage.js",
+  title: "Documentation",
   description: "",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: 'Guide', link: '/' },
-      { text: 'Reference', link: '/api' },
+      { text: 'remoteStorage.js', link: '/' },
     ],
 
     sidebar: [
       {
-        text: 'Guide',
+        text: 'remoteStorage.js',
         link: '/',
         items: [
-          { text: 'Welcome', link: '/' },
+        ]
+      },
+      {
+        text: 'Guide',
+        items: [
+          { text: 'Why use this?', link: '/why' },
+          { text: 'Getting started', link: '/getting-started' },
         ]
       },
       {
