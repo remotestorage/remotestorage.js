@@ -3,31 +3,17 @@
 layout: home
 
 hero:
-  name: "remoteStorage"
+  name: "remoteStorage.js"
   text:
-  tagline: An open protocol for per-user storage on the Web
+  tagline: Documentation for local usage/development
   actions:
-    - theme: brand
-      text: Markdown Examples
-      link: /about/markdown-examples
-    - theme: alt
-      text: API Examples
-      link: /about/api-examples
-
-features:
-  - title: Feature A
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature B
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature C
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
 ---
 
 ## Getting Started
 
-You can get started using VitePress right away using `npx`!
+This is just a preview site for running the remoteStorage.js docs locally. It allows
+you to change, extend, and maintain the documentation sources without building the rest
+of the remoteStorage website.
 
-```sh
-npm init
-npx vitepress init
-```
+The published documentation is built from the website repo. Please see [TODO
+add link]() for more information.
