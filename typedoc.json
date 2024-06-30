@@ -1,6 +1,11 @@
 {
   "name": "remoteStorage.js",
-  "entryPoints": ["./src/remotestorage.ts", "./src/baseclient.ts", "./src/access.ts"],
+  "entryPoints": [
+    "./src/access.ts",
+    "./src/baseclient.ts",
+    "./src/caching.ts",
+    "./src/remotestorage.ts"
+  ],
   "out": "./docs/api",
   "includeVersion": true,
   "excludeNotDocumented": true,
@@ -9,5 +14,8 @@
   "excludeProtected": true,
   "excludeReferences": true,
   "plugin": ["typedoc-plugin-markdown", "typedoc-vitepress-theme"],
-  "hideBreadcrumbs": true
+  "hideBreadcrumbs": true,
+  "sidebar": {
+    "autoConfiguration": false
+  }
 }
