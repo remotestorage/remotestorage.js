@@ -1,7 +1,5 @@
-// TODO maybe move to common interfaces & types file
-// also worth considering enums
-type AccessMode = 'r' | 'rw';
-type AccessScope = string;
+export type AccessMode = 'r' | 'rw';
+export type AccessScope = string;
 
 interface ScopeEntry {
   name: string;
@@ -16,7 +14,8 @@ interface ScopeModeMap {
 /**
  * @class
  *
- * Keeps track of claimed access and scopes.
+ * This class is for requesting and managing access to modules/folders on the
+ * remote. It gets initialized as `remoteStorage.access`.
  */
 export class Access {
   scopeModeMap: ScopeModeMap;
@@ -33,13 +32,13 @@ export class Access {
   }
 
   /**
-   * Property: scopes
-   *
    * Holds an array of claimed scopes:
    *
-   * ```js
+   * ```javascript
    * [{ name: "<scope-name>", mode: "<mode>" }]
    * ```
+   *
+   * @ignore
    */
   get scopes(): ScopeEntry[] {
     return Object.keys(this.scopeModeMap).map((key) => {
@@ -56,8 +55,20 @@ export class Access {
   /**
    * Claim access on a given scope with given mode.
    *
-   * @param {string} scope - An access scope, such as "contacts" or "calendar"
-   * @param {string} mode - Access mode. Either "r" for read-only or "rw" for read/write
+   * @param scope - An access scope, such as `contacts` or `calendar`
+   * @param mode - Access mode. Either `r` for read-only or `rw` for read/write
+   *
+   * @example
+   * ```javascript
+   * remoteStorage.access.claim('contacts', 'r');
+   * remoteStorage.access.claim('pictures', 'rw');
+   * ```
+   *
+   * Claiming root access, meaning complete access to all files and folders of a storage, can be done using an asterisk for the scope:
+   *
+   * ```javascript
+   * remoteStorage.access.claim('*', 'rw');
+   * ```
    */
   claim (scope: AccessScope, mode: AccessMode): void {
     if (typeof (scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
@@ -73,8 +84,9 @@ export class Access {
   /**
    * Get the access mode for a given scope.
    *
-   * @param {string} scope - Access scope
-   * @returns {string} Access mode
+   * @param scope - Access scope
+   * @returns Access mode
+   * @ignore
    */
   get (scope: AccessScope): AccessMode {
     return this.scopeModeMap[scope];
@@ -84,7 +96,8 @@ export class Access {
   /**
    * Remove access for the given scope.
    *
-   * @param {string} scope - Access scope
+   * @param scope - Access scope
+   * @ignore
    */
   remove (scope: AccessScope): void {
     const savedMap: ScopeModeMap = {};
@@ -101,9 +114,10 @@ export class Access {
   /**
    * Verify permission for a given scope.
    *
-   * @param {string} scope - Access scope
-   * @param {string} mode - Access mode
-   * @returns {boolean} true if the requested access mode is active, false otherwise
+   * @param scope - Access scope
+   * @param mode - Access mode
+   * @returns `true` if the requested access mode is active, `false` otherwise
+   * @ignore
    */
   checkPermission (scope: AccessScope, mode: AccessMode): boolean {
     const actualMode = this.get(scope);
@@ -113,9 +127,10 @@ export class Access {
   /**
    * Verify permission for a given path.
    *
-   * @param {string} path - Path
-   * @param {string} mode - Access mode
-   * @returns {boolean} true if the requested access mode is active, false otherwise
+   * @param path - Path
+   * @param mode - Access mode
+   * @returns true if the requested access mode is active, false otherwise
+   * @ignore
    */
   checkPathPermission (path: string, mode: AccessMode): boolean {
     if (this.checkPermission('*', mode)) {
@@ -128,6 +143,8 @@ export class Access {
 
   /**
    * Reset all access permissions.
+   *
+   * @ignore
    */
   reset(): void {
     this.rootPaths = [];
@@ -174,7 +191,7 @@ export class Access {
   /**
    * Set the storage type of the remote.
    *
-   * @param {string} type - Storage type
+   * @param type - Storage type
    * @internal
    */
   setStorageType (type: string): void {
