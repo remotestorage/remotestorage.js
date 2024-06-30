@@ -1,8 +1,40 @@
 # Class: Caching
 
-Caching
+The caching class gets initialized as `remoteStorage.caching`, unless the
+[RemoteStorage](../../remotestorage/classes/RemoteStorage.md) instance is created with the option `cache: false`, disabling
+caching entirely.
 
-Holds/manages caching configuration.
+In case your app hasn't explictly configured caching, the default setting is to
+cache any documents that have been either created or requested since your app
+loaded. For offline-capable apps, it usually makes sense to enable full,
+automatic caching of all documents, which is what [enable](Caching.md#enable) will do.
+
+Enabling full caching has several benefits:
+
+* Speed of access: locally cached data is available to the app a lot faster.
+* Offline mode: when all data is cached, it can also be read when your app
+  starts while being offline.
+* Initial synchronization time: the amount of data your app caches can
+  have a significant impact on its startup time.
+
+Caching can be configured on a per-path basis. When caching is enabled for a
+folder, it causes all subdirectories to be cached as well.
+
+## Caching strategies
+
+For each subtree, you can set the caching strategy to ``ALL``, ``SEEN``
+(default), and ``FLUSH``.
+
+* `ALL` means that once all outgoing changes have been pushed, sync will
+  start retrieving nodes to cache pro-actively. If a local copy exists
+  of everything, it will check on each sync whether the ETag of the root
+  folder changed, and retrieve remote changes if they exist.
+* `SEEN` does this only for documents and folders that have been either
+  read from or written to at least once since connecting to the current
+  remote backend, plus their parent/ancestor folders up to the root (to
+  make tree-based sync possible).
+* `FLUSH` will only cache outgoing changes, and forget them as soon as
+  they have been saved to remote successfully.
 
 ## Methods
 
@@ -25,9 +57,18 @@ Path to retrieve setting for
 
 caching strategy for the path
 
+#### Example
+
+```js
+remoteStorage.caching.checkPath('documents/').then(strategy => {
+  console.log(`caching strategy for 'documents/': ${strategy}`));
+  // "caching strategy for 'documents/': SEEN"
+});
+```
+
 #### Source
 
-[caching.ts:99](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/caching.ts#L99)
+[caching.ts:157](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L157)
 
 ***
 
@@ -50,9 +91,15 @@ Path to disable caching for
 
 `void`
 
+#### Example
+
+```js
+remoteStorage.caching.disable('/bookmarks/');
+```
+
 #### Source
 
-[caching.ts:74](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/caching.ts#L74)
+[caching.ts:124](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L124)
 
 ***
 
@@ -74,9 +121,15 @@ Path to enable caching for
 
 `void`
 
+#### Example
+
+```js
+remoteStorage.caching.enable('/bookmarks/');
+```
+
 #### Source
 
-[caching.ts:62](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/caching.ts#L62)
+[caching.ts:107](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L107)
 
 ***
 
@@ -98,7 +151,7 @@ Callback function
 
 #### Source
 
-[caching.ts:83](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/caching.ts#L83)
+[caching.ts:133](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L133)
 
 ***
 
@@ -112,9 +165,15 @@ Reset the state of caching by deleting all caching information.
 
 `void`
 
+#### Example
+
+```js
+remoteStorage.caching.reset();
+```
+
 #### Source
 
-[caching.ts:112](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/caching.ts#L112)
+[caching.ts:175](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L175)
 
 ***
 
@@ -140,6 +199,12 @@ Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
 
 `void`
 
+#### Example
+
+```js
+remoteStorage.caching.set('/bookmarks/archive/', 'SEEN');
+```
+
 #### Source
 
-[caching.ts:28](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/caching.ts#L28)
+[caching.ts:67](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L67)
