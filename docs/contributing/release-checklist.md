@@ -7,7 +7,7 @@
 
     > -   Collect and summarize changes using e.g.:
     >
-    >     ``` console
+    >     ```sh
     >     $ git log --no-merges <LAST RELEASE TAG>..HEAD
     >     ```
     >
@@ -39,7 +39,7 @@
 
 -   Publish to npm (<https://www.npmjs.org/package/remotestoragejs>):
 
-    ``` console
+    ```sh
     $ npm publish
     ```
 

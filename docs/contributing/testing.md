@@ -9,22 +9,23 @@ Both are set as dev dependencies in `package.json`, so after installing
 those via `npm install`, you can use the following command to run
 everything at once:
 
-``` console
+```sh
 $ npm run test
 ```
 
 Or you can use the Jaribu executable directly in order to run the suite
 for a single file:
 
-``` console
+```sh
 $ ./node_modules/.bin/jaribu test/unit/cachinglayer-suite.js
 ```
 
-::: tip
-::: title
-Tip
+::: warning
+We're in the process of porting the tests to Mocha/Chai. Also see `npm run
+test:mocha`.
 :::
 
+::: tip
 If you add `./node_modules/.bin` to your `PATH`, you can call
 executables in any npm project directly. For example in `~/.bashrc`, add
 the line `export PATH=$PATH:./node_modules/.bin` (and run

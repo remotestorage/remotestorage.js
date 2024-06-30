@@ -1,9 +1,8 @@
 # Adding rs.js to an app
 
-rs.js is distributed as a single `UMD (Universal Module
-Definition)`{.interpreted-text role="abbr"} build, which means it should
-work with all known JavaScript module systems, as well as without one
-(using a global variable).
+rs.js is distributed as a single <abbr title="Universal Module
+Definition">UMD</abbr> build, which means it should work with all known
+JavaScript module systems, as well as without one (using a global variable).
 
 We recommend adding the library from a JavaScript package manager,
 although you may also just download the release build [from
@@ -12,9 +11,24 @@ GitHub](https://github.com/remotestorage/remotestorage.js/releases).
 The package is available on npm as
 [remotestoragejs](https://www.npmjs.com/package/remotestoragejs):
 
-``` console
-npm install remotestoragejs
+::: code-group
+
+```sh [npm]
+$ npm add -D remotestoragejs
 ```
+
+```sh [pnpm]
+$ pnpm add -D remotestoragejs
+```
+
+```sh [yarn]
+$ yarn add -D remotestoragejs
+```
+
+```sh [bun]
+$ bun add -D remotestoragejs
+```
+:::
 
 ## Examples
 
