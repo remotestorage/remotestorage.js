@@ -1,10 +1,6 @@
 # Building
 
-::: hint
-::: title
-Hint
-:::
-
+::: tip
 We\'re using npm scripts for all common tasks, so check out the
 `scripts` section in `package.json` to learn about what they\'re doing
 exactly and what else is available.
@@ -12,17 +8,13 @@ exactly and what else is available.
 
 ## Setup
 
-``` console
-$ npm install --force
+```sh
+$ npm install
 ```
-
-This will install all dependencies. We currently use the `--force` flag
-because of an issue with SphinxJS and TypeDoc (see
-`1276`{.interpreted-text role="issue"}).
 
 ## Development
 
-``` console
+```sh
 $ npm run dev
 ```
 
@@ -38,7 +30,7 @@ step through the actual source code in your browser\'s debugger tool.
 
 ## Production
 
-``` console
+```sh
 $ npm run build:release
 ```
 

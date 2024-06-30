@@ -1,3 +1,7 @@
+::: danger DEPRECATED
+Needs a complete rewrite for the new TypeDoc + VitePress setup
+:::
+
 # Documentation
 
 The documentation for remoteStorage.js is generated from
@@ -44,13 +48,13 @@ have to set up local builds first.
 
 2.  Install sphinx-js and extensions (from repository root):
 
-    ``` console
+    ```sh
     $ pip install -r doc/requirements.txt
     ```
 
 3.  Install TypeScript and TypeDoc globally (so Sphinx can use them):
 
-    ``` console
+    ```sh
     $ npm -g install typescript typedoc
     ```
 
@@ -59,7 +63,7 @@ have to set up local builds first.
 Run the following command to automatically watch and build the
 documentation:
 
-``` console
+```sh
 $ npm run autobuild-docs
 ```
 
@@ -88,7 +92,7 @@ failing.
 2.  Pull the latest version of `readthedocs/build` image with the
     `latest` tag from Docker Hub:
 
-    ``` console
+    ```sh
     $ docker pull readthedocs/build:latest
     ```
 
@@ -96,13 +100,13 @@ failing.
 
 1.  Enter a `bash` session while attaching this project as a volume:
 
-    ``` console
+    ```sh
     $ docker run --rm -it -v ${PWD}:/app readthedocs/build:latest bash
     ```
 
 2.  Run the `build-with-conda.sh` script to setup conda environment and
     build the docs like ReadTheDocs:
 
-    ``` console
+    ```sh
     $ /app/doc/build-with-conda.sh
     ```
