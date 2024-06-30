@@ -19,7 +19,7 @@ corresponding publicClient `/public/<moduleName>/`.
 
 #### Source
 
-[baseclient.ts:32](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L32)
+[baseclient.ts:32](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L32)
 
 ***
 
@@ -31,7 +31,7 @@ The [RemoteStorage](../../remotestorage/classes/RemoteStorage.md) instance this 
 
 #### Source
 
-[baseclient.ts:24](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L24)
+[baseclient.ts:24](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L24)
 
 ## Methods
 
@@ -63,7 +63,7 @@ The same instance this is called on to allow for method chaining
 
 #### Source
 
-[baseclient.ts:321](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L321)
+[baseclient.ts:321](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L321)
 
 ***
 
@@ -93,7 +93,7 @@ A JSON Schema object describing the object type
 
 #### Source
 
-[baseclient.ts:358](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L358)
+[baseclient.ts:358](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L358)
 
 ***
 
@@ -113,7 +113,7 @@ TODO: document
 
 #### Source
 
-[baseclient.ts:345](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L345)
+[baseclient.ts:345](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L345)
 
 ***
 
@@ -142,7 +142,7 @@ A promise for an object
 
 #### Source
 
-[baseclient.ts:100](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L100)
+[baseclient.ts:100](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L100)
 
 ***
 
@@ -173,7 +173,7 @@ A promise for an object
 
 #### Source
 
-[baseclient.ts:144](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L144)
+[baseclient.ts:144](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L144)
 
 ***
 
@@ -199,7 +199,7 @@ The full URL of the item, including the storage origin
 
 #### Source
 
-[baseclient.ts:297](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L297)
+[baseclient.ts:297](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L297)
 
 ***
 
@@ -228,7 +228,7 @@ A promise for an object representing child nodes
 
 #### Source
 
-[baseclient.ts:79](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L79)
+[baseclient.ts:79](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L79)
 
 ***
 
@@ -259,7 +259,7 @@ A promise, which resolves with the requested object (or ``null``
 
 #### Source
 
-[baseclient.ts:203](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L203)
+[baseclient.ts:203](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L203)
 
 ***
 
@@ -281,7 +281,7 @@ Path relative to the module root.
 
 #### Source
 
-[baseclient.ts:278](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L278)
+[baseclient.ts:278](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L278)
 
 ***
 
@@ -306,7 +306,7 @@ A new client operating on a subpath of the current base path
 
 #### Source
 
-[baseclient.ts:65](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L65)
+[baseclient.ts:65](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L65)
 
 ***
 
@@ -338,7 +338,7 @@ A promise for the created/updated revision (ETag)
 
 #### Source
 
-[baseclient.ts:167](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L167)
+[baseclient.ts:167](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L167)
 
 ***
 
@@ -377,7 +377,7 @@ Resolves with revision on success. Rejects with
 
 #### Source
 
-[baseclient.ts:240](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L240)
+[baseclient.ts:240](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L240)
 
 ***
 
@@ -401,4 +401,4 @@ An object containing information about validation errors
 
 #### Source
 
-[baseclient.ts:380](https://github.com/remotestorage/remotestorage.js/blob/4becb1901daee467dbfa441504b8a183899c93a2/src/baseclient.ts#L380)
+[baseclient.ts:380](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/baseclient.ts#L380)
