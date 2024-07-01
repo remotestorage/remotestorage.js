@@ -1,4 +1,4 @@
-<img src="../../img/icon.svg" width="80" height="80" style="width: 80px; height: 80px; float: right" />
+<img src="../../public/logo.svg" width="80" height="80" style="width: 80px; height: 80px; float: right" />
 
 # remoteStorage.js
 
