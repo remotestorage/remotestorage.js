@@ -58,7 +58,7 @@ The user address (user@host) or URL to connect to.
 
 #### Source
 
-[remotestorage.ts:377](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L377)
+[remotestorage.ts:377](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L377)
 
 ***
 
@@ -76,7 +76,7 @@ Disable remoteStorage logging
 
 #### Source
 
-[remotestorage.ts:550](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L550)
+[remotestorage.ts:550](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L550)
 
 ***
 
@@ -95,7 +95,7 @@ cache.
 
 #### Source
 
-[remotestorage.ts:460](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L460)
+[remotestorage.ts:460](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L460)
 
 ***
 
@@ -113,7 +113,7 @@ Enable remoteStorage logging.
 
 #### Source
 
-[remotestorage.ts:541](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L541)
+[remotestorage.ts:541](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L541)
 
 ***
 
@@ -131,7 +131,7 @@ A number of milliseconds
 
 #### Source
 
-[remotestorage.ts:820](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L820)
+[remotestorage.ts:820](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L820)
 
 ***
 
@@ -150,7 +150,7 @@ A number of milliseconds
 
 #### Source
 
-[remotestorage.ts:845](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L845)
+[remotestorage.ts:845](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L845)
 
 ***
 
@@ -168,7 +168,7 @@ A number of milliseconds
 
 #### Source
 
-[remotestorage.ts:854](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L854)
+[remotestorage.ts:854](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L854)
 
 ***
 
@@ -186,7 +186,7 @@ A number of milliseconds
 
 #### Source
 
-[remotestorage.ts:797](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L797)
+[remotestorage.ts:797](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L797)
 
 ***
 
@@ -208,7 +208,7 @@ The same as <RemoteStorage.log>.
 
 #### Source
 
-[remotestorage.ts:559](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L559)
+[remotestorage.ts:559](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L559)
 
 ***
 
@@ -240,7 +240,7 @@ Handler function
 
 #### Source
 
-[remotestorage.ts:529](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L529)
+[remotestorage.ts:529](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L529)
 
 ***
 
@@ -256,7 +256,7 @@ Reconnect the remote server to get a new authorization.
 
 #### Source
 
-[remotestorage.ts:444](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L444)
+[remotestorage.ts:444](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L444)
 
 ***
 
@@ -285,7 +285,7 @@ A client with the specified scope (category/base directory)
 
 #### Source
 
-[remotestorage.ts:782](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L782)
+[remotestorage.ts:782](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L782)
 
 ***
 
@@ -311,7 +311,7 @@ A config object with these properties:
 
 #### Source
 
-[remotestorage.ts:570](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L570)
+[remotestorage.ts:570](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L570)
 
 ***
 
@@ -334,7 +334,7 @@ Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
 
 #### Source
 
-[remotestorage.ts:830](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L830)
+[remotestorage.ts:830](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L830)
 
 ***
 
@@ -357,7 +357,7 @@ A valid HTTP(S) URI
 
 #### Source
 
-[remotestorage.ts:612](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L612)
+[remotestorage.ts:612](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L612)
 
 ***
 
@@ -379,7 +379,7 @@ Timeout in milliseconds
 
 #### Source
 
-[remotestorage.ts:863](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L863)
+[remotestorage.ts:863](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L863)
 
 ***
 
@@ -401,7 +401,7 @@ Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
 
 #### Source
 
-[remotestorage.ts:806](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L806)
+[remotestorage.ts:806](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L806)
 
 ***
 
@@ -426,7 +426,7 @@ A Promise which resolves when the sync has finished
 
 #### Source
 
-[remotestorage.ts:904](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L904)
+[remotestorage.ts:904](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L904)
 
 ***
 
@@ -442,4 +442,4 @@ Stop the periodic synchronization.
 
 #### Source
 
-[remotestorage.ts:917](https://github.com/remotestorage/remotestorage.js/blob/1966eed75e2e4c81d5410b5a500cddf1f63a1cc0/src/remotestorage.ts#L917)
+[remotestorage.ts:917](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/remotestorage.ts#L917)
