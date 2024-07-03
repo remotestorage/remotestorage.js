@@ -31,11 +31,6 @@ import {Remote} from "./remote";
 import * as util from './util';
 import {AuthorizeOptions} from "./interfaces/authorize_options";
 
-interface RSModule {
-  name: string;
-  builder; // TODO detailed type
-}
-
 const globalContext = getGlobalContext();
 // declare global {
 //   interface Window { cordova: any };
@@ -58,6 +53,44 @@ function isValidInterval(interval: unknown): interval is number {
   return (typeof interval === 'number' &&
           interval >= 2000 &&
           interval <= 3600000);
+}
+
+/**
+ * Represents a data module
+ *
+ * @example
+ * ```js
+ * {
+ *   name: 'examples',
+ *   builder: function(privateClient, publicClient) {
+ *     return {
+ *       exports: {
+ *         addItem(item): function() {
+ *           // Generate a random ID/path
+ *           const path = [...Array(10)].map(() => String.fromCharCode(Math.floor(Math.random() * 95) + 32)).join('');
+ *           // Store the object, and ensure it conforms to the JSON Schema
+ *           // type `example-item`
+ *           privateClient.storeObject('example-item', path, item);
+ *         }
+ *       }
+ *     }
+ *   }
+ * }
+ * ```
+ */
+export interface RSModule {
+  /**
+   * The module's name, which is also the category (i.e. base folder) for document URLs on the remote storage
+   */
+  name: string;
+  /**
+   * A module builder function, which defines the actual module
+   */
+  builder: (privateClient: BaseClient, publicClient: BaseClient) => {
+    exports: {
+      [key: string]: any;
+    };
+  };
 }
 
 /**
@@ -931,35 +964,31 @@ export class RemoteStorage {
     }
   }
 
-  /*
+  /**
    * Add remoteStorage data module
    *
-   * @param {Object} module - module object needs following properies:
-   * @param {string} [module.name] - Name of the module
-   * @param {function} [module.builder] - Builder function defining the module
-   *
-   * The module builder function should return an object containing another
-   * object called exports, which will be exported to this <RemoteStorage>
-   * instance under the module's name. So when defining a locations module,
-   * like in the example below, it would be accessible via
-   * `remoteStorage.locations`, which would in turn have a `features` and a
-   * `collections` property.
-   *
-   * The function receives a private and a public client, which are both
-   * instances of <RemoteStorage.BaseClient>. In the following example, the
-   * scope of privateClient is `/locations` and the scope of publicClient is
-   * `/public/locations`.
+   * @param module - A data module object
    *
    * @example
-   *   RemoteStorage.addModule({name: 'locations', builder: function (privateClient, publicClient) {
-   *     return {
-   *       exports: {
-   *         features: privateClient.scope('features/').defaultType('feature'),
-   *         collections: privateClient.scope('collections/').defaultType('feature-collection')
-   *       }
-   *     };
-   *   }});
-  */
+   *
+   * Usually, you will import your data module from either a package or a local path.
+   * Let's say you want to use the
+   * [bookmarks module](https://github.com/raucao/remotestorage-module-bookmarks) from
+   * in order to load data stored from e.g. [Webmarks](https://webmarks.5apps.com):
+   *
+   * ```js
+   * import Bookmarks from 'remotestorage-module-bookmarks';
+   *
+   * remoteStorage.addModule(Bookmarks);
+   * ```
+   *
+   * After the module has been added, it can be used like so:
+   *
+   * ```js
+   * remoteStorage.bookmarks.archive.getAll(false)
+   *   .then(bookmarks => console.log(bookmarks));
+   * ```
+   */
   addModule (module: RSModule): void {
     const moduleName = module.name;
     const moduleBuilder = module.builder;
@@ -990,7 +1019,8 @@ export class RemoteStorage {
 
   /**
    * Load module
-   * @ignore
+   *
+   * @private
    */
   _loadModule (moduleName: string, moduleBuilder): { [key: string]: unknown }  {
     if (moduleBuilder) {
