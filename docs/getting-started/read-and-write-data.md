@@ -17,6 +17,9 @@ A [BaseClient][2] instance is the main endpoint for interacting with
 storage: listing, reading, creating, updating and deleting documents, as
 well as handling change events.
 
+::: warning TODO
+Update paragraph, link directly to relevant section
+:::
 Check out the [BaseClient][2] in order
 to learn about all functions available for reading and writing data and how to
 use them.
