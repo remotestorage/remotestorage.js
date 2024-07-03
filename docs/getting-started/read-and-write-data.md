@@ -1,9 +1,7 @@
 # Reading and writing data
 
-As soon as your
-`RemoteStorage </js-api/remotestorage>`{.interpreted-text role="doc"}
-instance is ready for action (signaled by the `ready` event), we can
-start reading and writing data.
+As soon as your [RemoteStorage][1] instance is ready for action (signaled by
+the `ready` event), we can start reading and writing data.
 
 ## Anonymous mode
 
@@ -15,39 +13,43 @@ account.
 
 ## Using BaseClient
 
-A `BaseClient` instance is the main endpoint for interacting with
+A [BaseClient][2] instance is the main endpoint for interacting with
 storage: listing, reading, creating, updating and deleting documents, as
 well as handling change events.
 
-Check out the
-`BaseClient API docs </js-api/base-client>`{.interpreted-text
-role="doc"} in order to learn about all functions available for reading
-and writing data and how to use them.
+Check out the [BaseClient][2] in order
+to learn about all functions available for reading and writing data and how to
+use them.
 
-There are two options for acquiring a BaseClient instance:
+There are two options for acquiring a [BaseClient][2] instance:
 
 ### Quick and dirty: creating a client via `scope()`
 
-This should mainly be used for manually exploring client functions and
-in development. Using `scope`{.interpreted-text role="func"}, you can
-create a new BaseClient scoped to a given path:
+::: tip NOTE
+This should mainly be used for manually exploring client functions and locally in
+development.
+:::
 
-    const client = remoteStorage.scope('/foo/');
+Using the [scope](../api/baseclient/classes/BaseClient.html#scope) method,
+you can create a new [BaseClient][2] scoped to a given path:
 
-    // List all items in the "foo/" category/folder
-    client.getListing('')
-      .then(listing => console.log(listing));
+```js
+const client = remoteStorage.scope('/foo/');
 
-    // Write some text to "foo/bar.txt"
-    const content = 'The most simple things can bring the most happiness.'
-    client.storeFile('text/plain', 'bar.txt', content)
-      .then(() => console.log("data has been saved"));
+// List all items in the "foo/" category/folder
+client.getListing('').then(listing => console.log(listing));
+
+// Write some text to "foo/bar.txt"
+const content = 'The most simple things can bring the most happiness.';
+client.storeFile('text/plain', 'bar.txt', content)
+  .then(() => console.log("data has been saved"));
+```
 
 ### The recommended way: using clients in data modules
 
-The recommended way is to use the private and public `BaseClient`
-instances, which are available in so-called
-`data modules </data-modules>`{.interpreted-text role="doc"}. Continue
-to the next section in order to learn about them.
+The recommended way is to use the private and public [BaseClient][2] instances,
+which are available in so-called [data modules](../data-modules). Continue to
+the next section in order to learn about them.
 
-**Footnotes**
+[1]: ../api/remotestorage/classes/RemoteStorage.html
+[2]: ../api/baseclient/classes/BaseClient.html

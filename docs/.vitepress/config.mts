@@ -28,7 +28,6 @@ export default defineConfig({
               { text: 'Initialization & configuration', link: '/getting-started/initialize-and-configure' },
               { text: 'Using the connect widget add-on', link: '/getting-started/connect-widget' },
               { text: 'Handling events', link: '/getting-started/events' },
-              { text: 'Offering Dropbox and Google Drive options', link: '/getting-started/dropbox-and-google-drive' },
               { text: 'Reading and writing data', link: '/getting-started/read-and-write-data' },
             ]
           },
@@ -44,6 +43,7 @@ export default defineConfig({
           { text: 'Usage with Node.js', link: '/nodejs' },
           { text: 'Usage in Cordova apps', link: '/cordova' },
           { text: 'Usage with TypeScript', link: '/typescript' },
+          { text: 'Dropbox and Google Drive', link: '/dropbox-and-google-drive' },
         ]
       },
       {

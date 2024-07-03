@@ -8,7 +8,7 @@ your code, your JS framework, and personal preferences.
 
 ## Initializing an instance
 
-First step is to initialize a `remoteStorage` instance:
+First step is to initialize a [RemoteStorage][1] instance:
 
 ```javascript
 const remoteStorage = new RemoteStorage();
@@ -29,8 +29,7 @@ only operates on the remote server/account:
 const remoteStorage = new RemoteStorage({cache: false});
 ```
 
-See the [RemoteStorage API](/rs.js/docs/api/remotestorage/classes/RemoteStorage.html)
-documentation for details.
+See the [RemoteStorage API][1] documentation for details.
 
 ## Claiming access
 
@@ -56,19 +55,22 @@ or a data browser, you can also claim access to the entire storage
 remoteStorage.access.claim('*', 'rw');
 ```
 
-See the [Access API](/rs.js/docs/api/access/classes/Access.html)
-documentation for details.
+See the [Access API][3] documentation for details.
 
 ## Configuring caching
 
-Last but not least, we\'ll usually want to configure caching (and with
-it automatic sync) for the data we\'re accessing. The `caching.enable()`
-method will activate full caching for the given path, meaning all of the
-items therein will be automatically synced with the server:
+Last but not least, we'll usually want to configure caching (and with it
+automatic sync) for the data we're accessing. The
+[caching.enable()](../api/caching/classes/Caching.html#enable) method will
+activate full caching for the given path, meaning all of the items therein will
+be automatically synced with the server:
 
 ```javascript
 remoteStorage.caching.enable('/myfavoritedrinks/')
 ```
 
-See the [Caching API](/rs.js/docs/api/caching/classes/Caching.html)
-documentation for details.
+See the [Caching API][4] documentation for details.
+
+[1]: ../api/remotestorage/classes/RemoteStorage.html
+[3]: ../api/access/classes/Access.html
+[4]: ../api/caching/classes/Caching.html
