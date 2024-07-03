@@ -107,99 +107,92 @@ export interface RSModule {
 export class RemoteStorage {
   /**
    * Pending get/put/delete calls
-   * @ignore
+   * @internal
    */
   _pending: {[key: string]: any}[] = [];
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   _cleanups: [] = [];
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   _pathHandlers: { [key: string]: any } = { change: {} };
 
   /**
    * Holds OAuth app keys for Dropbox, Google Drive
-   * @ignore
+   * @internal
    */
   apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}} = {};
 
   /**
-   * Holds the feature class instance, added by feature initialization
-   * TODO use type Access
-   * @ignore
    */
-  access: any;
+  access: Access;
   /**
-   * Holds the feature class instance, added by feature initialization
    * TODO use type Sync
    * @ignore
    */
   sync: any;
   /**
-   * Holds the feature class instance, added by feature initialization
-   * @ignore
    */
   caching: Caching;
 
   /**
    * TODO use correct types, document
-   * @ignore
+   * @internal
    */
   _syncTimer: any;
   /**
-   * @ignore
+   * @internal
    */
   syncStopped: any;
   /**
-   * @ignore
+   * @internal
    */
   get: any;
   /**
-   * @ignore
+   * @internal
    */
   put: any;
   /**
-   * @ignore
+   * @internal
    */
   delete: any;
 
   /**
-   * @ignore
    */
   backend: 'remotestorage' | 'dropbox' | 'googledrive';
 
   /**
-   * Holds a WireClient, GoogleDrive or Dropbox instance, added by feature initialization
-   * @ignore
+   * Holds a WireClient, GoogleDrive or Dropbox instance
    */
   remote: Remote;
 
   /**
    * Access to the local caching backend used. Usually either a
-   * <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
+   * `RemoteStorage.IndexedDB` or `RemoteStorage.LocalStorage` instance.
    *
    * Not available, when caching is turned off.
-   * @ignore
+   *
+   * @internal
    */
   local: IndexedDB | LocalStorage | InMemoryStorage;
 
   /**
-   * @ignore
+   * @internal
    */
   dropbox: Dropbox;
   /**
-   * @ignore
+   * @internal
    */
   googledrive: GoogleDrive;
 
   /**
-   * @ignore
+   * @internal
    */
   fireInitial;
 
@@ -239,10 +232,10 @@ export class RemoteStorage {
     /**
      * Register an event handler. See :ref:`rs-events` for available event names.
      *
-     * @param {string} eventName - Name of the event
-     * @param {function} handler - Event handler
+     * @param eventName - Name of the event
+     * @param handler - Event handler
      */
-    this.on = function (eventName: string, handler): void {
+    this.on = function (eventName: string, handler: Function): void {
       if (this._allLoaded) {
         // check if the handler should be called immediately, because the
         // event has happened already
@@ -289,7 +282,6 @@ export class RemoteStorage {
 
   /**
    * Indicating if remoteStorage is currently connected.
-   * @ignore
    */
   get connected (): boolean {
     return this.remote.connected;
@@ -309,7 +301,7 @@ export class RemoteStorage {
 
   /**
    * Load all modules passed as arguments
-   * @ignore
+   * @internal
    */
   loadModules(): void {
     config.modules.forEach(this.addModule.bind(this));
@@ -326,7 +318,7 @@ export class RemoteStorage {
    * @param {string} [options.scope] - access scope
    * @param {string} [options.clientId] - client identifier (defaults to the
    *                                      origin of the redirectUri)
-   * @ignore
+   * @internal
    */
   authorize (options: AuthorizeOptions): void {
     this.access.setStorageType(this.remote.storageApi);
@@ -355,7 +347,7 @@ export class RemoteStorage {
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   impliedauth (storageApi?: string, redirectUri?: string): void {
     // TODO shouldn't these be default argument values?
@@ -534,7 +526,7 @@ export class RemoteStorage {
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   setBackend (what): void {
     this.backend = what;
@@ -654,59 +646,59 @@ export class RemoteStorage {
   //
 
   /**
-   * @ignore
+   * @internal
    */
   _init = Features.loadFeatures;
   /**
-   * @ignore
+   * @internal
    */
   features = Features.features;
   /**
-   * @ignore
+   * @internal
    */
   loadFeature = Features.loadFeature;
   /**
-   * @ignore
+   * @internal
    */
   featureSupported = Features.featureSupported;
   /**
-   * @ignore
+   * @internal
    */
   featureDone = Features.featureDone;
   /**
-   * @ignore
+   * @internal
    */
   featuresDone = Features.featuresDone;
   /**
-   * @ignore
+   * @internal
    */
   featuresLoaded = Features.featuresLoaded;
   /**
-   * @ignore
+   * @internal
    */
   featureInitialized = Features.featureInitialized;
   /**
-   * @ignore
+   * @internal
    */
   featureFailed = Features.featureFailed;
   /**
-   * @ignore
+   * @internal
    */
   hasFeature = Features.hasFeature;
   /**
-   * @ignore
+   * @internal
    */
   _setCachingModule = Features._setCachingModule;
   /**
-   * @ignore
+   * @internal
    */
   _collectCleanupFunctions = Features._collectCleanupFunctions;
   /**
-   * @ignore
+   * @internal
    */
   _fireReady = Features._fireReady;
   /**
-   * @ignore
+   * @internal
    */
   initFeature = Features.initFeature;
 
@@ -716,7 +708,7 @@ export class RemoteStorage {
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   _setGPD (impl, context?) {
     function wrap(func) {
@@ -732,7 +724,7 @@ export class RemoteStorage {
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   _pendingGPD (methodName): () => Promise<unknown> {
     return (...args) => {
@@ -752,7 +744,7 @@ export class RemoteStorage {
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   _processPending (): void {
     this._pending.forEach((pending) => {
@@ -771,7 +763,7 @@ export class RemoteStorage {
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   _bindChange (object: { on }): void {
     object.on('change', this._dispatchEvent.bind(this, 'change'));
@@ -779,7 +771,7 @@ export class RemoteStorage {
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   _dispatchEvent (eventName: string, event): void {
     Object.keys(this._pathHandlers[eventName]).forEach((path: string) => {
@@ -902,7 +894,7 @@ export class RemoteStorage {
 
   /**
    * TODO: document
-   * @ignore
+   * @internal
    */
   syncCycle (): void {
     if (!this.sync || this.sync.stopped) { return; }
