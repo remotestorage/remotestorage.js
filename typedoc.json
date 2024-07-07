@@ -4,6 +4,8 @@
     "./src/access.ts",
     "./src/baseclient.ts",
     "./src/caching.ts",
+    "./src/eventhandling.ts",
+    "./src/remote.ts",
     "./src/remotestorage.ts"
   ],
   "out": "./docs/api",

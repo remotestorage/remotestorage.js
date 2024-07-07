@@ -1,11 +1,10 @@
 import log from './log';
 import RemoteStorage from './remotestorage';
-import {localStorageAvailable, globalContext, toBase64} from './util';
+import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
-import { EventHandler } from './interfaces/event_handling';
-import {requestWithTimeout} from "./requests";
-import {Remote} from "./remote";
-
+import { EventHandler } from './eventhandling';
+import { requestWithTimeout } from "./requests";
+import { Remote } from "./remote";
 
 interface AuthResult {
   access_token?: string;
@@ -115,7 +114,7 @@ function buildOAuthURL (options: AuthorizeOptions): string {
   return url.href;
 }
 
-class Authorize {
+export class Authorize {
   static IMPLIED_FAKE_TOKEN = false;
 
   /**
@@ -369,4 +368,4 @@ class Authorize {
   }
 }
 
-export = Authorize;
+export default Authorize;

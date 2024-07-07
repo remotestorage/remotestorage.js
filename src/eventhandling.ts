@@ -1,7 +1,10 @@
 import log from './log';
-import { EventHandler } from './interfaces/event_handling';
 
-class EventHandling {
+/**
+ */
+export type EventHandler = (event?: unknown) => void;
+
+export class EventHandling {
   /**
    * @ignore
    */
@@ -96,4 +99,4 @@ class EventHandling {
   }
 }
 
-export = EventHandling;
+export default EventHandling;

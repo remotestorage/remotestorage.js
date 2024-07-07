@@ -1,6 +1,5 @@
 'use strict';
 
-import type { StorageInfo } from './interfaces/storage_info';
 import config from './config';
 import log from './log';
 import {
@@ -18,20 +17,21 @@ import Caching from './caching';
 import IndexedDB from './indexeddb';
 import InMemoryStorage from './inmemorystorage';
 import LocalStorage from './localstorage';
-import EventHandling from './eventhandling';
+import { EventHandling, EventHandler } from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
 import Discover from './discover';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import Features from './features';
-import {Remote} from "./remote";
+import { Remote } from "./remote";
 
 import type { AuthorizeOptions } from './authorize';
+import type { StorageInfo } from './interfaces/storage_info';
+import type { Sync } from './sync';
 
 // TODO this is assigned to RemoteStorage.util later; check if still needed
 import * as util from './util';
-import {AuthorizeOptions} from "./interfaces/authorize_options";
 
 const globalContext = getGlobalContext();
 // declare global {
