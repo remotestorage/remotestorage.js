@@ -4,7 +4,6 @@ import {localStorageAvailable, globalContext, toBase64} from './util';
 import UnauthorizedError from './unauthorized-error';
 import { EventHandler } from './interfaces/event_handling';
 import {requestWithTimeout} from "./requests";
-import {AuthorizeOptions} from "./interfaces/authorize_options";
 import {Remote} from "./remote";
 
 
@@ -24,6 +23,24 @@ interface InAppBrowserEvent extends Event {
   code?: number;
   message?: string;
   data?: string;
+}
+
+export interface AuthorizeOptions {
+  /** URL of the authorization endpoint */
+  authURL: string;
+  /** access scope */
+  scope?: string;
+  redirectUri?: string;
+  /**
+  * client identifier
+  * @defaultValue Origin of the redirectUri
+  * */
+  clientId?: string;
+  response_type?: 'token' | 'code';
+  state?: string;
+  code_challenge?: string;
+  code_challenge_method?: 'S256' | 'plain';
+  token_access_type?: 'online' | 'offline'; // Dropbox only
 }
 
 // This is set in _rs_init and needed for removal in _rs_cleanup

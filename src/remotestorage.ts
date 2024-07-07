@@ -27,6 +27,8 @@ import UnauthorizedError from './unauthorized-error';
 import Features from './features';
 import {Remote} from "./remote";
 
+import type { AuthorizeOptions } from './authorize';
+
 // TODO this is assigned to RemoteStorage.util later; check if still needed
 import * as util from './util';
 import {AuthorizeOptions} from "./interfaces/authorize_options";
