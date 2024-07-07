@@ -6,7 +6,7 @@ export type EventHandler = (event?: unknown) => void;
 
 export class EventHandling {
   /**
-   * @ignore
+   * @internal
    */
   _handlers: { [key: string]: EventHandler[] };
 
@@ -14,7 +14,8 @@ export class EventHandling {
    * Register event names
    *
    * TODO see if necessary, or can be done on the fly in addEventListener
-   * @ignore
+   *
+   * @internal
    */
   addEvents(additionalEvents: string[]): void {
     additionalEvents.forEach(evName => this._addEvent(evName));
@@ -22,7 +23,8 @@ export class EventHandling {
 
   /**
    * Install an event handler for the given event name
-   * @ignore
+   *
+   * Usually called via {@link on}
    */
   addEventListener (eventName: string, handler: EventHandler): void {
     // Check type for public consumption of API
@@ -38,8 +40,17 @@ export class EventHandling {
   }
 
   /**
-   * Alias for addEventListener
-   * @ignore
+   * Register an event handler for the given event name
+   *
+   * Alias for {@link addEventListener}
+   *
+   * @param eventName - Name of the event
+   * @param handler - Function to handle the event
+   *
+   * @example
+   * remoteStorage.on('connected', function() {
+   *   console.log('storage account has been connected');
+   * });
    */
   on (eventName: string, handler: EventHandler): void {
     return this.addEventListener(eventName, handler);
@@ -47,7 +58,6 @@ export class EventHandling {
 
   /**
    * Remove a previously installed event handler
-   * @ignore
    */
   removeEventListener (eventName: string, handler: EventHandler): void {
     this._validateEvent(eventName);
@@ -61,7 +71,7 @@ export class EventHandling {
   }
 
   /**
-   * @ignore
+   * @internal
    */
   _emit (eventName: string, ...args: unknown[]): void {
     this._validateEvent(eventName);
@@ -71,7 +81,7 @@ export class EventHandling {
   }
 
   /**
-   * @ignore
+   * @internal
    */
   _validateEvent (eventName: string): void {
     if (!(eventName in this._handlers)) {
@@ -80,7 +90,7 @@ export class EventHandling {
   }
 
   /**
-   * @ignore
+   * @internal
    */
   _delegateEvent (eventName: string, target): void {
     target.on(eventName, (event) => {
@@ -89,7 +99,7 @@ export class EventHandling {
   }
 
   /**
-   * @ignore
+   * @internal
    */
   _addEvent (eventName: string): void {
     if (typeof this._handlers === 'undefined') {
