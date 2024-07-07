@@ -5,4 +5,6 @@
 - [access](access/index.md)
 - [baseclient](baseclient/index.md)
 - [caching](caching/index.md)
+- [eventhandling](eventhandling/index.md)
+- [remote](remote/index.md)
 - [remotestorage](remotestorage/index.md)

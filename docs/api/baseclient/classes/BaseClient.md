@@ -19,7 +19,7 @@ corresponding publicClient `/public/<moduleName>/`.
 
 #### Source
 
-[baseclient.ts:32](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L32)
+[baseclient.ts:32](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L32)
 
 ***
 
@@ -31,9 +31,33 @@ The [RemoteStorage](../../remotestorage/classes/RemoteStorage.md) instance this 
 
 #### Source
 
-[baseclient.ts:24](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L24)
+[baseclient.ts:24](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L24)
 
 ## Methods
+
+### addEventListener()
+
+> **addEventListener**(`eventName`, `handler`): `void`
+
+Install an event handler for the given event name
+
+Usually called via [on](../../remotestorage/classes/RemoteStorage.md#on)
+
+#### Parameters
+
+• **eventName**: `string`
+
+• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+
+#### Returns
+
+`void`
+
+#### Source
+
+[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L29)
+
+***
 
 ### cache()
 
@@ -63,7 +87,7 @@ The same instance this is called on to allow for method chaining
 
 #### Source
 
-[baseclient.ts:321](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L321)
+[baseclient.ts:321](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L321)
 
 ***
 
@@ -93,7 +117,7 @@ A JSON Schema object describing the object type
 
 #### Source
 
-[baseclient.ts:358](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L358)
+[baseclient.ts:358](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L358)
 
 ***
 
@@ -113,7 +137,7 @@ TODO: document
 
 #### Source
 
-[baseclient.ts:345](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L345)
+[baseclient.ts:345](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L345)
 
 ***
 
@@ -142,7 +166,7 @@ A promise for an object
 
 #### Source
 
-[baseclient.ts:100](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L100)
+[baseclient.ts:100](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L100)
 
 ***
 
@@ -173,7 +197,7 @@ A promise for an object
 
 #### Source
 
-[baseclient.ts:144](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L144)
+[baseclient.ts:144](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L144)
 
 ***
 
@@ -199,7 +223,7 @@ The full URL of the item, including the storage origin
 
 #### Source
 
-[baseclient.ts:297](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L297)
+[baseclient.ts:297](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L297)
 
 ***
 
@@ -228,7 +252,7 @@ A promise for an object representing child nodes
 
 #### Source
 
-[baseclient.ts:79](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L79)
+[baseclient.ts:79](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L79)
 
 ***
 
@@ -259,7 +283,43 @@ A promise, which resolves with the requested object (or ``null``
 
 #### Source
 
-[baseclient.ts:203](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L203)
+[baseclient.ts:203](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L203)
+
+***
+
+### on()
+
+> **on**(`eventName`, `handler`): `void`
+
+Register an event handler for the given event name
+
+Alias for [addEventListener](BaseClient.md#addeventlistener)
+
+#### Parameters
+
+• **eventName**: `string`
+
+Name of the event
+
+• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+
+Function to handle the event
+
+#### Returns
+
+`void`
+
+#### Example
+
+```ts
+remoteStorage.on('connected', function() {
+  console.log('storage account has been connected');
+});
+```
+
+#### Source
+
+[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L55)
 
 ***
 
@@ -281,7 +341,29 @@ Path relative to the module root.
 
 #### Source
 
-[baseclient.ts:278](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L278)
+[baseclient.ts:278](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L278)
+
+***
+
+### removeEventListener()
+
+> **removeEventListener**(`eventName`, `handler`): `void`
+
+Remove a previously installed event handler
+
+#### Parameters
+
+• **eventName**: `string`
+
+• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+
+#### Returns
+
+`void`
+
+#### Source
+
+[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L62)
 
 ***
 
@@ -306,7 +388,7 @@ A new client operating on a subpath of the current base path
 
 #### Source
 
-[baseclient.ts:65](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L65)
+[baseclient.ts:65](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L65)
 
 ***
 
@@ -338,7 +420,7 @@ A promise for the created/updated revision (ETag)
 
 #### Source
 
-[baseclient.ts:167](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L167)
+[baseclient.ts:167](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L167)
 
 ***
 
@@ -377,7 +459,7 @@ Resolves with revision on success. Rejects with
 
 #### Source
 
-[baseclient.ts:240](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L240)
+[baseclient.ts:240](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L240)
 
 ***
 
@@ -401,4 +483,4 @@ An object containing information about validation errors
 
 #### Source
 
-[baseclient.ts:380](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/baseclient.ts#L380)
+[baseclient.ts:380](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/baseclient.ts#L380)

@@ -68,7 +68,7 @@ remoteStorage.caching.checkPath('documents/').then(strategy => {
 
 #### Source
 
-[caching.ts:157](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L157)
+[caching.ts:157](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/caching.ts#L157)
 
 ***
 
@@ -99,7 +99,7 @@ remoteStorage.caching.disable('/bookmarks/');
 
 #### Source
 
-[caching.ts:124](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L124)
+[caching.ts:124](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/caching.ts#L124)
 
 ***
 
@@ -129,7 +129,7 @@ remoteStorage.caching.enable('/bookmarks/');
 
 #### Source
 
-[caching.ts:107](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L107)
+[caching.ts:107](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/caching.ts#L107)
 
 ***
 
@@ -151,7 +151,7 @@ Callback function
 
 #### Source
 
-[caching.ts:133](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L133)
+[caching.ts:133](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/caching.ts#L133)
 
 ***
 
@@ -173,7 +173,7 @@ remoteStorage.caching.reset();
 
 #### Source
 
-[caching.ts:175](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L175)
+[caching.ts:175](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/caching.ts#L175)
 
 ***
 
@@ -207,4 +207,4 @@ remoteStorage.caching.set('/bookmarks/archive/', 'SEEN');
 
 #### Source
 
-[caching.ts:67](https://github.com/remotestorage/remotestorage.js/blob/e2bff1869cf784e0b2712889b7313d816e139b0c/src/caching.ts#L67)
+[caching.ts:67](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/caching.ts#L67)
