@@ -24,7 +24,7 @@ export class EventHandling {
   /**
    * Install an event handler for the given event name
    *
-   * Usually called via {@link on}
+   * Usually called via [`on()`](#on)
    */
   addEventListener (eventName: string, handler: EventHandler): void {
     // Check type for public consumption of API
