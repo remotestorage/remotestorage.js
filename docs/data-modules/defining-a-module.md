@@ -3,35 +3,37 @@
 A data module is just a JavaScript object containing a module name and a
 builder function.
 
-The builder function receives two
-`base clients </js-api/base-client>`{.interpreted-text role="doc"} when
-loaded: one for private data stored in `/my-module-name/` and one for
-public data stored in `/public/my-module-name/`. It must return an
-object, defining the properties and functions to be used in the app as
-`exports`:
+The builder function receives two [BaseClient][2] instances when loaded: one
+for private data stored in `/my-module-name/` and one for public data stored in
+`/public/my-module-name/`. A module must return an object, with the properties
+and functions to be used in an app as `exports`:
 
 ``` javascript
-var Bookmarks = { name: 'bookmarks', builder: function(privateClient, publicClient) {
+const Bookmarks = { name: 'bookmarks', builder: function(privateClient, publicClient) {
   return {
     exports: {
-     addBookmark: function() {}
+      addBookmark: function() {}
     }
   }
 }};
 ```
 
-You can then load it into your
-`RemoteStorage </js-api/remotestorage>`{.interpreted-text role="doc"}
-instance either on initialization, or later using the `addModule()`
-function:
+You can then load the module into your [RemoteStorage][1] instance, either on
+initialization or later using the `addModule()` function:
 
-    const remoteStorage = new RemoteStorage({ modules: [ Bookmarks ] });
+```js
+const remoteStorage = new RemoteStorage({ modules: [ Bookmarks ] });
 
-    // or later:
+// or later:
+remoteStorage.addModule(Bookmarks);
+```
 
-    remoteStorage.addModule(Bookmarks);
+The module will then be accessible on the instance by its name, allowing
+you to call the functions and properties that it exports:
 
-It will then be available on the instance as its module name, allowing
-you to call the functions and properties that the module exports:
+```js
+remoteStorage.bookmarks.addBookmark()
+```
 
-    remoteStorage.bookmarks.addBookmark();
+[1]: ../api/remotestorage/classes/RemoteStorage.html
+[2]: ../api/baseclient/classes/BaseClient.html

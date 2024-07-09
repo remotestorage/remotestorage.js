@@ -1,14 +1,16 @@
 # Defining data types
 
-Data types can be defined using the `declareType()` method. It expects a
-name (which you can later use with `storeObject()`), as well as a [JSON
-Schema](http://json-schema.org) object defining the actual structure and
-formatting of your data.
+Data types can be defined using the
+[declareType()](../api/baseclient/classes/BaseClient.html#declaretype) method.
+It expects a name (which you can later use with
+[storeObject()](../api/baseclient/classes/BaseClient.html#storeobject), as well
+as a [JSON Schema](http://json-schema.org) object defining the actual structure
+and formatting of your data.
 
 Consider this simplified example of an archive bookmark:
 
-``` javascript
-var Bookmarks = { name: 'bookmarks', builder: function(privateClient, publicClient) {
+```js
+const Bookmarks = { name: 'bookmarks', builder: function(privateClient, publicClient) {
 
   privateClient.declareType('archive-bookmark', {
     "type": "object",
@@ -40,48 +42,42 @@ can add a function for storing them. This will actually validate the
 incoming data against the type\'s schema, and reject the promise with
 detailed validation errors in case the data format doesn\'t match:
 
-    var Bookmarks = { name: 'bookmarks', builder: function(privateClient, publicClient) {
-      // ...
+```js
+const Bookmarks = { name: 'bookmarks', builder: function(privateClient, publicClient) {
+// ...
 
-      return {
-        exports: {
+return {
+  exports: {
+    add: function (bookmark) {
+      bookmark.id = md5Hash(bookmark.url); // hash URL for nice ID
+      var path = "archive/" + bookmark.id; // use hashed URL as filename as well
 
-          add: function (bookmark) {
-            bookmark.id = md5Hash(bookmark.url); // hash URL for nice ID
-            var path = "archive/" + bookmark.id; // use hashed URL as filename as well
+      return privateClient.storeObject("archive-bookmark", path, bookmark).
+        then(function() {
+          return bookmark; // return bookmark with added ID property
+        });
+    }
+  }
+};
 
-            return privateClient.storeObject("archive-bookmark", path, bookmark).
-              then(function() {
-                return bookmark; // return bookmark with added ID property
-              });
-          }
+// and in your app:
 
-        }
-      }
-    }};
+remoteStorage.bookmarks.add({
+  title: 'Unhosted Web Apps',
+  url: 'https://unhosted.org',
+  tags: ['unhosted', 'remotestorage', 'offline-first']
+})
+.then(() => {
+  console.log('stored bookmark successfully');
+})
+.catch((err) => {
+  console.error('validation error:', err);
+});
+```
 
-    // and in your app:
-
-    remoteStorage.bookmarks.add({
-      title: 'Unhosted Web Apps',
-      url: 'https://unhosted.org',
-      tags: ['unhosted', 'remotestorage', 'offline-first']
-    })
-    .then(() => {
-      console.log('stored bookmark successfully');
-    })
-    .catch((err) => {
-      console.error('validation error:', err);
-    });
-
-::: hint
-::: title
-Hint
-:::
-
-JSON Schema is very powerful and flexible. If you want to learn more
+::: tip
+JSON Schema is rather powerful and flexible. If you want to learn more
 about it, check out the free e-book [Understanding JSON
 Schema](https://spacetelescope.github.io/understanding-json-schema/) for
-example. The complete official specs can be found at
-<http://json-schema.org/documentation.html>
+example. The complete documentation can be found on [json-schema.org](https://json-schema.org)
 :::
