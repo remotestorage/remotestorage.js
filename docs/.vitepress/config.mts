@@ -60,7 +60,6 @@ export default defineConfig({
         text: 'Contributing', link: '/contributing/',
         collapsed: true,
         items: [
-          { text: 'Code overview', link: '/contributing/code-overview' },
           { text: 'Building', link: '/contributing/building' },
           { text: 'Testing', link: '/contributing/testing' },
           { text: 'Documentation', link: '/contributing/docs' },
@@ -69,6 +68,7 @@ export default defineConfig({
           { text: 'Library internals', link: '/contributing/internals/',
             collapsed: true,
             items: [
+              { text: 'Code overview', link: '/contributing/internals/code-overview' },
               { text: 'Discovery bootstrap', link: '/contributing/internals/discovery-bootstrap' },
               { text: 'Caching', link: '/contributing/internals/caching' },
               { text: 'Data format of the local cache', link: '/contributing/internals/cache-data-format' },
