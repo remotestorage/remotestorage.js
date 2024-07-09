@@ -176,7 +176,7 @@ Emitted when the sync interval changes
 
 #### Source
 
-[remotestorage.ts:295](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L295)
+[remotestorage.ts:295](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L295)
 
 ***
 
@@ -186,7 +186,7 @@ Emitted when the sync interval changes
 
 #### Source
 
-[remotestorage.ts:327](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L327)
+[remotestorage.ts:327](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L327)
 
 ***
 
@@ -196,7 +196,7 @@ Emitted when the sync interval changes
 
 #### Source
 
-[remotestorage.ts:302](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L302)
+[remotestorage.ts:302](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L302)
 
 ***
 
@@ -218,7 +218,7 @@ remoteStorage.remote.connected
 
 #### Source
 
-[remotestorage.ts:339](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L339)
+[remotestorage.ts:339](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L339)
 
 ## Accessors
 
@@ -234,7 +234,7 @@ Indicating if remoteStorage is currently connected.
 
 #### Source
 
-[remotestorage.ts:442](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L442)
+[remotestorage.ts:442](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L442)
 
 ## Methods
 
@@ -244,7 +244,7 @@ Indicating if remoteStorage is currently connected.
 
 Install an event handler for the given event name
 
-Usually called via [on](RemoteStorage.md#on)
+Usually called via [`on()`](#on)
 
 #### Parameters
 
@@ -258,7 +258,7 @@ Usually called via [on](RemoteStorage.md#on)
 
 #### Source
 
-[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L29)
+[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L29)
 
 ***
 
@@ -308,7 +308,7 @@ remoteStorage.bookmarks.archive.getAll(false)
 
 #### Source
 
-[remotestorage.ts:1190](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L1190)
+[remotestorage.ts:1190](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L1190)
 
 ***
 
@@ -360,7 +360,7 @@ remoteStorage.connect('user@example.com');
 
 #### Source
 
-[remotestorage.ts:544](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L544)
+[remotestorage.ts:544](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L544)
 
 ***
 
@@ -376,7 +376,7 @@ Disable remoteStorage debug logging
 
 #### Source
 
-[remotestorage.ts:728](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L728)
+[remotestorage.ts:728](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L728)
 
 ***
 
@@ -395,7 +395,7 @@ cache.
 
 #### Source
 
-[remotestorage.ts:630](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L630)
+[remotestorage.ts:630](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L630)
 
 ***
 
@@ -417,7 +417,7 @@ const remoteStorage = new RemoteStorage({ logging: true });
 
 #### Source
 
-[remotestorage.ts:721](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L721)
+[remotestorage.ts:721](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L721)
 
 ***
 
@@ -442,7 +442,7 @@ remoteStorage.getBackgroundSyncInterval();
 
 #### Source
 
-[remotestorage.ts:1025](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L1025)
+[remotestorage.ts:1025](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L1025)
 
 ***
 
@@ -468,7 +468,7 @@ remoteStorage.getCurrentSyncInterval();
 
 #### Source
 
-[remotestorage.ts:1061](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L1061)
+[remotestorage.ts:1061](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L1061)
 
 ***
 
@@ -493,7 +493,7 @@ remoteStorage.getRequestTimeout();
 
 #### Source
 
-[remotestorage.ts:1074](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L1074)
+[remotestorage.ts:1074](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L1074)
 
 ***
 
@@ -518,7 +518,7 @@ remoteStorage.getSyncInterval();
 
 #### Source
 
-[remotestorage.ts:991](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L991)
+[remotestorage.ts:991](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L991)
 
 ***
 
@@ -554,7 +554,7 @@ remoteStorage.on('connected', function() {
 
 #### Source
 
-[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L55)
+[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L55)
 
 ***
 
@@ -595,7 +595,7 @@ remoteStorage.onChange('/bookmarks/', function() {
 
 #### Source
 
-[remotestorage.ts:705](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L705)
+[remotestorage.ts:705](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L705)
 
 ***
 
@@ -614,7 +614,7 @@ Useful when not using the connect widget and encountering an
 
 #### Source
 
-[remotestorage.ts:614](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L614)
+[remotestorage.ts:614](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L614)
 
 ***
 
@@ -636,7 +636,7 @@ Remove a previously installed event handler
 
 #### Source
 
-[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L62)
+[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L62)
 
 ***
 
@@ -672,7 +672,7 @@ remoteStorage.scope('/public/pictures/').getListing('');
 
 #### Source
 
-[remotestorage.ts:972](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L972)
+[remotestorage.ts:972](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L972)
 
 ***
 
@@ -707,7 +707,7 @@ remoteStorage.setApiKeys({
 
 #### Source
 
-[remotestorage.ts:752](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L752)
+[remotestorage.ts:752](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L752)
 
 ***
 
@@ -736,7 +736,7 @@ remoteStorage.setBackgroundSyncInterval(90000);
 
 #### Source
 
-[remotestorage.ts:1038](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L1038)
+[remotestorage.ts:1038](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L1038)
 
 ***
 
@@ -766,7 +766,7 @@ remoteStorage.setCordovaRedirectUri('https://app.example.com');
 
 #### Source
 
-[remotestorage.ts:798](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L798)
+[remotestorage.ts:798](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L798)
 
 ***
 
@@ -794,7 +794,7 @@ remoteStorage.setRequestTimeout(30000);
 
 #### Source
 
-[remotestorage.ts:1086](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L1086)
+[remotestorage.ts:1086](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L1086)
 
 ***
 
@@ -822,7 +822,7 @@ remoteStorage.setSyncInterval(20000);
 
 #### Source
 
-[remotestorage.ts:1003](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L1003)
+[remotestorage.ts:1003](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L1003)
 
 ***
 
@@ -847,7 +847,7 @@ A Promise which resolves when the sync has finished
 
 #### Source
 
-[remotestorage.ts:1127](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L1127)
+[remotestorage.ts:1127](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L1127)
 
 ***
 
@@ -863,4 +863,4 @@ Stop the periodic synchronization.
 
 #### Source
 
-[remotestorage.ts:1140](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L1140)
+[remotestorage.ts:1140](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L1140)

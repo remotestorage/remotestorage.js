@@ -40,4 +40,4 @@ remoteStorage.access.claim('*', 'rw');
 
 #### Source
 
-[access.ts:73](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/access.ts#L73)
+[access.ts:73](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/access.ts#L73)

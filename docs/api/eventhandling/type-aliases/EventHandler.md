@@ -12,4 +12,4 @@
 
 ## Source
 
-[eventhandling.ts:5](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L5)
+[eventhandling.ts:5](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L5)

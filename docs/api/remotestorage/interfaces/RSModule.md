@@ -51,7 +51,7 @@ A module builder function, which defines the actual module
 
 #### Source
 
-[remotestorage.ts:91](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L91)
+[remotestorage.ts:91](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L91)
 
 ***
 
@@ -63,4 +63,4 @@ The module's name, which is also the category (i.e. base folder) for document UR
 
 #### Source
 
-[remotestorage.ts:87](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/remotestorage.ts#L87)
+[remotestorage.ts:87](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L87)

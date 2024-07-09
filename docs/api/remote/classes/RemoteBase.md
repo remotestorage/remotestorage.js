@@ -14,7 +14,7 @@ The ancestor for WireClient, GoogleDrive & Dropbox
 
 Install an event handler for the given event name
 
-Usually called via [on](../../remotestorage/classes/RemoteStorage.md#on)
+Usually called via [`on()`](#on)
 
 #### Parameters
 
@@ -32,7 +32,7 @@ Usually called via [on](../../remotestorage/classes/RemoteStorage.md#on)
 
 #### Source
 
-[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L29)
+[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L29)
 
 ***
 
@@ -72,7 +72,7 @@ remoteStorage.on('connected', function() {
 
 #### Source
 
-[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L55)
+[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L55)
 
 ***
 
@@ -98,4 +98,4 @@ Remove a previously installed event handler
 
 #### Source
 
-[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/3de8d4bbce43ac52d4397495ab2bcfd7d34f7308/src/eventhandling.ts#L62)
+[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L62)
