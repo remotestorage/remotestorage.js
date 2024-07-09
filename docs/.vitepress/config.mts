@@ -48,7 +48,7 @@ export default defineConfig({
         ]
       },
       {
-        text: 'JavaScript API', link: '/api',
+        text: 'JavaScript API',
         items: [
           { text: 'RemoteStorage', link: '/api/remotestorage/classes/RemoteStorage' },
           { text: 'BaseClient', link: '/api/baseclient/classes/BaseClient' },
