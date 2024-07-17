@@ -3,7 +3,7 @@ import {
   Session
 } from "@inrupt/solid-client-authn-browser";
 import {
-  getFile, overwriteFile, isRawData, getContentType, getSourceUrl,
+  getFile, overwriteFile, getContentType,
   getPodUrlAll, deleteFile, getContainedResourceUrlAll, getSolidDataset,
   FetchError, UrlString
 } from "@inrupt/solid-client";
@@ -11,101 +11,17 @@ import BaseClient from './baseclient';
 import EventHandling from './eventhandling';
 import {
   applyMixins,
-  isFolder,
-  cleanPath,
-  shouldBeTreatedAsBinary,
   getJSONFromLocalStorage,
-  getTextFromArrayBuffer,
   localStorageAvailable
 } from './util';
-import {requestWithTimeout, RequestOptions} from "./requests";
 import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
 import ConfigObserver from "./solid/configObserver";
 import ConfigStorage from "./solid/solidStorage";
 import Blob from "blob";
 
-const BASE_URL = 'https://www.googleapis.com';
-const AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
-const AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
-const SETTINGS_KEY = 'remotestorage:googledrive';
-
-const GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
-const RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
+const SETTINGS_KEY = 'remotestorage:solid';
 
 let hasLocalStorage;
-
-/**
- * Produce a title from a filename for metadata.
- *
- * @param {string} filename
- * @returns {string} title
- *
- * @private
- */
-function metaTitleFromFileName (filename: string): string {
-  if (filename.substr(-1) === '/') {
-    filename = filename.substr(0, filename.length - 1);
-  }
-
-  return decodeURIComponent(filename);
-}
-
-/**
- * Get the parent directory for the given path.
- *
- * @param {string} path
- * @returns {string} parent directory
- *
- * @private
- */
-function parentPath (path: string): string {
-  return path.replace(/[^\/]+\/?$/, '');
-}
-
-/**
- * Get only the filename from a full path.
- *
- * @param {string} path
- * @returns {string} filename
- *
- * @private
- */
-function baseName (path: string): string {
-  const parts = path.split('/');
-  if (path.substr(-1) === '/') {
-    return parts[parts.length-2]+'/';
-  } else {
-    return parts[parts.length-1];
-  }
-}
-
-/**
- * Internal cache object for storing Google file IDs.
- *
- * @param {number} maxAge - Maximum age (in seconds) the content should be cached for
- */
-class FileIdCache {
-  maxAge: number;
-  _items = {};
-
-  constructor(maxAge?: number) {
-    this.maxAge = maxAge;
-    this._items = {};
-  }
-
-  get (key): number | undefined {
-    const item = this._items[key];
-    const now = new Date().getTime();
-    return (item && item.t >= (now - this.maxAge)) ? item.v : undefined;
-  }
-
-  set (key, value): void {
-    this._items[key] = {
-      v: value,
-      t: new Date().getTime()
-    };
-  }
-}
 
 /**
  * Overwrite BaseClient's getItemURL with our own implementation
@@ -121,7 +37,7 @@ function hookGetItemURL (rs): void {
   if (rs._origBaseClientGetItemURL) { return; }
   rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
   BaseClient.prototype.getItemURL = function (/* path */): never {
-    throw new Error('getItemURL is not implemented for Google Drive yet');
+    throw new Error('getItemURL is not implemented for Solid yet'); // TODO It actually is. No?
   };
 }
 
@@ -199,15 +115,11 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   configStorage: ConfigStorage;
   session: Session;
 
-  _fileIdCache: FileIdCache;
-
   constructor(remoteStorage) {
     super(remoteStorage);
     this.online = true;
     this.storageApi = 'draft-dejong-remotestorage-19';
     this.addEvents(['connected', 'not-connected', 'pod-not-selected']);
-
-    this._fileIdCache = new FileIdCache(60 * 5); // IDs expire after 5 minutes (is this a good idea?)
     
     this.configStorage = new ConfigStorage(this);
     this.session = new Session({
@@ -584,7 +496,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   }
 
   /**
-   * Inform about the availability of the Google Drive backend.
+   * Inform about the availability of the Solid backend.
    *
    * @returns {Boolean}
    *
@@ -595,7 +507,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   }
 
   /**
-   * Remove Google Drive as a backend.
+   * Remove Solid as a backend.
    *
    * @param {Object} remoteStorage - RemoteStorage instance
    *
@@ -611,7 +523,6 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   }
 }
 
-interface GoogleDrive extends EventHandling {}
 applyMixins(Solid, [EventHandling]); // TODO what is this?
 
 export = Solid;
