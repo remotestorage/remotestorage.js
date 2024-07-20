@@ -41,5 +41,5 @@ Production
 
 This creates the minified production build in ``release/``.
 
-It also creates a seperate source maps file, which you can link to in case you
+It also creates a separate source maps file, which you can link to in case you
 want to (e.g. to improve exception tracking/debugging in production).

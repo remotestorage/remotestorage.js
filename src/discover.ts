@@ -6,7 +6,7 @@ import log from './log';
 import { globalContext, localStorageAvailable } from './util';
 
 // feature detection flags
-let haveXMLHttpRequest, hasLocalStorage;
+let hasLocalStorage;
 
 // used to store settings in localStorage
 const SETTINGS_KEY = 'remotestorage:discover';
@@ -66,7 +66,7 @@ const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
       };
 
       if (hasLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify({ cache: cachedInfo }));
       }
 
       return resolve(cachedInfo[userAddress]);
@@ -95,8 +95,8 @@ Discover._rs_init = function (/*remoteStorage*/): void {
 };
 
 Discover._rs_supported = function (): boolean {
-  haveXMLHttpRequest = Object.prototype.hasOwnProperty.call(globalContext, 'XMLHttpRequest');
-  return haveXMLHttpRequest;
+  return Object.prototype.hasOwnProperty.call(globalContext, 'fetch') ||
+         Object.prototype.hasOwnProperty.call(globalContext, 'XMLHttpRequest');
 };
 
 Discover._rs_cleanup = function (): void {

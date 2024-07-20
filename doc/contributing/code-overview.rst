@@ -7,11 +7,11 @@ repo. These are built into a single file in the ``release/`` folder using
 and are based on `Jaribu <https://github.com/silverbucket/jaribu>`_.
 
 The structure of the code is based around feature loading. Most files in
-``src/`` correspond to a feature, e.g. ``discover.js`` to
-``RemoteStorage.Discover`` or ``caching.js`` to ``RemoteStorage.Caching``.
+``src/`` correspond to a feature, e.g. ``discover.ts`` to
+``RemoteStorage.Discover`` or ``caching.ts`` to ``RemoteStorage.Caching``.
 
 The feature loading happens synchronously during the page load in
-``src/remotestorage.js`` (just including this script in your app will lead to
+``src/remotestorage.ts`` (just including this script in your app will lead to
 executing the code that loads the features).
 
 Most features load under their own name, but for ``remoteStorage.local`` a
@@ -22,7 +22,7 @@ supports.
 
 For ``remoteStorage.local`` we then also have a `special mixin
 <https://github.com/remotestorage/remotestorage.js/issues/777#issuecomment-57392440>`__
-called ``src/cachinglayer.js``, which mixes in some common functions into the
+called ``src/cachinglayer.ts``, which mixes in some common functions into the
 object.
 
 The ``remoteStorage.remote`` feature is not loaded immediately, but only when

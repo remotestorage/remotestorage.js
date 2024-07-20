@@ -77,8 +77,8 @@ errors in case the data format doesn't match::
 .. HINT::
    JSON Schema is very powerful and flexible. If you want to learn more about
    it, check out the free e-book `Understanding JSON
-   Schema <https://spacetelescope.github.io/understanding-json-schema/>`_ for
+   Schema <https://json-schema.org/understanding-json-schema>`_ for
    example. The complete official specs can be found at
-   http://json-schema.org/documentation.html
+   https://json-schema.org/specification
 
 .. _JSON Schema: http://json-schema.org
