@@ -77,8 +77,12 @@ module.exports = {
     "semi": 2,
     "arrow-spacing": 2,
     "no-prototype-builtins": 1,
+    "@typescript-eslint/ban-types": 1,
     "@typescript-eslint/camelcase": 0,
+    "@typescript-eslint/no-explicit-any": 1,
     "@typescript-eslint/no-var-requires": 1,
+    "@typescript-eslint/no-unsafe-declaration-merging": 1,
+    "@typescript-eslint/no-unused-vars": 1,
     "@typescript-eslint/no-use-before-define": 1,
     "@typescript-eslint/no-empty-interface": 1
   },
