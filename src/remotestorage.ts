@@ -294,7 +294,6 @@ export class RemoteStorage {
    */
   access: Access;
   /**
-   * @ignore
    */
   sync: Sync;
   /**

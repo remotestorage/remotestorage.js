@@ -5,9 +5,10 @@ import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import config from "../../src/config";
-import RemoteStorage from '../../src/remotestorage';
 import Dropbox from "../../src/dropbox";
-
+import InMemoryStorage from '../../src/inmemorystorage';
+import RemoteStorage from '../../src/remotestorage';
+import Sync from '../../src/sync';
 
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const ACCOUNT_URL = 'https://api.dropboxapi.com/2/users/get_current_account';
@@ -205,7 +206,9 @@ describe('Dropbox backend', () => {
       const rs2 = new RemoteStorage();
       rs2.setApiKeys({dropbox: 'swcj8jbc9i1jf1m'});   // an app would do this
       rs2.backend = 'dropbox';
-      rs2.sync = { sync: sinon.spy() };
+      rs2.local = new InMemoryStorage();
+      rs2.sync = new Sync(rs2);
+      rs2.sync.sync = sinon.spy();
       Dropbox._rs_init(rs2);
 
       const fetchDeltaSpy = sandbox.spy(rs2.dropbox, 'fetchDelta');
