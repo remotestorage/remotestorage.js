@@ -12,4 +12,4 @@
 
 ## Defined in
 
-[eventhandling.ts:5](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/eventhandling.ts#L5)
+[eventhandling.ts:5](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/eventhandling.ts#L5)

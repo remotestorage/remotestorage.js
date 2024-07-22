@@ -71,7 +71,7 @@ function getModuleNameFromBase(path: string): string {
  *   the promise will always be fulfilled with data from the local store.
  *
  * > [!NOTE]
- * > If {@link Caching caching} for the folder is turned off, none of
+ * > If {@link caching!Caching caching} for the folder is turned off, none of
  * > this applies and data will always be requested from the remote store
  * > directly.
  *
@@ -147,7 +147,7 @@ function getModuleNameFromBase(path: string): string {
  * during sync.
  *
  * > [!NOTE]
- * > Automatically receiving remote changes depends on the {@link Caching} settings
+ * > Automatically receiving remote changes depends on the {@link caching!Caching} settings
  * > for your module/paths.
  *
  * ### `window`
@@ -157,7 +157,7 @@ function getModuleNameFromBase(path: string): string {
  *
  * > [!TIP]
  * > You can enable them by configuring `changeEvents` for your
- * > {@link RemoteStorage} instance.
+ * > {@link RemoteStorage remoteStorage} instance.
  *
  * ### `conflict`
  *
