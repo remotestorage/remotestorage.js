@@ -4,8 +4,12 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Documentation",
   description: "",
+
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
+    externalLinkIcon: true,
+    outline: { level: [2, 3] },
+
     nav: [
       { text: 'remoteStorage.js', link: '/' },
     ],
