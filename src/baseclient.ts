@@ -794,7 +794,7 @@ export class BaseClient {
   }
 
   /**
-   * Attaches the JSON-LD @content to an object
+   * Attaches the JSON-LD @context to an object
    *
    * @private
    */
