@@ -1,4 +1,4 @@
-# Type alias: EventHandler()
+# Type Alias: EventHandler()
 
 > **EventHandler**: (`event`?) => `void`
 
@@ -10,6 +10,6 @@
 
 `void`
 
-## Source
+## Defined in
 
-[eventhandling.ts:5](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L5)
+[eventhandling.ts:5](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/eventhandling.ts#L5)

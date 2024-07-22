@@ -30,9 +30,9 @@ Usually called via [`on()`](#on)
 
 `EventHandling.addEventListener`
 
-#### Source
+#### Defined in
 
-[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L29)
+[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/eventhandling.ts#L29)
 
 ***
 
@@ -58,10 +58,6 @@ Function to handle the event
 
 `void`
 
-#### Inherited from
-
-`EventHandling.on`
-
 #### Example
 
 ```ts
@@ -70,9 +66,13 @@ remoteStorage.on('connected', function() {
 });
 ```
 
-#### Source
+#### Inherited from
 
-[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L55)
+`EventHandling.on`
+
+#### Defined in
+
+[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/eventhandling.ts#L55)
 
 ***
 
@@ -96,6 +96,6 @@ Remove a previously installed event handler
 
 `EventHandling.removeEventListener`
 
-#### Source
+#### Defined in
 
-[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/eventhandling.ts#L62)
+[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/eventhandling.ts#L62)

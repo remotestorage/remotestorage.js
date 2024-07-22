@@ -45,13 +45,13 @@ A module builder function, which defines the actual module
 
 > **exports**: `object`
 
-###### Index signature
+###### Index Signature
 
  \[`key`: `string`\]: `any`
 
-#### Source
+#### Defined in
 
-[remotestorage.ts:91](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L91)
+[remotestorage.ts:91](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/remotestorage.ts#L91)
 
 ***
 
@@ -61,6 +61,6 @@ A module builder function, which defines the actual module
 
 The module's name, which is also the category (i.e. base folder) for document URLs on the remote storage
 
-#### Source
+#### Defined in
 
-[remotestorage.ts:87](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remotestorage.ts#L87)
+[remotestorage.ts:87](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/remotestorage.ts#L87)

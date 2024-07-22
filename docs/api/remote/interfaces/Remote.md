@@ -10,9 +10,9 @@ The public interface for WireClient, GoogleDrive & Dropbox
 
 Whether or not a remote store is connected
 
-#### Source
+#### Defined in
 
-[remote.ts:82](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remote.ts#L82)
+[remote.ts:82](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/remote.ts#L82)
 
 ***
 
@@ -22,9 +22,9 @@ Whether or not a remote store is connected
 
 Whether last sync action was successful or not
 
-#### Source
+#### Defined in
 
-[remote.ts:87](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remote.ts#L87)
+[remote.ts:87](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/remote.ts#L87)
 
 ***
 
@@ -34,9 +34,9 @@ Whether last sync action was successful or not
 
 The JSON-parsed properties object from the user's WebFinger record
 
-#### Source
+#### Defined in
 
-[remote.ts:123](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remote.ts#L123)
+[remote.ts:123](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/remote.ts#L123)
 
 ***
 
@@ -46,6 +46,6 @@ The JSON-parsed properties object from the user's WebFinger record
 
 The user address of the connected user
 
-#### Source
+#### Defined in
 
-[remote.ts:92](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/remote.ts#L92)
+[remote.ts:92](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/remote.ts#L92)

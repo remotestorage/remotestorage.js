@@ -66,9 +66,9 @@ remoteStorage.caching.checkPath('documents/').then(strategy => {
 });
 ```
 
-#### Source
+#### Defined in
 
-[caching.ts:157](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/caching.ts#L157)
+[caching.ts:157](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/caching.ts#L157)
 
 ***
 
@@ -97,9 +97,9 @@ Path to disable caching for
 remoteStorage.caching.disable('/bookmarks/');
 ```
 
-#### Source
+#### Defined in
 
-[caching.ts:124](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/caching.ts#L124)
+[caching.ts:124](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/caching.ts#L124)
 
 ***
 
@@ -127,9 +127,9 @@ Path to enable caching for
 remoteStorage.caching.enable('/bookmarks/');
 ```
 
-#### Source
+#### Defined in
 
-[caching.ts:107](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/caching.ts#L107)
+[caching.ts:107](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/caching.ts#L107)
 
 ***
 
@@ -149,9 +149,9 @@ Callback function
 
 `void`
 
-#### Source
+#### Defined in
 
-[caching.ts:133](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/caching.ts#L133)
+[caching.ts:133](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/caching.ts#L133)
 
 ***
 
@@ -171,9 +171,9 @@ Reset the state of caching by deleting all caching information.
 remoteStorage.caching.reset();
 ```
 
-#### Source
+#### Defined in
 
-[caching.ts:175](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/caching.ts#L175)
+[caching.ts:175](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/caching.ts#L175)
 
 ***
 
@@ -205,6 +205,6 @@ Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
 remoteStorage.caching.set('/bookmarks/archive/', 'SEEN');
 ```
 
-#### Source
+#### Defined in
 
-[caching.ts:67](https://github.com/remotestorage/remotestorage.js/blob/65f5343823175e12058c01e23219a8cc9d34932b/src/caching.ts#L67)
+[caching.ts:67](https://github.com/remotestorage/remotestorage.js/blob/9625dcb362d5fe51be7b7fbdbb04492cfbf19644/src/caching.ts#L67)
