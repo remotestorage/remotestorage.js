@@ -6,8 +6,5 @@
 /build
 /gitno
 cache
-doc/code
-doc/_build
-doc/__pycache__/
 node_modules
 tags
