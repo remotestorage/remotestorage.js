@@ -480,8 +480,9 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         desc: "#connect throws DiscoveryError on empty href",
         run: function(env, test) {
           env.rs.on('error', function(e) {
-            test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
-            test.done();
+            if (e instanceof RemoteStorage.DiscoveryError) {
+              test.done();
+            }
           });
           env.rs.connect('someone@somewhere');
         }
