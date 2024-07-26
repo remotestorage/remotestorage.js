@@ -25,7 +25,7 @@
     "build:dev": "webpack --mode=development",
     "dev": "webpack --mode=development -w",
     "postshrinkwrap": "if [ \"`uname`\" = \"Darwin\" ]; then sed -i '' -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; else sed -i -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; fi",
-    "preversion": "npm test && npm run build:js",
+    "preversion": "npm test && npm run test:mocha && npm run lint:quiet && npm run build:js",
     "version": "npm run build:release && git add release/",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
