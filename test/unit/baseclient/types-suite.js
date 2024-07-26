@@ -8,7 +8,7 @@ define(['require'], function(require) {
     name: "BaseClient.Types",
     desc: "Type and schema handling",
     setup: function(env, test) {
-      global.BaseClient = require('../build/baseclient');
+      global.BaseClient = require('../build/baseclient').BaseClient;
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype.onChange = function() {};

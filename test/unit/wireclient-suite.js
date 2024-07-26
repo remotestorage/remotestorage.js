@@ -14,7 +14,7 @@ define(['./build/sync', './build/sync-error', './build/requests', './build/wirec
       localStorageAvailable() { return false; }
       static log () {}
     }
-    util.applyMixins(RemoteStorage, [EventHandling]);
+    util.applyMixins(RemoteStorage, [EventHandling.default]);
     global.RemoteStorage = RemoteStorage;
 
     test.done();
@@ -97,7 +97,7 @@ define(['./build/sync', './build/sync-error', './build/requests', './build/wirec
     desc: "check that instance initialization works without errors",
     setup: function (env, test) {
       class RemoteStorage {}
-      util.applyMixins(RemoteStorage, [EventHandling]);
+      util.applyMixins(RemoteStorage, [EventHandling.default]);
       global.RemoteStorage = RemoteStorage;
       test.done();
     },

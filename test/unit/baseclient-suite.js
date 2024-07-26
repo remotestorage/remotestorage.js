@@ -2,7 +2,9 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
-       function (config, BaseClient, mocks, tv4) {
+       function (config, baseClientModule, mocks, tv4) {
+
+  const BaseClient = baseClientModule.BaseClient;
 
   var suites = [];
 

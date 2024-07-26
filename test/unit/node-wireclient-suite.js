@@ -5,7 +5,7 @@ define(['./build/wireclient', './build/remotestorage'], function (WireClient, Re
   var suites = [];
 
   function setup(env, test) {
-    test.assertType(RemoteStorage, 'function');
+    test.assertType(RemoteStorage.RemoteStorage, 'function');
   }
 
   function takedown(env, test) {
@@ -13,7 +13,7 @@ define(['./build/wireclient', './build/remotestorage'], function (WireClient, Re
   }
 
   function beforeEach(env, test) {
-    env.rs = new RemoteStorage();
+    env.rs = new RemoteStorage.RemoteStorage();
     env.connectedClient = new WireClient(env.rs);
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
