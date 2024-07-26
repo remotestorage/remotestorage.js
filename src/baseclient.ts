@@ -337,7 +337,7 @@ export class BaseClient {
   /**
    * Get all objects directly below a given path.
    *
-   * @param path   - Path to the folder. Must end in a forward slash.
+   * @param path   - (optional) Path to the folder. Must end in a forward slash.
    * @param maxAge - (optional) Either `false` or the maximum age of cached
    *                 objects in milliseconds. See [caching logic for read
    *                 operations](#caching-logic-for-read-operations).
@@ -392,7 +392,7 @@ export class BaseClient {
    *
    */
   // TODO add real return type
-  async getAll (path: string, maxAge?: false | number): Promise<unknown> {
+  async getAll (path?: string, maxAge?: false | number): Promise<unknown> {
     if (typeof path !== 'string') { path = ''; }
     else if (path.length > 0 && !isFolder(path)) {
       return Promise.reject("Not a folder: " + path);
