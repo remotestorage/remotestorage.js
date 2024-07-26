@@ -32,7 +32,7 @@ Usually called via [`on()`](#on)
 
 #### Defined in
 
-[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/eventhandling.ts#L29)
+[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/eventhandling.ts#L29)
 
 ***
 
@@ -72,7 +72,7 @@ remoteStorage.on('connected', function() {
 
 #### Defined in
 
-[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/eventhandling.ts#L55)
+[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/eventhandling.ts#L55)
 
 ***
 
@@ -98,4 +98,4 @@ Remove a previously installed event handler
 
 #### Defined in
 
-[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/eventhandling.ts#L62)
+[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/eventhandling.ts#L62)

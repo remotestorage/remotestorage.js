@@ -223,7 +223,7 @@ corresponding `publicClient` it is `/public/<moduleName>/`.
 
 #### Defined in
 
-[baseclient.ts:239](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L239)
+[baseclient.ts:239](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L239)
 
 ## Methods
 
@@ -247,7 +247,7 @@ Usually called via [`on()`](#on)
 
 #### Defined in
 
-[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/eventhandling.ts#L29)
+[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/eventhandling.ts#L29)
 
 ***
 
@@ -286,7 +286,7 @@ client.cache('lists/', 'SEEN');
 
 #### Defined in
 
-[baseclient.ts:683](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L683)
+[baseclient.ts:683](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L683)
 
 ***
 
@@ -344,21 +344,21 @@ client.declareType('todo-item', {
 
 #### Defined in
 
-[baseclient.ts:733](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L733)
+[baseclient.ts:733](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L733)
 
 ***
 
 ### getAll()
 
-> **getAll**(`path`, `maxAge`?): `Promise`\<`unknown`\>
+> **getAll**(`path`?, `maxAge`?): `Promise`\<`unknown`\>
 
 Get all objects directly below a given path.
 
 #### Parameters
 
-• **path**: `string`
+• **path?**: `string`
 
-Path to the folder. Must end in a forward slash.
+(optional) Path to the folder. Must end in a forward slash.
 
 • **maxAge?**: `number` \| `false`
 
@@ -420,7 +420,7 @@ Example response:
 
 #### Defined in
 
-[baseclient.ts:395](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L395)
+[baseclient.ts:395](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L395)
 
 ***
 
@@ -468,7 +468,7 @@ client.getFile('path/to/some/image').then(file => {
 
 #### Defined in
 
-[baseclient.ts:456](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L456)
+[baseclient.ts:456](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L456)
 
 ***
 
@@ -499,7 +499,7 @@ The full URL of the item, including the storage origin, or `undefined`
 
 #### Defined in
 
-[baseclient.ts:655](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L655)
+[baseclient.ts:655](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L655)
 
 ***
 
@@ -569,7 +569,7 @@ Example of a listing object:
 
 #### Defined in
 
-[baseclient.ts:326](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L326)
+[baseclient.ts:326](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L326)
 
 ***
 
@@ -605,7 +605,7 @@ client.getObject('/path/to/object').then(obj => console.log(obj));
 
 #### Defined in
 
-[baseclient.ts:540](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L540)
+[baseclient.ts:540](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L540)
 
 ***
 
@@ -641,7 +641,7 @@ remoteStorage.on('connected', function() {
 
 #### Defined in
 
-[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/eventhandling.ts#L55)
+[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/eventhandling.ts#L55)
 
 ***
 
@@ -669,7 +669,7 @@ client.remove('path/to/object').then(() => console.log('item deleted'));
 
 #### Defined in
 
-[baseclient.ts:629](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L629)
+[baseclient.ts:629](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L629)
 
 ***
 
@@ -691,7 +691,7 @@ Remove a previously installed event handler
 
 #### Defined in
 
-[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/eventhandling.ts#L62)
+[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/eventhandling.ts#L62)
 
 ***
 
@@ -716,7 +716,7 @@ A new `BaseClient` operating on a subpath of the current base path
 
 #### Defined in
 
-[baseclient.ts:272](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L272)
+[baseclient.ts:272](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L272)
 
 ***
 
@@ -772,7 +772,7 @@ fileReader.readAsArrayBuffer(file);
 
 #### Defined in
 
-[baseclient.ts:502](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L502)
+[baseclient.ts:502](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L502)
 
 ***
 
@@ -825,7 +825,7 @@ client.storeObject('bookmark', path, bookmark)
 
 #### Defined in
 
-[baseclient.ts:588](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L588)
+[baseclient.ts:588](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L588)
 
 ***
 
@@ -862,4 +862,4 @@ var result = client.validate(document);
 
 #### Defined in
 
-[baseclient.ts:765](https://github.com/remotestorage/remotestorage.js/blob/6f00c54cc7f590233dcd3504f048d1df775bc754/src/baseclient.ts#L765)
+[baseclient.ts:765](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/baseclient.ts#L765)
