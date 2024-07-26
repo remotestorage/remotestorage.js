@@ -5,13 +5,8 @@ is using the Connect Widget add-on library, which is written and
 maintained by the rs.js core team.
 
 This is optional and an easy way to integrate all functionality into your own
-UI. It\'s a great way to start with RS app development and can be replaced with
+UI. It's a great way to start with RS app development and can be replaced with
 custom code later on.
-
-::: tip
-If you haven\'t seen the widget in action yet, you can try it out with
-with [My Favorite Drinks](https://myfavoritedrinks.5apps.com) for example.
-:::
 
 ## Adding the library
 
@@ -54,7 +49,7 @@ widget.attach('my-parent-element-id');
 ```
 
 That's it. Now your users can use the widget in order to connect their storage,
-and you can listen to the `remoteStorage` instance's events in order to get
+and you can listen to the [RemoteStorage][1] instance's events in order to get
 informed about connection status, sync progress, errors, and so on.
 
 ::: tip
@@ -63,3 +58,5 @@ interface and code, the widget can serve as a useful source code
 example. For everything it does, the Connect Widget only uses public
 APIs and events of rs.js, which you can also use in your own code.
 :::
+
+[1]: ../api/remotestorage/classes/RemoteStorage.html

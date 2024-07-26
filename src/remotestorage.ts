@@ -957,7 +957,7 @@ export class RemoteStorage {
    * use to directly read and manipulate data in the connected storage account.
    *
    * Please use this method only for debugging and development, and choose or
-   * create a [data module](../../../data-modules) for your app to use.
+   * create a [data module](../../../data-modules/) for your app to use.
    *
    * @param path - The base directory of the BaseClient that will be returned
    *               (with a leading and a trailing slash)

@@ -51,7 +51,7 @@ client.storeFile('text/plain', 'bar.txt', content)
 ### The recommended way: using clients in data modules
 
 The recommended way is to use the private and public [BaseClient][2] instances,
-which are available in so-called [data modules](../data-modules). Continue to
+which are available in so-called [data modules](../data-modules/). Continue to
 the next section in order to learn about them.
 
 [1]: ../api/remotestorage/classes/RemoteStorage.html

@@ -1,6 +1,6 @@
 # Offering Dropbox and Google Drive storage options
 
-![Screenshot of the connect-widget choose-backend screen](_images/screenshot-widget-choose.png){width="50%"}
+![Screenshot of the connect-widget choose-backend screen](./images/screenshot-widget-choose.png){width="50%"}
 
 rs.js has optional support for syncing data with Dropbox and Google
 Drive instead of a RemoteStorage server.

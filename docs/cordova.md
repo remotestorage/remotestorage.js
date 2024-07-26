@@ -18,6 +18,8 @@ can be as well). But for the remoteStorage connection to work, you need
 to provide a page that is accessible via a public URL. This will be used
 as the redirect URL during the OAuth flow.
 
+<img src="./images/cordova_oauth.png" height="200" style="height: 360px; margin-left: 3rem; margin-bottom: 3rem; float: right" />
+
 When a user connects their storage, the OAuth dialog will open in an
 in-app browser window, set to show the address to prevent phishing
 attacks.

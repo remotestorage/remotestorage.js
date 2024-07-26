@@ -35,7 +35,7 @@ uses and manipulates existing data, without building import/export
 features or having users start over from scratch.
 
 Even better, you can get advanced capabilities for free by using shared,
-open-source [data modules](data-modules), which you can cooperate on with
+open-source [data modules](./data-modules/), which you can cooperate on with
 other developers.
 
 For example: enable the sharing of files by simply integrating the [shares
@@ -59,7 +59,7 @@ critical bug, there\'s a team of people who will help with fixing it.
 rs.js optionally supports Dropbox and Google Drive as storage backends which
 users can connect. Conveniently, as an app developer you don\'t have to
 implement anything special in order for these backends to work with your code.
-Just [configure OAuth app keys](getting-started/dropbox-and-google-drive), and
+Just [configure OAuth app keys](./dropbox-and-google-drive), and
 your users can choose between 3 different backends to connect. If you're not
-using the [connect widget](getting-started/connect-widget), you may need to
+using the [connect widget](./getting-started/connect-widget), you may need to
 create additional UI for these alternate backends.

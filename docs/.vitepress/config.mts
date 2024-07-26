@@ -4,6 +4,10 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Documentation",
   description: "",
+  ignoreDeadLinks: [
+    /^http:\/\/localhost/,
+    '/unhosted'
+  ],
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
