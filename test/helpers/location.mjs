@@ -1,12 +1,10 @@
-
 class MockLocation {
-  private _origin: string;
-  private _pathname: string;
-  private _search: string;
-  private _hash: string;
-
   constructor(url) {
     this.href = url;
+    this._origin = null;
+    this._pathname = null;
+    this._search = null;
+    this._hash = null;
   }
 
   toString() {
@@ -86,7 +84,7 @@ class MockLocation {
 
 export default function locationFactory(url) {
   if (!('document' in globalThis)) {
-    globalThis["document"] = {} as Document;
+    globalThis["document"] = {};
   }
-  globalThis.document.location = new MockLocation(url) as unknown as Location;
+  globalThis.document.location = new MockLocation(url);
 }
