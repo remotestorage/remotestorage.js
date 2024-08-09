@@ -1,13 +1,14 @@
 import 'mocha';
-import chai, {expect} from 'chai';
+import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import fetchMock from 'fetch-mock';
-import {requestWithTimeout} from "../../src/requests";
-import config from "../../src/config";
+
+import config from "../../build/config.js";
+import { requestWithTimeout } from "../../build/requests.js";
 
 chai.use(chaiAsPromised);
 
-describe("request", () => {
+describe("request helpers", () => {
   describe("requestWithTimeout", () => {
     const originalTimeout = config.requestTimeout;
 
@@ -36,4 +37,3 @@ describe("request", () => {
     });
   });
 });
-

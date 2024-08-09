@@ -1,14 +1,16 @@
-import {localStorage} from '../helpers/memoryStorage';
 import 'mocha';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
-import config from "../../src/config";
-import Dropbox from "../../src/dropbox";
-import InMemoryStorage from '../../src/inmemorystorage';
-import RemoteStorage from '../../src/remotestorage';
-import Sync from '../../src/sync';
+
+import { localStorage } from '../helpers/memoryStorage.mjs';
+
+import config from "../../build/config.js";
+import Dropbox from "../../build/dropbox.js";
+import InMemoryStorage from '../../build/inmemorystorage.js';
+import { RemoteStorage } from '../../build/remotestorage.js';
+import { Sync } from '../../build/sync.js';
 
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const ACCOUNT_URL = 'https://api.dropboxapi.com/2/users/get_current_account';
@@ -25,7 +27,6 @@ const REFRESH_TOKEN = '4-_IbSBsp5wAAA';
 
 chai.use(chaiAsPromised);
 
-
 // This function is simple and has OK performance compared to more
 // complicated ones: http://jsperf.com/json-escape-unicode/4
 const charsToEncode = /[\u007f-\uffff]/g;
@@ -36,7 +37,6 @@ function httpHeaderSafeJson(obj) {
     }
   );
 }
-
 
 describe('Dropbox backend', () => {
   const CLIENT_ID = 'some-client-id';
@@ -363,7 +363,6 @@ describe('Dropbox backend', () => {
       expect(mockWireDone.called).to.equal(true);
     });
 
-
     it("returns a folder at the root", async () => {
       const body = {
         "entries": [{
@@ -425,7 +424,7 @@ describe('Dropbox backend', () => {
     });
 
     it("makes as many requests as needed for folders with many entries", async () => {
-      function payload(num: number, hasMore: boolean) {
+      function payload(num, hasMore) {
         return {
           entries: [
             {
@@ -784,11 +783,11 @@ describe('Dropbox backend', () => {
 
     it("rejects promise on status 409 [most errors] from the server", async () => {
       fetchMock.mock(
-        {name: 'getFile', url: DOWNLOAD_URL},
-        {status: 409, body: JSON.stringify({
+        { name: 'getFile', url: DOWNLOAD_URL },
+        { status: 409, body: JSON.stringify({
           "error_summary": "to/no_write_permission/..",
           "error": {".tag": "to", "to": {".tag": "no_write_permission"}}
-        })}
+        }) }
       );
       await expect(dropbox.get('/thud')).to.be.rejectedWith(/no_write_permission/);
 
@@ -902,7 +901,7 @@ describe('Dropbox backend', () => {
       calls = fetchMock.calls();
       expect(calls[1][0]).to.equal(SHARING_URL);
       expect(calls[1][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);
-      const shareBody = JSON.parse(calls[1][1].body as string);
+      const shareBody = JSON.parse(calls[1][1].body);
       expect(shareBody).to.have.property('path', '/remotestorage/public/announcement');
       expect(calls).to.have.lengthOf(2);
 

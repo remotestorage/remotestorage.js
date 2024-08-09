@@ -17,7 +17,7 @@ const config = {
   // default config
   backgroundSyncInterval: 60000,
   disableFeatures: [],
-  discoveryTimeout: 10000,
+  discoveryTimeout: 5000,
   isBackground: false,
   requestTimeout: 30000,
   syncInterval: 10000
