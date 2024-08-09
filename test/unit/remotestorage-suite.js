@@ -75,15 +75,6 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
       global.log = require('./build/log');
       global.Dropbox = require('./build/dropbox');
       global.RemoteStorage = require('./build/remotestorage').RemoteStorage;
-
-      global.Discover = function(userAddress) {
-        var pending = Promise.defer();
-        if (userAddress === "someone@somewhere") {
-          pending.reject('in this test, discovery fails for that address');
-        }
-        return  pending.promise;
-      };
-
       global.localStorage = {};
       global.RemoteStorage.prototype.remote = new FakeRemote();
       test.done();
@@ -93,7 +84,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
       var remoteStorage = new RemoteStorage({cache: false, disableFeatures: ['WireClient'] });
       env.rs = remoteStorage;
       config.cordovaRedirectUri = undefined;
-      remoteStorage.on('ready', test.done );
+      remoteStorage.on('ready', test.done);
     },
 
     tests: [
@@ -145,7 +136,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
       },
 
       {
-        desc: "#get #put #delete not emmitting Error when getting 200",
+        desc: "#get #put #delete not emitting Error when getting 200",
         run: function(env, test) {
           var success = true;
           var c = 0;
@@ -167,70 +158,6 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
           env.rs.delete('/testing200').then(function() {
             test.assert(success, true);
           });
-        }
-      },
-
-      {
-        desc: "#connect throws unauthorized when userAddress doesn't contain an @ or URL",
-        run: function(env, test) {
-          env.rs.on('error', function(e) {
-            test.assert(e instanceof RemoteStorage.DiscoveryError, true);
-          });
-          env.rs.connect('somestring');
-        }
-      },
-
-      {
-        desc: "#connect accepts URLs for the userAddress",
-        run: function(env, test) {
-          env.rs.on('error', function(e) {
-            test.fail('URL userAddress was not accepted.');
-          });
-
-          env.rs.remote = new FakeRemote(false);
-          env.rs.remote.configure = function (options) {
-            test.assert(options.userAddress, 'https://personal.ho.st');
-          }
-          env.rs.connect('https://personal.ho.st');
-        }
-      },
-
-      {
-        desc: "#connect adds missing https:// to URLs",
-        run: function(env, test) {
-          env.rs.on('error', function(e) {
-            test.fail('URL userAddress was not accepted.');
-          });
-
-          env.rs.remote = new FakeRemote(false);
-          env.rs.remote.configure = function (options) {
-            test.assert(options.userAddress, 'https://personal.ho.st');
-          }
-          env.rs.connect('personal.ho.st');
-        }
-      },
-
-      {
-        desc: "#connect sets the backend to remotestorage",
-        run: function(env, test) {
-          global.localStorage = {
-            storage: {},
-            setItem: function(key, value) {
-              this.storage[key] = value;
-            },
-            getItem: function(key) {
-              return this.storage[key];
-            },
-            removeItem: function(key) {
-              delete this.storage[key];
-            }
-          };
-
-          env.rs = new RemoteStorage();
-          env.rs.remote = new FakeRemote(false);
-
-          env.rs.connect('user@ho.st');
-          test.assert(localStorage.getItem('remotestorage:backend'), 'remotestorage');
         }
       },
 
@@ -398,30 +325,6 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
               test.assert(times, 1);
             }, 10);
           }, 10);
-        }
-      },
-
-      {
-        desc: "#connect throws DiscoveryError on empty href",
-        run: function(env, test) {
-          env.rs.on('error', function(e) {
-            if (e instanceof RemoteStorage.DiscoveryError) {
-              test.done();
-            }
-          });
-          env.rs.connect('someone@somewhere');
-        }
-      },
-
-      {
-        desc: "#connect throws DiscoveryError on timeout of RemoteStorage.Discover",
-        run: function(env, test) {
-          config.discoveryTimeout = 500;
-          env.rs.on('error', function(e) {
-            test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
-            test.done();
-          });
-          env.rs.connect("someone@timeout");
         }
       },
 

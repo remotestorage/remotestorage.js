@@ -4,16 +4,30 @@ import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
-import { Dropbox } from '../../build/dropbox.js';
+import Dropbox from '../../build/dropbox.js';
+import { EventHandling } from '../../build/eventhandling.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
+import { applyMixins } from '../../build/util.js';
 
 chai.use(chaiAsPromised);
+
+class FakeRemote {
+  constructor (connected) {
+    this.fakeRemote = true;
+    this.connected = (typeof connected === 'boolean') ? connected : true;
+    this.configure = function() {};
+    this.stopWaitingForToken = function() {
+      if (!this.connected) { this._emit('not-connected'); }
+    };
+    this.addEvents(['connected', 'disconnected', 'not-connected']);
+  }
+}
+applyMixins(FakeRemote, [ EventHandling ]);
 
 describe("RemoteStorage", function() {
   const sandbox = sinon.createSandbox();
 
   afterEach(function() {
-    fetchMock.reset();
     sandbox.restore();
   });
 
@@ -48,6 +62,80 @@ describe("RemoteStorage", function() {
       ]});
 
       expect(rs['bar'].it).to.equal('worked');
+    });
+  });
+
+  describe("#connect", function() {
+    before(function() {
+      fetchMock.mock(/acct\:timeout@example\.com/, 200, {
+        delay: 1000
+      });
+      fetchMock.mock(/personal\.ho\.st/, 200);
+      fetchMock.mock(/acct\:user@ho\.st/, 200);
+    });
+
+    beforeEach(function() {
+      this.rs = new RemoteStorage({
+        cache: false,
+        discoveryTimeout: 500
+      });
+    });
+
+    it("throws DiscoveryError when userAddress doesn't contain an @ or URL", function(done) {
+      this.rs.on('error', function(e) {
+        expect(e).to.be.an.instanceof(RemoteStorage.DiscoveryError);
+        expect(e.message).to.match(/Not a valid user address/);
+        done();
+      });
+
+      this.rs.connect('somestring');
+    });
+
+    it("throws DiscoveryError on timeout of RemoteStorage.Discover", function(done) {
+      this.rs.on('error', function(e) {
+        expect(e).to.be.an.instanceof(RemoteStorage.DiscoveryError);
+        expect(e.message).to.match(/No storage information found/);
+        done();
+      });
+
+      this.rs.connect("timeout@example.com");
+    });
+
+    it("accepts URLs for the userAddress", function(done) {
+      this.rs.on('error', function(/* err */) {
+        throw new Error('URL userAddress was not accepted.');
+      });
+
+      this.rs.remote = new FakeRemote(false);
+      this.rs.remote.configure = function (options) {
+        expect(options.userAddress).to.equal('https://personal.ho.st');
+        done();
+      };
+
+      this.rs.connect('https://personal.ho.st');
+    });
+
+    it("adds missing https:// to URLs", function(done) {
+      this.rs.on('error', function(/* err */) {
+        throw new Error('URL userAddress was not accepted.');
+      });
+
+      this.rs.remote = new FakeRemote(false);
+      this.rs.remote.configure = function (options) {
+        expect(options.userAddress).to.equal('https://personal.ho.st');
+        done();
+      };
+
+      this.rs.connect('personal.ho.st');
+    });
+
+    it("sets the backend to remotestorage", function() {
+      this.rs.remote = new FakeRemote(false);
+      this.rs.backend = undefined;
+
+      this.rs.connect('user@ho.st');
+
+      expect(this.rs.backend).to.equal('remotestorage');
     });
   });
 
