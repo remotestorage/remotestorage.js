@@ -2,6 +2,7 @@
 
 import WebFinger from 'webfinger.js';
 import type { StorageInfo } from './interfaces/storage_info';
+import config from './config';
 import log from './log';
 import { globalContext, localStorageAvailable } from './util';
 
@@ -19,9 +20,9 @@ let cachedInfo = {};
  * This function deals with the Webfinger lookup, discovering a connecting
  * user's storage details.
  *
- * @param {string} userAddress - user@host or URL
+ * @param userAddress - user@host or URL
  *
- * @returns {Promise} A promise for an object with the following properties.
+ * @returns A promise for an object with the following properties.
  *          href - Storage base URL,
  *          storageApi - RS protocol version,
  *          authUrl - OAuth URL,
@@ -38,8 +39,12 @@ const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
     const webFinger = new WebFinger({
       tls_only: false,
       uri_fallback: true,
-      request_timeout: 5000
+      request_timeout: config.discoveryTimeout
     });
+
+    setTimeout(() => {
+      return reject(new Error('timed out'));
+    }, config.discoveryTimeout);
 
     return webFinger.lookup(userAddress, function (err, response) {
       if (err) {
