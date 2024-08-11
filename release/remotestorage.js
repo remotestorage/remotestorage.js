@@ -50299,7 +50299,7 @@ class Authorize {
      * browser will navigate back to redirectUri and OAuth will continue
      * with onFeaturesLoaded.
      */
-    static authorize(remoteStoFrage, options) {
+    static authorize(remoteStorage, options) {
         (0, log_1.default)('[Authorize] authURL = ', options.authURL, 'scope = ', options.scope, 'redirectUri = ', options.redirectUri, 'clientId = ', options.clientId, 'response_type =', options.response_type);
         if (!options.scope) {
             throw new Error("Cannot authorize due to undefined or empty scope; did you forget to access.claim()?");

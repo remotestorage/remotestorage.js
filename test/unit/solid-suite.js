@@ -95,16 +95,6 @@ define(['util', 'require', './build/eventhandling', './build/solid',
 
   var tests = [
     {
-      desc: "#configure sets 'connected' to true, once sessionProperties is given",
-      run: function (env, test) {
-        env.client.configure({
-          sessionProperties: { }
-        });
-        test.assert(env.client.connected, true);
-      }
-    },
-
-    {
       desc: "#configure sets userAddress when given",
       run: function (env, test) {
         env.client.configure({
@@ -113,13 +103,68 @@ define(['util', 'require', './build/eventhandling', './build/solid',
         test.assert(env.client.userAddress, 'john.doe@gmail.com');
       }
     },
-
-    
+    {
+      desc: "#configure sets authURL when given",
+      run: function (env, test) {
+        env.client.configure({
+          href: 'https://solidcommunity.net'
+        });
+        test.assert(env.client.authURL, 'https://solidcommunity.net');
+      }
+    },
+    {
+      desc: "#configure sets sessionProperties when given",
+      run: function (env, test) {
+        env.client.configure({
+          properties: {
+            sessionProperties: { check: true }
+          }
+        });
+        test.assert(env.client.sessionProperties, { check: true });
+      }
+    },
+    {
+      desc: "#configure sets podURL when given",
+      run: function (env, test) {
+        env.client.configure({
+          properties: {
+            podURL: 'https://example.solidcommunity.net/'
+          }
+        });
+        test.assert(env.client.selectedPodURL, 'https://example.solidcommunity.net/');
+      }
+    },
+    {
+      desc: "#setAuthURL will update auth URL",
+      run: function (env, test) {
+        env.client.setAuthURL('https://solidcommunity.net');
+        test.assert(env.client.authURL, 'https://solidcommunity.net');
+      }
+    },
+    {
+      desc: "#setPodURL will update the selected pod URL",
+      run: function (env, test) {
+        env.client.setPodURL('https://example.solidcommunity.net/');
+        test.assert(env.client.selectedPodURL, 'https://example.solidcommunity.net/');
+      }
+    },
+    {
+      desc: "#connect will emit error if the auth URL is not set",
+      run: function (env, test) {
+        const errorCheck = { hasError: false };
+        env.rs.on('error', function(error) {
+          test.assert(error.message, 'No authURL is configured.');
+          errorCheck.hasError = true;
+        });
+        env.client.connect();
+        test.assert(errorCheck.hasError, true);
+      }
+    }
   ];
 
   suites.push({
     name: "Solid",
-    desc: "Solid back-end",
+    desc: "session configuration & setup",
     setup: setup,
     beforeEach: beforeEach,
     afterEach: afterEach,

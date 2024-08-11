@@ -15,8 +15,8 @@ import {
   localStorageAvailable
 } from './util';
 import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
-import ConfigObserver from "./solid/configObserver";
-import ConfigStorage from "./solid/solidStorage";
+import ConfigObserver from "./interfaces/configObserver";
+import ConfigStorage from "./solidStorage";
 import Blob from "blob";
 
 const SETTINGS_KEY = 'remotestorage:solid';
@@ -174,13 +174,12 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    *
    * @protected
    */
-  configure (settings: RemoteSettings) { // Settings parameter compatible with WireClient
-    // TODO fix comments
+  configure (settings: RemoteSettings) {
     // We only update this.userAddress if settings.userAddress is set to a string or to null
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
-    // We only update this.userAddress if settings.userAddress is set to a string or to null
+    // We only update this.authURL if settings.href is set to a string or to null
     if (typeof settings.href !== 'undefined') { this.authURL = settings.href; }
-    // Same for this.token. If only one of these two is set, we leave the other one at its existing value
+    // Read session properties and pod URL from the properties if it exists
     if (typeof settings.properties !== 'undefined') {
       const properties = settings.properties as {sessionProperties: object, podURL: string};
 
@@ -227,9 +226,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
 
     if (this.sessionProperties) {
       this.configStorage.setConfig(JSON.stringify(this.sessionProperties));
-      this.connected = false;
-
-      // TODO this.connect();
+      this.connected = this.session.info && this.session.info.isLoggedIn;
       writeSettingsToCache.apply(this);
     } else {
       handleError.apply(this);
@@ -253,25 +250,36 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   }
 
   setPodURL(podURL: string): void {
+    if (this.selectedPodURL === podURL) {
+      return;
+    }
+
     this.selectedPodURL = podURL;
 
     if (this.session.info && this.session.info.isLoggedIn) {
-      let settings = getJSONFromLocalStorage(SETTINGS_KEY);
-      if (!settings) {
-        settings = { };
+      if (this.selectedPodURL) {
+        let settings = getJSONFromLocalStorage(SETTINGS_KEY);
+        if (!settings) {
+          settings = { };
+        }
+  
+        settings.userAddress = this.session.info.webId;
+        settings.href = this.authURL;
+        settings.properties = {
+          sessionProperties: this.sessionProperties,
+          podURL: this.selectedPodURL
+        };
+  
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  
+        this.connected = true;
+        this._emit('connected');
       }
-
-      settings.userAddress = this.session.info.webId;
-      settings.href = this.authURL;
-      settings.properties = {
-        sessionProperties: this.sessionProperties,
-        podURL: this.selectedPodURL
-      };
-
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      else {
+        this.connected = false;
+        this.rs._emit('pod-not-selected');
+      }
     }
-
-    this._emit('connected');
   }
 
   getPodURL(): string|null {
@@ -284,6 +292,11 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   connect (): void {
     this.rs.setBackend('solid');
     
+    if (!this.authURL) {
+      this.rs._emit('error', new Error(`No authURL is configured.`));
+      return;
+    }
+
     this.session.login({
       oidcIssuer: this.authURL,
       redirectUrl: new URL("/", window.location.href).toString(),
