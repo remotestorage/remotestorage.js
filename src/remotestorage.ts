@@ -199,8 +199,8 @@ class RemoteStorage {
           case 'pod-not-selected':
             if ((this.remote instanceof Solid)
               && this.remote.getPodURLs().length > 0
-              && this.remote.getPodURL() == null) {
-                setTimeout(handler, 0);
+              && this.remote.getPodURL() === null) {
+              setTimeout(handler, 0);
             }
             break;
         }

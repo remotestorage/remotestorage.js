@@ -15,7 +15,7 @@ import {
   localStorageAvailable
 } from './util';
 import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
-import ConfigObserver from "./interfaces/configObserver";
+import { ConfigObserver } from "./interfaces/configObserver";
 import ConfigStorage from "./solidStorage";
 import Blob from "blob";
 
@@ -65,10 +65,18 @@ function unHookGetItemURL (rs): void {
  */
 function requestBodyToBlob(body: XMLHttpRequestBodyInit): Blob {
   if (typeof(body) === 'object') {
-    if (body instanceof Blob) return body;
-    if (body instanceof DataView) return new Blob([ body ], { type : "application/octet-stream" });
-    if (body instanceof ArrayBuffer) return new Blob([ new DataView(body) ]);
-    if (ArrayBuffer.isView(body)) return new Blob([ body ], { type : "application/octet-stream" });
+    if (body instanceof Blob) {
+      return body;
+    }
+    if (body instanceof DataView) {
+      return new Blob([ body ], { type : "application/octet-stream" });
+    }
+    if (body instanceof ArrayBuffer) {
+      return new Blob([ new DataView(body) ]);
+    }
+    if (ArrayBuffer.isView(body)) {
+      return new Blob([ body ], { type : "application/octet-stream" });
+    }
     if (body instanceof FormData) {
       return new Blob([ new URLSearchParams([JSON.parse(JSON.stringify(body.entries()))]).toString() ],
           { type : 'application/x-www-form-urlencoded' });
@@ -347,7 +355,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
             map[itemName] = {
               'Content-Length': 1, // TODO FIX THESE
               'Last-Modified': 1, // date.toUTCString()
-            }
+            };
           }
 
           return map;
@@ -424,7 +432,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
       }).catch(error => {
         return Promise.reject("PUT failed with status " + error.statusCode + " (" + error.message + ")");
       });
-    }
+    };
 
     return getFile(fileURL, { fetch: fetch}).then(file => {
       if (options && (options.ifNoneMatch === '*')) {

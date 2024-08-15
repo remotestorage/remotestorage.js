@@ -1,7 +1,7 @@
 import {
-    IStorage,
-  } from "@inrupt/solid-client-authn-browser";
-import ConfigObserver from "./interfaces/configObserver";
+  IStorage,
+} from "@inrupt/solid-client-authn-browser";
+import { ConfigObserver } from "./interfaces/configObserver";
 
 class BrowserStorage implements IStorage {
   get storage(): typeof window.localStorage {
@@ -27,7 +27,7 @@ export default class ConfigStorage implements IStorage {
   private observer: ConfigObserver;
 
   constructor(observer: ConfigObserver) {
-      this.observer = observer;
+    this.observer = observer;
   }
 
   private isConfigKey(key: string): boolean {
