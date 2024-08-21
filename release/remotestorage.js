@@ -54889,7 +54889,7 @@ class RemoteStorage {
                     case 'pod-not-selected':
                         if ((this.remote instanceof solid_1.default)
                             && this.remote.getPodURLs().length > 0
-                            && this.remote.getPodURL() == null) {
+                            && this.remote.getPodURL() === null) {
                             setTimeout(handler, 0);
                         }
                         break;
@@ -55184,16 +55184,6 @@ class RemoteStorage {
      */
     log(...args) {
         log_1.default.apply(RemoteStorage, args);
-    }
-    setSolidAuthURL(authURL) {
-        if (!authURL) {
-            return;
-        }
-        solid_1.default._rs_init(this);
-        this.solid.setAuthURL(authURL);
-        if (hasLocalStorage) {
-            localStorage.setItem('remotestorage:solid-auth-url', authURL); // TODO
-        }
     }
     /**
      * Set the OAuth key/ID for either GoogleDrive, Dropbox or Solid backend support.
@@ -56024,15 +56014,12 @@ const baseclient_1 = __importDefault(__webpack_require__(/*! ./baseclient */ "./
 const eventhandling_1 = __importDefault(__webpack_require__(/*! ./eventhandling */ "./src/eventhandling.ts"));
 const util_1 = __webpack_require__(/*! ./util */ "./src/util.ts");
 const remote_1 = __webpack_require__(/*! ./remote */ "./src/remote.ts");
-const solidStorage_1 = __importDefault(__webpack_require__(/*! ./solid/solidStorage */ "./src/solid/solidStorage.ts"));
+const solidStorage_1 = __importDefault(__webpack_require__(/*! ./solidStorage */ "./src/solidStorage.ts"));
 const blob_1 = __importDefault(__webpack_require__(/*! blob */ "./node_modules/blob/main.js"));
 const SETTINGS_KEY = 'remotestorage:solid';
 let hasLocalStorage;
 /**
  * Overwrite BaseClient's getItemURL with our own implementation
- *
- * TODO: Still needs to be implemented. At the moment it just throws
- * and error saying that it's not implemented yet.
  *
  * @param {object} rs - RemoteStorage instance
  *
@@ -56043,8 +56030,19 @@ function hookGetItemURL(rs) {
         return;
     }
     rs._origBaseClientGetItemURL = baseclient_1.default.prototype.getItemURL;
-    baseclient_1.default.prototype.getItemURL = function ( /* path */) {
-        throw new Error('getItemURL is not implemented for Solid yet'); // TODO It actually is. No?
+    baseclient_1.default.prototype.getItemURL = function (path) {
+        if (typeof path !== 'string') {
+            throw 'Argument \'path\' of baseClient.getItemURL must be a string';
+        }
+        if (this.storage.connected) {
+            if (path.startsWith('/')) {
+                path = path.substring(1);
+            }
+            return this.selectedPodURL + (0, util_1.cleanPath)(path);
+        }
+        else {
+            return undefined;
+        }
     };
 }
 /**
@@ -56072,14 +56070,18 @@ function unHookGetItemURL(rs) {
  */
 function requestBodyToBlob(body) {
     if (typeof (body) === 'object') {
-        if (body instanceof blob_1.default)
+        if (body instanceof blob_1.default) {
             return body;
-        if (body instanceof DataView)
+        }
+        if (body instanceof DataView) {
             return new blob_1.default([body], { type: "application/octet-stream" });
-        if (body instanceof ArrayBuffer)
+        }
+        if (body instanceof ArrayBuffer) {
             return new blob_1.default([new DataView(body)]);
-        if (ArrayBuffer.isView(body))
+        }
+        if (ArrayBuffer.isView(body)) {
             return new blob_1.default([body], { type: "application/octet-stream" });
+        }
         if (body instanceof FormData) {
             return new blob_1.default([new URLSearchParams([JSON.parse(JSON.stringify(body.entries()))]).toString()], { type: 'application/x-www-form-urlencoded' });
         }
@@ -56166,16 +56168,15 @@ class Solid extends remote_1.RemoteBase {
      * @protected
      */
     configure(settings) {
-        // TODO fix comments
         // We only update this.userAddress if settings.userAddress is set to a string or to null
         if (typeof settings.userAddress !== 'undefined') {
             this.userAddress = settings.userAddress;
         }
-        // We only update this.userAddress if settings.userAddress is set to a string or to null
+        // We only update this.authURL if settings.href is set to a string or to null
         if (typeof settings.href !== 'undefined') {
             this.authURL = settings.href;
         }
-        // Same for this.token. If only one of these two is set, we leave the other one at its existing value
+        // Read session properties and pod URL from the properties if it exists
         if (typeof settings.properties !== 'undefined') {
             const properties = settings.properties;
             if (properties) {
@@ -56218,8 +56219,7 @@ class Solid extends remote_1.RemoteBase {
         };
         if (this.sessionProperties) {
             this.configStorage.setConfig(JSON.stringify(this.sessionProperties));
-            this.connected = false;
-            // TODO this.connect();
+            this.connected = this.session.info && this.session.info.isLoggedIn;
             writeSettingsToCache.apply(this);
         }
         else {
@@ -56241,21 +56241,31 @@ class Solid extends remote_1.RemoteBase {
         return this.podURLs;
     }
     setPodURL(podURL) {
+        if (this.selectedPodURL === podURL) {
+            return;
+        }
         this.selectedPodURL = podURL;
         if (this.session.info && this.session.info.isLoggedIn) {
-            let settings = (0, util_1.getJSONFromLocalStorage)(SETTINGS_KEY);
-            if (!settings) {
-                settings = {};
+            if (this.selectedPodURL) {
+                let settings = (0, util_1.getJSONFromLocalStorage)(SETTINGS_KEY);
+                if (!settings) {
+                    settings = {};
+                }
+                settings.userAddress = this.session.info.webId;
+                settings.href = this.authURL;
+                settings.properties = {
+                    sessionProperties: this.sessionProperties,
+                    podURL: this.selectedPodURL
+                };
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+                this.connected = true;
+                this._emit('connected');
             }
-            settings.userAddress = this.session.info.webId;
-            settings.href = this.authURL;
-            settings.properties = {
-                sessionProperties: this.sessionProperties,
-                podURL: this.selectedPodURL
-            };
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            else {
+                this.connected = false;
+                this.rs._emit('pod-not-selected');
+            }
         }
-        this._emit('connected');
     }
     getPodURL() {
         return this.selectedPodURL;
@@ -56265,11 +56275,23 @@ class Solid extends remote_1.RemoteBase {
      */
     connect() {
         this.rs.setBackend('solid');
+        if (!this.authURL) {
+            this.rs._emit('error', new Error(`No authURL is configured.`));
+            return;
+        }
         this.session.login({
             oidcIssuer: this.authURL,
             redirectUrl: new URL("/", window.location.href).toString(),
             clientName: "Remote Storage"
         });
+    }
+    /**
+     * Get the connected Solid session
+     *
+     * @returns {Session} that is being used by this instance
+     */
+    getSession() {
+        return (this.session.info && this.session.info.isLoggedIn) ? this.session : undefined;
     }
     /**
      * Convert path to file URL
@@ -56283,6 +56305,9 @@ class Solid extends remote_1.RemoteBase {
     getFileURL(path) {
         if (path.startsWith('/')) {
             path = path.substring(1);
+        }
+        if (path.length === 0) {
+            path = '/';
         }
         return this.selectedPodURL + path;
     }
@@ -56308,9 +56333,10 @@ class Solid extends remote_1.RemoteBase {
                         map[itemName] = {}; // We are skipping ETag
                     }
                     else {
+                        const fileDataset = (0, solid_client_1.getThing)(containerDataset, item);
                         map[itemName] = {
-                            'Content-Length': 1,
-                            'Last-Modified': 1, // date.toUTCString()
+                            'Content-Length': (0, solid_client_1.getInteger)(fileDataset, 'http://www.w3.org/ns/posix/stat#size'),
+                            'Last-Modified': (0, solid_client_1.getDatetime)(fileDataset, 'http://purl.org/dc/terms/modified').toUTCString(), // date.toUTCString()
                         };
                     }
                     return map;
@@ -56477,16 +56503,16 @@ class Solid extends remote_1.RemoteBase {
         unHookGetItemURL(remoteStorage);
     }
 }
-(0, util_1.applyMixins)(Solid, [eventhandling_1.default]); // TODO what is this?
+(0, util_1.applyMixins)(Solid, [eventhandling_1.default]);
 module.exports = Solid;
 
 
 /***/ }),
 
-/***/ "./src/solid/solidStorage.ts":
-/*!***********************************!*\
-  !*** ./src/solid/solidStorage.ts ***!
-  \***********************************/
+/***/ "./src/solidStorage.ts":
+/*!*****************************!*\
+  !*** ./src/solidStorage.ts ***!
+  \*****************************/
 /***/ (function(__unused_webpack_module, exports) {
 
 "use strict";

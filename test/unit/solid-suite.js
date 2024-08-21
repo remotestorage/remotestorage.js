@@ -35,26 +35,6 @@ define(['util', 'require', './build/eventhandling', './build/solid',
     env.connectedClient = new Solid(env.rs);
     util.localStorageAvailable = oldLocalStorageAvailable;
 
-    /*
-    {
-  "href": "https://solidcommunity.net",
-  "userAddress": "https://yasharpm.solidcommunity.net/profile/ca"
-  "properties": {
-    "sessionProperties": {
-      "clientId": "f3746db1ad9c6e83ec2c3ef76fd7dba5",
-      "clientSecret": "43ef2f966cbd1d6a974a9af590847daf",
-      "idTokenSignedResponseAlg": "RS256",
-      "sessionId": "any",
-      "codeVerifier": "3099e5e6e8d14a1c9a0ad328a2421d5a6f8f30f7c7b648c48326dd987df5ccf4c285700f206c4f4d8d24aacf664e1823",
-      "issuer": "https://solidcommunity.net",
-      "redirectUrl": "https://8080-pondersource-devstock-73mdx98iw45.ws-eu115.gitpod.io/",
-      "dpop": "true"
-    },
-    "podURL": "https://yasharpm.solidcommunity.net/"
-  }
-}
-    */
-
     env.baseURI = 'https://example.com/storage/test';
     env.connectedClient.configure({
       userAddress: 'soliduser',

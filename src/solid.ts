@@ -5,11 +5,13 @@ import {
 import {
   getFile, overwriteFile, getContentType,
   getPodUrlAll, deleteFile, getContainedResourceUrlAll, getSolidDataset,
-  FetchError, UrlString
+  FetchError, UrlString,
+  getThing, getInteger, getDatetime
 } from "@inrupt/solid-client";
 import BaseClient from './baseclient';
 import EventHandling from './eventhandling';
 import {
+  cleanPath,
   applyMixins,
   getJSONFromLocalStorage,
   localStorageAvailable
@@ -26,9 +28,6 @@ let hasLocalStorage;
 /**
  * Overwrite BaseClient's getItemURL with our own implementation
  *
- * TODO: Still needs to be implemented. At the moment it just throws
- * and error saying that it's not implemented yet.
- *
  * @param {object} rs - RemoteStorage instance
  *
  * @private
@@ -36,8 +35,18 @@ let hasLocalStorage;
 function hookGetItemURL (rs): void {
   if (rs._origBaseClientGetItemURL) { return; }
   rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
-  BaseClient.prototype.getItemURL = function (/* path */): never {
-    throw new Error('getItemURL is not implemented for Solid yet'); // TODO It actually is. No?
+  BaseClient.prototype.getItemURL = function (path: string): string {
+    if (typeof path !== 'string') {
+      throw 'Argument \'path\' of baseClient.getItemURL must be a string';
+    }
+    if (this.storage.connected) {
+      if (path.startsWith('/')) {
+        path = path.substring(1);
+      }
+      return this.selectedPodURL + cleanPath(path);
+    } else {
+      return undefined;
+    }
   };
 }
 
@@ -313,6 +322,15 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   }
 
   /**
+   * Get the connected Solid session
+   * 
+   * @returns {Session} that is being used by this instance
+   */
+  getSession(): Session {
+    return (this.session.info && this.session.info.isLoggedIn)?this.session:undefined;
+  }
+
+  /**
    * Convert path to file URL
    *
    * @param {string} path - Path of the resource
@@ -324,6 +342,9 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   getFileURL(path: string): string {
     if (path.startsWith('/')) {
       path = path.substring(1);
+    }
+    if (path.length === 0) {
+      path = '/';
     }
     return this.selectedPodURL + path;
   }
@@ -352,9 +373,11 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
             map[itemName] = { }; // We are skipping ETag
           }
           else {
+            const fileDataset = getThing(containerDataset, item);
+
             map[itemName] = {
-              'Content-Length': 1, // TODO FIX THESE
-              'Last-Modified': 1, // date.toUTCString()
+              'Content-Length': getInteger(fileDataset, 'http://www.w3.org/ns/posix/stat#size'),
+              'Last-Modified': getDatetime(fileDataset, 'http://purl.org/dc/terms/modified').toUTCString(), // date.toUTCString()
             };
           }
 
@@ -544,6 +567,6 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   }
 }
 
-applyMixins(Solid, [EventHandling]); // TODO what is this?
+applyMixins(Solid, [EventHandling]);
 
 export = Solid;

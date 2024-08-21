@@ -527,19 +527,6 @@ class RemoteStorage {
     log.apply(RemoteStorage, args);
   }
 
-  setSolidAuthURL(authURL: string) {
-    if (!authURL) {
-      return;
-    }
-
-    Solid._rs_init(this);
-    this.solid.setAuthURL(authURL);
-
-    if (hasLocalStorage) {
-      localStorage.setItem('remotestorage:solid-auth-url', authURL); // TODO
-    }
-  }
-
   /**
    * Set the OAuth key/ID for either GoogleDrive, Dropbox or Solid backend support.
    *
