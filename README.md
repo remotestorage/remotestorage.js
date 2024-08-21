@@ -16,12 +16,12 @@ production.
 
 * See [remotestorage.io](http://remotestorage.io/) for general information
   about the remoteStorage protocol
-* Read [the docs](http://remotestoragejs.readthedocs.io/) (source files in `doc/`)
-    * [Why use this?](https://remotestoragejs.readthedocs.io/en/latest/why.html)
-    * [Getting started](https://remotestoragejs.readthedocs.io/en/latest/getting-started.html)
-    * [Data modules](https://remotestoragejs.readthedocs.io/en/latest/data-modules.html)
-    * [JavaScript API](https://remotestoragejs.readthedocs.io/en/latest/js-api.html)
-    * [Usage with Node.js](https://remotestoragejs.readthedocs.io/en/latest/nodejs.html)
+* Read [the docs](https://remotestorage.io/rs.js/docs/) (source files in `docs/`)
+    * [Why use this?](https://remotestorage.io/rs.js/docs/why.html)
+    * [Getting started](https://remotestorage.io/rs.js/docs/getting-started/)
+    * [Data modules](https://remotestorage.io/rs.js/docs/data-modules/)
+    * [JavaScript API](https://remotestorage.io/rs.js/docs/api/remotestorage/classes/RemoteStorage.html)
+    * [Usage with Node.js](https://remotestorage.io/rs.js/docs/nodejs.html)
 * Ask questions on the [community forums](https://community.remotestorage.io/)
 * If you found a potential bug, or want to propose a change, [open an issue on
   GitHub](https://github.com/remotestorage/remotestorage.js/issues). New issues
@@ -50,7 +50,7 @@ community. We'd be happy to count you among the many [people who
 contributed](https://github.com/remotestorage/remotestorage.js/graphs/contributors)
 to the project so far!
 
-Read our [Contributing docs](https://remotestoragejs.readthedocs.io/en/latest/contributing.html)
+Read our [Contributing docs](https://remotestorage.io/rs.js/docs/contributing/)
 to get started.
 
 ### Versioning
