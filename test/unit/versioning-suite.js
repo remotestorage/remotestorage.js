@@ -25,7 +25,7 @@ define(['./build/config', './build/eventhandling', './build/inmemorystorage',
 
     setup: function(env, test){
       class RemoteStorage { static log () {} }
-      util.applyMixins(RemoteStorage, [EventHandling]);
+      util.applyMixins(RemoteStorage, [EventHandling.default]);
       global.RemoteStorage = RemoteStorage;
 
       config.changeEvents = { local: true, window: false, remote: true, conflict: true };
@@ -363,7 +363,7 @@ define(['./build/config', './build/eventhandling', './build/inmemorystorage',
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
-      env.rs.sync = new Sync(env.rs, env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
+      env.rs.sync = new Sync.Sync(env.rs, env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
       global.remoteStorage = env.rs;
       test.done();
     },

@@ -15,15 +15,15 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
       global.Authorize = require('./build/authorize');
       global.UnauthorizedError = require('./build/unauthorized-error');
       global.config = require('./build/config');
-      global.EventHandling = require('./build/eventhandling');
-      global.Sync = require('./build/sync');
+      global.EventHandling = require('./build/eventhandling').EventHandling;
+      global.Sync = require('./build/sync').Sync;
       global.InMemoryStorage = require('./build/inmemorystorage');
 
       class RemoteStorage { static log () {} }
       util.applyMixins(RemoteStorage, [EventHandling]);
       global.RemoteStorage = RemoteStorage;
 
-      var RS = require('./build/remotestorage');
+      var RS = require('./build/remotestorage').RemoteStorage;
       RemoteStorage.prototype.stopSync = RS.prototype.stopSync;
       RemoteStorage.prototype.startSync = RS.prototype.startSync;
       RemoteStorage.prototype.getSyncInterval = RS.prototype.getSyncInterval;

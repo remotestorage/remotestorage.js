@@ -10,16 +10,23 @@ define(['util', 'require', './build/eventhandling', './build/solid',
   var suites = [];
 
   function setup (env, test) {
+    class RemoteStorage {
+      setBackend (b) { this.backend = b; }
+      static log () {}
+    }
+    buildUtil.applyMixins(RemoteStorage, [EventHandling.default]);
+    global.RemoteStorage = RemoteStorage;
+
     global.localStorage = {
       setItem: function() {},
       removeItem: function() {}
     };
 
-    class RemoteStorage {
-      setBackend (b) { this.backend = b; }
-    }
-    buildUtil.applyMixins(RemoteStorage, [EventHandling]);
-    global.RemoteStorage = RemoteStorage;
+    global.RemoteStorage.Unauthorized = function () {};
+
+    global.RemoteStorage.prototype.localStorageAvailable = function () {
+      return false;
+    };
 
     global.Authorize = require('./build/authorize');
 

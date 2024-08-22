@@ -80,8 +80,6 @@ function handleVisibility (env, rs): void {
 }
 
 /**
- * Class: RemoteStorage.Sync
- *
  * This class basically does six things:
  *
  * - retrieve the remote version of relevant documents and folders
@@ -99,7 +97,7 @@ function handleVisibility (env, rs): void {
  * comes in, it gives information about all the documents it contains (this is
  * the `markChildren` function).
  **/
-class Sync {
+export class Sync {
   // TODO remove when RS is defined, or if unnecessary
   rs: { [propName: string]: any };
 
@@ -1109,7 +1107,7 @@ class Sync {
   }
 }
 
-interface Sync extends EventHandling {}
+export interface Sync extends EventHandling {}
 applyMixins(Sync, [EventHandling]);
 
-export = Sync;
+export default Sync;

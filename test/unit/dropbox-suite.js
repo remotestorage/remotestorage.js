@@ -14,7 +14,7 @@ define(['require', './build/util', './build/dropbox', './build/wireclient',
         setBackend (b) { this.backend = b; }
         static log () {}
       }
-      buildUtil.applyMixins(RemoteStorage, [EventHandling]);
+      buildUtil.applyMixins(RemoteStorage, [EventHandling.default]);
       global.RemoteStorage = RemoteStorage;
 
       global.localStorage = {

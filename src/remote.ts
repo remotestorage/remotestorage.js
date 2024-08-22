@@ -1,6 +1,6 @@
 import RemoteStorage from "./remotestorage";
 import EventHandling from "./eventhandling";
-import {isFolder} from "./util";
+import { isFolder } from "./util";
 
 /**
  * The ancestor for WireClient, GoogleDrive & Dropbox
@@ -76,44 +76,74 @@ export interface RemoteResponse {
  * The public interface for WireClient, GoogleDrive, Dropbox & Solid
  */
 export interface Remote {
+  /**
+   * Whether or not a remote store is connected
+   */
   connected: boolean;
+
+  /**
+   * Whether last sync action was successful or not
+   */
   online: boolean;
+
+  /**
+   * The user address of the connected user
+   */
   userAddress: string;
 
   /**
    * Holds the spec version the server claims to be compatible with
    *
-   * Example:
-   *   (start code)
+   * @example
+   * ```js
+   * remoteStorage.remote.storageApi
+   * // 'draft-dejong-remotestorage-12'
+   * ```
    *
-   *   remoteStorage.remote.storageApi
-   *   // -> 'draft-dejong-remotestorage-01'
+   * @internal
    */
   storageApi: string;
 
   /**
    * Holds the server's base URL, as obtained in the Webfinger discovery
    *
-   * Example:
-   *   (start code)
+   * @example
+   * ```js
+   * remoteStorage.remote.href
+   * // 'https://storage.example.com/users/jblogg/'
+   * ```
    *
-   *   remoteStorage.remote.href
-   *   // -> 'https://storage.example.com/users/jblogg/'
+   * @internal
    */
   href?: string;
 
-  /** the JSON-parsed properties object from the user's WebFinger record */
+  /**
+   * The JSON-parsed properties object from the user's WebFinger record
+   */
   properties?: object;
 
-  clientId?: string;   // OAuth2
-  TOKEN_URL?: string;   // OAuth2 PKCE
+  /**
+   * OAuth2 client ID
+   *
+   * @internal
+   */
+  clientId?: string;
 
-  configure (settings): void   // TODO: harmonize settings & use type
+  /**
+   * OAuth2 PKCE
+   *
+   * @internal
+   */
+  TOKEN_URL?: string;
+
+  configure (settings): void // TODO: harmonize settings & use type
 
   configure (settings: RemoteSettings): void;
 
   /**
    * Initiate the authorization flow's OAuth dance.
+   *
+   * @internal
    */
   connect? (): void;
 

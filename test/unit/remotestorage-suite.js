@@ -30,7 +30,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
   FakeRemote.prototype.get = fakeRequest;
   FakeRemote.prototype.put = fakeRequest;
   FakeRemote.prototype.delete = fakeRequest;
-  util.applyMixins(FakeRemote, [EventHandling]);
+  util.applyMixins(FakeRemote, [EventHandling.EventHandling]);
 
   function FakeLocal() {}
 
@@ -68,13 +68,13 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
     setup:  function(env, test) {
       global.XMLHttpRequest = require('xhr2').XMLHttpRequest;
       global.SyncedGetPutDelete = require('./build/syncedgetputdelete');
-      global.Authorize = require('./build/authorize');
+      global.Authorize = require('./build/authorize').Authorize;
       global.UnauthorizedError = require('./build/unauthorized-error');
-      global.Sync = require('./build/sync');
+      global.Sync = require('./build/sync').Sync;
       global.config = require('./build/config');
       global.log = require('./build/log');
       global.Dropbox = require('./build/dropbox');
-      global.RemoteStorage = require('./build/remotestorage');
+      global.RemoteStorage = require('./build/remotestorage').RemoteStorage;
 
       global.Discover = function(userAddress) {
         var pending = Promise.defer();
@@ -480,8 +480,9 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         desc: "#connect throws DiscoveryError on empty href",
         run: function(env, test) {
           env.rs.on('error', function(e) {
-            test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
-            test.done();
+            if (e instanceof RemoteStorage.DiscoveryError) {
+              test.done();
+            }
           });
           env.rs.connect('someone@somewhere');
         }

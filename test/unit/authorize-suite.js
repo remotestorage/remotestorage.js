@@ -10,7 +10,7 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      env.Authorize = Authorize;
+      env.Authorize = Authorize.Authorize;
       env.UnauthorizedError = UnauthorizedError;
       test.done();
     },

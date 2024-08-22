@@ -50051,28 +50051,34 @@ function isCharacterAllowedAfterRelativePathSegment(character) {
 /*!***********************!*\
   !*** ./src/access.ts ***!
   \***********************/
-/***/ (function(module) {
+/***/ (function(__unused_webpack_module, exports) {
 
 "use strict";
 
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Access = void 0;
 /**
- * @class Access
+ * @class
  *
- * Keeps track of claimed access and scopes.
+ * This class is for requesting and managing access to modules/folders on the
+ * remote. It gets initialized as `remoteStorage.access`.
  */
 class Access {
-    constructor() {
-        this.reset();
-    }
     // TODO create custom type for init function
     static _rs_init() {
         return;
     }
+    constructor() {
+        this.reset();
+    }
     /**
-     * Property: scopes
+     * Holds an array of claimed scopes:
      *
-     * Holds an array of claimed scopes in the form
-     * > { name: "<scope-name>", mode: "<mode>" }
+     * ```javascript
+     * [{ name: "<scope-name>", mode: "<mode>" }]
+     * ```
+     *
+     * @ignore
      */
     get scopes() {
         return Object.keys(this.scopeModeMap).map((key) => {
@@ -50087,8 +50093,20 @@ class Access {
     /**
      * Claim access on a given scope with given mode.
      *
-     * @param {string} scope - An access scope, such as "contacts" or "calendar"
-     * @param {string} mode - Access mode. Either "r" for read-only or "rw" for read/write
+     * @param scope - An access scope, such as `contacts` or `calendar`
+     * @param mode - Access mode. Either `r` for read-only or `rw` for read/write
+     *
+     * @example
+     * ```javascript
+     * remoteStorage.access.claim('contacts', 'r');
+     * remoteStorage.access.claim('pictures', 'rw');
+     * ```
+     *
+     * Claiming root access, meaning complete access to all files and folders of a storage, can be done using an asterisk for the scope:
+     *
+     * ```javascript
+     * remoteStorage.access.claim('*', 'rw');
+     * ```
      */
     claim(scope, mode) {
         if (typeof (scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
@@ -50103,8 +50121,9 @@ class Access {
     /**
      * Get the access mode for a given scope.
      *
-     * @param {string} scope - Access scope
-     * @returns {string} Access mode
+     * @param scope - Access scope
+     * @returns Access mode
+     * @ignore
      */
     get(scope) {
         return this.scopeModeMap[scope];
@@ -50112,7 +50131,8 @@ class Access {
     /**
      * Remove access for the given scope.
      *
-     * @param {string} scope - Access scope
+     * @param scope - Access scope
+     * @ignore
      */
     remove(scope) {
         const savedMap = {};
@@ -50128,9 +50148,10 @@ class Access {
     /**
      * Verify permission for a given scope.
      *
-     * @param {string} scope - Access scope
-     * @param {string} mode - Access mode
-     * @returns {boolean} true if the requested access mode is active, false otherwise
+     * @param scope - Access scope
+     * @param mode - Access mode
+     * @returns `true` if the requested access mode is active, `false` otherwise
+     * @ignore
      */
     checkPermission(scope, mode) {
         const actualMode = this.get(scope);
@@ -50139,9 +50160,10 @@ class Access {
     /**
      * Verify permission for a given path.
      *
-     * @param {string} path - Path
-     * @param {string} mode - Access mode
-     * @returns {boolean} true if the requested access mode is active, false otherwise
+     * @param path - Path
+     * @param mode - Access mode
+     * @returns true if the requested access mode is active, false otherwise
+     * @ignore
      */
     checkPathPermission(path, mode) {
         if (this.checkPermission('*', mode)) {
@@ -50153,6 +50175,8 @@ class Access {
     }
     /**
      * Reset all access permissions.
+     *
+     * @ignore
      */
     reset() {
         this.rootPaths = [];
@@ -50197,13 +50221,15 @@ class Access {
     /**
      * Set the storage type of the remote.
      *
-     * @param {string} type - Storage type
+     * @param type - Storage type
+     * @internal
      */
     setStorageType(type) {
         this.storageType = type;
     }
 }
-module.exports = Access;
+exports.Access = Access;
+exports["default"] = Access;
 
 
 /***/ }),
@@ -50212,7 +50238,7 @@ module.exports = Access;
 /*!**************************!*\
   !*** ./src/authorize.ts ***!
   \**************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
@@ -50228,6 +50254,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Authorize = void 0;
 const log_1 = __importDefault(__webpack_require__(/*! ./log */ "./src/log.ts"));
 const util_1 = __webpack_require__(/*! ./util */ "./src/util.ts");
 const unauthorized_error_1 = __importDefault(__webpack_require__(/*! ./unauthorized-error */ "./src/unauthorized-error.ts"));
@@ -50331,8 +50359,8 @@ class Authorize {
     }
     /** On success, calls remote.configure() with new access token */
     static refreshAccessToken(rs, remote, refreshToken) {
-        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c;
             yield remote.configure({ token: null, tokenType: null });
             const formValues = new URLSearchParams({
                 grant_type: 'refresh_token',
@@ -50386,6 +50414,7 @@ class Authorize {
         remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
     }
 }
+exports.Authorize = Authorize;
 Authorize.IMPLIED_FAKE_TOKEN = false;
 /**
  * Get current document location
@@ -50474,8 +50503,8 @@ Authorize._rs_init = function (remoteStorage) {
     };
     // OAuth2 PKCE flow
     function fetchTokens(code) {
-        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d;
             const codeVerifier = sessionStorage.getItem('remotestorage:codeVerifier');
             if (!codeVerifier) {
                 (0, log_1.default)("[Authorize] Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
@@ -50521,7 +50550,7 @@ Authorize._rs_init = function (remoteStorage) {
     }
     remoteStorage.on('features-loaded', onFeaturesLoaded);
 };
-module.exports = Authorize;
+exports["default"] = Authorize;
 
 
 /***/ }),
@@ -50530,7 +50559,7 @@ module.exports = Authorize;
 /*!***************************!*\
   !*** ./src/baseclient.ts ***!
   \***************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
@@ -50546,6 +50575,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BaseClient = void 0;
 const tv4_1 = __importDefault(__webpack_require__(/*! tv4 */ "./node_modules/tv4/tv4.js"));
 const types_1 = __importDefault(__webpack_require__(/*! ./types */ "./src/types.ts"));
 const schema_not_found_error_1 = __importDefault(__webpack_require__(/*! ./schema-not-found-error */ "./src/schema-not-found-error.ts"));
@@ -50557,7 +50588,212 @@ function getModuleNameFromBase(path) {
     return path.length > 2 ? parts[1] : 'root';
 }
 /**
- * Provides a high-level interface to access data below a given root path.
+ * A `BaseClient` instance is the main endpoint you will use for interacting
+ * with a connected storage: listing, reading, creating, updating and deleting
+ * documents, as well as handling incoming changes.
+ *
+ * Base clients are usually used in [data modules](../../../data-modules/),
+ * which are loaded with two `BaseClient` instances by default: one for private
+ * and one for public documents.
+ *
+ * However, you can also instantiate a BaseClient outside of a data module using
+ * the `remoteStorage.scope()` function. Similarly, you can create a new scoped
+ * client within another client, using the `BaseClient`'s own {@link scope}.
+ *
+ * ## Read/write operations
+ *
+ * A `BaseClient` deals with three types of data: folders, objects and files.
+ *
+ * * {@link getListing} returns a mapping of all items within a folder.
+ *
+ * * {@link getObject} and {@link storeObject} operate on JSON objects. Each object
+ *   has a type.
+ *
+ * * {@link getFile} and {@link storeFile} operates on files. Each file has a MIME
+ *   type.
+ *
+ * * {@link getAll} returns all objects or files for the given folder path.
+ *
+ * * {@link remove} operates on either objects or files (but not folders; folders
+ *   are created and removed implictly).
+ *
+ * ## Caching logic for read operations
+ *
+ * All functions requesting/reading data will immediately return data from the
+ * local store, *as long as it is reasonably up-to-date*. If data is assumed to be
+ * potentially outdated, they will check the remote storage for changes first, and then
+ * return the requested data.
+ *
+ * The default maximum age of requested data is two times the periodic sync
+ * interval (10 seconds by default).
+ *
+ * However, you can adjust this behavior by using the `maxAge` argument with any
+ * of these functions, thereby changing the maximum age or removing the
+ * requirement entirely.
+ *
+ * * If the `maxAge` requirement is set, and the last sync request for the path
+ *   is further in the past than the maximum age given, the folder will first be
+ *   checked for changes on the remote, and then the promise will be fulfilled
+ *   with the up-to-date document or listing.
+ *
+ * * If the `maxAge` requirement is set, and cannot be met because of network
+ *   problems, the promise will be rejected.
+ *
+ * * If the `maxAge` requirement is set to `false`, or the library is in
+ *   offline mode, or no remote storage is connected (a.k.a.  "anonymous mode"),
+ *   the promise will always be fulfilled with data from the local store.
+ *
+ * > [!NOTE]
+ * > If {@link caching!Caching caching} for the folder is turned off, none of
+ * > this applies and data will always be requested from the remote store
+ * > directly.
+ *
+ * ## Change events
+ *
+ * A `BaseClient` emits only one type of event, named `change`, which you can add
+ * a handler for using the `.on()` function (same as with {@link RemoteStorage}):
+ *
+ * ```js
+ * client.on('change', function (evt) {
+ *   console.log('data was added, updated, or removed:', evt)
+ * });
+ * ```
+ *
+ * Using this event, your app can stay informed about data changes, both remote
+ * (from other devices or browsers), as well as locally (e.g. other browser tabs).
+ *
+ * In order to determine where a change originated from, look at the `origin`
+ * property of the event. Possible values are `window`, `local`, `remote`, and
+ * `conflict`, explained in detail below.
+ *
+ * #### Example
+ *
+ * ```js
+ * {
+ *   // Absolute path of the changed node, from the storage root
+ *   path: path,
+ *   // Path of the changed node, relative to this baseclient's scope root
+ *   relativePath: relativePath,
+ *   // See origin descriptions below
+ *   origin: 'window|local|remote|conflict',
+ *   // Old body of the changed node (local version in conflicts; undefined if creation)
+ *   oldValue: oldBody,
+ *   // New body of the changed node (remote version in conflicts; undefined if deletion)
+ *   newValue: newBody,
+ *   // Body when local and remote last agreed; only present in conflict events
+ *   lastCommonValue: lastCommonBody,
+ *   // Old contentType of the changed node (local version for conflicts; undefined if creation)
+ *   oldContentType: oldContentType,
+ *   // New contentType of the changed node (remote version for conflicts; undefined if deletion)
+ *   newContentType: newContentType,
+ *   // ContentType when local and remote last agreed; only present in conflict events
+ *   lastCommonContentType: lastCommonContentType
+ * }
+ * ```
+ *
+ * ### `local`
+ *
+ * Events with origin `local` are fired conveniently during the page load, so
+ * that you can fill your views when the page loads.
+ *
+ * Example:
+ *
+ * ```js
+ * {
+ *   path: '/public/design/color.txt',
+ *   relativePath: 'color.txt',
+ *   origin: 'local',
+ *   oldValue: undefined,
+ *   newValue: 'white',
+ *   oldContentType: undefined,
+ *   newContentType: 'text/plain'
+ * }
+ * ```
+ *
+ * > [!TIP]
+ * > You may also use for example {@link getAll} instead, and choose to
+ * > deactivate these.
+ *
+ * ### `remote`
+ *
+ * Events with origin `remote` are fired when remote changes are discovered
+ * during sync.
+ *
+ * > [!NOTE]
+ * > Automatically receiving remote changes depends on the {@link caching!Caching} settings
+ * > for your module/paths.
+ *
+ * ### `window`
+ *
+ * Events with origin `window` are fired whenever you change a value by calling a
+ * method on the `BaseClient`; these are disabled by default.
+ *
+ * > [!TIP]
+ * > You can enable them by configuring `changeEvents` for your
+ * > {@link RemoteStorage remoteStorage} instance.
+ *
+ * ### `conflict`
+ *
+ * Events with origin `conflict` are fired when a conflict occurs while pushing
+ * out your local changes to the remote store.
+ *
+ * Let's say you changed the content of `color.txt` from `white` to `blue`; if
+ * you have set `config.changeEvents.window` to `true` for your {@link
+ * RemoteStorage} instance, then you will receive:
+ *
+ * ```js
+ * {
+ *   path: '/public/design/color.txt',
+ *   relativePath: 'color.txt',
+ *   origin: 'window',
+ *   oldValue: 'white',
+ *   newValue: 'blue',
+ *   oldContentType: 'text/plain',
+ *   newContentType: 'text/plain'
+ * }
+ * ```
+ *
+ * But when this change is pushed out by asynchronous synchronization, this change
+ * may be rejected by the server, if the remote version has in the meantime changed
+ * from `white` to  for instance `red`; this will then lead to a change event with
+ * origin `conflict` (usually a few seconds after the event with origin `window`,
+ * if you have those activated). Note that since you already changed it from
+ * `white` to `blue` in the local version a few seconds ago, `oldValue` is now
+ * your local value of `blue`:
+ *
+ * ```js
+ * {
+ *   path: '/public/design/color.txt',
+ *   relativePath: 'color.txt',
+ *   origin: 'conflict',
+ *   oldValue: 'blue',
+ *   newValue: 'red',
+ *   oldContentType: 'text/plain',
+ *   newContentType: 'text/plain',
+ *   // Most recent known common ancestor body of local and remote
+ *   lastCommonValue: 'white',
+ *   // Most recent known common ancestor contentType of local and remote
+ *   lastCommonContentType: 'text/plain'
+ * }
+ * ```
+ *
+ * #### Conflict Resolution
+ *
+ * Conflicts are resolved by calling {@link storeObject} or {@link storeFile} on
+ * the device where the conflict surfaced. Other devices are not aware of the
+ * conflict.
+ *
+ * If there is an algorithm to merge the differences between local and remote
+ * versions of the data, conflicts may be automatically resolved.
+ * {@link storeObject} or {@link storeFile} must not be called synchronously from
+ * the change event handler, nor by chaining Promises. {@link storeObject} or
+ * {@link storeFile} must not be called until the next iteration of the JavaScript
+ * Task Queue, using for example
+ * [`setTimeout()`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout).
+ *
+ * If no algorithm exists, conflict resolution typically involves displaying local
+ * and remote versions to the user, and having the user merge them, or choose
+ * which version to keep.
  */
 class BaseClient {
     constructor(storage, base) {
@@ -50594,7 +50830,7 @@ class BaseClient {
      *
      * @param path - The path to scope the new client to
      *
-     * @returns  A new client operating on a subpath of the current base path
+     * @returns A new `BaseClient` operating on a subpath of the current base path
      */
     scope(path) {
         return new BaseClient(this.storage, this.makePath(path));
@@ -50602,11 +50838,51 @@ class BaseClient {
     /**
      * Get a list of child nodes below a given path.
      *
-     * @param {string} path - The path to query. It MUST end with a forward slash.
-     * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
-     *                          cached listing in milliseconds. See :ref:`max-age`.
+     * @param path   - The path to query. It must end with a forward slash.
+     * @param maxAge - (optional) Either `false` or the maximum age of cached
+     *                 listing in milliseconds. See [caching logic for read
+     *                 operations](#caching-logic-for-read-operations).
      *
-     * @returns {Promise} A promise for an object representing child nodes
+     * @returns A promise for a folder listing object
+     *
+     * @example
+     * ```js
+     * client.getListing().then(listing => console.log(listing));
+     * ```
+     *
+     * The folder listing is returned as a JSON object, with the root keys
+     * representing the pathnames of child nodes. Keys ending in a forward slash
+     * represent _folder nodes_ (subdirectories), while all other keys represent
+     * _data nodes_ (files/objects).
+     *
+     * Data node information contains the item's ETag, content type and -length.
+     *
+     * Example of a listing object:
+     *
+     * ```js
+     * {
+     *   "@context": "http://remotestorage.io/spec/folder-description",
+     *   "items": {
+     *     "thumbnails/": true,
+     *     "screenshot-20170902-1913.png": {
+     *       "ETag": "6749fcb9eef3f9e46bb537ed020aeece",
+     *       "Content-Length": 53698,
+     *       "Content-Type": "image/png;charset=binary"
+     *     },
+     *     "screenshot-20170823-0142.png": {
+     *       "ETag": "92ab84792ef3f9e46bb537edac9bc3a1",
+     *       "Content-Length": 412401,
+     *       "Content-Type": "image/png;charset=binary"
+     *     }
+     *   }
+     * }
+     * ```
+     *
+     * > [!WARNING]
+     * > At the moment, this function only returns detailed metadata, when
+     * > caching is turned off. With caching turned on, it will only contain the
+     * > item names as properties with `true` as value. See issues 721 and 1108 —
+     * > contributions welcome!
      */
     // TODO add real return type
     getListing(path, maxAge) {
@@ -50625,11 +50901,59 @@ class BaseClient {
     /**
      * Get all objects directly below a given path.
      *
-     * @param {string} path - Path to the folder. Must end in a forward slash.
-     * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
-     *                          cached objects in milliseconds. See :ref:`max-age`.
+     * @param path   - (optional) Path to the folder. Must end in a forward slash.
+     * @param maxAge - (optional) Either `false` or the maximum age of cached
+     *                 objects in milliseconds. See [caching logic for read
+     *                 operations](#caching-logic-for-read-operations).
+  
      *
-     * @returns {Promise} A promise for an object
+     * @returns A promise for a collection of items
+     *
+     * @example
+     * ```js
+     * client.getAll('example-subdirectory/').then(objects => {
+     *   for (var path in objects) {
+     *     console.log(path, objects[path]);
+     *   }
+     * });
+     * ```
+     *
+     * Example response:
+     *
+     * ```js
+     * {
+     *   "27b8dc16483734625fff9de653a14e03": {
+     *     "@context": "http://remotestorage.io/spec/modules/bookmarks/archive-bookmark",
+     *     "id": "27b8dc16483734625fff9de653a14e03",
+     *     "url": "https://unhosted.org/",
+     *     "title": "Unhosted Web Apps",
+     *     "description": "Freedom from web 2.0's monopoly platforms",
+     *     "tags": [
+     *       "unhosted",
+     *       "remotestorage"
+     *     ],
+     *     "createdAt": "2017-11-02T15:22:25.289Z",
+     *     "updatedAt": "2019-11-07T17:52:22.643Z"
+     *   },
+     *   "900a5ca174bf57c56b79af0653053bdc": {
+     *     "@context": "http://remotestorage.io/spec/modules/bookmarks/archive-bookmark",
+     *     "id": "900a5ca174bf57c56b79af0653053bdc",
+     *     "url": "https://remotestorage.io/",
+     *     "title": "remoteStorage",
+     *     "description": "An open protocol for per-user storage on the Web",
+     *     "tags": [
+     *       "unhosted",
+     *       "remotestorage"
+     *     ],
+     *     "createdAt": "2019-11-07T17:59:34.883Z"
+     *   }
+     * }
+     * ```
+     * > [!NOTE]
+     * > For items that are not JSON-stringified objects (for example stored using
+     * > {@link storeFile} instead of {@link storeObject}), the object's value is
+     * > filled in with `true`.
+     *
      */
     // TODO add real return type
     getAll(path, maxAge) {
@@ -50672,14 +50996,31 @@ class BaseClient {
     }
     /**
      * Get the file at the given path. A file is raw data, as opposed to
-     * a JSON object (use :func:`getObject` for that).
+     * a JSON object (use {@link getObject} for that).
      *
-     * @param {string} path - Relative path from the module root (without leading
-     *                        slash).
-     * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
-     *                          the cached file in milliseconds. See :ref:`max-age`.
      *
-     * @returns {Promise} A promise for an object
+     * @param path   - Relative path from the module root (without leading slash).
+     * @param maxAge - (optional) Either ``false`` or the maximum age of
+     *                 the cached file in milliseconds. See [caching logic for read
+     *                 operations](#caching-logic-for-read-operations).
+     *
+     * @returns An object containing the content type as well as the file's content:
+     *
+     * * `mimeType`<br>
+     *    String representing the MIME Type of the document.
+     * * `data`<br>
+     *    Raw data of the document (either a string or an ArrayBuffer)
+     *
+     * @example
+     * Displaying an image:
+     *
+     * ```js
+     * client.getFile('path/to/some/image').then(file => {
+     *   const blob = new Blob([file.data], { type: file.mimeType });
+     *   const targetElement = document.findElementById('my-image-element');
+     *   targetElement.src = window.URL.createObjectURL(blob);
+     * });
+     * ```
      */
     // TODO add real return type
     getFile(path, maxAge) {
@@ -50699,11 +51040,34 @@ class BaseClient {
     /**
      * Store raw data at a given path.
      *
-     * @param {string} mimeType - MIME media type of the data being stored
-     * @param {string} path     - Path relative to the module root
-     * @param {string|ArrayBuffer|ArrayBufferView} body - Raw data to store
+     * @param mimeType - MIME media type of the data being stored
+     * @param path     - Path relative to the module root
+     * @param body     - Raw data to store
      *
-     * @returns {Promise} A promise for the created/updated revision (ETag)
+     * @returns A promise for the created/updated revision (ETag)
+     *
+     * @example
+     * UTF-8 data:
+     *
+     * ```js
+     * client.storeFile('text/html', 'index.html', '<h1>Hello World!</h1>')
+     *       .then(() => { console.log("File saved") });
+     * ```
+     *
+     * Binary data:
+     *
+     * ```js
+     * const input = document.querySelector('form#upload input[type=file]');
+     * const file = input.files[0];
+     * const fileReader = new FileReader();
+     *
+     * fileReader.onload = function () {
+     *   client.storeFile(file.type, file.name, fileReader.result)
+     *         .then(() => { console.log("File saved") });
+     * };
+     *
+     * fileReader.readAsArrayBuffer(file);
+     * ```
      */
     storeFile(mimeType, path, body) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -50732,13 +51096,15 @@ class BaseClient {
     /**
      * Get a JSON object from the given path.
      *
-     * @param {string} path - Relative path from the module root (without leading
-     *                        slash).
-     * @param {number} maxAge - (optional) Either ``false`` or the maximum age of
-     *                          cached object in milliseconds. See :ref:`max-age`.
+     * @param path - Relative path from the module root (without leading slash).
+     * @param maxAge - (optional) Either `false` or the maximum age of
+     *                 cached object in milliseconds. See [caching logic for read
+     *                 operations](#caching-logic-for-read-operations).
      *
-     * @returns {Promise} A promise, which resolves with the requested object (or ``null``
-     *          if non-existent)
+     * @returns A promise, resolving with the requested object, or `null` if non-existent
+     *
+     * @example
+     * client.getObject('/path/to/object').then(obj => console.log(obj));
      */
     // TODO add real return type
     getObject(path, maxAge) {
@@ -50765,22 +51131,33 @@ class BaseClient {
         });
     }
     /**
-     * Store object at given path. Triggers synchronization.
+     * Store an object at given path. Triggers synchronization. See {@link
+     * declareType} and
+     * [Defining data types](../../../data-modules/defining-data-types)
+     * for info on object types.
      *
-     * See ``declareType()`` and :doc:`data types </data-modules/defining-data-types>`
-     * for an explanation of types
+     * Must not be called more than once per second for any given `path`.
      *
-     * For any given `path`, must not be called more frequently than once per second.
+     * @param typeAlias - Unique type of this object within this module.
+     * @param path      - Path relative to the module root.
+     * @param object    - A JavaScript object to be stored at the given path.
+     *                    Must be serializable as JSON.
      *
-     * @param {string} typeAlias   - Unique type of this object within this module.
-     * @param {string} path   - Path relative to the module root.
-     * @param {object} object - A JavaScript object to be stored at the given
-     *                          path. Must be serializable as JSON.
+     * @returns Resolves with revision on success. Rejects with an error object,
+     *          if schema validations fail.
      *
-     * @returns {Promise} Resolves with revision on success. Rejects with
-     *                    a ValidationError, if validations fail.
+     * @example
+     * const bookmark = {
+     *   url: 'http://unhosted.org',
+     *   description: 'Unhosted Adventures',
+     *   tags: ['unhosted', 'remotestorage', 'no-backend']
+     * }
+     * const path = MD5Hash(bookmark.url);
+  
+     * client.storeObject('bookmark', path, bookmark)
+     *       .then(() => console.log('bookmark saved'))
+     *       .catch((err) => console.log(err));
      */
-    // TODO add real return type
     storeObject(typeAlias, path, object) {
         return __awaiter(this, void 0, void 0, function* () {
             if (typeof typeAlias !== 'string') {
@@ -50815,10 +51192,13 @@ class BaseClient {
     /**
      * Remove node at given path from storage. Triggers synchronization.
      *
-     * @param {string} path - Path relative to the module root.
-     * @returns {Promise}
+     * @param path - Path relative to the module root.
+     *
+     * @example
+     * client.remove('path/to/object').then(() => console.log('item deleted'));
      */
     // TODO add real return type
+    // TODO Don't return the RemoteResponse directly, handle response properly
     remove(path) {
         if (typeof path !== 'string') {
             return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
@@ -50831,11 +51211,18 @@ class BaseClient {
     /**
      * Retrieve full URL of a document. Useful for example for sharing the public
      * URL of an item in the ``/public`` folder.
-     * TODO: refactor this into the Remote interface
      *
-     * @param {string} path - Path relative to the module root.
-     * @returns {string} The full URL of the item, including the storage origin
+     * @param path - Path relative to the module root.
+     *
+     * @returns The full URL of the item, including the storage origin, or `undefined`
+     *          if no remote storage is connected
+     *
+     * > [!WARNING]
+     * > This method currently only works for remoteStorage
+     * > backends. The GitHub issues for implementing it for Dropbox and Google
+     * > are 1052 and 1054.
      */
+    // TODO refactor this into the Remote interface
     getItemURL(path) {
         if (typeof path !== 'string') {
             throw 'Argument \'path\' of baseClient.getItemURL must be a string';
@@ -50851,14 +51238,18 @@ class BaseClient {
     /**
      * Set caching strategy for a given path and its children.
      *
-     * See :ref:`caching-strategies` for a detailed description of the available
-     * strategies.
+     * See [Caching strategies](../../caching/classes/Caching.html#caching-strategies)
+     * for a detailed description of the available strategies.
      *
-     * @param {string} path - Path to cache
-     * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or
-     *                            'FLUSH'. Defaults to 'ALL'.
+     * @param path - Path to cache
+     * @param strategy - Caching strategy. One of 'ALL', 'SEEN', or FLUSH'.
+     *                   Defaults to 'ALL'.
      *
-     * @returns {BaseClient} The same instance this is called on to allow for method chaining
+     * @returns The same `BaseClient` instance this method is called on to allow
+     *          for method chaining
+     *
+     * @example
+     * client.cache('lists/', 'SEEN');
      */
     cache(path, strategy = 'ALL') {
         if (typeof path !== 'string') {
@@ -50877,22 +51268,36 @@ class BaseClient {
         return this;
     }
     /**
-     * TODO: document
+     * Declare a remoteStorage object type using a JSON Schema. Visit
+     * [json-schema.org](http://json-schema.org) for details.
      *
-     * @param {string} path
-     */
-    // TODO add return type once known
-    flush(path) {
-        return this.storage.local.flush(path);
-    }
-    /**
-     * Declare a remoteStorage object type using a JSON schema.
+     * See [Defining data types](../../../data-modules/defining-data-types) for more info.
      *
-     * See :doc:`Defining data types </data-modules/defining-data-types>` for more info.
+     * @param alias       - A type alias/shortname
+     * @param uriOrSchema - JSON-LD URI of the schema, or a JSON Schema object.
+     *                      The URI is automatically generated if none given.
+     * @param schema      - (optional) A JSON Schema object describing the object type
      *
-     * @param {string} alias  - A type alias/shortname
-     * @param {uri}    uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
-     * @param {object} schema - A JSON Schema object describing the object type
+     * @example
+     * client.declareType('todo-item', {
+     *   "type": "object",
+     *   "properties": {
+     *     "id": {
+     *       "type": "string"
+     *     },
+     *     "title": {
+     *       "type": "string"
+     *     },
+     *     "finished": {
+     *       "type": "boolean"
+     *       "default": false
+     *     },
+     *     "createdAt": {
+     *       "type": "date"
+     *     }
+     *   },
+     *   "required": ["id", "title"]
+     * })
      **/
     declareType(alias, uriOrSchema, schema) {
         let uri;
@@ -50911,9 +51316,19 @@ class BaseClient {
     /**
      * Validate an object against the associated schema.
      *
-     * @param {Object} object - JS object to validate. Must have a ``@context`` property.
+     * @param object - JS object to validate. Must have a `@context` property.
      *
-     * @returns {Object} An object containing information about validation errors
+     * @returns An object containing information about the validation result
+     *
+     * @example
+     * var result = client.validate(document);
+     *
+     * // result:
+     * // {
+     * //   error: null,
+     * //   missing: [],
+     * //   valid: true
+     * // }
      **/
     validate(object) {
         const schema = BaseClient.Types.getSchema(object['@context']);
@@ -50933,7 +51348,7 @@ class BaseClient {
         return 'http://remotestorage.io/spec/modules/' + encodeURIComponent(this.moduleName) + '/' + encodeURIComponent(alias);
     }
     /**
-     * Attaches the JSON-LD @content to an object
+     * Attaches the JSON-LD @context to an object
      *
      * @private
      */
@@ -50975,9 +51390,10 @@ class BaseClient {
         return;
     }
 }
+exports.BaseClient = BaseClient;
 BaseClient.Types = types_1.default;
 (0, util_1.applyMixins)(BaseClient, [eventhandling_1.default]);
-module.exports = BaseClient;
+exports["default"] = BaseClient;
 
 
 /***/ }),
@@ -50986,19 +51402,55 @@ module.exports = BaseClient;
 /*!************************!*\
   !*** ./src/caching.ts ***!
   \************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Caching = void 0;
 const util_1 = __webpack_require__(/*! ./util */ "./src/util.ts");
 const log_1 = __importDefault(__webpack_require__(/*! ./log */ "./src/log.ts"));
 /**
- * @class Caching
+ * @class
  *
- * Holds/manages caching configuration.
+ * The caching class gets initialized as `remoteStorage.caching`, unless the
+ * {@link remotestorage!RemoteStorage RemoteStorage} instance is created with the option `cache: false`, disabling
+ * caching entirely.
+ *
+ * In case your app hasn't explictly configured caching, the default setting is to
+ * cache any documents that have been either created or requested since your app
+ * loaded. For offline-capable apps, it usually makes sense to enable full,
+ * automatic caching of all documents, which is what {@link enable} will do.
+ *
+ * Enabling full caching has several benefits:
+ *
+ * * Speed of access: locally cached data is available to the app a lot faster.
+ * * Offline mode: when all data is cached, it can also be read when your app
+ *   starts while being offline.
+ * * Initial synchronization time: the amount of data your app caches can
+ *   have a significant impact on its startup time.
+ *
+ * Caching can be configured on a per-path basis. When caching is enabled for a
+ * folder, it causes all subdirectories to be cached as well.
+ *
+ * ## Caching strategies
+ *
+ * For each subtree, you can set the caching strategy to ``ALL``, ``SEEN``
+ * (default), and ``FLUSH``.
+ *
+ * * `ALL` means that once all outgoing changes have been pushed, sync will
+ *   start retrieving nodes to cache pro-actively. If a local copy exists
+ *   of everything, it will check on each sync whether the ETag of the root
+ *   folder changed, and retrieve remote changes if they exist.
+ * * `SEEN` does this only for documents and folders that have been either
+ *   read from or written to at least once since connecting to the current
+ *   remote backend, plus their parent/ancestor folders up to the root (to
+ *   make tree-based sync possible).
+ * * `FLUSH` will only cache outgoing changes, and forget them as soon as
+ *   they have been saved to remote successfully.
  **/
 class Caching {
     constructor() {
@@ -51010,8 +51462,13 @@ class Caching {
      *
      * Not needed when using ``enable``/``disable``.
      *
-     * @param {string} path - Path to cache
-     * @param {string} strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
+     * @param path - Path to cache
+     * @param strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
+     *
+     * @example
+     * ```js
+     * remoteStorage.caching.set('/bookmarks/archive/', 'SEEN');
+     * ```
      */
     set(path, strategy) {
         if (typeof path !== 'string') {
@@ -51043,7 +51500,13 @@ class Caching {
      *
      * Uses caching strategy ``ALL``.
      *
-     * @param {string} path - Path to enable caching for
+     * @param path - Path to enable caching for
+     * @returns
+     *
+     * @example
+     * ```js
+     * remoteStorage.caching.enable('/bookmarks/');
+     * ```
      */
     enable(path) {
         this.set(path, 'ALL');
@@ -51054,7 +51517,12 @@ class Caching {
      * Uses caching strategy ``FLUSH`` (meaning items are only cached until
      * successfully pushed to the remote).
      *
-     * @param {string} path - Path to disable caching for
+     * @param path - Path to disable caching for
+     *
+     * @example
+     * ```js
+     * remoteStorage.caching.disable('/bookmarks/');
+     * ```
      */
     disable(path) {
         this.set(path, 'FLUSH');
@@ -51062,7 +51530,7 @@ class Caching {
     /**
      * Set a callback for when caching is activated for a path.
      *
-     * @param {function} cb - Callback function
+     * @param cb - Callback function
      */
     onActivate(cb) {
         (0, log_1.default)('[Caching] Setting activate handler', cb, this.pendingActivations);
@@ -51076,8 +51544,16 @@ class Caching {
      * Retrieve caching setting for a given path, or its next parent
      * with a caching strategy set.
      *
-     * @param {string} path - Path to retrieve setting for
-     * @returns {string} caching strategy for the path
+     * @param path - Path to retrieve setting for
+     * @returns caching strategy for the path
+     *
+     * @example
+     * ```js
+     * remoteStorage.caching.checkPath('documents/').then(strategy => {
+     *   console.log(`caching strategy for 'documents/': ${strategy}`));
+     *   // "caching strategy for 'documents/': SEEN"
+     * });
+     * ```
      **/
     checkPath(path) {
         if (this._rootPaths[path] !== undefined) {
@@ -51092,6 +51568,11 @@ class Caching {
     }
     /**
      * Reset the state of caching by deleting all caching information.
+     *
+     * @example
+     * ```js
+     * remoteStorage.caching.reset();
+     * ```
      **/
     reset() {
         this._rootPaths = {};
@@ -51099,13 +51580,14 @@ class Caching {
     /**
      * Setup function that is called on initialization.
      *
-     * @private
+     * @internal
      **/
     static _rs_init( /*remoteStorage*/) {
         return;
     }
 }
-module.exports = Caching;
+exports.Caching = Caching;
+exports["default"] = Caching;
 
 
 /***/ }),
@@ -52102,8 +52584,8 @@ class Dropbox extends remote_1.RemoteBase {
      *                    content-type and revision
      * @protected
      */
-    put(path, body, contentType, options = {}) {
-        return __awaiter(this, void 0, void 0, function* () {
+    put(path_1, body_1, contentType_1) {
+        return __awaiter(this, arguments, void 0, function* (path, body, contentType, options = {}) {
             if (!this.connected) {
                 throw new Error("not connected (path: " + path + ")");
             }
@@ -52164,8 +52646,8 @@ class Dropbox extends remote_1.RemoteBase {
      *
      * @protected
      */
-    'delete'(path, options = {}) {
-        return __awaiter(this, void 0, void 0, function* () {
+    'delete'(path_1) {
+        return __awaiter(this, arguments, void 0, function* (path, options = {}) {
             if (!this.connected) {
                 throw new Error("not connected (path: " + path + ")");
             }
@@ -52269,8 +52751,8 @@ class Dropbox extends remote_1.RemoteBase {
      *
      * @private
      */
-    _request(method, url, options, numAttempts = 1) {
-        return __awaiter(this, void 0, void 0, function* () {
+    _request(method_1, url_1, options_1) {
+        return __awaiter(this, arguments, void 0, function* (method, url, options, numAttempts = 1) {
             if (this.isForbiddenRequestMethod(method, url)) {
                 throw `Don't use ${method} on directories!`;
             }
@@ -52902,25 +53384,31 @@ module.exports = Env;
 /*!******************************!*\
   !*** ./src/eventhandling.ts ***!
   \******************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EventHandling = void 0;
 const log_1 = __importDefault(__webpack_require__(/*! ./log */ "./src/log.ts"));
 class EventHandling {
     /**
      * Register event names
      *
      * TODO see if necessary, or can be done on the fly in addEventListener
+     *
+     * @internal
      */
     addEvents(additionalEvents) {
         additionalEvents.forEach(evName => this._addEvent(evName));
     }
     /**
      * Install an event handler for the given event name
+     *
+     * Usually called via [`on()`](#on)
      */
     addEventListener(eventName, handler) {
         // Check type for public consumption of API
@@ -52934,8 +53422,18 @@ class EventHandling {
         this._validateEvent(eventName);
         this._handlers[eventName].push(handler);
     }
-    /*
-     * Alias for addEventListener
+    /**
+     * Register an event handler for the given event name
+     *
+     * Alias for {@link addEventListener}
+     *
+     * @param eventName - Name of the event
+     * @param handler - Function to handle the event
+     *
+     * @example
+     * remoteStorage.on('connected', function() {
+     *   console.log('storage account has been connected');
+     * });
      */
     on(eventName, handler) {
         return this.addEventListener(eventName, handler);
@@ -52953,22 +53451,34 @@ class EventHandling {
             }
         }
     }
+    /**
+     * @internal
+     */
     _emit(eventName, ...args) {
         this._validateEvent(eventName);
         this._handlers[eventName].slice().forEach((handler) => {
             handler.apply(this, args);
         });
     }
+    /**
+     * @internal
+     */
     _validateEvent(eventName) {
         if (!(eventName in this._handlers)) {
             throw new Error("Unknown event: " + eventName);
         }
     }
+    /**
+     * @internal
+     */
     _delegateEvent(eventName, target) {
         target.on(eventName, (event) => {
             this._emit(eventName, event);
         });
     }
+    /**
+     * @internal
+     */
     _addEvent(eventName) {
         if (typeof this._handlers === 'undefined') {
             this._handlers = {};
@@ -52976,7 +53486,8 @@ class EventHandling {
         this._handlers[eventName] = [];
     }
 }
-module.exports = EventHandling;
+exports.EventHandling = EventHandling;
+exports["default"] = EventHandling;
 
 
 /***/ }),
@@ -54720,7 +55231,7 @@ exports.RemoteBase = RemoteBase;
 /*!******************************!*\
   !*** ./src/remotestorage.ts ***!
   \******************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
@@ -54750,6 +55261,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.RemoteStorage = void 0;
 const config_1 = __importDefault(__webpack_require__(/*! ./config */ "./src/config.ts"));
 const log_1 = __importDefault(__webpack_require__(/*! ./log */ "./src/log.ts"));
 const util_1 = __webpack_require__(/*! ./util */ "./src/util.ts");
@@ -54757,7 +55270,7 @@ const access_1 = __importDefault(__webpack_require__(/*! ./access */ "./src/acce
 const authorize_1 = __importDefault(__webpack_require__(/*! ./authorize */ "./src/authorize.ts"));
 const baseclient_1 = __importDefault(__webpack_require__(/*! ./baseclient */ "./src/baseclient.ts"));
 const caching_1 = __importDefault(__webpack_require__(/*! ./caching */ "./src/caching.ts"));
-const eventhandling_1 = __importDefault(__webpack_require__(/*! ./eventhandling */ "./src/eventhandling.ts"));
+const eventhandling_1 = __webpack_require__(/*! ./eventhandling */ "./src/eventhandling.ts");
 const googledrive_1 = __importDefault(__webpack_require__(/*! ./googledrive */ "./src/googledrive.ts"));
 const dropbox_1 = __importDefault(__webpack_require__(/*! ./dropbox */ "./src/dropbox.ts"));
 const solid_1 = __importDefault(__webpack_require__(/*! ./solid */ "./src/solid.ts"));
@@ -54787,52 +55300,256 @@ function isValidInterval(interval) {
         interval >= 2000 &&
         interval <= 3600000);
 }
+var ApiKeyType;
+(function (ApiKeyType) {
+    ApiKeyType["GOOGLE"] = "googledrive";
+    ApiKeyType["DROPBOX"] = "dropbox";
+})(ApiKeyType || (ApiKeyType = {}));
 /**
- * Constructor for the remoteStorage object/instance
+ * Create a `remoteStorage` class instance so:
  *
- * This class primarily contains feature detection code and convenience API.
+ * ```js
+ * const remoteStorage = new RemoteStorage();
+ * ```
  *
- * Depending on which features are built in, it contains different attributes
- * and functions. See the individual features for more information.
+ * The constructor can optionally be called with a configuration object. This
+ * example shows all default values:
  *
- * @param {object} config - an optional configuration object
- * @class
+ * ```js
+ * const remoteStorage = new RemoteStorage({
+ *   cache: true,
+ *   changeEvents: {
+ *     local:    true,
+ *     window:   false,
+ *     remote:   true,
+ *     conflict: true
+ *   },
+ *   cordovaRedirectUri: undefined,
+ *   logging: false,
+ *   modules: []
+ * });
+ * ```
+ *
+ * > [!NOTE]
+ * > In the current version, it is only possible to use a single `remoteStorage`
+ * > instance. You cannot connect to two different remotes in parallel yet.
+ * > We intend to support this eventually.
+ *
+ * > [!TIP]
+ * > For the change events configuration, you have to set all events
+ * > explicitly.  Otherwise it disables the unspecified ones.
+ *
+ * ## Events
+ *
+ * You can add event handlers to your `remoteStorage` instance by using the
+ * {@link on} function. For example:
+ *
+ * ```js
+ * remoteStorage.on('connected', function() {
+ *   // Storage account has been connected, let’s roll!
+ * });
+ * ```
+ *
+ * ### `ready`
+ *
+ * Emitted when all features are loaded and the RS instance is ready to be used
+ * in your app
+ *
+ * ### `not-connected`
+ *
+ * Emitted when ready, but no storage connected ("anonymous mode")
+ *
+ * ### `connected`
+ *
+ * Emitted when a remote storage has been connected
+ *
+ * ### `disconnected`
+ *
+ * Emitted after disconnect
+ *
+ * ### `error`
+ *
+ * Emitted when an error occurs; receives an error object as argument
+ *
+ * There are a handful of known errors, which are identified by the `name`
+ * property of the error object:
+ *
+ * * `Unauthorized`
+ *
+ *   Emitted when a network request resulted in a 401 or 403 response. You can
+ *   use this event to handle invalid OAuth tokens in custom UI (i.e. when a
+ *   stored token has been revoked or expired by the RS server).
+ *
+ * * `DiscoveryError`
+ *
+ *   A variety of storage discovery errors, e.g. from user address input
+ *   validation, or user address lookup issues
+ *
+ * #### Example
+ *
+ * ```js
+ * remoteStorage.on('error', err => console.log(err));
+ *
+ * // {
+ * //   name: "Unauthorized",
+ * //   message: "App authorization expired or revoked.",
+ * //   stack: "Error↵  at new a.Unauthorized (vendor.js:65710:41870)"
+ * // }
+ * ```
+ *
+ * ### `connecting`
+ *
+ * Emitted before webfinger lookup
+ *
+ * ### `authing`
+ *
+ * Emitted before redirecting to the OAuth server
+ *
+ * ### `wire-busy`
+ *
+ * Emitted when a network request starts
+ *
+ * ### `wire-done`
+ *
+ * Emitted when a network request completes
+ *
+ * ### `sync-req-done`
+ *
+ * Emitted when a single sync request has finished. Callback functions
+ * receive an object as argument, informing the client of remaining items
+ * in the current sync task queue.
+ *
+ * #### Example
+ *
+ * ```js
+ * remoteStorage.on('sync-req-done', result => console.log(result));
+ * // { tasksRemaining: 21 }
+ * ```
+ *
+ * > [!NOTE]
+ * > The internal task queue holds at most 100 items at the same time,
+ * > regardless of the overall amount of items to sync. Therefore, this number
+ * > is only an indicator of sync status, not a precise amount of items left
+ * > to sync. It can be useful to determine if your app should display any
+ * > kind of sync status/progress information for the cycle or not.
+ *
+ * ### `sync-done`
+ *
+ * Emitted when a sync cycle has been completed and a new sync is scheduled.
+ *
+ * The callback function receives an object as argument, informing the client
+ * if the sync process has completed successfully or not.
+ *
+ * #### Example
+ *
+ * ```js
+ * remoteStorage.on('sync-done', result => console.log(result));
+ * // { completed: true }
+ * ```
+ *
+ * If `completed` is `false`, it means that some of the sync requests have
+ * failed and will be retried in the next sync cycle (usually a few seconds
+ * later in this case). This is not an unusual scenario on mobile networks or
+ * when doing a large initial sync for example.
+ *
+ * For an app's user interface, you may want to consider the sync process as
+ * ongoing in this case, and wait until your app sees a positive `completed`
+ * status before updating the UI.
+ *
+ * ### `network-offline`
+ *
+ * Emitted once when a wire request fails for the first time, and
+ * `remote.online` is set to false
+ *
+ * ### `network-online`
+ *
+ * Emitted once when a wire request succeeds for the first time after a failed
+ * one, and `remote.online` is set back to true
+ *
+ * ### `sync-interval-change`
+ *
+ * Emitted when the sync interval changes
  */
 class RemoteStorage {
     constructor(cfg) {
         /**
          * Pending get/put/delete calls
-         * @private
+         * @internal
          */
         this._pending = [];
         /**
          * TODO: document
+         * @internal
          */
         this._cleanups = [];
         /**
          * TODO: document
+         * @internal
          */
         this._pathHandlers = { change: {} };
         /**
          * Holds OAuth app keys for Dropbox, Google Drive
+         * @internal
          */
         this.apiKeys = {};
         //
         // FEATURES INITIALIZATION
         //
+        /**
+         * @internal
+         */
         this._init = features_1.default.loadFeatures;
+        /**
+         * @internal
+         */
         this.features = features_1.default.features;
+        /**
+         * @internal
+         */
         this.loadFeature = features_1.default.loadFeature;
+        /**
+         * @internal
+         */
         this.featureSupported = features_1.default.featureSupported;
+        /**
+         * @internal
+         */
         this.featureDone = features_1.default.featureDone;
+        /**
+         * @internal
+         */
         this.featuresDone = features_1.default.featuresDone;
+        /**
+         * @internal
+         */
         this.featuresLoaded = features_1.default.featuresLoaded;
+        /**
+         * @internal
+         */
         this.featureInitialized = features_1.default.featureInitialized;
+        /**
+         * @internal
+         */
         this.featureFailed = features_1.default.featureFailed;
+        /**
+         * @internal
+         */
         this.hasFeature = features_1.default.hasFeature;
+        /**
+         * @internal
+         */
         this._setCachingModule = features_1.default._setCachingModule;
+        /**
+         * @internal
+         */
         this._collectCleanupFunctions = features_1.default._collectCleanupFunctions;
+        /**
+         * @internal
+         */
         this._fireReady = features_1.default._fireReady;
+        /**
+         * @internal
+         */
         this.initFeature = features_1.default.initFeature;
         // Initial configuration property settings.
         // TODO use modern JS to merge object properties
@@ -54857,12 +55574,6 @@ class RemoteStorage {
         }
         // Keep a reference to the orginal `on` function
         const origOn = this.on;
-        /**
-         * Register an event handler. See :ref:`rs-events` for available event names.
-         *
-         * @param {string} eventName - Name of the event
-         * @param {function} handler - Event handler
-         */
         this.on = function (eventName, handler) {
             if (this._allLoaded) {
                 // check if the handler should be called immediately, because the
@@ -54918,7 +55629,8 @@ class RemoteStorage {
     }
     /**
      * Load all modules passed as arguments
-     * @private
+     *
+     * @internal
      */
     loadModules() {
         config_1.default.modules.forEach(this.addModule.bind(this));
@@ -54926,15 +55638,7 @@ class RemoteStorage {
     /**
      * Initiate the OAuth authorization flow.
      *
-     * This function is called by custom storage backend implementations
-     * (e.g. Dropbox, Google Drive or Solid).
-     *
-     * @param {object} options
-     * @param {string} options.authURL - URL of the authorization endpoint
-     * @param {string} [options.scope] - access scope
-     * @param {string} [options.clientId] - client identifier (defaults to the
-     *                                      origin of the redirectUri)
-     * @private
+     * @internal
      */
     authorize(options) {
         this.access.setStorageType(this.remote.storageApi);
@@ -54959,7 +55663,7 @@ class RemoteStorage {
     }
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     impliedauth(storageApi, redirectUri) {
         // TODO shouldn't these be default argument values?
@@ -54973,24 +55677,14 @@ class RemoteStorage {
         document.location.href = redirectUri;
     }
     /**
-     * @property {object} remote
-     *
-     * Depending on the chosen backend, this is either an instance of ``WireClient``,
-     * ``Dropbox``, ``GoogleDrive`` or ``Solid``.
-     *
-     * @property {boolean} remote.connected - Whether or not a remote store is connected
-     * @property {boolean} remote.online - Whether last sync action was successful or not
-     * @property {string} remote.userAddress - The user address of the connected user
-     * @property {string} remote.properties - The properties of the WebFinger link
-     */
-    /**
      * Connect to a remoteStorage server.
      *
      * Discovers the WebFinger profile of the given user address and initiates
      * the OAuth dance.
      *
      * This method must be called *after* all required access has been claimed.
-     * When using the connect widget, it will call this method itself.
+     * When using the connect widget, it will call this method when the user
+     * clicks/taps the "connect" button.
      *
      * Special cases:
      *
@@ -55005,8 +55699,11 @@ class RemoteStorage {
      *    tokens in all requests later on. This is useful for example when using
      *    Kerberos and similar protocols.
      *
-     * @param {string} userAddress - The user address (user@host) or URL to connect to.
-     * @param {string} token       - (optional) A bearer token acquired beforehand
+     * @param userAddress - The user address (user@host) or URL to connect to.
+     * @param token       - (optional) A bearer token acquired beforehand
+     *
+     * @example
+     * remoteStorage.connect('user@example.com');
      */
     connect(userAddress, token) {
         this.setBackend('remotestorage');
@@ -55071,6 +55768,9 @@ class RemoteStorage {
     }
     /**
      * Reconnect the remote server to get a new authorization.
+     *
+     * Useful when not using the connect widget and encountering an
+     * `Unauthorized` event.
      */
     reconnect() {
         this.remote.configure({ token: null });
@@ -55130,7 +55830,7 @@ class RemoteStorage {
     }
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     setBackend(what) {
         this.backend = what;
@@ -55144,16 +55844,22 @@ class RemoteStorage {
         }
     }
     /**
-     * Add a "change" event handler to the given path. Whenever a "change"
-     * happens (as determined by the backend, such as e.g.
-     * <RemoteStorage.IndexedDB>) and the affected path is equal to or below the
+     * Add a `change` event handler for the given path. Whenever a change
+     * happens (as determined by the local backend, such as e.g.
+     * `RemoteStorage.IndexedDB`), and the affected path is equal to or below the
      * given 'path', the given handler is called.
      *
-     * You should usually not use this method directly, but instead use the
-     * "change" events provided by :doc:`BaseClient </js-api/base-client>`
+     * > [!TIP]
+     * > You should usually not use this method, but instead use the
+     * > `change` events provided by {@link BaseClient}.
      *
-     * @param {string} path - Absolute path to attach handler to
-     * @param {function} handler - Handler function
+     * @param path - Absolute path to attach handler to
+     * @param handler - A function to handle the change
+     *
+     * @example
+     * remoteStorage.onChange('/bookmarks/', function() {
+     *   // your code here
+     * })
      */
     onChange(path, handler) {
         if (!this._pathHandlers.change[path]) {
@@ -55162,35 +55868,41 @@ class RemoteStorage {
         this._pathHandlers.change[path].push(handler);
     }
     /**
-     * TODO: do we still need this, now that we always instantiate the prototype?
+     * Enable remoteStorage debug logging.
      *
-     * Enable remoteStorage logging.
+     * Usually done when instantiating remoteStorage:
+     *
+     * ```js
+     * const remoteStorage = new RemoteStorage({ logging: true });
+     * ```
      */
     enableLog() {
         config_1.default.logging = true;
     }
     /**
-     * TODO: do we still need this, now that we always instantiate the prototype?
-     *
-     * Disable remoteStorage logging
+     * Disable remoteStorage debug logging
      */
     disableLog() {
         config_1.default.logging = false;
     }
     /**
-     * log
+     * Log something to the debug log
      *
-     * The same as <RemoteStorage.log>.
+     * @internal
      */
     log(...args) {
         log_1.default.apply(RemoteStorage, args);
     }
     /**
-     * Set the OAuth key/ID for either GoogleDrive, Dropbox or Solid backend support.
+     * Set the OAuth key/ID for GoogleDrive and/or Dropbox backend support.
      *
-     * @param {Object} apiKeys - A config object with these properties:
-     * @param {string} [apiKeys.type] - Backend type: 'googledrive' or 'dropbox'
-     * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
+     * @param apiKeys - A config object
+     *
+     * @example
+     * remoteStorage.setApiKeys({
+     *   dropbox: 'your-app-key',
+     *   googledrive: 'your-client-id'
+     * });
      */
     setApiKeys(apiKeys) {
         const validTypes = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX];
@@ -55228,9 +55940,13 @@ class RemoteStorage {
     }
     /**
      * Set redirect URI to be used for the OAuth redirect within the
-     * in-app-browser window in Cordova apps.
+     * in-app-browser window in Cordova apps. See
+     * [Usage in Cordova apps](../../../cordova) for details.
      *
      * @param uri - A valid HTTP(S) URI
+     *
+     * @example
+     * remoteStorage.setCordovaRedirectUri('https://app.example.com');
      */
     setCordovaRedirectUri(uri) {
         if (typeof uri !== 'string' || !uri.match(/http(s)?:\/\//)) {
@@ -55243,7 +55959,7 @@ class RemoteStorage {
     //
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _setGPD(impl, context) {
         function wrap(func) {
@@ -55258,7 +55974,7 @@ class RemoteStorage {
     }
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _pendingGPD(methodName) {
         return (...args) => {
@@ -55277,7 +55993,7 @@ class RemoteStorage {
     }
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _processPending() {
         this._pending.forEach((pending) => {
@@ -55295,14 +56011,14 @@ class RemoteStorage {
     //
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _bindChange(object) {
         object.on('change', this._dispatchEvent.bind(this, 'change'));
     }
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _dispatchEvent(eventName, event) {
         Object.keys(this._pathHandlers[eventName]).forEach((path) => {
@@ -55326,16 +56042,20 @@ class RemoteStorage {
         });
     }
     /**
-     * This method enables you to quickly instantiate a BaseClient, which you can
+     * This method allows you to quickly instantiate a BaseClient, which you can
      * use to directly read and manipulate data in the connected storage account.
      *
      * Please use this method only for debugging and development, and choose or
-     * create a :doc:`data module </data-modules>` for your app to use.
+     * create a [data module](../../../data-modules/) for your app to use.
      *
      * @param path - The base directory of the BaseClient that will be returned
      *               (with a leading and a trailing slash)
      *
      * @returns A client with the specified scope (category/base directory)
+     *
+     * @example
+     * remoteStorage.scope('/pictures/').getListing('');
+     * remoteStorage.scope('/public/pictures/').getListing('');
      */
     scope(path) {
         if (typeof (path) !== 'string') {
@@ -55349,7 +56069,11 @@ class RemoteStorage {
     /**
      * Get the value of the sync interval when application is in the foreground
      *
-     * @returns {number} A number of milliseconds
+     * @returns A number of milliseconds
+     *
+     * @example
+     * remoteStorage.getSyncInterval();
+     * // 10000
      */
     getSyncInterval() {
         return config_1.default.syncInterval;
@@ -55358,6 +56082,9 @@ class RemoteStorage {
      * Set the value of the sync interval when application is in the foreground
      *
      * @param interval - Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
+     *
+     * @example
+       remoteStorage.setSyncInterval(20000);
      */
     setSyncInterval(interval) {
         if (!isValidInterval(interval)) {
@@ -55365,12 +56092,19 @@ class RemoteStorage {
         }
         const oldValue = config_1.default.syncInterval;
         config_1.default.syncInterval = interval;
-        this._emit('sync-interval-change', { oldValue: oldValue, newValue: interval });
+        this._emit('sync-interval-change', {
+            oldValue: oldValue,
+            newValue: interval
+        });
     }
     /**
      * Get the value of the sync interval when application is in the background
      *
      * @returns A number of milliseconds
+     *
+     * @example
+     * remoteStorage.getBackgroundSyncInterval();
+     * // 60000
      */
     getBackgroundSyncInterval() {
         return config_1.default.backgroundSyncInterval;
@@ -55380,6 +56114,9 @@ class RemoteStorage {
      * background
      *
      * @param interval - Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
+     *
+     * @example
+     * remoteStorage.setBackgroundSyncInterval(90000);
      */
     setBackgroundSyncInterval(interval) {
         if (!isValidInterval(interval)) {
@@ -55387,13 +56124,20 @@ class RemoteStorage {
         }
         const oldValue = config_1.default.backgroundSyncInterval;
         config_1.default.backgroundSyncInterval = interval;
-        this._emit('sync-interval-change', { oldValue: oldValue, newValue: interval });
+        this._emit('sync-interval-change', {
+            oldValue: oldValue,
+            newValue: interval
+        });
     }
     /**
      * Get the value of the current sync interval. Can be background or
      * foreground, custom or default.
      *
-     * @returns {number} A number of milliseconds
+     * @returns number of milliseconds
+     *
+     * @example
+     * remoteStorage.getCurrentSyncInterval();
+     * // 15000
      */
     getCurrentSyncInterval() {
         return config_1.default.isBackground ? config_1.default.backgroundSyncInterval : config_1.default.syncInterval;
@@ -55401,7 +56145,11 @@ class RemoteStorage {
     /**
      * Get the value of the current network request timeout
      *
-     * @returns {number} A number of milliseconds
+     * @returns A number of milliseconds
+     *
+     * @example
+     * remoteStorage.getRequestTimeout();
+     * // 30000
      */
     getRequestTimeout() {
         return config_1.default.requestTimeout;
@@ -55410,6 +56158,9 @@ class RemoteStorage {
      * Set the timeout for network requests.
      *
      * @param timeout - Timeout in milliseconds
+     *
+     * @example
+     * remoteStorage.setRequestTimeout(30000);
      */
     setRequestTimeout(timeout) {
         if (typeof timeout !== 'number') {
@@ -55419,7 +56170,7 @@ class RemoteStorage {
     }
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     syncCycle() {
         if (!this.sync || this.sync.stopped) {
@@ -55448,7 +56199,7 @@ class RemoteStorage {
      * sync button for example. This might feel safer to them sometimes, esp.
      * when shifting between offline and online a lot.
      *
-     * @returns {Promise} A Promise which resolves when the sync has finished
+     * @returns A Promise which resolves when the sync has finished
      */
     startSync() {
         if (!config_1.default.cache) {
@@ -55478,35 +56229,39 @@ class RemoteStorage {
             this.syncStopped = true;
         }
     }
-    /*
+    /**
      * Add remoteStorage data module
      *
-     * @param {Object} module - module object needs following properies:
-     * @param {string} [module.name] - Name of the module
-     * @param {function} [module.builder] - Builder function defining the module
-     *
-     * The module builder function should return an object containing another
-     * object called exports, which will be exported to this <RemoteStorage>
-     * instance under the module's name. So when defining a locations module,
-     * like in the example below, it would be accessible via
-     * `remoteStorage.locations`, which would in turn have a `features` and a
-     * `collections` property.
-     *
-     * The function receives a private and a public client, which are both
-     * instances of <RemoteStorage.BaseClient>. In the following example, the
-     * scope of privateClient is `/locations` and the scope of publicClient is
-     * `/public/locations`.
+     * @param module - A data module object
      *
      * @example
-     *   RemoteStorage.addModule({name: 'locations', builder: function (privateClient, publicClient) {
-     *     return {
-     *       exports: {
-     *         features: privateClient.scope('features/').defaultType('feature'),
-     *         collections: privateClient.scope('collections/').defaultType('feature-collection')
-     *       }
-     *     };
-     *   }});
-    */
+     *
+     * Usually, you will import your data module from either a package or a local path.
+     * Let's say you want to use the
+     * [bookmarks module](https://github.com/raucao/remotestorage-module-bookmarks)
+     * in order to load data stored from [Webmarks](https://webmarks.5apps.com) for
+     * example:
+     *
+     * ```js
+     * import Bookmarks from 'remotestorage-module-bookmarks';
+     *
+     * remoteStorage.addModule(Bookmarks);
+     * ```
+     *
+     * You can also forgo this function entirely and add modules when creating your
+     * remoteStorage instance:
+     *
+     * ```js
+     * const remoteStorage = new RemoteStorage({ modules: [ Bookmarks ] });
+     * ```
+     *
+     * After the module has been added, it can be used like so:
+     *
+     * ```js
+     * remoteStorage.bookmarks.archive.getAll(false)
+     *   .then(bookmarks => console.log(bookmarks));
+     * ```
+     */
     addModule(module) {
         const moduleName = module.name;
         const moduleBuilder = module.builder;
@@ -55533,6 +56288,7 @@ class RemoteStorage {
     }
     /**
      * Load module
+     *
      * @private
      */
     _loadModule(moduleName, moduleBuilder) {
@@ -55545,8 +56301,13 @@ class RemoteStorage {
         }
     }
 }
-// FIXME: Instead of doing this, would be better to only
-// export setAuthURL / getAuthURL from RemoteStorage prototype
+exports.RemoteStorage = RemoteStorage;
+/**
+ * FIXME: Instead of doing this, would be better to only
+ * export setAuthURL / getAuthURL from RemoteStorage prototype
+ *
+ * @ignore
+ */
 RemoteStorage.Authorize = authorize_1.default;
 RemoteStorage.SyncError = sync_error_1.default;
 RemoteStorage.Unauthorized = unauthorized_error_1.default;
@@ -55588,13 +56349,8 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
         return caching;
     }
 });
-(0, util_1.applyMixins)(RemoteStorage, [eventhandling_1.default]);
-var ApiKeyType;
-(function (ApiKeyType) {
-    ApiKeyType["GOOGLE"] = "googledrive";
-    ApiKeyType["DROPBOX"] = "dropbox";
-})(ApiKeyType || (ApiKeyType = {}));
-module.exports = RemoteStorage;
+(0, util_1.applyMixins)(RemoteStorage, [eventhandling_1.EventHandling]);
+exports["default"] = RemoteStorage;
 
 
 /***/ }),
@@ -55626,7 +56382,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.requestWithTimeout = exports.isArrayBufferView = exports.retryAfterMs = void 0;
+exports.isArrayBufferView = void 0;
+exports.retryAfterMs = retryAfterMs;
+exports.requestWithTimeout = requestWithTimeout;
 const log_1 = __importDefault(__webpack_require__(/*! ./log */ "./src/log.ts"));
 const config_1 = __importDefault(__webpack_require__(/*! ./config */ "./src/config.ts"));
 /**
@@ -55644,7 +56402,6 @@ function retryAfterMs(xhr) {
         return Math.max(1500, Math.min(60000, Math.round(config_1.default.syncInterval / (2.9 + Math.random() * 0.2))));
     }
 }
-exports.retryAfterMs = retryAfterMs;
 if (typeof ((__webpack_require__.g || window).ArrayBufferView) === 'function') {
     exports.isArrayBufferView = function (object) {
         return object && (object instanceof (__webpack_require__.g || window).ArrayBufferView);
@@ -55677,7 +56434,6 @@ function requestWithTimeout(method, url, options) {
         }
     });
 }
-exports.requestWithTimeout = requestWithTimeout;
 function _fetchRequestWithTimeout(method, url, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const abortController = typeof AbortController === 'function' ?
@@ -56636,7 +57392,7 @@ module.exports = SyncError;
 /*!*********************!*\
   !*** ./src/sync.ts ***!
   \*********************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
@@ -56652,6 +57408,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Sync = void 0;
 const config_1 = __importDefault(__webpack_require__(/*! ./config */ "./src/config.ts"));
 const env_1 = __importDefault(__webpack_require__(/*! ./env */ "./src/env.ts"));
 const eventhandling_1 = __importDefault(__webpack_require__(/*! ./eventhandling */ "./src/eventhandling.ts"));
@@ -56701,8 +57459,6 @@ function handleVisibility(env, rs) {
     env.on('foreground', () => handleChange(true));
 }
 /**
- * Class: RemoteStorage.Sync
- *
  * This class basically does six things:
  *
  * - retrieve the remote version of relevant documents and folders
@@ -57649,8 +58405,9 @@ class Sync {
         delete remoteStorage.sync;
     }
 }
+exports.Sync = Sync;
 (0, util_1.applyMixins)(Sync, [eventhandling_1.default]);
-module.exports = Sync;
+exports["default"] = Sync;
 
 
 /***/ }),
@@ -57869,7 +58626,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.applyMixins = exports.generateCodeVerifier = exports.toBase64 = exports.getTextFromArrayBuffer = exports.shouldBeTreatedAsBinary = exports.getJSONFromLocalStorage = exports.localStorageAvailable = exports.pathsFromRoot = exports.deepClone = exports.equal = exports.bindAll = exports.cleanPath = exports.baseName = exports.isDocument = exports.isFolder = exports.containingFolder = exports.extend = exports.getGlobalContext = exports.globalContext = exports.logError = void 0;
+exports.toBase64 = exports.getTextFromArrayBuffer = exports.shouldBeTreatedAsBinary = exports.getJSONFromLocalStorage = exports.localStorageAvailable = exports.pathsFromRoot = exports.deepClone = exports.equal = exports.bindAll = exports.cleanPath = exports.baseName = exports.isDocument = exports.isFolder = exports.containingFolder = exports.extend = exports.getGlobalContext = exports.globalContext = exports.logError = void 0;
+exports.generateCodeVerifier = generateCodeVerifier;
+exports.applyMixins = applyMixins;
 /**
  * Takes an object and its copy as produced by the _deepClone function
  * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
@@ -58160,8 +58919,8 @@ exports.toBase64 = toBase64;
  * @property {string} state - a separate random value. Should be used to check redirect_uri.
  * @returns PkceValues
  */
-function generateCodeVerifier(numChar = 128) {
-    return __awaiter(this, void 0, void 0, function* () {
+function generateCodeVerifier() {
+    return __awaiter(this, arguments, void 0, function* (numChar = 128) {
         const randomBytes = new Uint8Array(numChar);
         crypto.getRandomValues(randomBytes);
         const charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
@@ -58176,7 +58935,6 @@ function generateCodeVerifier(numChar = 128) {
         return { codeVerifier, codeChallenge, state };
     });
 }
-exports.generateCodeVerifier = generateCodeVerifier;
 function base64Urlencode(str) {
     return btoa(String.fromCharCode.apply(null, new Uint8Array(str)))
         .replace(/\+/g, '-')
@@ -58188,18 +58946,17 @@ function base64Urlencode(str) {
  *
  * https://www.typescriptlang.org/docs/handbook/mixins.html
  *
- * @param {object} Parent object
- * @param {Array} Mixins to apply methods from
+ * @param derivedConstructor Parent object
+ * @param constructors Mixins to apply methods from
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyMixins(derivedCtor, baseCtors) {
-    baseCtors.forEach(baseCtor => {
+function applyMixins(derivedCtor, constructors) {
+    constructors.forEach(baseCtor => {
         Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
             Object.defineProperty(derivedCtor.prototype, name, Object.getOwnPropertyDescriptor(baseCtor.prototype, name));
         });
     });
 }
-exports.applyMixins = applyMixins;
 
 
 /***/ }),
@@ -66955,6 +67712,7 @@ __webpack_require__.r(__webpack_exports__);
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
 /******/ 	var __webpack_exports__ = __webpack_require__("./src/remotestorage.ts");
+/******/ 	__webpack_exports__ = __webpack_exports__["default"];
 /******/ 	
 /******/ 	return __webpack_exports__;
 /******/ })()

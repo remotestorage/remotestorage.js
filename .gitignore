@@ -5,8 +5,8 @@
 *.log
 /build
 /gitno
+cache
 node_modules
-doc/code
-doc/_build
-doc/__pycache__/
 tags
+docs/api/index.md
+docs/.vitepress/dist/

@@ -18,7 +18,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
     class RemoteStorage {
       setBackend (b) { this.backend = b; }
     }
-    buildUtil.applyMixins(RemoteStorage, [EventHandling]);
+    buildUtil.applyMixins(RemoteStorage, [EventHandling.default]);
     global.RemoteStorage = RemoteStorage;
 
     global.Authorize = require('./build/authorize');

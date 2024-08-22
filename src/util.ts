@@ -333,14 +333,17 @@ function base64Urlencode(str) {
  *
  * https://www.typescriptlang.org/docs/handbook/mixins.html
  *
- * @param {object} Parent object
- * @param {Array} Mixins to apply methods from
+ * @param derivedConstructor Parent object
+ * @param constructors Mixins to apply methods from
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function applyMixins(derivedCtor: any, baseCtors: any[]): void {
-  baseCtors.forEach(baseCtor => {
+export function applyMixins(derivedCtor: any, constructors: any[]): void {
+  constructors.forEach(baseCtor => {
     Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
-      Object.defineProperty(derivedCtor.prototype, name, Object.getOwnPropertyDescriptor(baseCtor.prototype, name));
+      Object.defineProperty(
+        derivedCtor.prototype,
+        name,
+        Object.getOwnPropertyDescriptor(baseCtor.prototype, name));
     });
   });
 }
