@@ -69,7 +69,6 @@ function unHookGetItemURL (rs): void {
  * @param {XMLHttpRequestBodyInit} body - Request body
  * @returns {Blob} Blob equivalent of the body
  * 
- * 
  * @private
  */
 function requestBodyToBlob(body: XMLHttpRequestBodyInit): Blob {
@@ -104,29 +103,23 @@ function requestBodyToBlob(body: XMLHttpRequestBodyInit): Blob {
 /**
  * @class Solid
  *
- * To use this backend, you need to specify the authURL like so:
+ * To use this backend, you need to specify the authURL before calling connect like so:
  * 
  * @example
- * remoteStorage.setAuthURL('https://login.example.com');
+ * solid.setAuthURL('https://login.example.com');
+ * solid.connect();
  * 
- * In order to set the Solid options for the widget you have to specify the valid options like so:
- *
- * @example
- * remoteStorage.setApiKeys({
- *   solid: {
- *     providers: [
- *       {
- *         name: "provider name",
- *         authURL: "auth URL"
- *       }
- *     ],
- *     allowAnyProvider: true|false
- *   }
- * });
+ * If connect is successful a list of available pods for the Solid account is retrieved and
+ * a `pod-not-selected` event is fired. After receiving this event you have to call getPodURLs
+ * to get the list of available pods and set one of them to be used by calling setPodURL. After
+ * setting the pod URL the `connected` event is fired.
+ * 
+ * You can find a list of running solid servers on the solid project website here:
+ * https://solidproject.org/for-developers#hosted-pod-services
 **/
 class Solid extends RemoteBase implements Remote, ConfigObserver {
   authURL: string;
-  podURLs: string[] = [];
+  podURLs: string[] = null;
   selectedPodURL: string;
   sessionProperties: object;
   configStorage: ConfigStorage;
@@ -135,12 +128,13 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   constructor(remoteStorage) {
     super(remoteStorage);
     this.online = true;
-    this.storageApi = 'draft-dejong-remotestorage-19';
     this.addEvents(['connected', 'not-connected', 'pod-not-selected']);
     
+    // We use a custom ConfigStore to store the solid session in a rs friendly manner to
+    // make configuration and disconnect work.
     this.configStorage = new ConfigStorage(this);
     this.session = new Session({
-      secureStorage: new InMemoryStorage(),
+      secureStorage: new InMemoryStorage(), // Inrupt prefers InMemoryStorage for tokens. We respect that.
       insecureStorage: this.configStorage
     }, 'any');
 
@@ -154,6 +148,15 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
     }
   }
 
+  /**
+   * Solid Session storage state changed.
+   * 
+   * This function is called by the ConfigStore that we provided to Session as an insecure storage.
+   * 
+   * @param {string} config - The entire Session configuration object serialized into a string
+   * 
+   * @private
+   */
   onConfigChanged(config: string): void {
     if (config) {
       const sessionConfig = JSON.parse(config);
@@ -178,6 +181,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
       }
     }
 
+    this.podURLs = null;
     localStorage.removeItem(SETTINGS_KEY);
   }
 
@@ -236,6 +240,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
     const handleError = function() {
       this.connected = false;
       this.sessionProperties = null;
+      this.podURLs = null;
       if (hasLocalStorage) {
         localStorage.removeItem(SETTINGS_KEY);
       }
@@ -252,20 +257,42 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
 
   /**
    * Set the auth URL
+   * 
    * @param {string} authURL - Auth URL
+   * 
+   * @public
    */
   setAuthURL(authURL: string): void {
     this.authURL = authURL;
   }
 
   /**
+   * Get a list of pod URLs for this Solid account.
+   * 
+   * If the Solid Session is not connected, this function returns null.
    * 
    * @returns Get the list of pod URLs
+   * 
+   * @public
    */
   getPodURLs(): string[] {
     return this.podURLs;
   }
 
+  /**
+   * Set the pod URL to use as the storage.
+   * 
+   * Pod URL must be one of the URLs provided by the getPodURLs function. This function does
+   * not validate this constraint.
+   * 
+   * If the Solid Session is connected and the pod URL is updated to be null, a
+   * `pod-not-selected` event will be fired. If Session is connected and the pod URL is set,
+   * a `connected` event will be fired.
+   * 
+   * @param {string} podURL - URL of the pod to be used as storage
+   * 
+   * @public
+   */
   setPodURL(podURL: string): void {
     if (this.selectedPodURL === podURL) {
       return;
@@ -299,12 +326,21 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
     }
   }
 
-  getPodURL(): string|null {
+  /**
+   * Get the pod URL that is being used as the storage.
+   * 
+   * @returns {string} The in-use pod URL or null
+   * 
+   * @public
+   */
+  getPodURL(): string {
     return this.selectedPodURL;
   }
 
   /**
    * Initiate the authorization flow's OAuth dance.
+   * 
+   * @public
    */
   connect (): void {
     this.rs.setBackend('solid');
@@ -324,10 +360,12 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
   /**
    * Get the connected Solid session
    * 
-   * @returns {Session} that is being used by this instance
+   * @returns {Session} that is being used by this instance or null if Session is not connected
+   * 
+   * @public
    */
   getSession(): Session {
-    return (this.session.info && this.session.info.isLoggedIn)?this.session:undefined;
+    return (this.session.info && this.session.info.isLoggedIn)?this.session:null;
   }
 
   /**
@@ -335,7 +373,6 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    *
    * @param {string} path - Path of the resource
    * @returns {string} Full URL of the resource on the pod
-   * 
    * 
    * @private
    */
@@ -388,7 +425,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
           statusCode: 200,
           body: listing,
           contentType: 'application/json; charset=UTF-8',
-          // revision: ?
+          // revision: ? Skipping ETag
         } as RemoteResponse);
       }).catch(error => {
         if (error instanceof FetchError) {
