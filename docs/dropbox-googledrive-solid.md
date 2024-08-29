@@ -1,9 +1,9 @@
-# Offering Dropbox and Google Drive storage options
+# Offering Dropbox, Google Drive, and Solid storage options
 
 ![Screenshot of the connect-widget choose-backend screen](./images/screenshot-widget-choose.png){width="50%"}
 
-rs.js has optional support for syncing data with Dropbox and Google
-Drive instead of a RemoteStorage server.
+rs.js has optional support for syncing data with Dropbox, Google
+Drive, and Solid instead of a RemoteStorage server.
 
 There are a few drawbacks, mostly sync performance and the lack of a
 permission model. So apps can usually access all of a user's storage
@@ -28,6 +28,23 @@ The [Connect widget](getting-started/connect-widget) will automatically show
 only the available storage options, based on the presence of the Dropbox and
 Google Drive API keys. RemoteStorage is always enabled.
 :::
+
+For the Solid backend you have to specify the available authentication URLs
+for the user to choose from on the connect widget's configurations. Once
+configured, it will also show Solid as an available storage option. Like so:
+
+```js
+const config = {
+    solidProviders: {
+        providers: [
+            Widget.SOLID_COMMUNITY,
+            Widget.INRUPT
+        ],
+        allowAnyProvider: true
+    }
+};
+const widget = new Widget(remoteStorage, config);
+```
 
 ## Dropbox
 
@@ -75,3 +92,23 @@ Console](https://console.developers.google.com/flows/enableapi?apiid=drive).
 
 - Sharing public files is not supported yet (see issue 1051)
 - `getItemURL` is not implemented yet (see issue 1054)
+
+## Solid
+
+An authentication URL must always have been set on the Solid backend before
+calling `connect()`. You can do so by calling `setAuthURL()` first.
+
+The connect widget accepts a list of authentication URLs as configuration
+and automatically sets it on the Solid backend when selected.
+
+Each option consists of two keys: `authURL` which is the authentication URL
+to connect to. And a `name` to be displayed on the widget. The
+`allowAnyProvider` option if set to `true`, adds an input box to the widget
+to allow the user to type any authentication URL of their choosing.
+
+::: info
+The Solid backend exposes the connected session. It is the `Session` object
+from the [Inrupt](https://docs.inrupt.com/developer-tools/javascript/client-libraries/)
+Solid library. It can be accessed by calling `remoteStorage.solid.getSession()`
+only after the backend is connected.
+:::

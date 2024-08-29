@@ -56821,7 +56821,6 @@ function unHookGetItemURL(rs) {
  * @param {XMLHttpRequestBodyInit} body - Request body
  * @returns {Blob} Blob equivalent of the body
  *
- *
  * @private
  */
 function requestBodyToBlob(body) {
@@ -56853,36 +56852,31 @@ function requestBodyToBlob(body) {
 /**
  * @class Solid
  *
- * To use this backend, you need to specify the authURL like so:
+ * To use this backend, you need to specify the authURL before calling connect like so:
  *
  * @example
- * remoteStorage.setAuthURL('https://login.example.com');
+ * solid.setAuthURL('https://login.example.com');
+ * solid.connect();
  *
- * In order to set the Solid options for the widget you have to specify the valid options like so:
+ * If connect is successful a list of available pods for the Solid account is retrieved and
+ * a `pod-not-selected` event is fired. After receiving this event you have to call getPodURLs
+ * to get the list of available pods and set one of them to be used by calling setPodURL. After
+ * setting the pod URL the `connected` event is fired.
  *
- * @example
- * remoteStorage.setApiKeys({
- *   solid: {
- *     providers: [
- *       {
- *         name: "provider name",
- *         authURL: "auth URL"
- *       }
- *     ],
- *     allowAnyProvider: true|false
- *   }
- * });
+ * You can find a list of running solid servers on the solid project website here:
+ * https://solidproject.org/for-developers#hosted-pod-services
 **/
 class Solid extends remote_1.RemoteBase {
     constructor(remoteStorage) {
         super(remoteStorage);
-        this.podURLs = [];
+        this.podURLs = null;
         this.online = true;
-        this.storageApi = 'draft-dejong-remotestorage-19';
         this.addEvents(['connected', 'not-connected', 'pod-not-selected']);
+        // We use a custom ConfigStore to store the solid session in a rs friendly manner to
+        // make configuration and disconnect work.
         this.configStorage = new solidStorage_1.default(this);
         this.session = new solid_client_authn_browser_1.Session({
-            secureStorage: new solid_client_authn_browser_1.InMemoryStorage(),
+            secureStorage: new solid_client_authn_browser_1.InMemoryStorage(), // Inrupt prefers InMemoryStorage for tokens. We respect that.
             insecureStorage: this.configStorage
         }, 'any');
         hasLocalStorage = (0, util_1.localStorageAvailable)();
@@ -56893,6 +56887,15 @@ class Solid extends remote_1.RemoteBase {
             }
         }
     }
+    /**
+     * Solid Session storage state changed.
+     *
+     * This function is called by the ConfigStore that we provided to Session as an insecure storage.
+     *
+     * @param {string} config - The entire Session configuration object serialized into a string
+     *
+     * @private
+     */
     onConfigChanged(config) {
         if (config) {
             const sessionConfig = JSON.parse(config);
@@ -56911,6 +56914,7 @@ class Solid extends remote_1.RemoteBase {
                 return;
             }
         }
+        this.podURLs = null;
         localStorage.removeItem(SETTINGS_KEY);
     }
     /**
@@ -56969,6 +56973,7 @@ class Solid extends remote_1.RemoteBase {
         const handleError = function () {
             this.connected = false;
             this.sessionProperties = null;
+            this.podURLs = null;
             if (hasLocalStorage) {
                 localStorage.removeItem(SETTINGS_KEY);
             }
@@ -56984,18 +56989,40 @@ class Solid extends remote_1.RemoteBase {
     }
     /**
      * Set the auth URL
+     *
      * @param {string} authURL - Auth URL
+     *
+     * @public
      */
     setAuthURL(authURL) {
         this.authURL = authURL;
     }
     /**
+     * Get a list of pod URLs for this Solid account.
+     *
+     * If the Solid Session is not connected, this function returns null.
      *
      * @returns Get the list of pod URLs
+     *
+     * @public
      */
     getPodURLs() {
         return this.podURLs;
     }
+    /**
+     * Set the pod URL to use as the storage.
+     *
+     * Pod URL must be one of the URLs provided by the getPodURLs function. This function does
+     * not validate this constraint.
+     *
+     * If the Solid Session is connected and the pod URL is updated to be null, a
+     * `pod-not-selected` event will be fired. If Session is connected and the pod URL is set,
+     * a `connected` event will be fired.
+     *
+     * @param {string} podURL - URL of the pod to be used as storage
+     *
+     * @public
+     */
     setPodURL(podURL) {
         if (this.selectedPodURL === podURL) {
             return;
@@ -57023,11 +57050,20 @@ class Solid extends remote_1.RemoteBase {
             }
         }
     }
+    /**
+     * Get the pod URL that is being used as the storage.
+     *
+     * @returns {string} The in-use pod URL or null
+     *
+     * @public
+     */
     getPodURL() {
         return this.selectedPodURL;
     }
     /**
      * Initiate the authorization flow's OAuth dance.
+     *
+     * @public
      */
     connect() {
         this.rs.setBackend('solid');
@@ -57044,17 +57080,18 @@ class Solid extends remote_1.RemoteBase {
     /**
      * Get the connected Solid session
      *
-     * @returns {Session} that is being used by this instance
+     * @returns {Session} that is being used by this instance or null if Session is not connected
+     *
+     * @public
      */
     getSession() {
-        return (this.session.info && this.session.info.isLoggedIn) ? this.session : undefined;
+        return (this.session.info && this.session.info.isLoggedIn) ? this.session : null;
     }
     /**
      * Convert path to file URL
      *
      * @param {string} path - Path of the resource
      * @returns {string} Full URL of the resource on the pod
-     *
      *
      * @private
      */
@@ -57101,7 +57138,7 @@ class Solid extends remote_1.RemoteBase {
                     statusCode: 200,
                     body: listing,
                     contentType: 'application/json; charset=UTF-8',
-                    // revision: ?
+                    // revision: ? Skipping ETag
                 });
             }).catch(error => {
                 if (error instanceof solid_client_1.FetchError) {

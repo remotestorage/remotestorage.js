@@ -56,10 +56,10 @@ critical bug, there\'s a team of people who will help with fixing it.
 
 ## One JS API for multiple storage options
 
-rs.js optionally supports Dropbox and Google Drive as storage backends which
-users can connect. Conveniently, as an app developer you don\'t have to
+rs.js optionally supports Dropbox, Google Drive and Solid as storage backends
+which users can connect. Conveniently, as an app developer you don\'t have to
 implement anything special in order for these backends to work with your code.
-Just [configure OAuth app keys](./dropbox-and-google-drive), and
+Just [configure OAuth app keys](./dropbox-googledrive-solid), and
 your users can choose between 3 different backends to connect. If you're not
 using the [connect widget](./getting-started/connect-widget), you may need to
 create additional UI for these alternate backends.
