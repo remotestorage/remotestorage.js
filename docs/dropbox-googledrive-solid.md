@@ -96,7 +96,8 @@ Console](https://console.developers.google.com/flows/enableapi?apiid=drive).
 ## Solid
 
 An authentication URL must always have been set on the Solid backend before
-calling `connect()`. You can do so by calling `setAuthURL()` first.
+calling `connect()`. You can do so by calling `remoteStorage.solid.setAuthURL()`
+first.
 
 The connect widget accepts a list of authentication URLs as configuration
 and automatically sets it on the Solid backend when selected.
@@ -112,3 +113,59 @@ from the [Inrupt](https://docs.inrupt.com/developer-tools/javascript/client-libr
 Solid library. It can be accessed by calling `remoteStorage.solid.getSession()`
 only after the backend is connected.
 :::
+
+### Conneting to Solid without the widget
+
+[Solid](https://solidproject.org/) is an open standard for structuring data,
+digital identities, and applications on the Web.
+
+In order to connect to a Solid pod i.e. storage, the first step is to
+authenticate with a Solid Identity Provider which is achieved by first calling
+`solid.setAuthURL()` and then calling `solid.connect()`.
+
+Solid supports multiple storage pods for each user. So after successfully
+authenticating, you'll need to get a list of available pods for that user and
+pick one to be used by the remote storage library. A successful authentication
+process fires the `pod-not-selected` event after calling connect. Upon
+receiving this event you must call `solid.getPodURLs()` to get a list of
+available pods. There is usually only one pod per user but it can be any number
+starting from zero.
+
+Call `solid.setPodURL()` after deciding which pod to use. The widget
+automatically selects the pod if there is only one available. Prompts the user
+if there are multiple available and shows an error if there is none. After
+setting the pod URL, you'll immediately receive the `connected` event.
+
+::: info
+If the connection process has reached the `pod-not-selected` step, the progress
+is saved and the next time the page refreshes, you'll receive event and can
+continue from there.
+:::
+
+Calling `connect()` always ends up in redirecting the page to the identity
+provider website. So does future page loads after a successful authentication.
+Upon returning, the response bears if the user still has access. This means
+that the page never loads with the connected state. It'll take a few moments
+and if everything is fine, `connected` is an event that is always fired.
+
+A basic code that doesn't use the widget will look like this:
+```js
+const connectTask = setTimeout(() => {
+  remoteStorage.solid.setAuthURL('solid-identity-provider-url'); // i.e. https://login.inrupt.com
+  remoteStorage.solid.connect();
+  // Calling 'connect()' will immediately redirect to the identity provider website.
+}, 1000);
+remoteStorage.on('pod-not-selected', () => {
+  clearTimeout(connectTask);
+  const podURLs = remoteStorage.solid.getPodURLs();
+  // Choose one. Maybe there is even 0?
+  remoteStorage.solid.setPodURL(podURLs[0]);
+  // That's it. 'connected' is fired immediately.
+};
+remoteStorage.on('connected', () => {
+  // We are connected.
+  clearTimeout(connectTask);
+  // We arrive here either through calling 'setPodURL' on the `pod-not-selected` event or
+  // on page getting loaded.
+});
+```
