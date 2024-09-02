@@ -26,11 +26,16 @@ module.exports = {
         test: /\.ts$/,
         use: 'ts-loader',
         exclude: /node_modules/,
+      },
+      {
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto'
       }
     ]
   },
   resolve: {
-    extensions: ['.ts'],
+    extensions: ['.ts', '.mjs', '.js', '.json'],
   },
   output: {
     path: path.resolve(__dirname, 'release'),

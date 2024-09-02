@@ -407,9 +407,9 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
             initsCalled++;
 
             if (initsCalled === 1) { // ignore first init, as that's from original initialization
-              test.assertAnd(env.rs._cleanups.length, 4);
+              test.assertAnd(env.rs._cleanups.length, 5);
             } else {
-              test.assertAnd(env.rs._cleanups.length, 4);
+              test.assertAnd(env.rs._cleanups.length, 5);
             }
 
             if (initsCalled === 2) {

@@ -135,7 +135,6 @@ abstract class CachingLayer {
   // could call sync.queueGetRequest directly instead of needing
   // this hacky third parameter as a callback
   async get (path: string, maxAge: number, queueGetRequest: (path2: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse> {
-
     if (typeof (maxAge) === 'number') {
       return this.getNodes(pathsFromRoot(path))
         .then((objs) => {
