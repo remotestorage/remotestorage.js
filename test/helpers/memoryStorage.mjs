@@ -1,8 +1,6 @@
-import {getGlobalContext} from "../../src/util";
+import { getGlobalContext } from "../../build/util.js";
 
-class MemoryStorage {
-  protected map: Map<string, string>;
-
+export class MemoryStorage {
   constructor() {
     this.map = new Map();
   }
@@ -11,7 +9,7 @@ class MemoryStorage {
     return this.map.size;
   }
 
-  key(index: number): string | null {
+  key(index) {
     const a = Array.from(this.map.keys());
     if (index < a.length) {
       return a[index];
@@ -20,7 +18,7 @@ class MemoryStorage {
     }
   }
 
-  getItem(key: string): string | null {
+  getItem(key) {
     if (this.map.has(key)) {
       return this.map.get(key);
     } else {
@@ -28,15 +26,15 @@ class MemoryStorage {
     }
   }
 
-  setItem(key: string, value: string): void {
+  setItem(key, value) {
     this.map.set(key, value);
   }
 
-  removeItem(key: string): void {
+  removeItem(key) {
     this.map.delete(key);
   }
 
-  clear(): void {
+  clear() {
     this.map.clear();
   }
 
@@ -57,4 +55,4 @@ if (context.sessionStorage) {
   context.sessessionStorage = sessionStorage = new MemoryStorage();
 }
 
-export {localStorage, sessionStorage};
+export { localStorage, sessionStorage };

@@ -2,8 +2,10 @@ import 'mocha';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import fetchMock from 'fetch-mock';
-import { localStorage } from '../helpers/memoryStorage';
-import Discover from '../../src/discover';
+
+import { localStorage } from '../helpers/memoryStorage.mjs';
+
+import Discover from '../../build/discover.js';
 
 chai.use(chaiAsPromised);
 
