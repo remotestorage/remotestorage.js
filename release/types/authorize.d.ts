@@ -1,5 +1,4 @@
 import RemoteStorage from './remotestorage';
-import { AuthorizeOptions } from "./interfaces/authorize_options";
 import { Remote } from "./remote";
 interface AuthResult {
     access_token?: string;
@@ -10,7 +9,24 @@ interface AuthResult {
     remotestorage?: string;
     state?: string;
 }
-declare class Authorize {
+export interface AuthorizeOptions {
+    /** URL of the authorization endpoint */
+    authURL: string;
+    /** access scope */
+    scope?: string;
+    redirectUri?: string;
+    /**
+    * client identifier
+    * @defaultValue Origin of the redirectUri
+    * */
+    clientId?: string;
+    response_type?: 'token' | 'code';
+    state?: string;
+    code_challenge?: string;
+    code_challenge_method?: 'S256' | 'plain';
+    token_access_type?: 'online' | 'offline';
+}
+export declare class Authorize {
     static IMPLIED_FAKE_TOKEN: boolean;
     /**
      * Navigates browser to provider's OAuth page. When user grants access,
@@ -40,5 +56,5 @@ declare class Authorize {
     static _rs_init: (remoteStorage: RemoteStorage) => void;
     static _rs_cleanup(remoteStorage: RemoteStorage): void;
 }
-export = Authorize;
+export default Authorize;
 //# sourceMappingURL=authorize.d.ts.map

@@ -15,8 +15,6 @@ interface SyncTask {
     promise: Promise<any>;
 }
 /**
- * Class: RemoteStorage.Sync
- *
  * This class basically does six things:
  *
  * - retrieve the remote version of relevant documents and folders
@@ -34,7 +32,7 @@ interface SyncTask {
  * comes in, it gives information about all the documents it contains (this is
  * the `markChildren` function).
  **/
-declare class Sync {
+export declare class Sync {
     rs: {
         [propName: string]: any;
     };
@@ -88,7 +86,7 @@ declare class Sync {
     static _rs_init(remoteStorage: any): void;
     static _rs_cleanup(remoteStorage: any): void;
 }
-interface Sync extends EventHandling {
+export interface Sync extends EventHandling {
 }
-export = Sync;
+export default Sync;
 //# sourceMappingURL=sync.d.ts.map

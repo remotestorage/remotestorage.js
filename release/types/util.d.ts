@@ -60,5 +60,5 @@ export declare function generateCodeVerifier(numChar?: number): Promise<{
     codeChallenge: string;
     state: string;
 }>;
-export declare function applyMixins(derivedCtor: any, baseCtors: any[]): void;
+export declare function applyMixins(derivedCtor: any, constructors: any[]): void;
 //# sourceMappingURL=util.d.ts.map
