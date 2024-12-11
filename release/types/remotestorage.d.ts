@@ -1,52 +1,248 @@
+import Access from './access';
 import Authorize from './authorize';
 import BaseClient from './baseclient';
 import Caching from './caching';
 import IndexedDB from './indexeddb';
 import InMemoryStorage from './inmemorystorage';
 import LocalStorage from './localstorage';
-import EventHandling from './eventhandling';
+import { EventHandling, EventHandler } from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import { Remote } from "./remote";
+import type { AuthorizeOptions } from './authorize';
+import type { Sync } from './sync';
 import * as util from './util';
-import { AuthorizeOptions } from "./interfaces/authorize_options";
-interface RSModule {
+/**
+ * Represents a data module
+ *
+ * @example
+ * ```js
+ * {
+ *   name: 'examples',
+ *   builder: function(privateClient, publicClient) {
+ *     return {
+ *       exports: {
+ *         addItem(item): function() {
+ *           // Generate a random ID/path
+ *           const path = [...Array(10)].map(() => String.fromCharCode(Math.floor(Math.random() * 95) + 32)).join('');
+ *           // Store the object, and ensure it conforms to the JSON Schema
+ *           // type `example-item`
+ *           privateClient.storeObject('example-item', path, item);
+ *         }
+ *       }
+ *     }
+ *   }
+ * }
+ * ```
+ */
+export interface RSModule {
+    /**
+     * The module's name, which is also the category (i.e. base folder) for document URLs on the remote storage
+     */
     name: string;
-    builder: any;
+    /**
+     * A module builder function, which defines the actual module
+     */
+    builder: (privateClient: BaseClient, publicClient: BaseClient) => {
+        exports: {
+            [key: string]: any;
+        };
+    };
+}
+declare enum ApiKeyType {
+    GOOGLE = "googledrive",
+    DROPBOX = "dropbox"
 }
 /**
- * Constructor for the remoteStorage object/instance
+ * Create a `remoteStorage` class instance so:
  *
- * This class primarily contains feature detection code and convenience API.
+ * ```js
+ * const remoteStorage = new RemoteStorage();
+ * ```
  *
- * Depending on which features are built in, it contains different attributes
- * and functions. See the individual features for more information.
+ * The constructor can optionally be called with a configuration object. This
+ * example shows all default values:
  *
- * @param {object} config - an optional configuration object
- * @class
+ * ```js
+ * const remoteStorage = new RemoteStorage({
+ *   cache: true,
+ *   changeEvents: {
+ *     local:    true,
+ *     window:   false,
+ *     remote:   true,
+ *     conflict: true
+ *   },
+ *   cordovaRedirectUri: undefined,
+ *   logging: false,
+ *   modules: []
+ * });
+ * ```
+ *
+ * > [!NOTE]
+ * > In the current version, it is only possible to use a single `remoteStorage`
+ * > instance. You cannot connect to two different remotes in parallel yet.
+ * > We intend to support this eventually.
+ *
+ * > [!TIP]
+ * > For the change events configuration, you have to set all events
+ * > explicitly.  Otherwise it disables the unspecified ones.
+ *
+ * ## Events
+ *
+ * You can add event handlers to your `remoteStorage` instance by using the
+ * {@link on} function. For example:
+ *
+ * ```js
+ * remoteStorage.on('connected', function() {
+ *   // Storage account has been connected, let’s roll!
+ * });
+ * ```
+ *
+ * ### `ready`
+ *
+ * Emitted when all features are loaded and the RS instance is ready to be used
+ * in your app
+ *
+ * ### `not-connected`
+ *
+ * Emitted when ready, but no storage connected ("anonymous mode")
+ *
+ * ### `connected`
+ *
+ * Emitted when a remote storage has been connected
+ *
+ * ### `disconnected`
+ *
+ * Emitted after disconnect
+ *
+ * ### `error`
+ *
+ * Emitted when an error occurs; receives an error object as argument
+ *
+ * There are a handful of known errors, which are identified by the `name`
+ * property of the error object:
+ *
+ * * `Unauthorized`
+ *
+ *   Emitted when a network request resulted in a 401 or 403 response. You can
+ *   use this event to handle invalid OAuth tokens in custom UI (i.e. when a
+ *   stored token has been revoked or expired by the RS server).
+ *
+ * * `DiscoveryError`
+ *
+ *   A variety of storage discovery errors, e.g. from user address input
+ *   validation, or user address lookup issues
+ *
+ * #### Example
+ *
+ * ```js
+ * remoteStorage.on('error', err => console.log(err));
+ *
+ * // {
+ * //   name: "Unauthorized",
+ * //   message: "App authorization expired or revoked.",
+ * //   stack: "Error↵  at new a.Unauthorized (vendor.js:65710:41870)"
+ * // }
+ * ```
+ *
+ * ### `connecting`
+ *
+ * Emitted before webfinger lookup
+ *
+ * ### `authing`
+ *
+ * Emitted before redirecting to the OAuth server
+ *
+ * ### `wire-busy`
+ *
+ * Emitted when a network request starts
+ *
+ * ### `wire-done`
+ *
+ * Emitted when a network request completes
+ *
+ * ### `sync-req-done`
+ *
+ * Emitted when a single sync request has finished. Callback functions
+ * receive an object as argument, informing the client of remaining items
+ * in the current sync task queue.
+ *
+ * #### Example
+ *
+ * ```js
+ * remoteStorage.on('sync-req-done', result => console.log(result));
+ * // { tasksRemaining: 21 }
+ * ```
+ *
+ * > [!NOTE]
+ * > The internal task queue holds at most 100 items at the same time,
+ * > regardless of the overall amount of items to sync. Therefore, this number
+ * > is only an indicator of sync status, not a precise amount of items left
+ * > to sync. It can be useful to determine if your app should display any
+ * > kind of sync status/progress information for the cycle or not.
+ *
+ * ### `sync-done`
+ *
+ * Emitted when a sync cycle has been completed and a new sync is scheduled.
+ *
+ * The callback function receives an object as argument, informing the client
+ * if the sync process has completed successfully or not.
+ *
+ * #### Example
+ *
+ * ```js
+ * remoteStorage.on('sync-done', result => console.log(result));
+ * // { completed: true }
+ * ```
+ *
+ * If `completed` is `false`, it means that some of the sync requests have
+ * failed and will be retried in the next sync cycle (usually a few seconds
+ * later in this case). This is not an unusual scenario on mobile networks or
+ * when doing a large initial sync for example.
+ *
+ * For an app's user interface, you may want to consider the sync process as
+ * ongoing in this case, and wait until your app sees a positive `completed`
+ * status before updating the UI.
+ *
+ * ### `network-offline`
+ *
+ * Emitted once when a wire request fails for the first time, and
+ * `remote.online` is set to false
+ *
+ * ### `network-online`
+ *
+ * Emitted once when a wire request succeeds for the first time after a failed
+ * one, and `remote.online` is set back to true
+ *
+ * ### `sync-interval-change`
+ *
+ * Emitted when the sync interval changes
  */
-declare class RemoteStorage {
+export declare class RemoteStorage {
     /**
      * Pending get/put/delete calls
-     * @private
+     * @internal
      */
     _pending: {
         [key: string]: any;
     }[];
     /**
      * TODO: document
+     * @internal
      */
     _cleanups: [];
     /**
      * TODO: document
+     * @internal
      */
     _pathHandlers: {
         [key: string]: any;
     };
     /**
      * Holds OAuth app keys for Dropbox, Google Drive
+     * @internal
      */
     apiKeys: {
         googledrive?: {
@@ -57,39 +253,80 @@ declare class RemoteStorage {
         };
     };
     /**
-     * Holds the feature class instance, added by feature initialization
-     * TODO use type Access
      */
-    access: any;
+    access: Access;
     /**
-     * Holds the feature class instance, added by feature initialization
-     * TODO use type Sync
      */
-    sync: any;
+    sync: Sync;
     /**
-     * Holds the feature class instance, added by feature initialization
      */
     caching: Caching;
+    /**
+     * @internal
+     */
     _syncTimer: any;
-    syncStopped: any;
-    get: any;
-    put: any;
-    delete: any;
+    /**
+     * @internal
+     */
+    syncStopped: boolean;
+    /**
+     * @internal
+     */
+    get: Function;
+    /**
+     * @internal
+     */
+    put: Function;
+    /**
+     * @internal
+     */
+    delete: Function;
+    /**
+     */
     backend: 'remotestorage' | 'dropbox' | 'googledrive';
     /**
-     * Holds a WireClient, GoogleDrive or Dropbox instance, added by feature initialization
+     * Depending on the chosen backend, this is either an instance of `WireClient`,
+     * `Dropbox` or `GoogleDrive`.
+     *
+     * See {@link Remote} for public API
+     *
+     * @example
+     * remoteStorage.remote.connected
+     * // false
      */
     remote: Remote;
+    /**
+     * Access to the local caching backend used. Usually either a
+     * `RemoteStorage.IndexedDB` or `RemoteStorage.LocalStorage` instance.
+     *
+     * Not available, when caching is turned off.
+     *
+     * @internal
+     */
     local: IndexedDB | LocalStorage | InMemoryStorage;
+    /**
+     * @internal
+     */
     dropbox: Dropbox;
+    /**
+     * @internal
+     */
     googledrive: GoogleDrive;
-    fireInitial: any;
-    on: any;
+    /**
+     * @internal
+     */
+    fireInitial: Function;
     constructor(cfg?: object);
     /**
      * Indicating if remoteStorage is currently connected.
      */
     get connected(): boolean;
+    /**
+     * FIXME: Instead of doing this, would be better to only
+     * export setAuthURL / getAuthURL from RemoteStorage prototype
+     *
+     * @ignore
+     */
     static Authorize: typeof Authorize;
     static SyncError: typeof SyncError;
     static Unauthorized: typeof UnauthorizedError;
@@ -97,39 +334,21 @@ declare class RemoteStorage {
     static util: typeof util;
     /**
      * Load all modules passed as arguments
-     * @private
+     *
+     * @internal
      */
     loadModules(): void;
     /**
      * Initiate the OAuth authorization flow.
      *
-     * This function is called by custom storage backend implementations
-     * (e.g. Dropbox or Google Drive).
-     *
-     * @param {object} options
-     * @param {string} options.authURL - URL of the authorization endpoint
-     * @param {string} [options.scope] - access scope
-     * @param {string} [options.clientId] - client identifier (defaults to the
-     *                                      origin of the redirectUri)
-     * @private
+     * @internal
      */
     authorize(options: AuthorizeOptions): void;
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     impliedauth(storageApi?: string, redirectUri?: string): void;
-    /**
-     * @property {object} remote
-     *
-     * Depending on the chosen backend, this is either an instance of ``WireClient``,
-     * ``Dropbox`` or ``GoogleDrive``.
-     *
-     * @property {boolean} remote.connected - Whether or not a remote store is connected
-     * @property {boolean} remote.online - Whether last sync action was successful or not
-     * @property {string} remote.userAddress - The user address of the connected user
-     * @property {string} remote.properties - The properties of the WebFinger link
-     */
     /**
      * Connect to a remoteStorage server.
      *
@@ -137,7 +356,8 @@ declare class RemoteStorage {
      * the OAuth dance.
      *
      * This method must be called *after* all required access has been claimed.
-     * When using the connect widget, it will call this method itself.
+     * When using the connect widget, it will call this method when the user
+     * clicks/taps the "connect" button.
      *
      * Special cases:
      *
@@ -152,12 +372,18 @@ declare class RemoteStorage {
      *    tokens in all requests later on. This is useful for example when using
      *    Kerberos and similar protocols.
      *
-     * @param {string} userAddress - The user address (user@host) or URL to connect to.
-     * @param {string} token       - (optional) A bearer token acquired beforehand
+     * @param userAddress - The user address (user@host) or URL to connect to.
+     * @param token       - (optional) A bearer token acquired beforehand
+     *
+     * @example
+     * remoteStorage.connect('user@example.com');
      */
     connect(userAddress: string, token?: string): void;
     /**
      * Reconnect the remote server to get a new authorization.
+     *
+     * Useful when not using the connect widget and encountering an
+     * `Unauthorized` event.
      */
     reconnect(): void;
     /**
@@ -168,128 +394,200 @@ declare class RemoteStorage {
      */
     disconnect(): void;
     /**
-     * TODO: document
-     * @private
+     * @internal
      */
-    setBackend(what: any): void;
+    setBackend(backendType: 'remotestorage' | 'dropbox' | 'googledrive'): void;
     /**
-     * Add a "change" event handler to the given path. Whenever a "change"
-     * happens (as determined by the backend, such as e.g.
-     * <RemoteStorage.IndexedDB>) and the affected path is equal to or below the
+     * Add a `change` event handler for the given path. Whenever a change
+     * happens (as determined by the local backend, such as e.g.
+     * `RemoteStorage.IndexedDB`), and the affected path is equal to or below the
      * given 'path', the given handler is called.
      *
-     * You should usually not use this method directly, but instead use the
-     * "change" events provided by :doc:`BaseClient </js-api/base-client>`
+     * > [!TIP]
+     * > You should usually not use this method, but instead use the
+     * > `change` events provided by {@link BaseClient}.
      *
-     * @param {string} path - Absolute path to attach handler to
-     * @param {function} handler - Handler function
+     * @param path - Absolute path to attach handler to
+     * @param handler - A function to handle the change
+     *
+     * @example
+     * remoteStorage.onChange('/bookmarks/', function() {
+     *   // your code here
+     * })
      */
-    onChange(path: string, handler: any): void;
+    onChange(path: string, handler: EventHandler): void;
     /**
-     * TODO: do we still need this, now that we always instantiate the prototype?
+     * Enable remoteStorage debug logging.
      *
-     * Enable remoteStorage logging.
+     * Usually done when instantiating remoteStorage:
+     *
+     * ```js
+     * const remoteStorage = new RemoteStorage({ logging: true });
+     * ```
      */
     enableLog(): void;
     /**
-     * TODO: do we still need this, now that we always instantiate the prototype?
-     *
-     * Disable remoteStorage logging
+     * Disable remoteStorage debug logging
      */
     disableLog(): void;
     /**
-     * log
+     * Log something to the debug log
      *
-     * The same as <RemoteStorage.log>.
+     * @internal
      */
     log(...args: any[]): void;
     /**
-     * Set the OAuth key/ID for either GoogleDrive or Dropbox backend support.
+     * Set the OAuth key/ID for GoogleDrive and/or Dropbox backend support.
      *
-     * @param {Object} apiKeys - A config object with these properties:
-     * @param {string} [apiKeys.type] - Backend type: 'googledrive' or 'dropbox'
-     * @param {string} [apiKeys.key] - Client ID for GoogleDrive, or app key for Dropbox
+     * @param apiKeys - A config object
+     *
+     * @example
+     * remoteStorage.setApiKeys({
+     *   dropbox: 'your-app-key',
+     *   googledrive: 'your-client-id'
+     * });
      */
     setApiKeys(apiKeys: {
         [key in ApiKeyType]?: string;
     }): void | boolean;
     /**
      * Set redirect URI to be used for the OAuth redirect within the
-     * in-app-browser window in Cordova apps.
+     * in-app-browser window in Cordova apps. See
+     * [Usage in Cordova apps](../../../cordova) for details.
      *
      * @param uri - A valid HTTP(S) URI
+     *
+     * @example
+     * remoteStorage.setCordovaRedirectUri('https://app.example.com');
      */
     setCordovaRedirectUri(uri: string): void;
+    /**
+     * @internal
+     */
     _init: () => void;
+    /**
+     * @internal
+     */
     features: any[];
+    /**
+     * @internal
+     */
     loadFeature: (featureName: any) => void;
+    /**
+     * @internal
+     */
     featureSupported: (featureName: any, success: any) => void;
+    /**
+     * @internal
+     */
     featureDone: () => void;
+    /**
+     * @internal
+     */
     featuresDone: number;
+    /**
+     * @internal
+     */
     featuresLoaded: () => void;
+    /**
+     * @internal
+     */
     featureInitialized: (featureName: any) => void;
+    /**
+     * @internal
+     */
     featureFailed: (featureName: any, err: any) => void;
+    /**
+     * @internal
+     */
     hasFeature: (feature: any) => any;
+    /**
+     * @internal
+     */
     _setCachingModule: () => void;
+    /**
+     * @internal
+     */
     _collectCleanupFunctions: () => void;
+    /**
+     * @internal
+     */
     _fireReady: () => void;
+    /**
+     * @internal
+     */
     initFeature: (featureName: any) => void;
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _setGPD(impl: any, context?: any): void;
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _pendingGPD(methodName: any): () => Promise<unknown>;
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _processPending(): void;
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _bindChange(object: {
         on: any;
     }): void;
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     _dispatchEvent(eventName: string, event: any): void;
     /**
-     * This method enables you to quickly instantiate a BaseClient, which you can
+     * This method allows you to quickly instantiate a BaseClient, which you can
      * use to directly read and manipulate data in the connected storage account.
      *
      * Please use this method only for debugging and development, and choose or
-     * create a :doc:`data module </data-modules>` for your app to use.
+     * create a [data module](../../../data-modules/) for your app to use.
      *
      * @param path - The base directory of the BaseClient that will be returned
      *               (with a leading and a trailing slash)
      *
      * @returns A client with the specified scope (category/base directory)
+     *
+     * @example
+     * remoteStorage.scope('/pictures/').getListing('');
+     * remoteStorage.scope('/public/pictures/').getListing('');
      */
     scope(path: string): BaseClient;
     /**
      * Get the value of the sync interval when application is in the foreground
      *
-     * @returns {number} A number of milliseconds
+     * @returns A number of milliseconds
+     *
+     * @example
+     * remoteStorage.getSyncInterval();
+     * // 10000
      */
     getSyncInterval(): number;
     /**
      * Set the value of the sync interval when application is in the foreground
      *
      * @param interval - Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
+     *
+     * @example
+       remoteStorage.setSyncInterval(20000);
      */
     setSyncInterval(interval: number): void;
     /**
      * Get the value of the sync interval when application is in the background
      *
      * @returns A number of milliseconds
+     *
+     * @example
+     * remoteStorage.getBackgroundSyncInterval();
+     * // 60000
      */
     getBackgroundSyncInterval(): number;
     /**
@@ -297,30 +595,44 @@ declare class RemoteStorage {
      * background
      *
      * @param interval - Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
+     *
+     * @example
+     * remoteStorage.setBackgroundSyncInterval(90000);
      */
     setBackgroundSyncInterval(interval: number): void;
     /**
      * Get the value of the current sync interval. Can be background or
      * foreground, custom or default.
      *
-     * @returns {number} A number of milliseconds
+     * @returns number of milliseconds
+     *
+     * @example
+     * remoteStorage.getCurrentSyncInterval();
+     * // 15000
      */
     getCurrentSyncInterval(): number;
     /**
      * Get the value of the current network request timeout
      *
-     * @returns {number} A number of milliseconds
+     * @returns A number of milliseconds
+     *
+     * @example
+     * remoteStorage.getRequestTimeout();
+     * // 30000
      */
     getRequestTimeout(): number;
     /**
      * Set the timeout for network requests.
      *
      * @param timeout - Timeout in milliseconds
+     *
+     * @example
+     * remoteStorage.setRequestTimeout(30000);
      */
     setRequestTimeout(timeout: number): void;
     /**
      * TODO: document
-     * @private
+     * @internal
      */
     syncCycle(): void;
     /**
@@ -333,27 +645,57 @@ declare class RemoteStorage {
      * sync button for example. This might feel safer to them sometimes, esp.
      * when shifting between offline and online a lot.
      *
-     * @returns {Promise} A Promise which resolves when the sync has finished
+     * @returns A Promise which resolves when the sync has finished
      */
     startSync(): Promise<void>;
     /**
      * Stop the periodic synchronization.
      */
     stopSync(): void;
+    /**
+     * Add remoteStorage data module
+     *
+     * @param module - A data module object
+     *
+     * @example
+     *
+     * Usually, you will import your data module from either a package or a local path.
+     * Let's say you want to use the
+     * [bookmarks module](https://github.com/raucao/remotestorage-module-bookmarks)
+     * in order to load data stored from [Webmarks](https://webmarks.5apps.com) for
+     * example:
+     *
+     * ```js
+     * import Bookmarks from 'remotestorage-module-bookmarks';
+     *
+     * remoteStorage.addModule(Bookmarks);
+     * ```
+     *
+     * You can also forgo this function entirely and add modules when creating your
+     * remoteStorage instance:
+     *
+     * ```js
+     * const remoteStorage = new RemoteStorage({ modules: [ Bookmarks ] });
+     * ```
+     *
+     * After the module has been added, it can be used like so:
+     *
+     * ```js
+     * remoteStorage.bookmarks.archive.getAll(false)
+     *   .then(bookmarks => console.log(bookmarks));
+     * ```
+     */
     addModule(module: RSModule): void;
     /**
      * Load module
+     *
      * @private
      */
     _loadModule(moduleName: string, moduleBuilder: any): {
         [key: string]: unknown;
     };
 }
-interface RemoteStorage extends EventHandling {
+export interface RemoteStorage extends EventHandling {
 }
-declare enum ApiKeyType {
-    GOOGLE = "googledrive",
-    DROPBOX = "dropbox"
-}
-export = RemoteStorage;
+export default RemoteStorage;
 //# sourceMappingURL=remotestorage.d.ts.map

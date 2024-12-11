@@ -1,10 +1,10 @@
-export declare type RSNode = {
+export type RSNode = {
     [key: string]: any;
 };
-export declare type RSNodes = {
+export type RSNodes = {
     [key: string]: RSNode;
 };
-export declare type ProcessNodes = {
+export type ProcessNodes = {
     (nodePaths: string[], nodes: RSNodes): RSNodes;
 };
 //# sourceMappingURL=rs_node.d.ts.map

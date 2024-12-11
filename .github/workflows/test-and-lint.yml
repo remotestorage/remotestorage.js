@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies
-        run: npm ci --force
+        run: npm ci
       - name: Run jaribu tests   # These must be replaced before we can use Node v18 in CI
         run: npm test
       - name: Run mocha tests

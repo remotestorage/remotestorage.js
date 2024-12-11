@@ -386,7 +386,14 @@ export class RemoteStorage {
 
     if (hasLocalStorage) {
       this.apiKeys = getJSONFromLocalStorage('remotestorage:api-keys') || {};
-      this.setBackend(localStorage.getItem('remotestorage:backend') || 'remotestorage');
+
+      const backendType = localStorage.getItem('remotestorage:backend');
+
+      if (backendType === 'dropbox' || backendType === 'googledrive') {
+        this.setBackend(backendType);
+      } else {
+        this.setBackend('remotestorage');
+      }
     }
 
     // Keep a reference to the orginal `on` function
@@ -577,12 +584,7 @@ export class RemoteStorage {
     });
     this._emit('connecting');
 
-    const discoveryTimeout = setTimeout((): void => {
-      this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
-    }, config.discoveryTimeout);
-
     Discover(userAddress).then((info: StorageInfo): void => {
-      clearTimeout(discoveryTimeout);
       this._emit('authing');
       info.userAddress = userAddress;
       this.remote.configure(info);
@@ -608,7 +610,6 @@ export class RemoteStorage {
         }
       }
     }, (/*err*/) => {
-      clearTimeout(discoveryTimeout);
       this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
     });
   }
@@ -678,14 +679,14 @@ export class RemoteStorage {
   }
 
   /**
-   * TODO: document
    * @internal
    */
-  setBackend (what): void {
-    this.backend = what;
+  setBackend (backendType: 'remotestorage' | 'dropbox' | 'googledrive'): void {
+    this.backend = backendType;
+
     if (hasLocalStorage) {
-      if (what) {
-        localStorage.setItem('remotestorage:backend', what);
+      if (typeof backendType !== 'undefined') {
+        localStorage.setItem('remotestorage:backend', backendType);
       } else {
         localStorage.removeItem('remotestorage:backend');
       }

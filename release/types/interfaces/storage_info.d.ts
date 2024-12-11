@@ -1,4 +1,4 @@
-export declare type StorageInfo = {
+export type StorageInfo = {
     href: string;
     storageApi: string;
     authURL: string;

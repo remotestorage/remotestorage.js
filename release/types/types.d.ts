@@ -1,4 +1,3 @@
-/// <reference types="tv4" />
 import type { JsonSchemas } from './interfaces/json_schema';
 /**
  * - Manages and validates types of remoteStorage objects, using JSON-LD and
