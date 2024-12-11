@@ -389,7 +389,7 @@ export class RemoteStorage {
 
       const backendType = localStorage.getItem('remotestorage:backend');
 
-      if (backendType === 'dropbox' || backendType === 'googledrive') {
+      if (backendType === 'dropbox' || backendType === 'googledrive' || backendType === 'solid') {
         this.setBackend(backendType);
       } else {
         this.setBackend('remotestorage');
@@ -681,7 +681,7 @@ export class RemoteStorage {
   /**
    * @internal
    */
-  setBackend (backendType: 'remotestorage' | 'dropbox' | 'googledrive'): void {
+  setBackend (backendType: 'remotestorage' | 'dropbox' | 'googledrive' | 'solid'): void {
     this.backend = backendType;
 
     if (hasLocalStorage) {
