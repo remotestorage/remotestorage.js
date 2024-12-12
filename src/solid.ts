@@ -278,7 +278,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    * 
    * @public
    */
-  getPodURLs(): string[] {
+  getPodURLs(): string[] | null {
     return this.podURLs;
   }
 
