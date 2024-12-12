@@ -36,6 +36,7 @@ function hookGetItemURL (rs): void {
   if (rs._origBaseClientGetItemURL) { return; }
   rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
   BaseClient.prototype.getItemURL = function (path: string): string {
+    console.log('getItemURL from', path);
     if (typeof path !== 'string') {
       throw 'Argument \'path\' of baseClient.getItemURL must be a string';
     }
@@ -43,6 +44,7 @@ function hookGetItemURL (rs): void {
       if (path.startsWith('/')) {
         path = path.substring(1);
       }
+      console.log('getItemURL to', this.selectedPodURL + cleanPath(path));
       return this.selectedPodURL + cleanPath(path);
     } else {
       return undefined;
@@ -127,6 +129,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
 
   constructor(remoteStorage) {
     super(remoteStorage);
+    console.log('Solid constructor');
     this.online = true;
     this.addEvents(['connected', 'not-connected', 'pod-not-selected']);
     
@@ -397,6 +400,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    * @protected
    */
   get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
+    console.log('Solid get', path, options);
     const fileURL = this.getFileURL(path);
 
     if (path.slice(-1) === '/') {
@@ -477,6 +481,8 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    * @protected
    */
   put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
+    console.log('Solid put', path, contentType);
+
     const fileURL = this.getFileURL(path);
     const fetch = this.session.fetch;
 
@@ -523,6 +529,7 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
    * @protected
    */
   delete (path: string, options: { ifMatch?: string } = {}): Promise<RemoteResponse> {
+    console.log('Solid delete', path);
     const fileURL = this.getFileURL(path);
 
     return deleteFile(fileURL, { fetch: this.session.fetch }).then(() => {
