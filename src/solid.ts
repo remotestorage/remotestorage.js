@@ -6,7 +6,7 @@ import {
   getFile, overwriteFile, getContentType,
   getPodUrlAll, deleteFile, getContainedResourceUrlAll, getSolidDataset,
   FetchError, UrlString,
-  getThing, getInteger, getDatetime
+  getThing, getInteger, getDatetime, getDecimal
 } from "@inrupt/solid-client";
 import BaseClient from './baseclient';
 import EventHandling from './eventhandling';
@@ -405,21 +405,19 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
 
     if (path.slice(-1) === '/') {
       return getSolidDataset(fileURL, { fetch: this.session.fetch }).then(containerDataset => {
+        console.log('container data set', containerDataset);
         const URLs: UrlString[] = getContainedResourceUrlAll(containerDataset);
         const listing = URLs.reduce((map, item) => {
           const itemName = item.substring(fileURL.length);
+          const fileDataset = getThing(containerDataset, item);
+          map[itemName] = {
+            'ETag': getDecimal(fileDataset, 'http://www.w3.org/ns/posix/stat#mtime').toString(),
+            'Last-Modified': getDatetime(fileDataset, 'http://purl.org/dc/terms/modified').toUTCString(), // date.toUTCString()
+          };
+
           const isFolder = itemName.slice(-1) === '/';
-
-          if (isFolder) {
-            map[itemName] = { }; // We are skipping ETag
-          }
-          else {
-            const fileDataset = getThing(containerDataset, item);
-
-            map[itemName] = {
-              'Content-Length': getInteger(fileDataset, 'http://www.w3.org/ns/posix/stat#size'),
-              'Last-Modified': getDatetime(fileDataset, 'http://purl.org/dc/terms/modified').toUTCString(), // date.toUTCString()
-            };
+          if (!isFolder) {
+            map[itemName]['Content-Length'] = getInteger(fileDataset, 'http://www.w3.org/ns/posix/stat#size');
           }
 
           return map;
@@ -447,10 +445,10 @@ class Solid extends RemoteBase implements Remote, ConfigObserver {
       });
     }
 
-    return getFile(fileURL, { fetch: this.session.fetch}).then(file => {
+    return getFile(fileURL, { fetch: this.session.fetch}).then(async file => {
       return {
         statusCode: 200,
-        body: file,
+        body: await file.text(),
         contentType: getContentType(file)
       } as RemoteResponse;
     }).catch(error => {
