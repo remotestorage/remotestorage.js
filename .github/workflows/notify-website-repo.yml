@@ -1,0 +1,17 @@
+name: Notify website repo
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.RS_DISPATCH_PAT }}
+          repository: remotestorage/website
+          event-type: rsjs-master-updated

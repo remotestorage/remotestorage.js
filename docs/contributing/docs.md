@@ -27,9 +27,12 @@ typedoc --watch
 
 ## Publishing
 
-The rs.js documentation on https://remotestorage.io/rs.js/docs/ is published from the [remotestorage/website](https://github.com/remotestorage/website/) repo. This repository is included as a submodule in the website repo, so that there is no duplication of content or builds.
+The rs.js documentation on https://remotestorage.io/rs.js/docs/ is
+published from the
+[remotestorage/website](https://github.com/remotestorage/website/)
+repo.
 
-This means that any merged rs.js docs changes currently require a manual update of the website repository in order to be visible in the public docs.
-
-> [!NOTE]
-> The process of updating the website automatically, whenever rs.js docs changes are merged, will be automated soon
+This repository is included as a submodule in the website repo to avoid
+duplication of content or builds. Whenever this repository's `master` branch is
+updated on GitHub, it will notify the website repo to update its submodule and
+trigger a new website build and deployment.
