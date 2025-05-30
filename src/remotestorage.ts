@@ -20,6 +20,7 @@ import LocalStorage from './localstorage';
 import { EventHandling, EventHandler } from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
+import Solid from './solid';
 import Discover from './discover';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
@@ -323,11 +324,11 @@ export class RemoteStorage {
 
   /**
    */
-  backend: 'remotestorage' | 'dropbox' | 'googledrive';
+  backend: 'remotestorage' | 'dropbox' | 'googledrive' | 'solid';
 
   /**
    * Depending on the chosen backend, this is either an instance of `WireClient`,
-   * `Dropbox` or `GoogleDrive`.
+   * `Dropbox`, `GoogleDrive` or `Solid`.
    *
    * See {@link Remote} for public API
    *
@@ -355,6 +356,7 @@ export class RemoteStorage {
    * @internal
    */
   googledrive: GoogleDrive;
+  solid: Solid;
 
   /**
    * @internal
@@ -368,7 +370,7 @@ export class RemoteStorage {
     if (typeof cfg === 'object') { extend(config, cfg); }
 
     this.addEvents([
-      'ready', 'authing', 'connecting', 'connected', 'disconnected',
+      'ready', 'authing', 'connecting', 'pod-not-selected', 'connected', 'disconnected',
       'not-connected', 'conflict', 'error', 'features-loaded',
       'sync-interval-change', 'sync-req-done', 'sync-done',
       'wire-busy', 'wire-done', 'network-offline', 'network-online'
@@ -387,7 +389,7 @@ export class RemoteStorage {
 
       const backendType = localStorage.getItem('remotestorage:backend');
 
-      if (backendType === 'dropbox' || backendType === 'googledrive') {
+      if (backendType === 'dropbox' || backendType === 'googledrive' || backendType === 'solid') {
         this.setBackend(backendType);
       } else {
         this.setBackend('remotestorage');
@@ -417,6 +419,14 @@ export class RemoteStorage {
             break;
           case 'not-connected':
             if (this.remote && !this.remote.connected) {
+              setTimeout(handler, 0);
+            }
+            break;
+          case 'pod-not-selected':
+            if ((this.remote instanceof Solid)
+              && Array.isArray(this.remote.getPodURLs())
+              && this.remote.getPodURLs().length > 0
+              && this.remote.getPodURL() === null) {
               setTimeout(handler, 0);
             }
             break;
@@ -672,7 +682,7 @@ export class RemoteStorage {
   /**
    * @internal
    */
-  setBackend (backendType: 'remotestorage' | 'dropbox' | 'googledrive'): void {
+  setBackend (backendType: 'remotestorage' | 'dropbox' | 'googledrive' | 'solid'): void {
     this.backend = backendType;
 
     if (hasLocalStorage) {
@@ -749,7 +759,7 @@ export class RemoteStorage {
    *   googledrive: 'your-client-id'
    * });
    */
-  setApiKeys (apiKeys: {[key in ApiKeyType]?: string}): void | boolean {
+  setApiKeys (apiKeys: {[key in ApiKeyType]?: string}): void | boolean { // TODO fix the input type
     const validTypes: string[] = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX];
     if (typeof apiKeys !== 'object' || !Object.keys(apiKeys).every(type => validTypes.includes(type))) {
       console.error('setApiKeys() was called with invalid arguments') ;

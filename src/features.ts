@@ -12,6 +12,7 @@ import Discover from './discover';
 import BaseClient from './baseclient';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
+import Solid from './solid';
 import WireClient from './wireclient';
 import Sync from './sync';
 
@@ -35,6 +36,7 @@ const Features = {
       'WireClient': WireClient,
       'Dropbox': Dropbox,
       'GoogleDrive': GoogleDrive,
+      'Solid': Solid,
       'Access': Access,
       'Discover': Discover,
       'Authorize': Authorize,
