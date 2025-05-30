@@ -1,9 +1,11 @@
-name: test-and-lint
+name: Test and lint
+
 on:
   push:
     branches: [ master, stable ]
   pull_request:
     branches: [ master, stable ]
+
 jobs:
   build:
     name: node.js

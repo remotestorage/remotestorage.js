@@ -3,23 +3,33 @@
 The documentation for remoteStorage.js comes from two different sources:
 
 1. Markdown documents in the `docs/` folder for normal pages
-2. TypeDoc comments in the source code, which are also rendered as Markdown pages when updating the website
+2. TypeDoc comments in the source code, which are also rendered as Markdown
+   pages when updating the website
 
-The pages are then transformed into a functional website using [VitePress](https://vitepress.dev/). Please refer to the VitePress documentation for available [Markdown extensions](https://vitepress.dev/guide/markdown), [configuring the sidebar menu](https://vitepress.dev/reference/default-theme-sidebar), and more.
+The pages are then transformed into a functional website using
+[VitePress](https://vitepress.dev/). Please refer to the VitePress
+documentation for available [Markdown
+extensions](https://vitepress.dev/guide/markdown), [configuring the sidebar
+menu](https://vitepress.dev/reference/default-theme-sidebar), and more.
 
 ## Contributing
 
-You can just edit any Markdown document or TypeDoc comment and propose the changes in a new pull request. No need to build the docs locally if you don't want to.
+You can just edit any Markdown document or TypeDoc comment and propose the
+changes in a new pull request. No need to build the docs locally if you don't
+want to.
 
 ## Local preview
 
-There is a local setup in this repository for previewing the rendered output. A live preview with automatic reloading upon changes can be started using this command:
+There is a local setup in this repository for previewing the rendered output. A
+live preview with automatic reloading upon changes can be started using this
+command:
 
 ```sh
 npm run docs:dev
 ```
 
-If you want to edit TypeDoc comments and have the changes appear in your local preview, then you also have to run this command:
+If you want to edit TypeDoc comments and have the changes appear in your local
+preview, then you also have to run this command:
 
 ```sh
 typedoc --watch
