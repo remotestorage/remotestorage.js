@@ -38,6 +38,7 @@ export default defineConfig({
               { text: 'Handling events', link: '/getting-started/events' },
               { text: 'Reading and writing data', link: '/getting-started/read-and-write-data' },
               { text: 'Loading data on launch', link: '/getting-started/loading-data' },
+              { text: 'Sharing data with others', link: '/getting-started/share-public-data' },
             ]
           },
           {
