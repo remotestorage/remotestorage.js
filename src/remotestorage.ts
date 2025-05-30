@@ -974,7 +974,7 @@ export class RemoteStorage {
       throw 'Argument \'path\' of baseClient.scope must be a string';
     }
     if (!this.access.checkPathPermission(path, 'r')) {
-      console.warn('WARNING: Please use remoteStorage.access.claim() to ask for access permissions first: https://remotestoragejs.readthedocs.io/en/latest/js-api/access.html#claim');
+      console.warn('WARNING: Please use remoteStorage.access.claim() to ask for access permissions first: https://remotestorage.io/rs.js/docs/api/access/classes/Access.html#claim');
     }
     return new BaseClient(this, path);
   }
