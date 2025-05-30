@@ -17,14 +17,16 @@ A [BaseClient][2] instance is the main endpoint for interacting with
 storage: listing, reading, creating, updating and deleting documents, as
 well as handling change events.
 
-::: warning TODO
-Update paragraph, link directly to relevant section
-:::
-Check out the [BaseClient][2] in order
-to learn about all functions available for reading and writing data and how to
-use them.
+Check out the [BaseClient][2] docs in order to learn about all functions
+available for reading and writing data and how to use them.
 
 There are two options for acquiring a [BaseClient][2] instance:
+
+### The recommended way: using clients in data modules
+
+The recommended way is to use the private and public [BaseClient][2] instances,
+which are available in so-called [data modules](../data-modules/). Continue to
+the next section in order to learn about them.
 
 ### Quick and dirty: creating a client via `scope()`
 
@@ -48,11 +50,20 @@ client.storeFile('text/plain', 'bar.txt', content)
   .then(() => console.log("data has been saved"));
 ```
 
-### The recommended way: using clients in data modules
+For [storing objects as JSON][3], define a type with JSON Schema first. For
+quick and dirty hacking, the schema can be empty, which means that nothing will
+be validated:
 
-The recommended way is to use the private and public [BaseClient][2] instances,
-which are available in so-called [data modules](../data-modules/). Continue to
-the next section in order to learn about them.
+```js
+// Declare type
+client.declareType('my-custom-type', {});
 
-[1]: ../api/remotestorage/classes/RemoteStorage.html
-[2]: ../api/baseclient/classes/BaseClient.html
+// Store object
+client.storeObject('my-custom-type', path, { foo: 1, bar: 2 })
+  .then(() => console.log('object saved'))
+  .catch((err) => console.log(err));
+```
+
+[1]: ../api/remotestorage/classes/RemoteStorage
+[2]: ../api/baseclient/classes/BaseClient
+[3]: ../api/baseclient/classes/BaseClient#storeobject
