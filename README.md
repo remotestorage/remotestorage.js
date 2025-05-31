@@ -31,10 +31,9 @@ production.
 
 To develop remoteStorage-enabled apps, you need to have a
 remoteStorage-compatible storage account. We recommend
-[php-remote-storage](https://github.com/fkooman/php-remote-storage) (PHP), or
-[armadietto](https://github.com/remotestorage/armadietto) (node.js), or
+[armadietto](https://github.com/remotestorage/armadietto) (node.js) or
 [mysteryshack](https://github.com/untitaker/mysteryshack) (Rust) for running a
-local test server, or for self-hosting an RS server.
+local test server.
 
 You can also get an account with a hoster, or use another
 remoteStorage server implementation: [Servers](https://wiki.remotestorage.io/Servers).
