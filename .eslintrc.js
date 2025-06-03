@@ -32,7 +32,7 @@ module.exports = {
   },
   rules: {
     "complexity": ["warn"],
-    "max-statements": ["warn"],
+    "max-statements": ["warn", 15],
     "no-debugger": 2,
     "no-console": [
       2,
