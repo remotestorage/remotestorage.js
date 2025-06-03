@@ -11,6 +11,10 @@ describe("Caching", () => {
   });
 
   describe("#set", () => {
+    beforeEach(() => {
+      rs.access.claim("example", "r");
+    });
+
     describe("with no path given", () => {
       it("throws an error", async () => {
         expect(() => rs.caching.set(), "ALL").to.throw(/should be a string/);
@@ -41,6 +45,12 @@ describe("Caching", () => {
       });
     });
 
+    describe("without access to path", () => {
+      it("throws an error", async () => {
+        expect(() => rs.caching.set("/bookmarks/", "ALL")).to.throw(/No access/);
+      });
+    });
+
     describe("with valid arguments", () => {
       it("succeeds", async () => {
         expect(() => rs.caching.set("/example/", "ALL")).to.not.throw();
@@ -49,6 +59,12 @@ describe("Caching", () => {
   });
 
   describe("#checkPath", () => {
+    beforeEach(() => {
+      rs.access.claim("foo", "r");
+      rs.access.claim("bar", "r");
+      rs.access.claim("baz", "r");
+    });
+
     it("returns SEEN for paths that haven't been configured", async () => {
       expect(rs.caching.checkPath("/foo/")).to.equal("SEEN");
     });
@@ -95,10 +111,8 @@ describe("Caching", () => {
           '/bar/1': 'FLUSH',
           '/bar/2/': 'FLUSH',
           '/bar/2/3/': 'FLUSH',
-          '/': 'SEEN',
-          '/1/': 'SEEN',
-          '/2/': 'SEEN',
-          '/2/3/': 'SEEN',
+          '/baz/': 'SEEN',
+          '/baz/3/': 'SEEN',
         };
 
         for (const path in config) {
@@ -109,7 +123,9 @@ describe("Caching", () => {
   });
 
   describe("#reset", () => {
-    before(() => {
+    beforeEach(() => {
+      rs.access.claim("foo", "r");
+      rs.access.claim("bar", "r");
       rs.caching.set('/foo/', 'ALL');
       rs.caching.set('/foo/bar/baz/', 'ALL');
       rs.caching.set('/bar/foo/baz/', 'FLUSH');

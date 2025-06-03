@@ -1,12 +1,14 @@
 import { containingFolder, isFolder } from './util';
 import log from './log';
+import type Access from './access';
+import type RemoteStorage from './remotestorage';
 
 /**
  * @class
  *
  * The caching class gets initialized as `remoteStorage.caching`, unless the
- * {@link remotestorage!RemoteStorage RemoteStorage} instance is created with the option `cache: false`, disabling
- * caching entirely.
+ * {@link remotestorage!RemoteStorage RemoteStorage} instance is created with
+ * the option `cache: false`, disabling caching entirely.
  *
  * In case your app hasn't explictly configured caching, the default setting is to
  * cache any documents that have been either created or requested since your app
@@ -42,12 +44,13 @@ import log from './log';
  **/
 export class Caching {
   pendingActivations: string[] = [];
-  // TODO add correct type
   activateHandler: (firstPending: string) => void;
 
+  private _access: Access;
   private _rootPaths: object;
 
-  constructor () {
+  constructor (remoteStorage: RemoteStorage) {
+    this._access = remoteStorage.access;
     this.reset();
   }
 
@@ -71,11 +74,9 @@ export class Caching {
     if (!isFolder(path)) {
       throw new Error('path should be a folder');
     }
-    // FIXME We need to get to the access instance somehow.  But I'm not sure
-    // this check is even necessary in the first place. -raucao
-    // if (!this._remoteStorage.access.checkPathPermission(path, 'r')) {
-    //   throw new Error('No access to path "' + path + '". You have to claim access to it first.');
-    // }
+    if (!this._access.checkPathPermission(path, 'r')) {
+      throw new Error('No access to path "' + path + '". You must claim access to it first.');
+    }
     if (typeof strategy === 'undefined' || !strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
       throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
     }

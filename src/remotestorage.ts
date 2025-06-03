@@ -1264,7 +1264,7 @@ Object.defineProperty(RemoteStorage.prototype, 'access', {
 Object.defineProperty(RemoteStorage.prototype, 'caching', {
   configurable: true,
   get: function () {
-    const caching = new Caching();
+    const caching = new Caching(this);
     Object.defineProperty(this, 'caching', {
       value: caching
     });
