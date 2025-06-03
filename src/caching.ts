@@ -76,7 +76,7 @@ export class Caching {
     // if (!this._remoteStorage.access.checkPathPermission(path, 'r')) {
     //   throw new Error('No access to path "' + path + '". You have to claim access to it first.');
     // }
-    if (!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
+    if (typeof strategy === 'undefined' || !strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
       throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
     }
 
