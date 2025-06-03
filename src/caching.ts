@@ -149,7 +149,7 @@ export class Caching {
    * @example
    * ```js
    * remoteStorage.caching.checkPath('documents/').then(strategy => {
-   *   console.log(`caching strategy for 'documents/': ${strategy}`));
+   *   console.log(`caching strategy for 'documents/': ${strategy}`);
    *   // "caching strategy for 'documents/': SEEN"
    * });
    * ```
