@@ -71,10 +71,10 @@ export class Access {
    * ```
    */
   claim (scope: AccessScope, mode: AccessMode): void {
-    if (typeof (scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
+    if (typeof scope !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
       throw new Error('Scope should be a non-empty string without forward slashes');
     }
-    if (!mode.match(/^rw?$/)) {
+    if (typeof mode !== 'string' || !mode.match(/^rw?$/)) {
       throw new Error('Mode should be either \'r\' or \'rw\'');
     }
     this._adjustRootPaths(scope);
