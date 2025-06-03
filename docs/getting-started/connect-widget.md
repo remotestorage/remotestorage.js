@@ -1,14 +1,16 @@
-# Using the Connect Widget add-on
+# Connecting a storage
 
-The easiest option for letting people connect their storage to your app
+## Option 1: Using the Connect Widget add-on
+
+The quickest option for letting people connect their storage to your app
 is using the Connect Widget add-on library, which is written and
 maintained by the rs.js core team.
 
-This is optional and an easy way to integrate all functionality into your own
-UI. It's a great way to start with RS app development and can be replaced with
-custom code later on.
+This is an optional and easy way to integrate the functionality without having
+to create your own UI for it. It's a great way to start with RS app development
+and can be replaced with custom code later on.
 
-## Adding the library
+### Adding the library
 
 The Connect Widget library is distributed the same way as
 remoteStorage.js itself: as a
@@ -24,7 +26,7 @@ GitHub](https://github.com/remotestorage/remotestorage-widget).
 Check out [Adding rs.js to an app](how-to-add) for examples of loading a UMD
 module in your code.
 
-## Adding the widget
+### Adding the widget
 
 With the `Widget` class loaded, create a new widget instance using the
 [previously initialized](initialize-and-configure) `remoteStorage` instance,
@@ -52,11 +54,31 @@ That's it. Now your users can use the widget in order to connect their storage,
 and you can listen to the [RemoteStorage][1] instance's events in order to get
 informed about connection status, sync progress, errors, and so on.
 
+## Option 2: Connecting without the widget
+
+When building your own connect UI, just call
+[connect()](../api/remotestorage/classes/RemoteStorage.html#connect) on the
+remoteStorage instance, with the user address of your user:
+
+```js
+remoteStorage.connect('user@example.com');
+```
+
+You will be notified of successful connections by the
+[`connected`](../api/remotestorage/classes/RemoteStorage.html#connected)
+event.
+
 ::: tip
 If you'd like to implement connect functionality in your own user
 interface and code, the widget can serve as a useful source code
 example. For everything it does, the Connect Widget only uses public
 APIs and events of rs.js, which you can also use in your own code.
+:::
+
+::: tip
+It can also be useful to only use the widget for connecting, but then hide it
+entirely until disconnected. One app where you can check out this hybrid
+approach is [Inspector](https://inspektor.5apps.com) for example.
 :::
 
 [1]: ../api/remotestorage/classes/RemoteStorage.html
