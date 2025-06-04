@@ -1,14 +1,14 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['./build/config', './build/localstorage'], function (config, LocalStorage) {
+define(['./build/config', './build/localstorage', '../helpers/localstorage'], function (config, LocalStorage, localStorage) {
   var suites = [];
 
   var NODES_PREFIX = 'remotestorage:cache:nodes:';
   var CHANGES_PREFIX = 'remotestorage:cache:changes:';
 
   function assertNode(test, path, expected) {
-    var node = JSON.parse(localStorage[NODES_PREFIX + path]);
+    var node = JSON.parse(localStorage.getItem(NODES_PREFIX + path));
 
     if (node && node.local && node.local.timestamp) {
       delete node.local.timestamp;
@@ -20,12 +20,12 @@ define(['./build/config', './build/localstorage'], function (config, LocalStorag
   }
 
   function assertChange(test, path, expected) {
-    var change = JSON.parse(localStorage[CHANGES_PREFIX + path]);
+    var change = JSON.parse(localStorage.getItem(CHANGES_PREFIX + path));
     test.assertAnd(change, expected);
   }
 
   function assertNoChange(test, path) {
-    test.assertTypeAnd(localStorage[CHANGES_PREFIX + path], 'undefined');
+    test.assertTypeAnd(localStorage.getItem(CHANGES_PREFIX + path), 'undefined');
   }
 
   function assertHaveNodes(test, expected) {
@@ -46,13 +46,14 @@ define(['./build/config', './build/localstorage'], function (config, LocalStorag
 
     setup: function(env, test) {
       global.RemoteStorage = function() {};
+      global.localStorage = localStorage;
       config.changeEvents = { local: true, window: false, remote: true, conflict: true }
 
       test.done();
     },
 
     beforeEach: function(env, test) {
-      global.localStorage = {};
+      global.localStorage.clear();
       env.ls = new LocalStorage();
       test.done();
     },
@@ -61,14 +62,14 @@ define(['./build/config', './build/localstorage'], function (config, LocalStorag
       {
         desc: "#get loads a node",
         run: function(env, test) {
-          global.localStorage[NODES_PREFIX + '/foo'] = JSON.stringify({
+          global.localStorage.setItem(NODES_PREFIX + '/foo', JSON.stringify({
             path: '/foo',
             local: {
               body: "bar",
               contentType: "text/plain",
               revision: "123"
             }
-          });
+          }));
           env.ls.get('/foo').then(function (r) {
             test.assertAnd(r.statusCode, 200);
             test.assertAnd(r.body, "bar");
@@ -177,20 +178,10 @@ define(['./build/config', './build/localstorage'], function (config, LocalStorag
         desc: "fireInitial fires change event with 'local' origin for initial cache content",
         timeout: 250,
         run: function(env, test) {
-          env.ls.put('/foo/bla', 'basdf', 'text/plain').then(function() {
+          env.ls.put('/foo/blast', 'basdf', 'text/plain').then(function() {
             env.ls.on('change', function(event) {
               test.assert(event.origin, 'local');
             });
-
-            // The mock is just an in-memory object; need to explicitly set its
-            // .length and its .key() function now:
-            localStorage.length = 1;
-            localStorage.key = function(i) {
-              if (i === 0) {
-                return NODES_PREFIX+'/foo/bla';
-              }
-            };
-
             env.ls.fireInitial();
           });
         }
@@ -204,12 +195,15 @@ define(['./build/config', './build/localstorage'], function (config, LocalStorag
             this.message = message;
           };
           QuotaExceededError.prototype = new Error();
+          var setItemOriginal = localStorage.setItem;
 
           localStorage.setItem = function(key, value) {
             throw new QuotaExceededError('DOM exception 22');
           }
 
           test.assert(LocalStorage._rs_supported(), false);
+
+          localStorage.setItem = setItemOriginal;
         }
       },
 
@@ -255,6 +249,9 @@ define(['./build/config', './build/localstorage'], function (config, LocalStorag
               }
             });
             test.done();
+          })
+          .catch(err => {
+            console.log(err);
           });
         }
       }

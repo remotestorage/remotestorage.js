@@ -36,8 +36,10 @@ class LocalStorage extends CachingLayer {
 
     for (let i = 0, len = paths.length; i < len; i++) {
       try {
-        nodes[paths[i]] = JSON.parse(localStorage[NODES_PREFIX + paths[i]]);
+        const node = JSON.parse(localStorage.getItem(NODES_PREFIX + paths[i]));
+        nodes[paths[i]] = node || undefined;
       } catch (e) {
+        log(`[LocalStorage] Failed to get node: ${e.message}`);
         nodes[paths[i]] = undefined;
       }
     }
@@ -47,8 +49,7 @@ class LocalStorage extends CachingLayer {
 
   setNodes(nodes: RSNodes): Promise<void> {
     for (const path in nodes) {
-      // TODO shouldn't we use getItem/setItem?
-      localStorage[NODES_PREFIX + path] = JSON.stringify(nodes[path]);
+      localStorage.setItem(NODES_PREFIX + path, JSON.stringify(nodes[path]));
     }
 
     return Promise.resolve();
@@ -61,7 +62,7 @@ class LocalStorage extends CachingLayer {
       if (isNodeKey(localStorage.key(i))) {
         try {
           // NOTE: this is coming from caching layer todo fix via interface or similar
-          node = this.migrate(JSON.parse(localStorage[localStorage.key(i)]));
+          node = this.migrate(JSON.parse(localStorage.getItem(localStorage.key(i))));
         } catch (e) {
           node = undefined;
         }
@@ -100,6 +101,7 @@ class LocalStorage extends CachingLayer {
    */
   static _rs_cleanup(): void {
     const keys = [];
+    log('[LocalStorage] Starting cleanup');
 
     for (let i = 0, len = localStorage.length; i < len; i++) {
       const key = localStorage.key(i);
@@ -108,10 +110,10 @@ class LocalStorage extends CachingLayer {
       }
     }
 
-    keys.forEach((key) => {
+    for (const key in keys) {
       log('[LocalStorage] Removing', key);
-      delete localStorage[key];
-    });
+      localStorage.removeItem(key);
+    };
   }
 }
 
