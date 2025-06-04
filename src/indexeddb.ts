@@ -261,7 +261,7 @@ class IndexedDB extends CachingLayer {
     IndexedDB.clean(dbName, () => {
       IndexedDB.open(dbName, (err, other) => {
         if (err) {
-          log('[IndexedDB] Error while resetting database', err);
+          log(`[IndexedDB] Error while resetting database ${dbName}:`, err);
         } else {
           // hacky!
           this.db = other;
