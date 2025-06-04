@@ -71,18 +71,18 @@ describe("Caching", () => {
 
     describe("subfolders", () => {
       it("returns caching settings for the given path and its subtree", async () => {
-        rs.caching.set('/foo/', 'FLUSH');
+        rs.caching.set("/foo/", "FLUSH");
 
         let config = {
-          '/': 'SEEN',
-          '/bar': 'SEEN',
-          '/bar/': 'SEEN',
-          '/bar/foo': 'SEEN',
-          '/foo/': 'FLUSH',
-          '/foo/bar': 'FLUSH',
-          '/foo/bar/': 'FLUSH',
-          '/foo/bar/baz': 'FLUSH',
-          '/foo/bar/baz/': 'FLUSH'
+          "/": "SEEN",
+          "/bar": "SEEN",
+          "/bar/": "SEEN",
+          "/bar/foo": "SEEN",
+          "/foo/": "FLUSH",
+          "/foo/bar": "FLUSH",
+          "/foo/bar/": "FLUSH",
+          "/foo/bar/baz": "FLUSH",
+          "/foo/bar/baz/": "FLUSH"
         };
 
         for (const path in config) {
@@ -91,28 +91,28 @@ describe("Caching", () => {
       });
 
       it("returns value of tightest fitting rootPath", async () => {
-        rs.caching.set('/foo/', 'ALL');
-        rs.caching.set('/foo/bar/baz/', 'FLUSH');
-        rs.caching.set('/foo/baf/', 'SEEN');
-        rs.caching.set('/bar/', 'FLUSH');
+        rs.caching.set("/foo/", "ALL");
+        rs.caching.set("/foo/bar/baz/", "FLUSH");
+        rs.caching.set("/foo/baf/", "SEEN");
+        rs.caching.set("/bar/", "FLUSH");
 
         let config = {
-          '/foo/': 'ALL',
-          '/foo/1': 'ALL',
-          '/foo/2/': 'ALL',
-          '/foo/2/3': 'ALL',
-          '/foo/bar/': 'ALL',
-          '/foo/bar/baz/': 'FLUSH',
-          '/foo/baf/': 'SEEN',
-          '/foo/baf/1': 'SEEN',
-          '/foo/baf/2/': 'SEEN',
-          '/foo/baf/2/1/': 'SEEN',
-          '/bar/': 'FLUSH',
-          '/bar/1': 'FLUSH',
-          '/bar/2/': 'FLUSH',
-          '/bar/2/3/': 'FLUSH',
-          '/baz/': 'SEEN',
-          '/baz/3/': 'SEEN',
+          "/foo/": "ALL",
+          "/foo/1": "ALL",
+          "/foo/2/": "ALL",
+          "/foo/2/3": "ALL",
+          "/foo/bar/": "ALL",
+          "/foo/bar/baz/": "FLUSH",
+          "/foo/baf/": "SEEN",
+          "/foo/baf/1": "SEEN",
+          "/foo/baf/2/": "SEEN",
+          "/foo/baf/2/1/": "SEEN",
+          "/bar/": "FLUSH",
+          "/bar/1": "FLUSH",
+          "/bar/2/": "FLUSH",
+          "/bar/2/3/": "FLUSH",
+          "/baz/": "SEEN",
+          "/baz/3/": "SEEN",
         };
 
         for (const path in config) {
@@ -150,9 +150,9 @@ describe("Caching", () => {
     beforeEach(() => {
       rs.access.claim("foo", "r");
       rs.access.claim("bar", "r");
-      rs.caching.set('/foo/', 'ALL');
-      rs.caching.set('/foo/bar/baz/', 'ALL');
-      rs.caching.set('/bar/foo/baz/', 'FLUSH');
+      rs.caching.set("/foo/", "ALL");
+      rs.caching.set("/foo/bar/baz/", "ALL");
+      rs.caching.set("/bar/foo/baz/", "FLUSH");
     });
 
     it("resets the state", async () => {
