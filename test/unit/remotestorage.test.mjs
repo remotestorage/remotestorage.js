@@ -198,4 +198,33 @@ describe("RemoteStorage", function() {
       // expect(this.rs.googledrive.clientId).to.be.null;
     });
   });
+
+  describe("#getSyncInterval", function() {
+    it("returns the configured sync interval", function() {
+      expect(this.rs.getSyncInterval()).to.equal(10000);
+    });
+  });
+
+  describe("#setSyncInterval", function() {
+    before(function() {
+      this.rs = new RemoteStorage({ cache: false });
+    });
+
+    it("sets the sync interval to the given value", function() {
+      this.rs.setSyncInterval(2000);
+      expect(this.rs.getSyncInterval()).to.equal(2000);
+    });
+
+    it("expects a number", function() {
+      expect(() => this.rs.setSyncInterval('60000')).to.throw(/not a valid sync interval/);
+    });
+
+    it("must more than (or equal to) 2 seconds", function() {
+      expect(() => this.rs.setSyncInterval(1000)).to.throw(/not a valid sync interval/);
+    });
+
+    it("must be less than (or equal to) 1 hour", function() {
+      expect(() => this.rs.setSyncInterval(3600001)).to.throw(/not a valid sync interval/);
+    });
+  });
 });

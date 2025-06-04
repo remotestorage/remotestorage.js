@@ -7,11 +7,11 @@ import { RemoteStorage } from '../../build/remotestorage.js';
 import { Sync } from '../../build/sync.js';
 
 describe("Sync", function() {
-  const sandbox = sinon.createSandbox();
-
   beforeEach(function(done) {
     this.rs = new RemoteStorage();
+
     this.rs.on('features-loaded', () => {
+      this.rs._handlers['connected'] = [];
       this.rs.local = new InMemoryStorage();
       this.rs.sync = new Sync(this.rs);
       this.rs.sync.doTasks = () => { return true; };
@@ -20,7 +20,71 @@ describe("Sync", function() {
   });
 
   afterEach(function() {
-    sandbox.restore();
+    if (this.rs.sync) { Sync._rs_cleanup(this.rs); }
+    this.rs = undefined;
+    sinon.reset();
+  });
+
+  describe(".rs_init", function() {
+    it("starts syncing on connect", function(done) {
+      let startSyncCalled = 0;
+      this.rs.startSync = () => {
+        startSyncCalled++;
+        if (startSyncCalled === 1) { done(); }
+      };
+
+      Sync._rs_init(this.rs);
+      this.rs._emit('connected');
+    });
+
+    it("removes the 'connected' handler when it's called", function() {
+      Sync._rs_init(this.rs);
+      this.rs._emit('connected');
+      expect(this.rs._handlers['connected'].length).to.equal(0);
+    });
+
+    it("doesn't interfere with custom 'connected' handlers", function(done) {
+      this.rs.on('connected', done);
+      Sync._rs_init(this.rs);
+      this.rs._emit('connected');
+    });
+  });
+
+  describe(".rs_cleanup", function() {
+    it("adapter removes itself from RS instance", async function() {
+      expect(typeof this.rs.sync).to.equal("object");
+      Sync._rs_cleanup(this.rs);
+      expect(typeof this.rs.sync).to.equal("undefined");
+    });
+  });
+
+  describe("#getParentPath", function() {
+    it("returns the correct values", async function() {
+      const paths = {
+        '/a': '/',
+        '/a/': '/',
+        '/a/b': '/a/',
+        '/a/b/': '/a/',
+        '/a/b/c': '/a/b/',
+        '/a/b/c/': '/a/b/'
+      };
+
+      for (const path in paths) {
+        expect(this.rs.sync.getParentPath(path)).to.equal(paths[path], `The parent path of ${path} should be ${paths[path]}`);
+      }
+    });
+  });
+
+  describe("#sync", function() {
+    it("returns immediately when not connected", async function() {
+      let syncDone = false;
+      this.rs.remote.connected = false;
+      this.rs.on('sync-done', () => { syncDone = true; });
+
+      await this.rs.sync.sync().then(() => {
+        expect(syncDone).to.be.false;
+      });
+    });
   });
 
   describe("#finishTask", function() {
