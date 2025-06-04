@@ -41,6 +41,7 @@ import {
   deepClone,
   getGlobalContext
 } from './util';
+import type RemoteStorage from './remotestorage';
 
 const DB_VERSION = 2;
 
@@ -387,9 +388,7 @@ class IndexedDB extends CachingLayer {
    *
    * @protected
    */
-  // TODO add real type once known
-  static _rs_init (remoteStorage: unknown): Promise<void> {
-
+  static _rs_init (remoteStorage: RemoteStorage): Promise<void> {
     return new Promise((resolve, reject) => {
 
       IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
@@ -397,14 +396,13 @@ class IndexedDB extends CachingLayer {
           reject(err);
         } else {
           DEFAULT_DB = db;
-          // TODO remove once real type once known
+          // TODO Use specific type
           (db as any).onerror = () => {
-            (remoteStorage as any)._emit('error', err);
+            remoteStorage._emit('error', err);
           };
           resolve();
         }
       });
-
     });
   }
 
