@@ -86,7 +86,7 @@ describe("Caching", () => {
         };
 
         for (const path in config) {
-          expect(rs.caching.checkPath(path)).to.equal(config[path]);
+          expect(rs.caching.checkPath(path)).to.equal(config[path], `${path} should be set to ${config[path]}`);
         }
       });
 
@@ -116,7 +116,7 @@ describe("Caching", () => {
         };
 
         for (const path in config) {
-          expect(rs.caching.checkPath(path)).to.equal(config[path]);
+          expect(rs.caching.checkPath(path)).to.equal(config[path], `${path} should be set to ${config[path]}`);
         }
       });
     });
