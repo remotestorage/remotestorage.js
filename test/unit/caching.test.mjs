@@ -122,6 +122,30 @@ describe("Caching", () => {
     });
   });
 
+  describe("#enable", () => {
+    beforeEach(() => {
+      rs.access.claim("enabel", "r");
+    });
+
+    it("sets caching to ALL for the given path", async () => {
+      rs.caching.enable("/enabel/");
+
+      expect(rs.caching.checkPath("/enabel/")).to.equal("ALL");
+    });
+  });
+
+  describe("#disable", () => {
+    beforeEach(() => {
+      rs.access.claim("enabel", "r");
+    });
+
+    it("sets caching to FLUSH for the given path", async () => {
+      rs.caching.disable("/enabel/");
+
+      expect(rs.caching.checkPath("/enabel/")).to.equal("FLUSH");
+    });
+  });
+
   describe("#reset", () => {
     beforeEach(() => {
       rs.access.claim("foo", "r");
