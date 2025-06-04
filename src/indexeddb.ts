@@ -121,7 +121,7 @@ class IndexedDB extends CachingLayer {
         return nodes;
       });
     } else {
-      return Promise.resolve(fromCache);
+      return fromCache;
     }
   }
 
@@ -133,7 +133,6 @@ class IndexedDB extends CachingLayer {
       this.changesQueued[i] = nodes[i] || false;
     }
     this.maybeFlush();
-    return Promise.resolve();
   }
 
   /**
@@ -167,7 +166,9 @@ class IndexedDB extends CachingLayer {
   }
 
   /**
-   * TODO: Document
+   * Retrieve nodes from the database
+   *
+   * @internal
    */
   getNodesFromDb (paths: string[]): Promise<RSNodes> {
     return new Promise((resolve, reject) => {
@@ -193,12 +194,13 @@ class IndexedDB extends CachingLayer {
         reject('get transaction error/abort');
         this.getsRunning--;
       };
-
     });
   }
 
   /**
-   * TODO: Document
+   * Store nodes in the database
+   *
+   * @internal
    */
   async setNodesInDb (nodes: { [key: string]: unknown }): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -209,7 +211,7 @@ class IndexedDB extends CachingLayer {
 
       this.putsRunning++;
 
-      log('[IndexedDB] Starting put', nodes, this.putsRunning);
+      log('[IndexedDB] Starting puts', nodes, this.putsRunning);
 
       for (const path in nodes) {
         const node = nodes[path];
@@ -232,7 +234,7 @@ class IndexedDB extends CachingLayer {
 
       transaction.oncomplete = () => {
         this.putsRunning--;
-        log('[IndexedDB] Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime) + 'ms');
+        log('[IndexedDB] Finished puts', nodes, this.putsRunning, (new Date().getTime() - startTime) + 'ms');
         resolve();
       };
 
