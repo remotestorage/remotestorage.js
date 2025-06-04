@@ -34,7 +34,7 @@ export default defineConfig({
             items: [
               { text: 'Adding rs.js to an app', link: '/getting-started/how-to-add' },
               { text: 'Initialization & configuration', link: '/getting-started/initialize-and-configure' },
-              { text: 'Using the connect widget add-on', link: '/getting-started/connect-widget' },
+              { text: 'Connecting a storage', link: '/getting-started/connect-widget' },
               { text: 'Handling events', link: '/getting-started/events' },
               { text: 'Reading and writing data', link: '/getting-started/read-and-write-data' },
               { text: 'Loading data on launch', link: '/getting-started/loading-data' },
