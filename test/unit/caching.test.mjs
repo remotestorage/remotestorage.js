@@ -134,9 +134,9 @@ describe("Caching", () => {
     it("resets the state", async () => {
       rs.caching.reset();
 
-      expect(rs.caching.checkPath('/foo/'), 'SEEN');
-      expect(rs.caching.checkPath('/bar/'), 'SEEN');
-      expect(rs.caching._rootPaths, {});
+      expect(rs.caching.checkPath("/foo/")).to.equal("SEEN");
+      expect(rs.caching.checkPath("/bar/")).to.equal("SEEN");
+      expect(Object.keys(rs.caching._rootPaths).length).to.equal(0);
     });
   });
 });
