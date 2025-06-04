@@ -649,8 +649,7 @@ export class RemoteStorage {
       i++;
       if (i >= n) {
         this._init();
-        // FIXME Re-enable when modules are all imports
-        // log('Done cleaning up, emitting disconnected and disconnect events');
+        log('Cleanups done, emitting "disconnected" event');
         this._emit('disconnected');
       }
     };

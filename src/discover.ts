@@ -91,7 +91,7 @@ Discover._rs_init = function (/*remoteStorage*/): void {
   hasLocalStorage = localStorageAvailable();
   if (hasLocalStorage) {
     try {
-      const settings = JSON.parse(localStorage[SETTINGS_KEY]);
+      const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
       cachedInfo = settings.cache;
     } catch(e) {
       /* empty */
@@ -106,9 +106,8 @@ Discover._rs_supported = function (): boolean {
 
 Discover._rs_cleanup = function (): void {
   if (hasLocalStorage) {
-    delete localStorage[SETTINGS_KEY];
+    localStorage.removeItem(SETTINGS_KEY);
   }
 };
-
 
 export = Discover;

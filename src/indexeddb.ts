@@ -258,10 +258,10 @@ class IndexedDB extends CachingLayer {
 
     this.db.close();
 
-    IndexedDB.clean(this.db.name, () => {
+    IndexedDB.clean(dbName, () => {
       IndexedDB.open(dbName, (err, other) => {
         if (err) {
-          log('[IndexedDB] Error while resetting local storage', err);
+          log(`[IndexedDB] Error while resetting database ${dbName}:`, err);
         } else {
           // hacky!
           this.db = other;
@@ -365,13 +365,13 @@ class IndexedDB extends CachingLayer {
   }
 
   /**
-   * TODO: Document
+   * Cleanup: Delete IndexedDB database
    */
   static clean (databaseName: string, callback: () => void) {
     const req = indexedDB.deleteDatabase(databaseName);
 
     req.onsuccess = function () {
-      log('[IndexedDB] Done removing DB');
+      log(`[IndexedDB] Deleted database "${databaseName}"`);
       callback();
     };
 
@@ -462,9 +462,9 @@ class IndexedDB extends CachingLayer {
    *
    * @protected
    */
-  static _rs_cleanup (remoteStorage: any) {
+  static _rs_cleanup (remoteStorage: RemoteStorage) {
     return new Promise((resolve/*, reject*/) => {
-      if (remoteStorage.local) {
+      if (remoteStorage.local instanceof IndexedDB) {
         remoteStorage.local.closeDB();
       }
 
