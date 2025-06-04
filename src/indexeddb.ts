@@ -462,9 +462,9 @@ class IndexedDB extends CachingLayer {
    *
    * @protected
    */
-  static _rs_cleanup (remoteStorage: any) {
+  static _rs_cleanup (remoteStorage: RemoteStorage) {
     return new Promise((resolve/*, reject*/) => {
-      if (remoteStorage.local) {
+      if (remoteStorage.local instanceof IndexedDB) {
         remoteStorage.local.closeDB();
       }
 
