@@ -105,11 +105,14 @@ export class Sync {
   done: boolean;
   stopped: boolean;
 
+  _tasks: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: ((...args: any[]) => any)[];
+  };
   // TODO define in more detail
-  _tasks: object;
   _running: object;
   _timeStarted: object;
-  _finishedTasks: Array<SyncTask> = [];
+  _finishedTasks: SyncTask[] = [];
 
   constructor (remoteStorage: RemoteStorage) {
     this.rs = remoteStorage;
