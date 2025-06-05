@@ -54,30 +54,6 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
 
     tests: [
       {
-        desc : "Sync adapter sets and removes all event listeners",
-        run : function(env, test) {
-          function allHandlers() {
-            var handlers = env.rs._handlers;
-            var l = 0;
-            for (var k in handlers) {
-              l += handlers[k].length;
-            }
-            return l;
-          }
-
-          test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers");
-
-          Sync._rs_init(env.rs);
-          test.assertAnd(allHandlers(), 2, "after init found "+allHandlers()+" handlers");
-
-          Sync._rs_cleanup(env.rs);
-          test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers");
-
-          test.done();
-        }
-      },
-
-      {
         desc: "Sync calls doTasks, and goes to collectTasks only if necessary",
         run: function(env, test) {
           test.assertAnd(env.rs.sync._tasks, {});

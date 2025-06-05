@@ -1090,19 +1090,19 @@ export class RemoteStorage {
   }
 
   /**
-   * TODO: document
+   * Add a handler to schedule periodic sync if sync enabled
+   *
    * @internal
    */
-  syncCycle (): void {
+  setupSyncCycle (): void {
     if (!this.sync || this.sync.stopped) { return; }
+    log('[Sync] Setting up sync cycle');
 
     this.on('sync-done', (): void => {
-      // FIXME Re-enable when modules are all imports
-      // log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
+      log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (this.sync && !this.sync.stopped) {
         if (this._syncTimer) {
           clearTimeout(this._syncTimer);
-          this._syncTimer = undefined;
         }
         this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
       }
@@ -1141,14 +1141,12 @@ export class RemoteStorage {
     this._syncTimer = undefined;
 
     if (this.sync) {
-      // FIXME Re-enable when modules are all imports
-      // log('[Sync] Stopping sync');
+      log('[Sync] Stopping sync');
       this.sync.stopped = true;
     } else {
       // The sync class has not been initialized yet, so we make sure it will
       // not start the syncing process as soon as it's initialized.
-      // FIXME Re-enable when modules are all imports
-      // log('[Sync] Will instantiate sync stopped');
+      log('[Sync] Will instantiate sync stopped');
       this.syncStopped = true;
     }
   }

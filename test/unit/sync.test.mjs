@@ -26,6 +26,17 @@ describe("Sync", function() {
   });
 
   describe(".rs_init", function() {
+    it("sets up sync when RS instance is ready", function(done) {
+      let setupSyncCycleCalled = 0;
+      this.rs.setupSyncCycle = () => {
+        setupSyncCycleCalled++;
+        if (setupSyncCycleCalled === 1) { done(); }
+      };
+
+      Sync._rs_init(this.rs);
+      this.rs._emit('ready');
+    });
+
     it("starts syncing on connect", function(done) {
       let startSyncCalled = 0;
       this.rs.startSync = () => {

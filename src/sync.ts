@@ -16,7 +16,7 @@ import {
 } from './util';
 import type RemoteStorage from './remotestorage';
 
-let syncCycleCb, syncOnConnect;
+let setupSync, syncOnConnect;
 
 interface ResponseStatus {
   statusCode: string | number;
@@ -1107,11 +1107,9 @@ export class Sync {
     }
   }
 
-  static _rs_init (remoteStorage): void {
-    syncCycleCb = function (): void {
+  static _rs_init (remoteStorage: RemoteStorage): void {
+    setupSync = function (): void {
       // if (!config.cache) return false
-      log('[Sync] syncCycleCb calling syncCycle');
-
       const env = new Env();
       if (env.isBrowser()) { handleVisibility(env, remoteStorage); }
 
@@ -1120,14 +1118,13 @@ export class Sync {
         remoteStorage.sync = new Sync(remoteStorage);
 
         if (remoteStorage.syncStopped) {
-          log('[Sync] Instantiating sync stopped');
+          log('[Sync] Initializing with sync stopped');
           remoteStorage.sync.stopped = true;
           delete remoteStorage.syncStopped;
         }
       }
 
-      log('[Sync] syncCycleCb calling syncCycle');
-      remoteStorage.syncCycle();
+      remoteStorage.setupSyncCycle();
     };
 
     syncOnConnect = function (): void {
@@ -1135,13 +1132,13 @@ export class Sync {
       remoteStorage.startSync();
     };
 
-    remoteStorage.on('ready', syncCycleCb);
+    remoteStorage.on('ready', setupSync);
     remoteStorage.on('connected', syncOnConnect);
   }
 
-  static _rs_cleanup (remoteStorage): void {
+  static _rs_cleanup (remoteStorage: RemoteStorage): void {
     remoteStorage.stopSync();
-    remoteStorage.removeEventListener('ready', syncCycleCb);
+    remoteStorage.removeEventListener('ready', setupSync);
     remoteStorage.removeEventListener('connected', syncOnConnect);
 
     remoteStorage.sync = undefined;
