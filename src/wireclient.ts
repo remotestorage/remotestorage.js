@@ -304,13 +304,13 @@ class WireClient extends RemoteBase implements Remote {
       this.connected = false;
     }
     if (hasLocalStorage) {
-      localStorage[SETTINGS_KEY] = JSON.stringify({
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         userAddress: this.userAddress,
         href: this.href,
         storageApi: this.storageApi,
         token: this.token,
         properties: this.properties
-      });
+      }));
     }
   }
 
