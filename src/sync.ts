@@ -156,8 +156,7 @@ export class Sync {
     });
   }
 
-  // FIXME force02 sounds like rs spec 02, thus could be removed
-  public corruptServerItemsMap (itemsMap, force02?: boolean): boolean {
+  public corruptServerItemsMap (itemsMap): boolean {
     if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
       return true;
     }
@@ -178,14 +177,6 @@ export class Sync {
       } else {
         if (itemName.indexOf('/') !== -1) {
           return true;
-        }
-        if (force02) {
-          if (typeof(item['Content-Type']) !== 'string') {
-            return true;
-          }
-          if (typeof(item['Content-Length']) !== 'number') {
-            return true;
-          }
         }
       }
     }
