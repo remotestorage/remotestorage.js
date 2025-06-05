@@ -70,6 +70,10 @@ describe('Dropbox backend', () => {
     sandbox.restore();
   });
 
+  after(() => {
+    localStorage.clear();
+  });
+
   describe("infrastructure", () => {
     it("has a function `stopWaitingForToken`", () => {
       expect(typeof dropbox.stopWaitingForToken).to.equal('function');

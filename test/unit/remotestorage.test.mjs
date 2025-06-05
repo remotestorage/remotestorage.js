@@ -25,17 +25,18 @@ class FakeRemote {
 applyMixins(FakeRemote, [ EventHandling ]);
 
 describe("RemoteStorage", function() {
-  const sandbox = sinon.createSandbox();
+  beforeEach(function() {
+    this.rs = new RemoteStorage({ cache: false });
+  });
 
   afterEach(function() {
-    sandbox.restore();
+    this.rs.disconnect();
+    this.rs = undefined;
+    fetchMock.reset();
+    sinon.reset();
   });
 
   describe('#addModule', function() {
-    beforeEach(function() {
-      this.rs = new RemoteStorage({ cache: false });
-    });
-
     it('creates a module', function() {
       this.rs.addModule({ name: 'foo', builder: function() {
         return { exports: { it: 'worked' } };
@@ -77,7 +78,7 @@ describe("RemoteStorage", function() {
     beforeEach(function() {
       this.rs = new RemoteStorage({
         cache: false,
-        discoveryTimeout: 500
+        discoveryTimeout: 10
       });
     });
 
@@ -144,18 +145,12 @@ describe("RemoteStorage", function() {
       this.dropboxRsInit = Dropbox._rs_init;
     });
 
-    beforeEach(function() {
-      this.rs = new RemoteStorage({ cache: false });
-    });
-
     afterEach(function() {
       Dropbox._rs_init = this.dropboxRsInit;
     });
 
     it("initializes the configured backend when it's not initialized yet", function(done) {
-      Dropbox._rs_init = function() {
-        done();
-      };
+      Dropbox._rs_init = function() { done(); };
 
       this.rs.setApiKeys({ dropbox: 'testkey' });
     });
@@ -163,9 +158,7 @@ describe("RemoteStorage", function() {
     it("reinitializes the configured backend when the key changed", function(done) {
       this.rs.apiKeys.dropbox = { appKey: 'old key' };
 
-      Dropbox._rs_init = function() {
-        done();
-      };
+      Dropbox._rs_init = function() { done(); };
 
       this.rs.setApiKeys({ dropbox: 'new key' });
     });
