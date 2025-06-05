@@ -267,7 +267,7 @@ abstract class CachingLayer {
         const node = nodes[nodePath];
 
         if (node && node.common && node.local) {
-          this._emitChange({
+          this.emitChange({
             path: node.path,
             origin: 'local',
             oldValue: (node.local.body === false ? undefined : node.local.body),
@@ -281,7 +281,10 @@ abstract class CachingLayer {
     });
   }
 
-  private _emitChange(obj: ChangeObj): void {
+  /**
+   * Emit a change event
+   */
+  emitChange(obj: ChangeObj): void {
     if (config.changeEvents[obj.origin]) {
       this._emit('change', obj);
     }
@@ -294,7 +297,7 @@ abstract class CachingLayer {
       if (isDocument(node.path)) {
         const latest = getLatest(node);
         if (latest) {
-          this._emitChange({
+          this.emitChange({
             path: node.path,
             origin: 'local',
             oldValue: undefined,
@@ -403,7 +406,7 @@ abstract class CachingLayer {
 
   private _emitChangeEvents(events: RSEvent[]) {
     for (let i = 0, len = events.length; i < len; i++) {
-      this._emitChange(events[i]);
+      this.emitChange(events[i]);
       if (this.diffHandler) {
         this.diffHandler(events[i].path);
       }

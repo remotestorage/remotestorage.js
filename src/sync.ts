@@ -14,6 +14,7 @@ import {
   isDocument,
   pathsFromRoot
 } from './util';
+import type RemoteStorage from './remotestorage';
 
 let syncCycleCb, syncOnConnect;
 
@@ -98,8 +99,7 @@ function handleVisibility (env, rs): void {
  * the `markChildren` function).
  **/
 export class Sync {
-  // TODO remove when RS is defined, or if unnecessary
-  rs: { [propName: string]: any };
+  rs: RemoteStorage;
 
   numThreads: number;
   done: boolean;
@@ -111,7 +111,7 @@ export class Sync {
   _timeStarted: object;
   _finishedTasks: Array<SyncTask> = [];
 
-  constructor (remoteStorage: object) {
+  constructor (remoteStorage: RemoteStorage) {
     this.rs = remoteStorage;
 
     this._tasks       = {};
@@ -352,6 +352,9 @@ export class Sync {
     .catch((e: Error) => { throw e; });
   }
 
+  /**
+   * TODO document
+   **/
   public flush (nodes: RSNodes): RSNodes {
     for (const path in nodes) {
       // Strategy is 'FLUSH' and no local changes exist
@@ -364,6 +367,11 @@ export class Sync {
     return nodes;
   }
 
+  /**
+   * Sync one path
+   *
+   * @internal
+   **/
   public doTask (path: string): object {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
@@ -452,7 +460,7 @@ export class Sync {
       // keep/revert:
       log('[Sync] Emitting keep/revert');
 
-      this.rs.local._emitChange({
+      this.rs.local.emitChange({
         origin:         'conflict',
         path:           node.path,
         oldValue:       node.local.body,
@@ -500,7 +508,7 @@ export class Sync {
               newContentType: node.remote.contentType
             };
             if (change.oldValue || change.newValue) {
-              this.rs.local._emitChange(change);
+              this.rs.local.emitChange(change);
             }
 
             if (!node.remote.body) { // no remote, so delete/don't create
@@ -514,7 +522,7 @@ export class Sync {
       }
     } else {
       if (node.common.body) {
-        this.rs.local._emitChange({
+        this.rs.local.emitChange({
           origin:   'remote',
           path:     node.path,
           oldValue: node.common.body,
@@ -541,6 +549,9 @@ export class Sync {
     });
   }
 
+  /**
+   * TODO document
+   **/
   public async markChildren (path, itemsMap, changedNodes: RSNodes, missingChildren): Promise<void> {
     const paths = [];
     const meta = {};
@@ -554,130 +565,128 @@ export class Sync {
       paths.push(path+childName);
     }
 
-    return this.rs.local.getNodes(paths).then((nodes: RSNodes) => {
-      let cachingStrategy;
-      let node;
+    const nodes = await this.rs.local.getNodes(paths);
 
-      for (const nodePath in nodes) {
-        node = nodes[nodePath];
+    let cachingStrategy;
+    let node;
 
-        if (meta[nodePath]) {
-          if (node && node.common) {
-            if (nodeChanged(node, meta[nodePath].ETag)) {
-              changedNodes[nodePath] = deepClone(node);
-              changedNodes[nodePath].remote = {
-                revision:  meta[nodePath].ETag,
+    for (const nodePath in nodes) {
+      node = nodes[nodePath];
+
+      if (meta[nodePath]) {
+        if (node && node.common) {
+          if (nodeChanged(node, meta[nodePath].ETag)) {
+            changedNodes[nodePath] = deepClone(node);
+            changedNodes[nodePath].remote = {
+              revision:  meta[nodePath].ETag,
+              timestamp: this.now()
+            };
+            changedNodes[nodePath] = this.autoMerge(changedNodes[nodePath]);
+          }
+        } else {
+          cachingStrategy = this.rs.caching.checkPath(nodePath);
+          if (cachingStrategy === 'ALL') {
+            changedNodes[nodePath] = {
+              path: nodePath,
+              common: {
                 timestamp: this.now()
-              };
-              changedNodes[nodePath] = this.autoMerge(changedNodes[nodePath]);
-            }
-          } else {
-            cachingStrategy = this.rs.caching.checkPath(nodePath);
-            if (cachingStrategy === 'ALL') {
-              changedNodes[nodePath] = {
-                path: nodePath,
-                common: {
-                  timestamp: this.now()
-                },
-                remote: {
-                  revision: meta[nodePath].ETag,
-                  timestamp: this.now()
-                }
-              };
-            }
+              },
+              remote: {
+                revision: meta[nodePath].ETag,
+                timestamp: this.now()
+              }
+            };
           }
+        }
 
-          if (changedNodes[nodePath] && meta[nodePath]['Content-Type']) {
-            changedNodes[nodePath].remote.contentType = meta[nodePath]['Content-Type'];
+        if (changedNodes[nodePath] && meta[nodePath]['Content-Type']) {
+          changedNodes[nodePath].remote.contentType = meta[nodePath]['Content-Type'];
+        }
+
+        if (changedNodes[nodePath] && meta[nodePath]['Content-Length']) {
+          changedNodes[nodePath].remote.contentLength = meta[nodePath]['Content-Length'];
+        }
+      } else if (missingChildren[nodePath.substring(path.length)] && node && node.common) {
+        if (node.common.itemsMap) {
+          for (const commonItem in node.common.itemsMap) {
+            recurse[nodePath+commonItem] = true;
           }
+        }
 
-          if (changedNodes[nodePath] && meta[nodePath]['Content-Length']) {
-            changedNodes[nodePath].remote.contentLength = meta[nodePath]['Content-Length'];
+        if (node.local && node.local.itemsMap) {
+          for (const localItem in node.local.itemsMap) {
+            recurse[nodePath+localItem] = true;
           }
-        } else if (missingChildren[nodePath.substring(path.length)] && node && node.common) {
-          if (node.common.itemsMap) {
-            for (const commonItem in node.common.itemsMap) {
-              recurse[nodePath+commonItem] = true;
-            }
-          }
+        }
 
-          if (node.local && node.local.itemsMap) {
-            for (const localItem in node.local.itemsMap) {
-              recurse[nodePath+localItem] = true;
-            }
-          }
+        if (node.remote || isFolder(nodePath)) {
+          changedNodes[nodePath] = undefined;
+        } else {
+          changedNodes[nodePath] = this.autoMerge(node);
 
-          if (node.remote || isFolder(nodePath)) {
-            changedNodes[nodePath] = undefined;
-          } else {
-            changedNodes[nodePath] = this.autoMerge(node);
+          if (typeof changedNodes[nodePath] === 'undefined') {
+            const parentPath = this.getParentPath(nodePath);
+            const parentNode = changedNodes[parentPath];
+            const itemName = nodePath.substring(path.length);
+            if (parentNode && parentNode.local) {
+              delete parentNode.local.itemsMap[itemName];
 
-            if (typeof changedNodes[nodePath] === 'undefined') {
-              const parentPath = this.getParentPath(nodePath);
-              const parentNode = changedNodes[parentPath];
-              const itemName = nodePath.substring(path.length);
-              if (parentNode && parentNode.local) {
-                delete parentNode.local.itemsMap[itemName];
-
-                if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
-                  delete parentNode.local;
-                }
+              if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+                delete parentNode.local;
               }
             }
           }
         }
       }
-
-      return this.deleteRemoteTrees(Object.keys(recurse), changedNodes)
-        .then(changedObjs2 => {
-          return this.rs.local.setNodes(this.flush(changedObjs2));
-        });
-    });
-  }
-
-  public async deleteRemoteTrees (paths: Array<string>, changedNodes: RSNodes): Promise<RSNodes> {
-    if (paths.length === 0) {
-      return Promise.resolve(changedNodes);
     }
 
-    return this.rs.local.getNodes(paths).then(async (nodes: RSNodes) => {
-      const subPaths = {};
+    const changedNodes2 = await this.deleteRemoteTrees(Object.keys(recurse), changedNodes);
+    if (changedNodes2) {
+      await this.rs.local.setNodes(this.flush(changedNodes2));
+    }
+  }
 
-      function collectSubPaths (folder, path: string): void {
-        if (folder && folder.itemsMap) {
-          for (const itemName in folder.itemsMap) {
-            subPaths[path+itemName] = true;
-          }
+  /**
+   * TODO document
+   **/
+  public async deleteRemoteTrees (paths: Array<string>, changedNodes: RSNodes): Promise<RSNodes | void> {
+    if (paths.length === 0) { return changedNodes; }
+
+    const nodes = await this.rs.local.getNodes(paths);
+    const subPaths = {};
+
+    function collectSubPaths (folder, path: string): void {
+      if (folder && folder.itemsMap) {
+        for (const itemName in folder.itemsMap) {
+          subPaths[path+itemName] = true;
         }
       }
+    }
 
-      for (const path in nodes) {
-        const node = nodes[path];
+    for (const path in nodes) {
+      const node = nodes[path];
+      if (!node) { continue; }
 
-        // TODO Why check for the node here? I don't think this check ever applies
-        if (!node) { continue; }
-
-        if (isFolder(path)) {
-          collectSubPaths(node.common, path);
-          collectSubPaths(node.local, path);
-        } else {
-          if (node.common && typeof(node.common.body) !== undefined) {
-            changedNodes[path] = deepClone(node);
-            changedNodes[path].remote = {
-              body:      false,
-              timestamp: this.now()
-            };
-            changedNodes[path] = this.autoMerge(changedNodes[path]);
-          }
+      if (isFolder(path)) {
+        collectSubPaths(node.common, path);
+        collectSubPaths(node.local, path);
+      } else {
+        if (node.common && typeof(node.common.body) !== undefined) {
+          changedNodes[path] = deepClone(node);
+          changedNodes[path].remote = {
+            body:      false,
+            timestamp: this.now()
+          };
+          changedNodes[path] = this.autoMerge(changedNodes[path]);
         }
       }
+    }
 
-      // Recurse whole tree depth levels at once:
-      return this.deleteRemoteTrees(Object.keys(subPaths), changedNodes)
-        .then(changedNodes2 => {
-          return this.rs.local.setNodes(this.flush(changedNodes2));
-        });
-    });
+    // Recurse whole tree depth levels at once:
+    const changedNodes2 = await this.deleteRemoteTrees(Object.keys(subPaths), changedNodes);
+    if (changedNodes2) {
+      await this.rs.local.setNodes(this.flush(changedNodes2));
+    }
   }
 
   public async completeFetch (path: string, bodyOrItemsMap: object, contentType: string, revision: string): Promise<any> {
@@ -991,6 +1000,9 @@ export class Sync {
       });
   }
 
+  /**
+   * TODO document
+   **/
   public doTasks (): boolean {
     let numToHave: number, numAdded = 0, path: string;
     if (this.rs.remote.connected) {
@@ -1044,9 +1056,9 @@ export class Sync {
   }
 
   /**
-   * Method: sync
+   * Start a sync procedure
    **/
-  public sync (): Promise<void> {
+  public async sync (): Promise<void> {
     this.done = false;
 
     if (!this.doTasks()) {
@@ -1060,8 +1072,6 @@ export class Sync {
         log('[Sync] Sync error', e);
         throw new Error('Local cache unavailable');
       });
-    } else {
-      return Promise.resolve();
     }
   }
 

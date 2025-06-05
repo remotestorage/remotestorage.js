@@ -944,7 +944,7 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
           };
           var otherDone = false;
 
-          env.rs.sync.rs.local._emitChange = function(changeEvent) {
+          env.rs.sync.rs.local.emitChange = function(changeEvent) {
             test.assertAnd(changeEvent, {
               origin: 'remote',
               path: 'foo',
@@ -978,7 +978,7 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
             remote: { body: false, revision: 'null' }
           };
           var otherDone = false;
-          env.rs.sync.rs.local._emitChange = function(obj) {
+          env.rs.sync.rs.local.emitChange = function(obj) {
             test.assertAnd(obj, {
               origin: 'remote',
               path: 'foo',
@@ -1011,7 +1011,7 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
             common: {},
             remote: { body: false, revision: 'null' }
           };
-          env.rs.sync.rs.local._emitChange = function(obj) {
+          env.rs.sync.rs.local.emitChange = function(obj) {
             test.result(false, 'should not have emitted '+JSON.stringify(obj));
           };
           var result = env.rs.sync.autoMerge(node);

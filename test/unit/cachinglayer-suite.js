@@ -134,7 +134,7 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
       },
 
       {
-        desc: "_emitChange emits change events",
+        desc: "emitChange emits change events",
         run: function(env, test) {
           var changeEvent = {
             path:   '/foo',
@@ -145,12 +145,12 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
             test.assert(event, changeEvent);
           });
 
-          env.ims._emitChange(changeEvent);
+          env.ims.emitChange(changeEvent);
         }
       },
 
       {
-        desc: "_emitChange doesn't emit events that are not enabled",
+        desc: "emitChange doesn't emit events that are not enabled",
         run: function(env, test) {
           var changeEvent = {
             path:   '/foo',
@@ -163,7 +163,7 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
             test.result(false, 'change event should not have been fired');
           });
 
-          env.ims._emitChange(changeEvent);
+          env.ims.emitChange(changeEvent);
 
           setTimeout(function() {
             test.done();
