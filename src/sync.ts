@@ -136,11 +136,17 @@ export class Sync {
     this.addEvents(['done', 'req-done']);
   }
 
-  public now (): number {
+  /**
+   * Return current time
+   **/
+  now (): number {
     return new Date().getTime();
   }
 
-  public queueGetRequest (path: string): object {
+  /**
+   * TODO document
+   **/
+  public async queueGetRequest (path: string): Promise<object> {
     return new Promise((resolve, reject) => {
       if (!this.rs.remote.connected) {
         reject('cannot fulfill maxAge requirement - remote is not connected');
@@ -223,6 +229,9 @@ export class Sync {
     return Object.getOwnPropertyNames(this._tasks).length > 0;
   }
 
+  /**
+   * TODO document
+   **/
   public async collectDiffTasks (): Promise<number> {
     let num = 0;
 
@@ -347,7 +356,7 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Flush nodes from cache after sync to remote
    **/
   public flush (nodes: RSNodes): RSNodes {
     for (const path in nodes) {
@@ -363,8 +372,6 @@ export class Sync {
 
   /**
    * Sync one path
-   *
-   * @internal
    **/
   public doTask (path: string): object {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
@@ -422,6 +429,9 @@ export class Sync {
     });
   }
 
+  /**
+   * TODO document
+   **/
   public autoMergeFolder (node: RSNode): RSNode {
     if (node.remote.itemsMap) {
       node.common = node.remote;
@@ -446,6 +456,9 @@ export class Sync {
     return node;
   }
 
+  /**
+   * TODO document
+   **/
   public autoMergeDocument (node: RSNode): RSNode {
     if (hasNoRemoteChanges(node)) {
       node = mergeMutualDeletion(node);
@@ -477,6 +490,9 @@ export class Sync {
     return node;
   }
 
+  /**
+   * TODO document
+   **/
   public autoMerge (node: RSNode): RSNode {
     if (node.remote) {
       if (node.local) {
@@ -643,7 +659,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public async deleteRemoteTrees (paths: Array<string>, changedNodes: RSNodes): Promise<RSNodes | void> {
+  public async deleteRemoteTrees (paths: string[], changedNodes: RSNodes): Promise<RSNodes | void> {
     if (paths.length === 0) { return changedNodes; }
 
     const nodes = await this.rs.local.getNodes(paths);
@@ -683,8 +699,11 @@ export class Sync {
     }
   }
 
+  /**
+   * TODO document
+   **/
   public async completeFetch (path: string, bodyOrItemsMap: object, contentType: string, revision: string): Promise<any> {
-    let paths: Array<string>;
+    let paths: string[];
     let parentPath: string;
     const pathsFromRootArr = pathsFromRoot(path);
 
@@ -754,6 +773,9 @@ export class Sync {
     });
   }
 
+  /**
+   * TODO document
+   **/
   public async completePush (path: string, action, conflict, revision: string): Promise<void> {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
@@ -804,6 +826,9 @@ export class Sync {
     });
   }
 
+  /**
+   * TODO document
+   **/
   public async dealWithFailure (path: string): Promise<void> {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       if (nodes[path]) {
@@ -847,6 +872,9 @@ export class Sync {
     }
   }
 
+  /**
+   * TODO document
+   **/
   public async handleGetResponse (path: string, status: ResponseStatus, bodyOrItemsMap, contentType: string, revision: string): Promise<boolean> {
     if (status.notFound) {
       if (isFolder(path)) {
@@ -909,6 +937,9 @@ export class Sync {
     }
   }
 
+  /**
+   * TODO document
+   **/
   public finishTask (task: SyncTask, queueTask = true): void | Promise<void> {
     if (task.action === undefined) {
       delete this._running[task.path];
@@ -1026,6 +1057,9 @@ export class Sync {
     return (numAdded >= numToAdd);
   }
 
+  /**
+   * TODO document
+   **/
   public async collectTasks (alsoCheckRefresh?: boolean): Promise<void> {
     if (this.hasTasks() || this.stopped) {
       return Promise.resolve();
@@ -1040,7 +1074,11 @@ export class Sync {
     }, function (err) { throw err; });
   }
 
-  public addTask (path: string, cb?): void {
+  /**
+   * TODO document
+   **/
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public addTask (path: string, cb?: (...args: any[]) => any): void {
     if (!this._tasks[path]) {
       this._tasks[path] = [];
     }
