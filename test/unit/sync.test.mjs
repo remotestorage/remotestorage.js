@@ -9,6 +9,7 @@ import FakeAccess from '../helpers/fake-access.mjs';
 
 describe("Sync", function() {
   beforeEach(function(done) {
+    this.original = {};
     this.rs = new RemoteStorage();
     Object.defineProperty(this.rs, 'access', {
       value: new FakeAccess(),
@@ -19,7 +20,9 @@ describe("Sync", function() {
     this.rs.on('features-loaded', () => {
       this.rs._handlers['connected'] = [];
       this.rs.local = new InMemoryStorage();
+      this.rs.syncStopped = true;
       this.rs.sync = new Sync(this.rs);
+      this.original.doTasks = this.rs.sync.doTasks;
       this.rs.sync.doTasks = () => { return true; };
       done();
     });
@@ -250,6 +253,80 @@ describe("Sync", function() {
       expect(this.rs.sync._tasks).to.deep.equal({
         '/foo/': [this.fakeCallback], // inherited from task '/foo/bar/and/then/some'
         '/read/access/': []
+      });
+    });
+  });
+
+  describe("#doTasks", function() {
+    beforeEach(function() {
+      this.rs.sync.doTasks = this.original.doTasks;
+    });
+
+    describe("when not connected", function() {
+      beforeEach(function() {
+        this.rs.remote.connected = false;
+        this.rs.sync._tasks = { '/foo1/': [] };
+      });
+
+      it("does not attempt any requests", async function() {
+        this.rs.sync.doTasks();
+
+        expect(this.rs.sync._tasks).to.deep.equal({ '/foo1/': [] });
+        expect(Object.keys(this.rs.sync._running).length).to.equal(0);
+      });
+    });
+
+    describe("when offline", function() {
+      beforeEach(function() {
+        this.rs.remote.connected = true;
+        this.rs.remote.online = false;
+        this.rs.sync.doTask = async function() {
+          return { action: undefined, promise: Promise.resolve() };
+        };
+        this.rs.sync._tasks = {
+          '/foo1/': [], '/foo2/': [], '/foo3': [], '/foo4/': [],
+          '/foo/5': [], '/foo/6/': [], '/foo7/': [], '/foo8': []
+        };
+      });
+
+      it("attempts only one request, at low frequency", async function() {
+        this.rs.sync.doTasks();
+
+        expect(this.rs.sync._tasks).to.deep.equal({
+          '/foo1/': [], '/foo2/': [], '/foo3': [], '/foo4/': [],
+          '/foo/5': [], '/foo/6/': [], '/foo7/': [], '/foo8': []
+        });
+        expect(Object.keys(this.rs.sync._running)).to.deep.equal([
+          '/foo1/'
+        ]);
+      });
+    });
+
+    describe("normal operation", function() {
+      beforeEach(function() {
+        this.rs.remote.connected = true;
+        this.rs.remote.online = true;
+        this.rs.sync.numThreads = 5;
+
+        this.rs.sync.doTask = async function() {
+          return { action: undefined, promise: Promise.resolve() };
+        };
+        this.rs.sync._tasks = {
+          '/foo1/': [], '/foo2/': [], '/foo3': [], '/foo4/': [],
+          '/foo/5': [], '/foo/6/': [], '/foo7/': [], '/foo8': []
+        };
+      });
+
+      it("attempts requests according to the number of threads configured", async function() {
+        this.rs.sync.doTasks();
+
+        expect(this.rs.sync._tasks).to.deep.equal({
+          '/foo1/': [], '/foo2/': [], '/foo3': [], '/foo4/': [],
+          '/foo/5': [], '/foo/6/': [], '/foo7/': [], '/foo8': [],
+        });
+        expect(Object.keys(this.rs.sync._running)).to.deep.equal([
+          '/foo1/', '/foo2/', '/foo3', '/foo4/', '/foo/5'
+        ]);
       });
     });
   });
