@@ -146,7 +146,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public async queueGetRequest (path: string): Promise<object> {
+  async queueGetRequest (path: string): Promise<object> {
     return new Promise((resolve, reject) => {
       if (!this.rs.remote.connected) {
         reject('cannot fulfill maxAge requirement - remote is not connected');
@@ -162,7 +162,7 @@ export class Sync {
     });
   }
 
-  public corruptServerItemsMap (itemsMap): boolean {
+  corruptServerItemsMap (itemsMap): boolean {
     if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
       return true;
     }
@@ -190,7 +190,7 @@ export class Sync {
     return false;
   }
 
-  public corruptItemsMap (itemsMap): boolean {
+  corruptItemsMap (itemsMap): boolean {
     if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
       return true;
     }
@@ -204,7 +204,7 @@ export class Sync {
     return false;
   }
 
-  public corruptRevision (rev): boolean {
+  corruptRevision (rev): boolean {
     return ((typeof(rev) !== 'object') ||
             (Array.isArray(rev)) ||
             (rev.revision && typeof(rev.revision) !== 'string') ||
@@ -215,7 +215,7 @@ export class Sync {
             (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
   }
 
-  public isCorrupt (node: RSNode): boolean {
+  isCorrupt (node: RSNode): boolean {
     return ((typeof(node) !== 'object') ||
             (Array.isArray(node)) ||
             (typeof(node.path) !== 'string') ||
@@ -257,12 +257,12 @@ export class Sync {
     .then((): number => num);
   }
 
-  public inConflict (node: RSNode): boolean {
+  inConflict (node: RSNode): boolean {
     return (node.local && node.remote &&
             (node.remote.body !== undefined || node.remote.itemsMap));
   }
 
-  public needsRefresh (node: RSNode): boolean {
+  needsRefresh (node: RSNode): boolean {
     if (node.common) {
       if (!node.common.timestamp) {
         return true;
@@ -272,7 +272,7 @@ export class Sync {
     return false;
   }
 
-  public needsFetch (node: RSNode): boolean {
+  needsFetch (node: RSNode): boolean {
     if (this.inConflict(node)) {
       return true;
     }
@@ -289,7 +289,7 @@ export class Sync {
     return false;
   }
 
-  public needsPush (node: RSNode): boolean {
+  needsPush (node: RSNode): boolean {
     if (this.inConflict(node)) {
       return false;
     }
@@ -298,15 +298,15 @@ export class Sync {
     }
   }
 
-  public needsRemotePut (node: RSNode): boolean {
+  needsRemotePut (node: RSNode): boolean {
     return node.local && node.local.body;
   }
 
-  public needsRemoteDelete (node: RSNode): boolean {
+  needsRemoteDelete (node: RSNode): boolean {
     return node.local && node.local.body === false;
   }
 
-  public getParentPath (path: string): string {
+  getParentPath (path: string): string {
     const parts = path.match(/^(.*\/)([^\/]+\/?)$/);
 
     if (parts) {
@@ -316,7 +316,7 @@ export class Sync {
     }
   }
 
-  public deleteChildPathsFromTasks (): void {
+  deleteChildPathsFromTasks (): void {
     for (const path in this._tasks) {
       const paths = pathsFromRoot(path);
 
@@ -361,7 +361,7 @@ export class Sync {
   /**
    * Flush nodes from cache after sync to remote
    **/
-  public flush (nodes: RSNodes): RSNodes {
+  flush (nodes: RSNodes): RSNodes {
     for (const path in nodes) {
       // Strategy is 'FLUSH' and no local changes exist
       if (this.rs.caching.checkPath(path) === 'FLUSH' &&
@@ -376,7 +376,7 @@ export class Sync {
   /**
    * Sync one path
    **/
-  public doTask (path: string): object {
+  doTask (path: string): object {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
       // First fetch:
@@ -435,7 +435,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public autoMergeFolder (node: RSNode): RSNode {
+  autoMergeFolder (node: RSNode): RSNode {
     if (node.remote.itemsMap) {
       node.common = node.remote;
       delete node.remote;
@@ -462,7 +462,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public autoMergeDocument (node: RSNode): RSNode {
+  autoMergeDocument (node: RSNode): RSNode {
     if (hasNoRemoteChanges(node)) {
       node = mergeMutualDeletion(node);
       delete node.remote;
@@ -496,7 +496,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public autoMerge (node: RSNode): RSNode {
+  autoMerge (node: RSNode): RSNode {
     if (node.remote) {
       if (node.local) {
         if (isFolder(node.path)) {
@@ -551,7 +551,7 @@ export class Sync {
     return node;
   }
 
-  public async updateCommonTimestamp (path: string, revision: string): Promise<void> {
+  async updateCommonTimestamp (path: string, revision: string): Promise<void> {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       if (nodes[path] &&
           nodes[path].common &&
@@ -565,7 +565,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public async markChildren (path, itemsMap, changedNodes: RSNodes, missingChildren): Promise<void> {
+  async markChildren (path, itemsMap, changedNodes: RSNodes, missingChildren): Promise<void> {
     const paths = [];
     const meta = {};
     const recurse = {};
@@ -662,7 +662,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public async deleteRemoteTrees (paths: string[], changedNodes: RSNodes): Promise<RSNodes | void> {
+  async deleteRemoteTrees (paths: string[], changedNodes: RSNodes): Promise<RSNodes | void> {
     if (paths.length === 0) { return changedNodes; }
 
     const nodes = await this.rs.local.getNodes(paths);
@@ -705,7 +705,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public async completeFetch (path: string, bodyOrItemsMap: object, contentType: string, revision: string): Promise<any> {
+  async completeFetch (path: string, bodyOrItemsMap: object, contentType: string, revision: string): Promise<any> {
     let paths: string[];
     let parentPath: string;
     const pathsFromRootArr = pathsFromRoot(path);
@@ -779,7 +779,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public async completePush (path: string, action, conflict, revision: string): Promise<void> {
+  async completePush (path: string, action, conflict, revision: string): Promise<void> {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
 
@@ -832,7 +832,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public async dealWithFailure (path: string): Promise<void> {
+  async dealWithFailure (path: string): Promise<void> {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       if (nodes[path]) {
         delete nodes[path].push;
@@ -841,7 +841,7 @@ export class Sync {
     });
   }
 
-  public interpretStatus (statusCode: string | number): ResponseStatus {
+  interpretStatus (statusCode: string | number): ResponseStatus {
     const status: ResponseStatus = {
       statusCode:      statusCode,
       successful:      undefined,
@@ -878,7 +878,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public async handleGetResponse (path: string, status: ResponseStatus, bodyOrItemsMap, contentType: string, revision: string): Promise<boolean> {
+  async handleGetResponse (path: string, status: ResponseStatus, bodyOrItemsMap, contentType: string, revision: string): Promise<boolean> {
     if (status.notFound) {
       if (isFolder(path)) {
         bodyOrItemsMap = {};
@@ -909,7 +909,7 @@ export class Sync {
     }
   }
 
-  public handleResponse (path: string, action, r): Promise<boolean> {
+  handleResponse (path: string, action, r): Promise<boolean> {
     const status = this.interpretStatus(r.statusCode);
 
     if (status.successful) {
@@ -943,7 +943,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  public finishTask (task: SyncTask, queueTask = true): void | Promise<void> {
+  finishTask (task: SyncTask, queueTask = true): void | Promise<void> {
     if (task.action === undefined) {
       delete this._running[task.path];
       return;
@@ -1091,10 +1091,10 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Add a sync task for the given path
    **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public addTask (path: string, cb?: (...args: any[]) => any): void {
+  addTask (path: string, cb?: (...args: any[]) => any): void {
     if (!this._tasks[path]) {
       this._tasks[path] = [];
     }
