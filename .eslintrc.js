@@ -92,7 +92,7 @@ module.exports = {
   ],
   "overrides": [
     {
-      "files": ["*.test.ts"],
+      "files": ["*.test.mjs"],
       "rules": {
         "max-statements": 0,
         "@typescript-eslint/no-empty-function": 0,
