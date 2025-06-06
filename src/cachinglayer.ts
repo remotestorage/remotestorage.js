@@ -1,7 +1,7 @@
 import type { ChangeObj } from './interfaces/change_obj';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
 import type { RSEvent } from './interfaces/rs_event';
-import type { RSNode, RSNodes, ProcessNodes } from './interfaces/rs_node';
+import type { RSItem, RSNode, RSNodes, ProcessNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import config from './config';
 import log from './log';
@@ -14,7 +14,7 @@ import {
   pathsFromRoot
 } from './util';
 
-function getLatest (node: RSNode): any {
+function getLatest (node: RSNode): RSItem {
   if (typeof (node) !== 'object' || typeof (node.path) !== 'string') {
     return;
   }
@@ -138,15 +138,15 @@ abstract class CachingLayer {
     if (typeof (maxAge) === 'number') {
       return this.getNodes(pathsFromRoot(path))
         .then((objs) => {
-          const node: RSNode = getLatest(objs[path]);
+          const item: RSItem = getLatest(objs[path]);
 
           if (isOutdated(objs, maxAge)) {
             return queueGetRequest(path);
-          } else if (node) {
+          } else if (item) {
             return {
               statusCode: 200,
-              body: node.body || node.itemsMap,
-              contentType: node.contentType
+              body: item.body || item.itemsMap,
+              contentType: item.contentType
             };
           } else {
             return { statusCode: 404 };
@@ -155,21 +155,21 @@ abstract class CachingLayer {
     } else {
       return this.getNodes([path])
         .then((objs) => {
-          const node: RSNode = getLatest(objs[path]);
+          const item: RSItem = getLatest(objs[path]);
 
-          if (node) {
+          if (item) {
             if (isFolder(path)) {
-              for (const i in node.itemsMap) {
+              for (const i in item.itemsMap) {
                 // the hasOwnProperty check here is only because our jshint settings require it:
-                if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
-                  delete node.itemsMap[i];
+                if (item.itemsMap.hasOwnProperty(i) && item.itemsMap[i] === false) {
+                  delete item.itemsMap[i];
                 }
               }
             }
             return {
               statusCode: 200,
-              body: node.body || node.itemsMap,
-              contentType: node.contentType
+              body: item.body || item.itemsMap,
+              contentType: item.contentType
             };
           } else {
             return {statusCode: 404};
@@ -178,7 +178,7 @@ abstract class CachingLayer {
     }
   }
 
-  async put (path: string, body: unknown, contentType: string): Promise<RSNodes> {
+  async put (path: string, body: string, contentType: string): Promise<RSNodes> {
     const paths = pathsFromRoot(path);
 
     function _processNodes(nodePaths: string[], nodes: RSNodes): RSNodes {
@@ -186,7 +186,7 @@ abstract class CachingLayer {
         for (let i = 0, len = nodePaths.length; i < len; i++) {
           const nodePath = nodePaths[i];
           let node = nodes[nodePath];
-          let previous: RSNode;
+          let previous: RSItem;
 
           if (!node) {
             nodes[nodePath] = node = makeNode(nodePath);

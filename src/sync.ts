@@ -1,4 +1,6 @@
+import type RemoteStorage from './remotestorage';
 import type { RSNode, RSNodes } from './interfaces/rs_node';
+import type { QueuedRequestResponse } from './interfaces/queued_request_response';
 import config from './config';
 import Env from './env';
 import EventHandling from './eventhandling';
@@ -14,7 +16,6 @@ import {
   isDocument,
   pathsFromRoot
 } from './util';
-import type RemoteStorage from './remotestorage';
 
 let setupSync, syncOnConnect;
 
@@ -29,7 +30,7 @@ interface ResponseStatus {
 }
 
 interface SyncTask {
-  action: any;
+  action: string;
   path: string;
   promise: Promise<any>;
 }
@@ -48,7 +49,7 @@ function isStaleChild (node: RSNode): boolean {
 }
 
 function hasCommonRevision (node: RSNode): boolean {
-  return node.common && node.common.revision;
+  return !!node.common && !!node.common.revision;
 }
 
 function hasNoRemoteChanges (node: RSNode): boolean {
@@ -101,27 +102,43 @@ function handleVisibility (env, rs): void {
 export class Sync {
   rs: RemoteStorage;
 
-  numThreads: number;
+  /**
+   * Maximum number of parallel requests to execute
+   **/
+  numThreads: number = 10;
+
+  /**
+   * Sync done? `false` when periodic sync is currently running
+   **/
   done: boolean;
+
+  /**
+   * Sync stopped entirely
+   **/
   stopped: boolean;
 
-  _tasks: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: ((...args: any[]) => any)[];
-  };
-  // TODO define in more detail
-  _running: object;
-  _timeStarted: object;
+  /**
+   * Paths queued for sync, sometimes with callbacks
+   **/
+  _tasks: { [key: string]: Array<() => void>; } = {};
+
+  /**
+   * Promises of currently running sync tasks per path
+   **/
+  _running: { [key: string]: Promise<SyncTask>; } = {};
+
+  /**
+   * Start times of current sync per path
+   **/
+  _timeStarted: { [key: string]: number; } = {};
+
+  /**
+   * TODO document
+   **/
   _finishedTasks: SyncTask[] = [];
 
   constructor (remoteStorage: RemoteStorage) {
     this.rs = remoteStorage;
-
-    this._tasks       = {};
-    this._running     = {};
-    this._timeStarted = {};
-
-    this.numThreads = 10;
 
     this.rs.local.onDiff(path => {
       this.addTask(path);
@@ -144,9 +161,11 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * When getting a path from the caching layer, this function might be handed
+   * in to first check if it was updated on the remote, in order to fulfill a
+   * maxAge requirement
    **/
-  async queueGetRequest (path: string): Promise<object> {
+  async queueGetRequest (path: string): Promise<QueuedRequestResponse> {
     return new Promise((resolve, reject) => {
       if (!this.rs.remote.connected) {
         reject('cannot fulfill maxAge requirement - remote is not connected');
@@ -258,8 +277,8 @@ export class Sync {
   }
 
   inConflict (node: RSNode): boolean {
-    return (node.local && node.remote &&
-            (node.remote.body !== undefined || node.remote.itemsMap));
+    return (!!node.local && !!node.remote &&
+            (node.remote.body !== undefined || !!node.remote.itemsMap));
   }
 
   needsRefresh (node: RSNode): boolean {
@@ -299,7 +318,7 @@ export class Sync {
   }
 
   needsRemotePut (node: RSNode): boolean {
-    return node.local && node.local.body;
+    return node.local && typeof(node.local.body) === "string";
   }
 
   needsRemoteDelete (node: RSNode): boolean {
@@ -376,7 +395,7 @@ export class Sync {
   /**
    * Sync one path
    **/
-  doTask (path: string): object {
+  async doTask (path: string): Promise<SyncTask> {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
       // First fetch:
@@ -402,7 +421,12 @@ export class Sync {
           }
 
           return taskFor('put', path,
-            this.rs.remote.put(path, node.push.body, node.push.contentType, options)
+            this.rs.remote.put(
+              path,
+              node.push.body as string,
+              node.push.contentType,
+              options
+            )
           );
         });
       }
@@ -833,12 +857,12 @@ export class Sync {
    * TODO document
    **/
   async dealWithFailure (path: string): Promise<void> {
-    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
-      if (nodes[path]) {
-        delete nodes[path].push;
-        return this.rs.local.setNodes(this.flush(nodes));
-      }
-    });
+    const nodes = await this.rs.local.getNodes([path]);
+
+    if (nodes[path]) {
+      delete nodes[path].push;
+      return this.rs.local.setNodes(this.flush(nodes));
+    }
   }
 
   interpretStatus (statusCode: string | number): ResponseStatus {
@@ -943,7 +967,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  finishTask (task: SyncTask, queueTask = true): void | Promise<void> {
+  finishTask (task: SyncTask, queueTask: boolean = true): void | Promise<void> {
     if (task.action === undefined) {
       delete this._running[task.path];
       return;
@@ -1066,8 +1090,7 @@ export class Sync {
     for (path in this._tasks) {
       if (!this._running[path]) {
         this._timeStarted[path] = this.now();
-        this._running[path] = this.doTask(path);
-        this._running[path].then(this.finishTask.bind(this));
+        this._running[path] = this.doTask(path).then(this.finishTask.bind(this));
         numAdded++;
         if (numAdded >= numToAdd) { break; }
       }
@@ -1094,7 +1117,7 @@ export class Sync {
    * Add a sync task for the given path
    **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addTask (path: string, cb?: (...args: any[]) => any): void {
+  addTask (path: string, cb?: () => void): void {
     if (!this._tasks[path]) {
       this._tasks[path] = [];
     }
