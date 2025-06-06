@@ -230,9 +230,9 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Collect sync tasks for changed nodes
    **/
-  public async collectDiffTasks (): Promise<number> {
+  async collectDiffTasks (): Promise<number> {
     let num = 0;
 
     return this.rs.local.forAllNodes((node: RSNode) => {
@@ -244,7 +244,8 @@ export class Sync {
           this.addTask(node.path);
           num++;
         }
-      } else if (this.needsFetch(node) && this.rs.access.checkPathPermission(node.path, 'r')) {
+      } else if (this.needsFetch(node) &&
+                 this.rs.access.checkPathPermission(node.path, 'r')) {
         this.addTask(node.path);
         num++;
       } else if (isDocument(node.path) && this.needsPush(node) &&
@@ -253,8 +254,7 @@ export class Sync {
         num++;
       }
     })
-    .then((): number => num)
-    .catch(e => { throw e; });
+    .then((): number => num);
   }
 
   public inConflict (node: RSNode): boolean {
@@ -335,8 +335,11 @@ export class Sync {
     }
   }
 
-  public async collectRefreshTasks (): Promise<void> {
-    return this.rs.local.forAllNodes((node: RSNode) => {
+  /**
+   * Collect tasks to refresh highest outdated folder in tree
+   **/
+  async collectRefreshTasks (): Promise<void> {
+    await this.rs.local.forAllNodes((node: RSNode) => {
       let parentPath: string;
       if (this.needsRefresh(node)) {
         try {
@@ -350,9 +353,9 @@ export class Sync {
           this.addTask(node.path);
         }
       }
-    })
-    .then(() => this.deleteChildPathsFromTasks())
-    .catch((e: Error) => { throw e; });
+    });
+
+    this.deleteChildPathsFromTasks();
   }
 
   /**
@@ -1074,20 +1077,17 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Collect any potential sync tasks if none are queued
    **/
-  public async collectTasks (alsoCheckRefresh?: boolean): Promise<void> {
-    if (this.hasTasks() || this.stopped) {
-      return Promise.resolve();
-    }
+  async collectTasks (alsoCheckRefresh: boolean = true): Promise<void> {
+    if (this.hasTasks() || this.stopped) { return; }
 
-    return this.collectDiffTasks().then(numDiffs => {
-      if (numDiffs || alsoCheckRefresh === false) {
-        return Promise.resolve();
-      } else {
-        return this.collectRefreshTasks();
-      }
-    }, function (err) { throw err; });
+    const numDiffs = await this.collectDiffTasks();
+    if (numDiffs > 0) { return; }
+
+    if (alsoCheckRefresh) {
+      return this.collectRefreshTasks();
+    }
   }
 
   /**

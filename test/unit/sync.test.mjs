@@ -5,10 +5,16 @@ import sinon from 'sinon';
 import InMemoryStorage from '../../build/inmemorystorage.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
 import { Sync } from '../../build/sync.js';
+import FakeAccess from '../helpers/fake-access.mjs';
 
 describe("Sync", function() {
   beforeEach(function(done) {
     this.rs = new RemoteStorage();
+    Object.defineProperty(this.rs, 'access', {
+      value: new FakeAccess(),
+      writable: true,
+      configurable: true
+    });
 
     this.rs.on('features-loaded', () => {
       this.rs._handlers['connected'] = [];
@@ -132,6 +138,118 @@ describe("Sync", function() {
       it("calls #doTasks() twice", async function() {
         await this.rs.sync.sync();
         expect(this.spies.doTasks.callCount).to.equal(2);
+      });
+    });
+  });
+
+  describe("#collectTasks", function() {
+    beforeEach(function() {
+      this.spies = {
+        collectDiffTasks: sinon.spy(this.rs.sync, 'collectDiffTasks'),
+        collectRefreshTasks: sinon.spy(this.rs.sync, 'collectRefreshTasks')
+      };
+    });
+
+    describe("with tasks queued", function() {
+      beforeEach(function() {
+        this.rs.sync._tasks = { "/foo/bar": [] };
+      });
+
+      it("returns immediately", async function() {
+        await this.rs.sync.collectTasks();
+        expect(this.spies.collectDiffTasks.callCount).to.equal(0);
+        expect(this.spies.collectRefreshTasks.callCount).to.equal(0);
+      });
+    });
+
+    describe("when sync is stopped", function() {
+      beforeEach(function() {
+        this.rs.sync.stopped = true;
+      });
+
+      it("returns immediately", async function() {
+        await this.rs.sync.collectTasks();
+        expect(this.spies.collectDiffTasks.callCount).to.equal(0);
+        expect(this.spies.collectRefreshTasks.callCount).to.equal(0);
+      });
+    });
+
+    describe("with diffs found", function() {
+      beforeEach(function() {
+        sinon.restore();
+        this.spies = {
+          collectDiffTasks: sinon.stub(this.rs.sync, 'collectDiffTasks').returns(1),
+          collectRefreshTasks: sinon.spy(this.rs.sync, 'collectRefreshTasks')
+        };
+      });
+
+      it("calls #collectDiffTasks()", async function() {
+        await this.rs.sync.collectTasks();
+        expect(this.spies.collectDiffTasks.callCount).to.equal(1);
+      });
+
+      it("does not call #collectRefreshTasks()", async function() {
+        await this.rs.sync.collectTasks();
+        expect(this.spies.collectRefreshTasks.callCount).to.equal(0);
+      });
+    });
+
+    describe("with no diffs found", function() {
+      beforeEach(function() {
+        sinon.restore();
+        this.spies = {
+          collectDiffTasks: sinon.stub(this.rs.sync, 'collectDiffTasks').returns(0),
+          collectRefreshTasks: sinon.spy(this.rs.sync, 'collectRefreshTasks')
+        };
+      });
+
+      it("calls #collectRefreshTasks()", async function() {
+        await this.rs.sync.collectTasks();
+        expect(this.spies.collectRefreshTasks.callCount).to.equal(1);
+      });
+
+      it("does not call #collectRefreshTasks() when `alsoCheckRefresh` is set to `false`", async function() {
+        await this.rs.sync.collectTasks(false);
+        expect(this.spies.collectRefreshTasks.callCount).to.equal(0);
+      });
+    });
+  });
+
+  describe("#collectRefreshTasks", function() {
+    beforeEach(function() {
+      this.fakeCallback = function() {};
+      this.rs.sync.addTask(
+        '/foo/bar/and/then/some', this.fakeCallback
+      );
+      this.rs.sync.now = () => 1234568654321;
+
+      this.rs.local.forAllNodes = async function(cb) {
+        cb({
+          path: '/foo/bar/and/then/some', //should be overruled by ancestor /foo/ba/
+          common: { body: 'off', contentType: 'cT', timestamp: 1234567890123 }
+        });
+        cb({
+          path: '/foo/bar/', //should retrieve /foo/ to get its new revision
+          common: { body: 'off', contentType: 'cT', timestamp: 1234567890124 }
+        });
+        cb({
+          path: '/read/access/', // should retrieve
+          common: { body: 'off', contentType: 'cT', timestamp: 1234567890124 }
+        });
+        cb({
+          path: '/no/access/', // no access
+          common: { body: 'off', contentType: 'cT', timestamp: 1234567890124 }
+        });
+      };
+
+    });
+
+    it("gives preference to parent folders", async function() {
+      await this.rs.sync.collectRefreshTasks();
+
+      expect(this.rs.sync._tasks).to.deep.equal({
+        '/foo/': [this.fakeCallback], // inherited from task '/foo/bar/and/then/some'
+        '/read/access/': []
       });
     });
   });
