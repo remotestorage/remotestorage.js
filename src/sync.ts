@@ -44,7 +44,8 @@ function nodeChanged (node: RSNode, etag: string): boolean {
 }
 
 function isStaleChild (node: RSNode): boolean {
-  return node.remote && node.remote.revision && !node.remote.itemsMap && !node.remote.body;
+  return !!node.remote && !!node.remote.revision &&
+         !node.remote.itemsMap && !node.remote.body;
 }
 
 function hasCommonRevision (node: RSNode): boolean {
@@ -57,8 +58,8 @@ function hasNoRemoteChanges (node: RSNode): boolean {
     return false;
   }
   return (node.common.body === undefined && node.remote.body === false) ||
-    (node.remote.body === node.common.body &&
-     node.remote.contentType === node.common.contentType);
+         (node.remote.body === node.common.body &&
+          node.remote.contentType === node.common.contentType);
 }
 
 function mergeMutualDeletion (node: RSNode): RSNode {
