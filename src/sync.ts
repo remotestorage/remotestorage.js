@@ -29,7 +29,7 @@ interface ResponseStatus {
 }
 
 interface SyncTask {
-  action: any;
+  action: string;
   path: string;
   promise: Promise<any>;
 }
@@ -106,22 +106,13 @@ export class Sync {
   done: boolean;
   stopped: boolean;
 
-  _tasks: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: ((...args: any[]) => any)[];
-  };
-  // TODO define in more detail
-  _running: object;
-  _timeStarted: object;
+  _tasks: { [key: string]: Array<() => void>; } = {};
+  _running: { [key: string]: Promise<SyncTask>; } = {};
+  _timeStarted: { [key: string]: number; } = {};
   _finishedTasks: SyncTask[] = [];
 
   constructor (remoteStorage: RemoteStorage) {
     this.rs = remoteStorage;
-
-    this._tasks       = {};
-    this._running     = {};
-    this._timeStarted = {};
-
     this.numThreads = 10;
 
     this.rs.local.onDiff(path => {
@@ -377,7 +368,7 @@ export class Sync {
   /**
    * Sync one path
    **/
-  doTask (path: string): object {
+  async doTask (path: string): Promise<SyncTask> {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
       // First fetch:
@@ -1072,8 +1063,7 @@ export class Sync {
     for (path in this._tasks) {
       if (!this._running[path]) {
         this._timeStarted[path] = this.now();
-        this._running[path] = this.doTask(path);
-        this._running[path].then(this.finishTask.bind(this));
+        this._running[path] = this.doTask(path).then(this.finishTask.bind(this));
         numAdded++;
         if (numAdded >= numToAdd) { break; }
       }
@@ -1100,7 +1090,7 @@ export class Sync {
    * Add a sync task for the given path
    **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addTask (path: string, cb?: (...args: any[]) => any): void {
+  addTask (path: string, cb?: () => void): void {
     if (!this._tasks[path]) {
       this._tasks[path] = [];
     }
