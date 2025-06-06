@@ -48,7 +48,7 @@ function isStaleChild (node: RSNode): boolean {
 }
 
 function hasCommonRevision (node: RSNode): boolean {
-  return node.common && node.common.revision;
+  return !!node.common && !!node.common.revision;
 }
 
 function hasNoRemoteChanges (node: RSNode): boolean {
@@ -258,8 +258,8 @@ export class Sync {
   }
 
   inConflict (node: RSNode): boolean {
-    return (node.local && node.remote &&
-            (node.remote.body !== undefined || node.remote.itemsMap));
+    return (!!node.local && !!node.remote &&
+            (node.remote.body !== undefined || !!node.remote.itemsMap));
   }
 
   needsRefresh (node: RSNode): boolean {
@@ -299,7 +299,7 @@ export class Sync {
   }
 
   needsRemotePut (node: RSNode): boolean {
-    return node.local && node.local.body;
+    return node.local && typeof(node.local.body) === "string";
   }
 
   needsRemoteDelete (node: RSNode): boolean {
@@ -402,7 +402,12 @@ export class Sync {
           }
 
           return taskFor('put', path,
-            this.rs.remote.put(path, node.push.body, node.push.contentType, options)
+            this.rs.remote.put(
+              path,
+              node.push.body as string,
+              node.push.contentType,
+              options
+            )
           );
         });
       }
@@ -833,12 +838,12 @@ export class Sync {
    * TODO document
    **/
   async dealWithFailure (path: string): Promise<void> {
-    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
-      if (nodes[path]) {
-        delete nodes[path].push;
-        return this.rs.local.setNodes(this.flush(nodes));
-      }
-    });
+    const nodes = await this.rs.local.getNodes([path]);
+
+    if (nodes[path]) {
+      delete nodes[path].push;
+      return this.rs.local.setNodes(this.flush(nodes));
+    }
   }
 
   interpretStatus (statusCode: string | number): ResponseStatus {
