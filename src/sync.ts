@@ -225,8 +225,8 @@ export class Sync {
             (node.push && this.corruptRevision(node.push)));
   }
 
-  public hasTasks (): boolean {
-    return Object.getOwnPropertyNames(this._tasks).length > 0;
+  hasTasks (): boolean {
+    return Object.keys(this._tasks).length > 0;
   }
 
   /**
@@ -993,7 +993,7 @@ export class Sync {
         await this.collectTasks(false).then(() => {
           // See if there are any more tasks that are not refresh tasks
           if (!this.hasTasks() || this.stopped) {
-            log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
+            log('[Sync] Sync is done! Reschedule?', Object.keys(this._tasks).length, this.stopped);
             if (!this.done) {
               this.done = true;
               this.rs._emit('sync-done', { completed: true });
@@ -1056,7 +1056,7 @@ export class Sync {
    **/
   doTasks (): boolean {
     const numToHave = this.tasksWanted();
-    const numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
+    const numToAdd = numToHave - Object.keys(this._running).length;
 
     if (numToAdd <= 0) { return true; }
 
