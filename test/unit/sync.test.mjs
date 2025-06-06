@@ -1,11 +1,14 @@
 import 'mocha';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 
 import InMemoryStorage from '../../build/inmemorystorage.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
 import { Sync } from '../../build/sync.js';
 import FakeAccess from '../helpers/fake-access.mjs';
+
+chai.use(chaiAsPromised);
 
 describe("Sync", function() {
   beforeEach(function(done) {
@@ -158,6 +161,20 @@ describe("Sync", function() {
         this.rs.on('sync-started', () => { syncStarted = true; });
         await this.rs.sync.sync();
         expect(syncStarted).to.be.false;
+      });
+    });
+
+    describe("when the cache back-end is erroring", function() {
+      beforeEach(function() {
+        this.rs.sync.doTasks = () => false; // trigger collectTasks
+        this.rs.local.forAllNodes = async function() {
+          throw new Error('I am broken, deal with it!');
+        };
+      });
+
+      it("rejects with error", async function() {
+        await expect(this.rs.sync.sync()).to.eventually
+          .be.rejectedWith(/cache unavailable/);
       });
     });
   });
@@ -372,7 +389,26 @@ describe("Sync", function() {
           "action": "get",
           "path": "/example/two",
           "promise": new Promise(resolve => {
+            resolve({
+              "statusCode": 200,
+              "body": "two",
+              "contentType": "text/plain; charset=UTF-8",
+              "revision": "123456abcdef"
+            });
+          })
+        },
+        "/example/server-error": {
+          "action": "get",
+          "path": "/example/server-error",
+          "promise": new Promise(resolve => {
             resolve({ "statusCode": 500 });
+          })
+        },
+        "/example/timeout": {
+          "action": "get",
+          "path": "/example/timeout",
+          "promise": new Promise(resolve => {
+            resolve({ "statusCode": "timeout" });
           })
         }
       };
@@ -388,7 +424,7 @@ describe("Sync", function() {
 
         expect(rsEmit.callCount).to.equal(1);
         expect(rsEmit.getCall(0).args[0]).to.equal('sync-req-done');
-        expect(rsEmit.getCall(0).args[1]).to.have.property('tasksRemaining', 1);
+        expect(rsEmit.getCall(0).args[1]).to.have.property('tasksRemaining', 3);
       });
 
       describe("last task", function() {
@@ -416,26 +452,44 @@ describe("Sync", function() {
     describe("failed to complete", function() {
       it("emits 'sync-req-done' with the number of remaining tasks", async function() {
         const rsEmit = sinon.spy(this.rs, '_emit');
-
-        await this.rs.sync.finishTask(this.tasks["/example/two"], false);
+        await this.rs.sync.finishTask(this.tasks["/example/server-error"], false);
 
         expect(rsEmit.callCount).to.equal(3); // 'error', 'sync-req-done', 'sync-done'
         expect(rsEmit.getCall(1).args[0]).to.equal('sync-req-done');
-        expect(rsEmit.getCall(1).args[1]).to.have.property('tasksRemaining', 2);
+        expect(rsEmit.getCall(1).args[1]).to.have.property('tasksRemaining', 4);
       });
 
       it("marks the sync as done", async function() {
-        await this.rs.sync.finishTask(this.tasks["/example/two"], false);
+        await this.rs.sync.finishTask(this.tasks["/example/server-error"], false);
         expect(this.rs.sync.done).to.be.true;
       });
 
       it("emits 'sync-done' with negative 'completed' status", async function() {
         const rsEmit = sinon.spy(this.rs, '_emit');
-
-        await this.rs.sync.finishTask(this.tasks["/example/two"], false);
+        await this.rs.sync.finishTask(this.tasks["/example/server-error"], false);
 
         expect(rsEmit.getCall(2).args[0]).to.equal('sync-done');
         expect(rsEmit.getCall(2).args[1]).to.have.property('completed', false);
+      });
+
+      it("stops the current task cycle on server error", async function() {
+        await this.rs.sync.finishTask(this.tasks["/example/two"], false);
+        await this.rs.sync.finishTask(this.tasks["/example/server-error"], false);
+        expect(Object.keys(this.rs.sync._tasks)).to.deep.equal([
+          "/example/one",
+          "/example/server-error",
+          "/example/timeout"
+        ]);
+      });
+
+      it("stops the current task cycle on timeout", async function() {
+        await this.rs.sync.finishTask(this.tasks["/example/one"], false);
+        await this.rs.sync.finishTask(this.tasks["/example/timeout"], false);
+        expect(Object.keys(this.rs.sync._tasks)).to.deep.equal([
+          "/example/two",
+          "/example/server-error",
+          "/example/timeout"
+        ]);
       });
     });
   });

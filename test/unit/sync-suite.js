@@ -54,38 +54,6 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
 
     tests: [
       {
-        desc: "sync will stop the current task cycle on timeout",
-        run: function(env, test) {
-          test.assertAnd(env.rs.sync._tasks, {});
-          test.assertAnd(env.rs.sync._running, {});
-
-          env.rs.caching._responses['/foo1/'] = 'ALL';
-          env.rs.caching._responses['/foo2/'] = 'ALL';
-          env.rs.remote._responses[['get', '/foo1/' ]] = {statusCode: 'timeout'};
-          env.rs.remote._responses[['get', '/foo2/' ]] = {statusCode: 200};
-
-          env.rs.sync.numThreads = 1;
-          env.rs.remote.connected = true;
-          env.rs.sync._tasks = {
-            '/foo1/': true,
-            '/foo2/': true
-          };
-          env.rs.sync._running = {};
-
-          env.rs.on('sync-done', function() {
-            test.assertAnd(env.rs.sync._running, {});
-            test.assertAnd(env.rs.sync._tasks, {
-              '/foo1/': true,
-              '/foo2/': true
-            });
-            test.done();
-          });
-
-          env.rs.sync.doTasks();
-        }
-      },
-
-      {
         desc: "collectDiffTasks will not enqueue requests outside the access scope",
         run: function(env, test) {
           env.rs.sync.numThreads = 5;
@@ -169,34 +137,6 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
               '/writings/baf': []
             });
             test.done();
-          });
-        }
-      },
-
-      {
-        desc: "sync will reject its promise if the cache is not available",
-        run: function(env, test) {
-          var tmp = env.rs.forAllNodes;
-          env.rs.local.forAllNodes = function(cb) {
-            return Promise.reject('i am broken, deal with it!');
-          };
-          env.rs.sync.sync().then(function() {
-            test.result(false, 'sync was supposed to reject its promise');
-          }, function(err) {
-            test.assertAnd(err, new Error('local cache unavailable'));
-            test.done();
-          });
-          env.rs.forAllNodes = tmp;
-        }
-      },
-
-      {
-        desc: "sync will fulfill its promise as long as the cache is available",
-        run: function(env, test) {
-          env.rs.sync.sync().then(function() {
-            test.done();
-          }, function(err) {
-            test.result(false, 'sync was supposed to fulfill its promise');
           });
         }
       },
