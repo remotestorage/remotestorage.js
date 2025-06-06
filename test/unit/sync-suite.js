@@ -35,7 +35,7 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
 
     beforeEach: function(env, test) {
       env.rs = new RemoteStorage();
-      env.rs.addEvents(['sync-req-done', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error']);
+      env.rs.addEvents(['sync-started', 'sync-req-done', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error']);
       env.rs.local = new InMemoryStorage();
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
