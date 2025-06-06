@@ -54,46 +54,6 @@ define(['./build/util', 'require', 'test/helpers/mocks'], function(util, require
 
     tests: [
       {
-        desc: "Sync calls doTasks, and goes to collectTasks only if necessary",
-        run: function(env, test) {
-          test.assertAnd(env.rs.sync._tasks, {});
-          test.assertAnd(env.rs.sync._running, {});
-          var doTasksCalled = 0, collectTasksCalled = 0, addTaskCalled = 0,
-            tmpDoTasks = env.rs.sync.doTasks,
-            tmpFindTasks = env.rs.sync.collectTasks,
-            tmpAddTasks = env.rs.sync.addTasks;
-
-          env.rs.sync.doTasks = function() {
-            doTasksCalled++;
-            if (addTaskCalled) {
-              return true;
-            } else {
-              return false;
-            }
-          };
-          env.rs.sync.collectTasks = function() {
-            collectTasksCalled++;
-            return Promise.resolve();
-          };
-          env.rs.sync.addTask = function() {
-            addTaskCalled++;
-          };
-          env.rs.sync.sync().then(function() {
-            test.assertAnd(doTasksCalled, 2);
-            test.assertAnd(collectTasksCalled, 1);
-            env.rs.sync.addTask('/foo', function() {});
-            return env.rs.sync.sync();
-          }).then(function() {
-            test.assertAnd(doTasksCalled, 3);
-            test.assertAnd(collectTasksCalled, 1);
-            env.rs.sync.doTasks = tmpDoTasks;
-            env.rs.sync.collectTasks = tmpFindTasks;
-            env.rs.sync.addTasks = tmpAddTasks;
-            test.done();
-          });
-        }
-      },
-      {
         desc: "collectTasks calls collectDiffTasks and goes to collectRefreshTasks only if necessary",
         run: function(env, test) {
           test.assertAnd(env.rs.sync._tasks, {});

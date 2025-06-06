@@ -96,6 +96,44 @@ describe("Sync", function() {
         expect(syncDone).to.be.false;
       });
     });
+
+    describe("with no need to sync", function() {
+      beforeEach(function() {
+        this.spies = {
+          doTasks: sinon.stub(this.rs.sync, 'doTasks').returns(true),
+          collectTasks: sinon.spy(this.rs.sync, 'collectTasks')
+        };
+      });
+
+      it("does not call #collectTasks()", async function() {
+        await this.rs.sync.sync();
+        expect(this.spies.collectTasks.callCount).to.equal(0);
+      });
+
+      it("calls #doTasks() once", async function() {
+        await this.rs.sync.sync();
+        expect(this.spies.doTasks.callCount).to.equal(1);
+      });
+    });
+
+    describe("with sync desired but not enough tasks queued", function() {
+      beforeEach(function() {
+        this.spies = {
+          doTasks: sinon.stub(this.rs.sync, 'doTasks').returns(false),
+          collectTasks: sinon.spy(this.rs.sync, 'collectTasks')
+        };
+      });
+
+      it("calls #collectTasks()", async function() {
+        await this.rs.sync.sync();
+        expect(this.spies.collectTasks.callCount).to.equal(1);
+      });
+
+      it("calls #doTasks() twice", async function() {
+        await this.rs.sync.sync();
+        expect(this.spies.doTasks.callCount).to.equal(2);
+      });
+    });
   });
 
   describe("#finishTask", function() {

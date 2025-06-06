@@ -1026,34 +1026,50 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Determine how many tasks we want to have
    **/
-  public doTasks (): boolean {
-    let numToHave: number, numAdded = 0, path: string;
-    if (this.rs.remote.connected) {
-      if (this.rs.remote.online) {
-        numToHave = this.numThreads;
-      } else {
-        numToHave = 1;
-      }
+  tasksWanted (): number {
+    if (!this.rs.remote.connected) {
+      // Nothing to sync if no remote connected
+      return 0;
+    }
+
+    if (this.rs.remote.online) {
+      // Run as many tasks as threads are available/configured
+      return this.numThreads;
     } else {
-      numToHave = 0;
+      // Only run 1 task when we're offline
+      return 1;
     }
+  }
+
+  /**
+   * Check if more tasks can be queued, and start running
+   * tasks
+   *
+   * @returns {Boolean} `true` when all tasks have been
+   *                    run or there's nothing to do, `false`
+   *                    if we could or want to run more
+   **/
+  doTasks (): boolean {
+    const numToHave = this.tasksWanted();
     const numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
-    if (numToAdd <= 0) {
-      return true;
-    }
+
+    if (numToAdd <= 0) { return true; }
+
+    let numAdded: number = 0;
+    let path: string;
+
     for (path in this._tasks) {
       if (!this._running[path]) {
         this._timeStarted[path] = this.now();
         this._running[path] = this.doTask(path);
         this._running[path].then(this.finishTask.bind(this));
         numAdded++;
-        if (numAdded >= numToAdd) {
-          return true;
-        }
+        if (numAdded >= numToAdd) { break; }
       }
     }
+
     return (numAdded >= numToAdd);
   }
 
@@ -1094,16 +1110,14 @@ export class Sync {
     this.done = false;
 
     if (!this.doTasks()) {
-      return this.collectTasks().then(() => {
-        try {
-          this.doTasks();
-        } catch(e) {
-          log('[Sync] doTasks error', e);
-        }
-      }, function (e) {
+      try {
+        await this.collectTasks();
+      } catch (e) {
         log('[Sync] Sync error', e);
         throw new Error('Local cache unavailable');
-      });
+      };
+
+      this.doTasks();
     }
   }
 
