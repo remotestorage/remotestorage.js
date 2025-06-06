@@ -208,6 +208,10 @@ enum ApiKeyType {
  *
  * Emitted when a network request completes
  *
+ * ### `sync-started`
+ *
+ * Emitted when a sync procedure has started.
+ *
  * ### `sync-req-done`
  *
  * Emitted when a single sync request has finished. Callback functions
@@ -370,7 +374,7 @@ export class RemoteStorage {
     this.addEvents([
       'ready', 'authing', 'connecting', 'connected', 'disconnected',
       'not-connected', 'conflict', 'error', 'features-loaded',
-      'sync-interval-change', 'sync-req-done', 'sync-done',
+      'sync-interval-change', 'sync-started', 'sync-req-done', 'sync-done',
       'wire-busy', 'wire-done', 'network-offline', 'network-online'
     ]);
 

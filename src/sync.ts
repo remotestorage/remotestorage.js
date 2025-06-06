@@ -1079,11 +1079,15 @@ export class Sync {
   doTasks (): boolean {
     const numToHave = this.tasksWanted();
     const numToAdd = numToHave - Object.keys(this._running).length;
-
     if (numToAdd <= 0) { return true; }
 
-    let numAdded: number = 0;
-    let path: string;
+    // `this.done` is `true` for immediate sync and `false` for
+    // periodic sync
+    if (this.hasTasks() && !this.done) {
+      this.rs._emit('sync-started');
+    }
+
+    let numAdded: number = 0, path: string;
 
     for (path in this._tasks) {
       if (!this._running[path]) {

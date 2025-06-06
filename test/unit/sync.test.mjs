@@ -97,11 +97,14 @@ describe("Sync", function() {
 
   describe("#sync", function() {
     it("returns immediately when not connected", async function() {
+      let syncStarted = false;
       let syncDone = false;
       this.rs.remote.connected = false;
+      this.rs.on('sync-started', () => { syncStarted = true; });
       this.rs.on('sync-done', () => { syncDone = true; });
 
       await this.rs.sync.sync().then(() => {
+        expect(syncStarted).to.be.false;
         expect(syncDone).to.be.false;
       });
     });
@@ -123,6 +126,13 @@ describe("Sync", function() {
         await this.rs.sync.sync();
         expect(this.spies.doTasks.callCount).to.equal(1);
       });
+
+      it("does not emit 'sync-started'", async function() {
+        let syncStarted = false;
+        this.rs.on('sync-started', () => { syncStarted = true; });
+        await this.rs.sync.sync();
+        expect(syncStarted).to.be.false;
+      });
     });
 
     describe("with sync desired but not enough tasks queued", function() {
@@ -141,6 +151,13 @@ describe("Sync", function() {
       it("calls #doTasks() twice", async function() {
         await this.rs.sync.sync();
         expect(this.spies.doTasks.callCount).to.equal(2);
+      });
+
+      it("does not emit 'sync-started'", async function() {
+        let syncStarted = false;
+        this.rs.on('sync-started', () => { syncStarted = true; });
+        await this.rs.sync.sync();
+        expect(syncStarted).to.be.false;
       });
     });
   });
@@ -315,6 +332,11 @@ describe("Sync", function() {
           '/foo1/': [], '/foo2/': [], '/foo3': [], '/foo4/': [],
           '/foo/5': [], '/foo/6/': [], '/foo7/': [], '/foo8': []
         };
+      });
+
+      it("emits 'sync-started'", async function(done) {
+        this.rs.on('sync-started', () => { done(); });
+        this.rs.sync.doTasks();
       });
 
       it("attempts requests according to the number of threads configured", async function() {
