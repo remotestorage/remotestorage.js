@@ -134,7 +134,7 @@ export class Sync {
   _timeStarted: { [key: string]: number; } = {};
 
   /**
-   * TODO document
+   * Holds finished tasks for orderly processing
    **/
   _finishedTasks: SyncTask[] = [];
 
@@ -931,7 +931,7 @@ export class Sync {
     }
   }
 
-  handleResponse (path: string, action, r): Promise<boolean> {
+  async handleResponse (path: string, action, r): Promise<boolean> {
     const status = this.interpretStatus(r.statusCode);
 
     if (status.successful) {
@@ -963,9 +963,9 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Execute/finish running tasks, one at a time
    **/
-  finishTask (task: SyncTask, queueTask: boolean = true): void | Promise<void> {
+  async finishTask (task: SyncTask, queueTask: boolean = true): Promise<void> {
     if (task.action === undefined) {
       delete this._running[task.path];
       return;
@@ -982,72 +982,82 @@ export class Sync {
 
     log("[Sync] run task:", task.path);
 
-    return task.promise
-      .then(res => {
-        return this.handleResponse(task.path, task.action, res);
-      }, err => {
-        log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
-        return this.handleResponse(task.path, task.action, { statusCode: 'offline' });
-      })
-      .then(async (completed) => {
-        this._finishedTasks.shift();
-        delete this._timeStarted[task.path];
-        delete this._running[task.path];
+    let res;
+    try {
+      res = await task.promise;
+    } catch (err) {
+      log('[Sync] wire client rejects its promise', task.path, task.action, err);
+      res = { statusCode: 'offline' };
+    }
 
-        if (completed) {
-          if (this._tasks[task.path]) {
-            for (let i=0; i < this._tasks[task.path].length; i++) {
-              this._tasks[task.path][i]();
-            }
-            delete this._tasks[task.path];
-          }
+    try {
+      const completed = await this.handleResponse(task.path, task.action, res);
+      this.finishSuccessfulTask(task, completed);
+    } catch (err) {
+      this.finishUnsuccessfulTask(task, err);
+    }
+  }
+
+  async finishSuccessfulTask (task: SyncTask, completed: boolean): Promise<void> {
+    this._finishedTasks.shift();
+    delete this._timeStarted[task.path];
+    delete this._running[task.path];
+
+    if (completed) {
+      if (this._tasks[task.path]) {
+        for (let i=0; i < this._tasks[task.path].length; i++) {
+          this._tasks[task.path][i]();
         }
+        delete this._tasks[task.path];
+      }
+    }
 
-        this.rs._emit('sync-req-done', {
-          tasksRemaining: Object.keys(this._tasks).length
-        });
+    this.rs._emit('sync-req-done', {
+      tasksRemaining: Object.keys(this._tasks).length
+    });
 
-        if (this._finishedTasks.length > 0) {
-          this.finishTask(this._finishedTasks[0], false);
-          return;
-        }
+    if (this._finishedTasks.length > 0) {
+      await this.finishTask(this._finishedTasks[0], false);
+      return;
+    }
 
-        await this.collectTasks(false).then(() => {
-          // See if there are any more tasks that are not refresh tasks
-          if (!this.hasTasks() || this.stopped) {
-            log('[Sync] Sync is done! Reschedule?', Object.keys(this._tasks).length, this.stopped);
-            if (!this.done) {
-              this.done = true;
-              this.rs._emit('sync-done', { completed: true });
-            }
-          } else {
-            // Use a 10ms timeout to let the JavaScript runtime catch its breath
-            // (and hopefully force an IndexedDB auto-commit?), and also to cause
-            // the threads to get staggered and get a good spread over time:
-            setTimeout(() => { this.doTasks(); }, 10);
-          }
-        });
-      }, err => {
-        log('[Sync] Error', err);
-
-        this._finishedTasks.shift();
-        delete this._timeStarted[task.path];
-        delete this._running[task.path];
-
-        this.rs._emit('sync-req-done', {
-          tasksRemaining: Object.keys(this._tasks).length
-        });
-
-        if (this._finishedTasks.length > 0) {
-          this.finishTask(this._finishedTasks[0], false);
-          return;
-        }
-
+    await this.collectTasks(false).then(() => {
+      // See if there are any more tasks that are not refresh tasks
+      if (!this.hasTasks() || this.stopped) {
+        log('[Sync] Sync is done! Reschedule?', Object.keys(this._tasks).length, this.stopped);
         if (!this.done) {
           this.done = true;
-          this.rs._emit('sync-done', { completed: false });
+          this.rs._emit('sync-done', { completed: true });
         }
-      });
+      } else {
+        // Use a 10ms timeout to let the JavaScript runtime catch its breath
+        // (and hopefully force an IndexedDB auto-commit?), and also to cause
+        // the threads to get staggered and get a good spread over time:
+        setTimeout(() => { this.doTasks(); }, 10);
+      }
+    });
+  }
+
+  async finishUnsuccessfulTask (task: SyncTask, err: Error): Promise<void> {
+    log('[Sync] Error', err);
+
+    this._finishedTasks.shift();
+    delete this._timeStarted[task.path];
+    delete this._running[task.path];
+
+    this.rs._emit('sync-req-done', {
+      tasksRemaining: Object.keys(this._tasks).length
+    });
+
+    if (this._finishedTasks.length > 0) {
+      await this.finishTask(this._finishedTasks[0], false);
+      return;
+    }
+
+    if (!this.done) {
+      this.done = true;
+      this.rs._emit('sync-done', { completed: false });
+    }
   }
 
   /**

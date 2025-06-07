@@ -989,7 +989,11 @@ describe("Sync", function() {
         }
       };
 
-      this.rs.sync._tasks = this.tasks;
+      Object.keys(this.tasks).map(path => {
+        this.rs.sync._tasks[path] = [];
+        this.rs.sync._timeStarted[path] = this.rs.sync.now();
+        this.rs.sync._running[path] = Promise.resolve(this.tasks[path]);
+      });
     });
 
     describe("successfully completed", function() {
@@ -1017,8 +1021,23 @@ describe("Sync", function() {
         expect(Object.keys(this.rs.sync._timeStarted)).to.not.include("/example/one");
       });
 
+      it("removes the task from _running tasks", async function() {
+        await this.rs.sync.finishTask(this.tasks["/example/one"], false);
+
+        expect(Object.keys(this.rs.sync._running)).to.deep.equal([
+          '/example/two', '/example/server-error', '/example/timeout'
+        ]);
+      });
+
+      it("removes the task start time from _timeStarted", async function() {
+        await this.rs.sync.finishTask(this.tasks["/example/one"], false);
+
+        expect(Object.keys(this.rs.sync._timeStarted)).to.not.include('/example/one');
+      });
+
       describe("last task", function() {
         beforeEach(function() {
+          this.rs.sync.collectTasks = async () => {};
           this.rs.sync._tasks = { "/example/one": this.tasks["/example/one"] };
         });
 
@@ -1040,13 +1059,31 @@ describe("Sync", function() {
     });
 
     describe("failed to complete", function() {
+      beforeEach(async function() {
+        await this.rs.sync.finishTask(this.tasks["/example/one"], false);
+      });
+
+      it("removes the task from _running tasks", async function() {
+        await this.rs.sync.finishTask(this.tasks["/example/one"], false);
+
+        expect(Object.keys(this.rs.sync._running)).to.deep.equal([
+          '/example/two', '/example/server-error', '/example/timeout'
+        ]);
+      });
+
+      it("removes the task start time from _timeStarted", async function() {
+        await this.rs.sync.finishTask(this.tasks["/example/one"], false);
+
+        expect(Object.keys(this.rs.sync._timeStarted)).to.not.include('/example/one');
+      });
+
       it("emits 'sync-req-done' with the number of remaining tasks", async function() {
         const rsEmit = sinon.spy(this.rs, '_emit');
         await this.rs.sync.finishTask(this.tasks["/example/server-error"], false);
 
         expect(rsEmit.callCount).to.equal(3); // 'error', 'sync-req-done', 'sync-done'
         expect(rsEmit.getCall(1).args[0]).to.equal('sync-req-done');
-        expect(rsEmit.getCall(1).args[1]).to.have.property('tasksRemaining', 4);
+        expect(rsEmit.getCall(1).args[1]).to.have.property('tasksRemaining', 3);
       });
 
       it("marks the sync as done", async function() {
@@ -1063,10 +1100,9 @@ describe("Sync", function() {
       });
 
       it("stops the current task cycle on server error", async function() {
-        await this.rs.sync.finishTask(this.tasks["/example/two"], false);
         await this.rs.sync.finishTask(this.tasks["/example/server-error"], false);
         expect(Object.keys(this.rs.sync._tasks)).to.deep.equal([
-          "/example/one",
+          "/example/two",
           "/example/server-error",
           "/example/timeout"
         ]);
