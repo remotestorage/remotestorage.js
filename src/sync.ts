@@ -102,18 +102,43 @@ function handleVisibility (env, rs): void {
 export class Sync {
   rs: RemoteStorage;
 
-  numThreads: number;
+  /**
+   * Maximum number of parallel requests to execute
+   **/
+  numThreads: number = 10;
+
+  /**
+   * Sync done? `false` when periodic sync is currently running
+   **/
   done: boolean;
+
+  /**
+   * Sync stopped entirely
+   **/
   stopped: boolean;
 
+  /**
+   * Paths queued for sync, sometimes with callbacks
+   **/
   _tasks: { [key: string]: Array<() => void>; } = {};
+
+  /**
+   * Promises of currently running sync tasks per path
+   **/
   _running: { [key: string]: Promise<SyncTask>; } = {};
+
+  /**
+   * Start times of current sync per path
+   **/
   _timeStarted: { [key: string]: number; } = {};
+
+  /**
+   * TODO document
+   **/
   _finishedTasks: SyncTask[] = [];
 
   constructor (remoteStorage: RemoteStorage) {
     this.rs = remoteStorage;
-    this.numThreads = 10;
 
     this.rs.local.onDiff(path => {
       this.addTask(path);
@@ -136,7 +161,9 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * When getting a path from the caching layer, this function might be handed
+   * in to first check if it was updated on the remote, in order to fulfill a
+   * maxAge requirement
    **/
   async queueGetRequest (path: string): Promise<object> {
     return new Promise((resolve, reject) => {
@@ -940,7 +967,7 @@ export class Sync {
   /**
    * TODO document
    **/
-  finishTask (task: SyncTask, queueTask = true): void | Promise<void> {
+  finishTask (task: SyncTask, queueTask: boolean = true): void | Promise<void> {
     if (task.action === undefined) {
       delete this._running[task.path];
       return;
