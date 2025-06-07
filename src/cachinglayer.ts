@@ -251,7 +251,6 @@ abstract class CachingLayer {
   }
 
   flush(path: string): unknown {
-
     return this._getAllDescendentPaths(path).then((paths: string[]) => {
       return this.getNodes(paths);
     }).then((nodes: RSNodes) => {

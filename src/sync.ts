@@ -1,6 +1,7 @@
 import type RemoteStorage from './remotestorage';
-import type { RSNode, RSNodes } from './interfaces/rs_node';
+import type { RSItem, RSNode, RSNodes } from './interfaces/rs_node';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
+import type { RemoteResponse } from './remote';
 import config from './config';
 import Env from './env';
 import EventHandling from './eventhandling';
@@ -30,12 +31,12 @@ interface ResponseStatus {
 }
 
 interface SyncTask {
-  action: string;
+  action: "get" | "put" | "delete";
   path: string;
-  promise: Promise<any>;
+  promise: Promise<RemoteResponse>;
 }
 
-function taskFor (action, path: string, promise: Promise<any>): SyncTask {
+function taskFor (action: SyncTask["action"], path: SyncTask["path"], promise: SyncTask["promise"]): SyncTask {
   return { action, path, promise };
 }
 
@@ -99,43 +100,43 @@ function handleVisibility (env, rs): void {
  * It does this using requests to documents and folders. Whenever a folder GET
  * comes in, it gives information about all the documents it contains (this is
  * the `markChildren` function).
- **/
+ */
 export class Sync {
   rs: RemoteStorage;
 
   /**
    * Maximum number of parallel requests to execute
-   **/
+   */
   numThreads: number = 10;
 
   /**
    * Sync done? `false` when periodic sync is currently running
-   **/
+   */
   done: boolean;
 
   /**
    * Sync stopped entirely
-   **/
+   */
   stopped: boolean;
 
   /**
    * Paths queued for sync, sometimes with callbacks
-   **/
+   */
   _tasks: { [key: string]: Array<() => void>; } = {};
 
   /**
    * Promises of currently running sync tasks per path
-   **/
+   */
   _running: { [key: string]: Promise<SyncTask>; } = {};
 
   /**
    * Start times of current sync per path
-   **/
+   */
   _timeStarted: { [key: string]: number; } = {};
 
   /**
    * Holds finished tasks for orderly processing
-   **/
+   */
   _finishedTasks: SyncTask[] = [];
 
   constructor (remoteStorage: RemoteStorage) {
@@ -156,7 +157,7 @@ export class Sync {
 
   /**
    * Return current time
-   **/
+   */
   now (): number {
     return new Date().getTime();
   }
@@ -165,7 +166,7 @@ export class Sync {
    * When getting a path from the caching layer, this function might be handed
    * in to first check if it was updated on the remote, in order to fulfill a
    * maxAge requirement
-   **/
+   */
   async queueGetRequest (path: string): Promise<QueuedRequestResponse> {
     return new Promise((resolve, reject) => {
       if (!this.rs.remote.connected) {
@@ -251,7 +252,7 @@ export class Sync {
 
   /**
    * Collect sync tasks for changed nodes
-   **/
+   */
   async collectDiffTasks (): Promise<number> {
     let num = 0;
 
@@ -357,7 +358,7 @@ export class Sync {
 
   /**
    * Collect tasks to refresh highest outdated folder in tree
-   **/
+   */
   async collectRefreshTasks (): Promise<void> {
     await this.rs.local.forAllNodes((node: RSNode) => {
       let parentPath: string;
@@ -380,7 +381,7 @@ export class Sync {
 
   /**
    * Flush nodes from cache after sync to remote
-   **/
+   */
   flush (nodes: RSNodes): RSNodes {
     for (const path in nodes) {
       // Strategy is 'FLUSH' and no local changes exist
@@ -395,7 +396,7 @@ export class Sync {
 
   /**
    * Sync one path
-   **/
+   */
   async doTask (path: string): Promise<SyncTask> {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
@@ -459,7 +460,7 @@ export class Sync {
 
   /**
    * TODO document
-   **/
+   */
   autoMergeFolder (node: RSNode): RSNode {
     if (node.remote.itemsMap) {
       node.common = node.remote;
@@ -486,7 +487,7 @@ export class Sync {
 
   /**
    * TODO document
-   **/
+   */
   autoMergeDocument (node: RSNode): RSNode {
     if (hasNoRemoteChanges(node)) {
       node = mergeMutualDeletion(node);
@@ -520,7 +521,7 @@ export class Sync {
 
   /**
    * TODO document
-   **/
+   */
   autoMerge (node: RSNode): RSNode {
     if (node.remote) {
       if (node.local) {
@@ -589,7 +590,7 @@ export class Sync {
 
   /**
    * TODO document
-   **/
+   */
   async markChildren (path, itemsMap, changedNodes: RSNodes, missingChildren): Promise<void> {
     const paths = [];
     const meta = {};
@@ -686,7 +687,7 @@ export class Sync {
 
   /**
    * TODO document
-   **/
+   */
   async deleteRemoteTrees (paths: string[], changedNodes: RSNodes): Promise<RSNodes | void> {
     if (paths.length === 0) { return changedNodes; }
 
@@ -729,8 +730,8 @@ export class Sync {
 
   /**
    * TODO document
-   **/
-  async completeFetch (path: string, bodyOrItemsMap: object, contentType: string, revision: string): Promise<any> {
+   */
+  async completeFetch (path: string, bodyOrItemsMap: RSItem["body"], contentType: string, revision: string): Promise<any> {
     let paths: string[];
     let parentPath: string;
     const pathsFromRootArr = pathsFromRoot(path);
@@ -775,7 +776,7 @@ export class Sync {
         collectMissingChildren(node.remote);
 
         node.remote.itemsMap = {};
-        for (itemName in bodyOrItemsMap) {
+        for (itemName in bodyOrItemsMap as object) {
           node.remote.itemsMap[itemName] = true;
         }
       } else {
@@ -799,11 +800,11 @@ export class Sync {
   }
 
   /**
-   * TODO document
-   **/
-  async completePush (path: string, action, conflict, revision: string): Promise<void> {
+   * Handle successful PUT or DELETE request
+   */
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
+  async completePush (path: string, action: "put" | "delete", conflict: boolean, revision: string): Promise<void> {
 
       if (!node.push) {
         this.stopped = true;
@@ -853,7 +854,7 @@ export class Sync {
 
   /**
    * TODO document
-   **/
+   */
   async dealWithFailure (path: string): Promise<void> {
     const nodes = await this.rs.local.getNodes([path]);
 
@@ -898,9 +899,9 @@ export class Sync {
   }
 
   /**
-   * TODO document
-   **/
-  async handleGetResponse (path: string, status: ResponseStatus, bodyOrItemsMap, contentType: string, revision: string): Promise<boolean> {
+   * Handle successful GET request
+   */
+  async handleGetResponse (path: string, status: ResponseStatus, bodyOrItemsMap: RSItem["body"], contentType: string, revision: string): Promise<boolean> {
     if (status.notFound) {
       if (isFolder(path)) {
         bodyOrItemsMap = {};
@@ -931,7 +932,10 @@ export class Sync {
     }
   }
 
-  async handleResponse (path: string, action, r): Promise<boolean> {
+  /**
+   * Handle response of executed request
+   */
+  async handleResponse (path: string, action: SyncTask["action"], r: RemoteResponse): Promise<boolean> {
     const status = this.interpretStatus(r.statusCode);
 
     if (status.successful) {
@@ -964,7 +968,7 @@ export class Sync {
 
   /**
    * Execute/finish running tasks, one at a time
-   **/
+   */
   async finishTask (task: SyncTask, queueTask: boolean = true): Promise<void> {
     if (task.action === undefined) {
       delete this._running[task.path];
@@ -1062,7 +1066,7 @@ export class Sync {
 
   /**
    * Determine how many tasks we want to have
-   **/
+   */
   tasksWanted (): number {
     if (!this.rs.remote.connected) {
       // Nothing to sync if no remote connected
@@ -1082,10 +1086,10 @@ export class Sync {
    * Check if more tasks can be queued, and start running
    * tasks
    *
-   * @returns {Boolean} `true` when all tasks have been
-   *                    run or there's nothing to do, `false`
-   *                    if we could or want to run more
-   **/
+   * @returns {Boolean} `true` when all tasks have been started or
+   *                    there's nothing to do, `false` if we could
+   *                    or want to run more
+   */
   doTasks (): boolean {
     const numToHave = this.tasksWanted();
     const numToAdd = numToHave - Object.keys(this._running).length;
@@ -1113,7 +1117,7 @@ export class Sync {
 
   /**
    * Collect any potential sync tasks if none are queued
-   **/
+   */
   async collectTasks (alsoCheckRefresh: boolean = true): Promise<void> {
     if (this.hasTasks() || this.stopped) { return; }
 
@@ -1127,7 +1131,7 @@ export class Sync {
 
   /**
    * Add a sync task for the given path
-   **/
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addTask (path: string, cb?: () => void): void {
     if (!this._tasks[path]) {
@@ -1140,7 +1144,7 @@ export class Sync {
 
   /**
    * Start a sync procedure
-   **/
+   */
   public async sync (): Promise<void> {
     this.done = false;
 
