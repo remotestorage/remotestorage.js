@@ -4,20 +4,13 @@ export type RSItem = {
   contentLength?: number;
   revision?: string;
   timestamp?: number;
-  itemsMap?: {
-    [key: string]: any;
-  };
+  itemsMap?: { [key: string]: any; };
   previousBody?: string | object | false;
   previousContentType?: string;
 }
 
 export type RSNode = {
   path: string;
-  body?: string | object | false;
-  contentType?: string;
-  itemsMap?: {
-    [key: string]: any;
-  };
   common?: RSItem;
   local?: RSItem;
   remote?: RSItem;

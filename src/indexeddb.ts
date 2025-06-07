@@ -288,7 +288,7 @@ class IndexedDB extends CachingLayer {
         const cursor = evt.target.result;
 
         if (cursor) {
-          cb(this.migrate(cursor.value));
+          cb(cursor.value);
           cursor.continue();
         } else {
           resolve();

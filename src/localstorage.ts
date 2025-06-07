@@ -26,7 +26,7 @@ class LocalStorage extends CachingLayer {
     this.addEvents(['change', 'local-events-done']);
   }
 
-  // TODO fix this
+  // TODO use correct types
   diffHandler(...args: any[]): void {
     return;
   }
@@ -61,8 +61,7 @@ class LocalStorage extends CachingLayer {
     for (let i = 0, len = localStorage.length; i < len; i++) {
       if (isNodeKey(localStorage.key(i))) {
         try {
-          // NOTE: this is coming from caching layer todo fix via interface or similar
-          node = this.migrate(JSON.parse(localStorage.getItem(localStorage.key(i))));
+          node = JSON.parse(localStorage.getItem(localStorage.key(i)));
         } catch (e) {
           node = undefined;
         }
