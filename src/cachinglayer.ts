@@ -37,16 +37,6 @@ function getLatest (node: RSNode): RSItem {
     if (node.common && node.common.body && node.common.contentType) {
       return node.common;
     }
-    // Migration code! Once all apps use at least this version of the lib, we
-    // can publish clean-up code that migrates over any old-format data, and
-    // stop supporting it. For now, new apps will support data in both
-    // formats, thanks to this:
-    if (node.body && node.contentType) {
-      return {
-        body: node.body,
-        contentType: node.contentType
-      };
-    }
   }
 }
 
@@ -55,7 +45,9 @@ function isOutdated (nodes: RSNodes, maxAge: number): boolean {
     if (nodes[path] && nodes[path].remote) {
       return true;
     }
+
     const nodeVersion = getLatest(nodes[path]);
+
     if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
       return false;
     } else if (!nodeVersion) {
@@ -316,26 +308,6 @@ abstract class CachingLayer {
   onDiff(diffHandler: any) {
     this.diffHandler = diffHandler;
   }
-
-  migrate(node: RSNode): RSNode {
-    if (typeof (node) === 'object' && !node.common) {
-      node.common = {};
-      if (typeof (node.path) === 'string') {
-        if (node.path.substr(-1) === '/' && typeof (node.body) === 'object') {
-          node.common.itemsMap = node.body;
-        }
-      } else {
-        //save legacy content of document node as local version
-        if (!node.local) {
-          node.local = {};
-        }
-        node.local.body = node.body;
-        node.local.contentType = node.contentType;
-      }
-    }
-    return node;
-  }
-
 
   private _updateNodes(paths: string[], _processNodes: ProcessNodes): Promise<RSNodes> {
     return new Promise((resolve, reject) => {

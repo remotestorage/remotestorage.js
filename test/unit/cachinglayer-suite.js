@@ -49,11 +49,6 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
             push:   { foo: 'bar' },
             remote: { foo: 'bar' }
           },
-          legacyNode = {
-            path:        '/foo',
-            body:        'asdf',
-            contentType: 'text/plain'
-          };
           deletedLocalNode = {
             path:   '/a/b',
             local:  { body: false },
@@ -68,8 +63,6 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
           test.assertAnd(getLatest(localNode).contentType, 'c');
           test.assertAnd(getLatest(commonNode).body, 'b');
           test.assertAnd(getLatest(commonNode).contentType, 'c');
-          test.assertAnd(getLatest(legacyNode).body, 'asdf');
-          test.assertAnd(getLatest(legacyNode).contentType, 'text/plain');
           test.assertAnd(getLatest(deletedLocalNode), undefined);
           test.done();
         }
