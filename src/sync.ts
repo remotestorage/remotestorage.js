@@ -1,4 +1,6 @@
+import type RemoteStorage from './remotestorage';
 import type { RSNode, RSNodes } from './interfaces/rs_node';
+import type { QueuedRequestResponse } from './interfaces/queued_request_response';
 import config from './config';
 import Env from './env';
 import EventHandling from './eventhandling';
@@ -14,7 +16,6 @@ import {
   isDocument,
   pathsFromRoot
 } from './util';
-import type RemoteStorage from './remotestorage';
 
 let setupSync, syncOnConnect;
 
@@ -165,7 +166,7 @@ export class Sync {
    * in to first check if it was updated on the remote, in order to fulfill a
    * maxAge requirement
    **/
-  async queueGetRequest (path: string): Promise<object> {
+  async queueGetRequest (path: string): Promise<QueuedRequestResponse> {
     return new Promise((resolve, reject) => {
       if (!this.rs.remote.connected) {
         reject('cannot fulfill maxAge requirement - remote is not connected');
