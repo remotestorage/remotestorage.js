@@ -291,6 +291,72 @@ describe("Sync", function() {
     });
   });
 
+  describe("#collectDiffTasks", function() {
+    beforeEach(function() {
+    });
+
+    describe("", function() {
+      beforeEach(function() {
+      });
+    });
+
+
+    it("does not enqueue tasks outside permitted access scopes", async function() {
+      await this.rs.local.setNodes({
+        '/foo/bar': {
+          path: '/foo/bar',
+          common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+          local: { body: false, timestamp: 1234567891000 }
+        },
+        '/public/nothings/bar': {
+          path: '/public/nothings/bar',
+          common: { revision: '987', timestamp: 1234567890123 },
+          local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+        }
+      });
+      await this.rs.sync.collectDiffTasks();
+
+      expect(this.rs.sync._tasks).to.deep.equal({
+        "/foo/bar": []
+      });
+    });
+
+    it("enqueues a task when a new remote revision has been set", async function() {
+      await this.rs.local.setNodes({
+        '/public/writings/bar': {
+          path: '/public/writings/bar',
+          common: { revision: '987', timestamp: 1234567890123 },
+          remote: { revision: 'a' }
+        }
+      });
+      await this.rs.sync.collectDiffTasks();
+
+      expect(this.rs.sync._tasks).to.deep.equal({
+        "/public/writings/bar": []
+      });
+    });
+
+    it("enqueues tasks for corrupt cache nodes with a readable path", async function() {
+      await this.rs.local.setNodes({
+        '/writings/baz': {
+          // corrupt, but no path
+          common: { body: "foo", contentType: "text/plain", revision: '123456abcdef', timestamp: 1234567890123 },
+          remote: { revision: 'yes' },
+          push: 'no'
+        },
+        '/writings/baf': {
+          path: '/writings/baf',
+          remote: { revision: 'yes' }
+        }
+      });
+      await this.rs.sync.collectDiffTasks();
+
+      expect(this.rs.sync._tasks).to.deep.equal({
+        '/writings/baf': []
+      });
+    });
+  });
+
   describe("#doTasks", function() {
     beforeEach(function() {
       this.rs.sync.doTasks = this.original.doTasks;
@@ -526,6 +592,52 @@ describe("Sync", function() {
           "/example/server-error",
           "/example/timeout"
         ]);
+      });
+    });
+  });
+
+  describe("#queueGetRequest", function() {
+    describe("normal operation", function() {
+      beforeEach(async function() {
+        this.rs.remote.connected = true;
+        this.rs.remote.online = true;
+        this.rs.caching.enable("/foo/");
+        this.rs.local.get = async function(path) {
+          if (path === "/foo/one") { return "dummy response"; }
+        };
+        this.rs.sync.doTasks = function() {
+          // Execute callback for our queued task
+          this._tasks["/foo/one"][0]();
+        }.bind(this.rs.sync);
+
+      });
+
+      it("adds a task for the path and resolves with local data when task is finished", async function() {
+        const res = await this.rs.sync.queueGetRequest("/foo/one");
+        expect(res).to.equal("dummy response");
+      });
+    });
+
+    describe("when not connected", function() {
+      beforeEach(function() {
+        this.rs.remote.connected = false;
+      });
+
+      it("get with maxAge requirement is rejected", async function() {
+        await expect(this.rs.sync.queueGetRequest("/example/one")).to
+          .eventually.be.rejectedWith(/remote is not connected/);
+      });
+    });
+
+    describe("when not connected", function() {
+      beforeEach(function() {
+        this.rs.remote.connected = true;
+        this.rs.remote.online = false;
+      });
+
+      it("get with maxAge requirement is rejected", async function() {
+        await expect(this.rs.sync.queueGetRequest("/example/one")).to
+          .eventually.be.rejectedWith(/remote is not online/);
       });
     });
   });
