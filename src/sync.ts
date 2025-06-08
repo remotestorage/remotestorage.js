@@ -523,43 +523,7 @@ export class Sync {
    * Merge/process node items after various updates from remote
    */
   autoMerge (node: RSNode): RSNode {
-    if (node.remote) {
-      if (node.local) {
-        if (isFolder(node.path)) {
-          return this.autoMergeFolder(node);
-        } else {
-          return this.autoMergeDocument(node);
-        }
-      } else { // no local changes
-        if (isFolder(node.path)) {
-          if (node.remote.itemsMap !== undefined) {
-            node.common = node.remote;
-            delete node.remote;
-          }
-        } else {
-          if (node.remote.body !== undefined) {
-            const change = {
-              origin:   'remote',
-              path:     node.path,
-              oldValue: (node.common.body === false ? undefined : node.common.body),
-              newValue: (node.remote.body === false ? undefined : node.remote.body),
-              oldContentType: node.common.contentType,
-              newContentType: node.remote.contentType
-            };
-            if (change.oldValue || change.newValue) {
-              this.rs.local.emitChange(change);
-            }
-
-            if (!node.remote.body) { // no remote, so delete/don't create
-              return;
-            }
-
-            node.common = node.remote;
-            delete node.remote;
-          }
-        }
-      }
-    } else {
+    if (!node.remote) {
       if (node.common.body) {
         this.rs.local.emitChange({
           origin:   'remote',
@@ -570,8 +534,45 @@ export class Sync {
           newContentType: undefined
         });
       }
+      return;
+    }
 
-      return undefined;
+    // Local changes
+    if (node.local) {
+      if (isFolder(node.path)) {
+        return this.autoMergeFolder(node);
+      } else {
+        return this.autoMergeDocument(node);
+      }
+    }
+
+    if (isFolder(node.path)) {
+      if (node.remote.itemsMap !== undefined) {
+        node.common = node.remote;
+        delete node.remote;
+      }
+    } else {
+      if (node.remote.body !== undefined) {
+        const change = {
+          origin:   'remote',
+          path:     node.path,
+          oldValue: (node.common.body === false ? undefined : node.common.body),
+          newValue: (node.remote.body === false ? undefined : node.remote.body),
+          oldContentType: node.common.contentType,
+          newContentType: node.remote.contentType
+        };
+
+        if (change.oldValue || change.newValue) {
+          this.rs.local.emitChange(change);
+        }
+
+        if (!node.remote.body) { // no remote, so delete/don't create
+          return;
+        }
+
+        node.common = node.remote;
+        delete node.remote;
+      }
     }
 
     return node;
