@@ -459,7 +459,7 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Merge/process folder node items after updates from remote
    */
   autoMergeFolder (node: RSNode): RSNode {
     if (node.remote.itemsMap) {
@@ -486,7 +486,7 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Merge/process document node items after updates from remote
    */
   autoMergeDocument (node: RSNode): RSNode {
     if (hasNoRemoteChanges(node)) {
@@ -520,7 +520,7 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Merge/process node items after various updates from remote
    */
   autoMerge (node: RSNode): RSNode {
     if (node.remote) {
@@ -589,9 +589,10 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * After successful GET of a folder, mark its children/items for
+   * changes and further processing
    */
-  async markChildren (path, itemsMap, changedNodes: RSNodes, missingChildren): Promise<void> {
+  async markChildren (path: string, itemsMap: RSItem["itemsMap"], changedNodes: RSNodes, missingChildren: { [key: string]: boolean }): Promise<void> {
     const paths = [];
     const meta = {};
     const recurse = {};
@@ -686,7 +687,8 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Recursively process paths to mark documents as remotely deleted
+   * where applicable
    */
   async deleteRemoteTrees (paths: string[], changedNodes: RSNodes): Promise<RSNodes | void> {
     if (paths.length === 0) { return changedNodes; }
@@ -694,7 +696,7 @@ export class Sync {
     const nodes = await this.rs.local.getNodes(paths);
     const subPaths = {};
 
-    function collectSubPaths (folder, path: string): void {
+    function collectSubPaths (folder: RSItem, path: string): void {
       if (folder && folder.itemsMap) {
         for (const itemName in folder.itemsMap) {
           subPaths[path+itemName] = true;
@@ -729,7 +731,7 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Complete a successful GET request
    */
   async completeFetch (path: string, bodyOrItemsMap: RSItem["body"], contentType: string, revision: string): Promise<any> {
     let paths: string[];
@@ -776,7 +778,7 @@ export class Sync {
         collectMissingChildren(node.remote);
 
         node.remote.itemsMap = {};
-        for (itemName in bodyOrItemsMap as object) {
+        for (itemName in bodyOrItemsMap as RSItem["itemsMap"]) {
           node.remote.itemsMap[itemName] = true;
         }
       } else {
@@ -852,7 +854,7 @@ export class Sync {
   }
 
   /**
-   * TODO document
+   * Remove push item from cached nodes that failed to sync
    */
   async dealWithFailure (path: string): Promise<void> {
     const nodes = await this.rs.local.getNodes([path]);
@@ -913,7 +915,7 @@ export class Sync {
           log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
           return false;
         }
-        await this.markChildren(path, bodyOrItemsMap, data.toBeSaved, data.missingChildren);
+        await this.markChildren(path, bodyOrItemsMap as RSItem["itemsMap"], data.toBeSaved, data.missingChildren);
       } else {
         await this.rs.local.setNodes(this.flush(data.toBeSaved));
       }
