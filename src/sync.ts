@@ -681,7 +681,7 @@ export class Sync {
       }
     }
 
-    const changedNodes2 = await this.deleteRemoteTrees(Object.keys(recurse), changedNodes);
+    const changedNodes2 = await this.markRemoteDeletions(Object.keys(recurse), changedNodes);
     if (changedNodes2) {
       await this.rs.local.setNodes(this.flush(changedNodes2));
     }
@@ -691,7 +691,7 @@ export class Sync {
    * Recursively process paths to mark documents as remotely deleted
    * where applicable
    */
-  async deleteRemoteTrees (paths: string[], changedNodes: RSNodes): Promise<RSNodes | void> {
+  async markRemoteDeletions (paths: string[], changedNodes: RSNodes): Promise<RSNodes | void> {
     if (paths.length === 0) { return changedNodes; }
 
     const nodes = await this.rs.local.getNodes(paths);
@@ -725,7 +725,7 @@ export class Sync {
     }
 
     // Recurse whole tree depth levels at once:
-    const changedNodes2 = await this.deleteRemoteTrees(Object.keys(subPaths), changedNodes);
+    const changedNodes2 = await this.markRemoteDeletions(Object.keys(subPaths), changedNodes);
     if (changedNodes2) {
       await this.rs.local.setNodes(this.flush(changedNodes2));
     }
