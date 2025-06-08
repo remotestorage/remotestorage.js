@@ -802,54 +802,53 @@ export class Sync {
   /**
    * Handle successful PUT or DELETE request
    */
-    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
-      const node = nodes[path];
   async completePush (path: string, action: "put" | "delete", conflict: boolean, revision: string): Promise<void> {
+    const nodes = await this.rs.local.getNodes([path]);
+    const node = nodes[path];
 
-      if (!node.push) {
-        this.stopped = true;
-        throw new Error('completePush called but no push version!');
-      }
+    if (!node.push) {
+      this.stopped = true;
+      throw new Error('completePush called but no push version!');
+    }
 
-      if (conflict) {
-        log('[Sync] We have a conflict');
+    if (conflict) {
+      log('[Sync] We have a conflict');
 
-        if (!node.remote || node.remote.revision !== revision) {
-          node.remote = {
-            revision:  revision || 'conflict',
-            timestamp: this.now()
-          };
-          delete node.push;
-        }
-
-        nodes[path] = this.autoMerge(node);
-      } else {
-        node.common = {
-          revision:  revision,
+      if (!node.remote || node.remote.revision !== revision) {
+        node.remote = {
+          revision:  revision || 'conflict',
           timestamp: this.now()
         };
-
-        if (action === 'put') {
-          node.common.body = node.push.body;
-          node.common.contentType = node.push.contentType;
-
-          if (equal(node.local.body, node.push.body) &&
-              node.local.contentType === node.push.contentType) {
-            delete node.local;
-          }
-
-          delete node.push;
-        } else if (action === 'delete') {
-          if (node.local.body === false) { // No new local changes since push; flush it.
-            nodes[path] = undefined;
-          } else {
-            delete node.push;
-          }
-        }
+        delete node.push;
       }
 
-      return this.rs.local.setNodes(this.flush(nodes));
-    });
+      nodes[path] = this.autoMerge(node);
+    } else {
+      node.common = {
+        revision:  revision,
+        timestamp: this.now()
+      };
+
+      if (action === 'put') {
+        node.common.body = node.push.body;
+        node.common.contentType = node.push.contentType;
+
+        if (equal(node.local.body, node.push.body) &&
+            node.local.contentType === node.push.contentType) {
+          delete node.local;
+        }
+
+        delete node.push;
+      } else if (action === 'delete') {
+        if (node.local.body === false) { // No new local changes since push; flush it.
+          nodes[path] = undefined;
+        } else {
+          delete node.push;
+        }
+      }
+    }
+
+    await this.rs.local.setNodes(this.flush(nodes));
   }
 
   /**
