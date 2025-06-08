@@ -902,33 +902,25 @@ export class Sync {
    */
   async handleGetResponse (path: string, status: ResponseStatus, bodyOrItemsMap: RSItem["body"], contentType: string, revision: string): Promise<boolean> {
     if (status.notFound) {
-      if (isFolder(path)) {
-        bodyOrItemsMap = {};
-      } else {
-        bodyOrItemsMap = false;
-      }
+      bodyOrItemsMap = isFolder(path) ? {} : false;
     }
 
     if (status.changed) {
-      return this.completeFetch(path, bodyOrItemsMap, contentType, revision)
-        .then(dataFromFetch => {
-          if (isFolder(path)) {
-            if (this.corruptServerItemsMap(bodyOrItemsMap)) {
-              log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
-              return false;
-            } else {
-              return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren)
-                .then(() => { return true; });
-            }
-          } else {
-            return this.rs.local.setNodes(this.flush(dataFromFetch.toBeSaved))
-              .then(() => { return true; });
-          }
-        });
+      const data = await this.completeFetch(path, bodyOrItemsMap, contentType, revision);
+
+      if (isFolder(path)) {
+        if (this.corruptServerItemsMap(bodyOrItemsMap)) {
+          log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
+          return false;
+        }
+        await this.markChildren(path, bodyOrItemsMap, data.toBeSaved, data.missingChildren);
+      } else {
+        await this.rs.local.setNodes(this.flush(data.toBeSaved));
+      }
     } else {
-      return this.updateCommonTimestamp(path, revision)
-        .then(() => { return true; });
+      await this.updateCommonTimestamp(path, revision);
     }
+    return true;
   }
 
   /**
