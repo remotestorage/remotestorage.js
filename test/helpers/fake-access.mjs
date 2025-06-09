@@ -11,27 +11,21 @@ class FakeAccess {
     return this._data[moduleName];
   }
 
-  checkPathPermission (path, mode) {
-    if (path.substring(0, '/foo/'.length) === '/foo/') {
-      return true;
-    }
-    if (path.substring(0, '/read/access/'.length) === '/read/access/' && mode === 'r') {
-      return true;
-    }
-    if (path.substring(0, '/write/access/'.length) === '/write/access/') {
-      return true;
-    }
-    if (path.substring(0, '/readings/'.length) === '/readings/' && mode === 'r') {
-      return true;
-    }
-    if (path.substring(0, '/public/readings/'.length) === '/public/readings/' && mode === 'r') {
-      return true;
-    }
-    if (path.substring(0, '/writings/'.length) === '/writings/') {
-      return true;
-    }
-    if (path.substring(0, '/public/writings/'.length) === '/public/writings/') {
-      return true;
+  checkPathPermission(path, mode) {
+    const permissions = new Map([
+      ['/foo/', 'rw'],
+      ['/read/access/', 'r'],
+      ['/write/access/', 'rw'],
+      ['/readings/', 'r'],
+      ['/public/readings/', 'r'],
+      ['/writings/', 'rw'],
+      ['/public/writings/', 'rw']
+    ]);
+
+    for (const [prefix, presetMode] of permissions) {
+      if (path.startsWith(prefix) && (!mode || presetMode.startsWith(mode))) {
+        return true;
+      }
     }
     return false;
   }
