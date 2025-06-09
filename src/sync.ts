@@ -425,7 +425,7 @@ export class Sync {
           return taskFor('put', path,
             this.rs.remote.put(
               path,
-              node.push.body as string,
+              node.push.body as string, // TODO string | ArrayBuffer?
               node.push.contentType,
               options
             )
