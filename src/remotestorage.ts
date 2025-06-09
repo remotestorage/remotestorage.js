@@ -154,6 +154,10 @@ enum ApiKeyType {
  *
  * Emitted when ready, but no storage connected ("anonymous mode")
  *
+ * > [!NOTE]
+ * > In non-browser environments, this will always be emitted (before any
+ * > potential `connected` events after)
+ *
  * ### `connected`
  *
  * Emitted when a remote storage has been connected
