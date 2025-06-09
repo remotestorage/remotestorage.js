@@ -1,7 +1,7 @@
-import type Access from './access';
-import type RemoteStorage from './remotestorage';
 import { containingFolder, isFolder } from './util';
 import log from './log';
+import type Access from './access';
+import type RemoteStorage from './remotestorage';
 
 /**
  * @class
@@ -182,8 +182,7 @@ export class Caching {
    *
    * @internal
    **/
-  static _rs_init (remoteStorage: RemoteStorage): void {
-    remoteStorage.caching = new Caching(remoteStorage);
+  static _rs_init (/*remoteStorage*/): void {
     return;
   }
 }

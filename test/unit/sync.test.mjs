@@ -5,7 +5,6 @@ import sinon from "sinon";
 
 import InMemoryStorage from "../../build/inmemorystorage.js";
 import { RemoteStorage } from "../../build/remotestorage.js";
-import { Caching } from "../../build/caching.js";
 import { Sync } from "../../build/sync.js";
 import FakeAccess from "../helpers/fake-access.mjs";
 import UnauthorizedError from "./build/unauthorized-error.js";
@@ -16,11 +15,13 @@ describe("Sync", function() {
   beforeEach(function(done) {
     this.original = {};
     this.rs = new RemoteStorage();
+    Object.defineProperty(this.rs, "access", {
+      value: new FakeAccess(),
+      writable: true,
+      configurable: true
+    });
 
     this.rs.on("features-loaded", () => {
-      this.rs.access = new FakeAccess();
-      Caching._rs_init(this.rs);
-
       this.rs._handlers["connected"] = [];
       this.rs.local = new InMemoryStorage();
       this.rs.syncStopped = true;

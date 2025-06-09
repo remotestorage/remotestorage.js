@@ -1,5 +1,3 @@
-import type RemoteStorage from "./remotestorage";
-
 export type AccessMode = 'r' | 'rw';
 export type AccessScope = string;
 
@@ -195,8 +193,7 @@ export class Access {
     this.storageType = type;
   }
 
-  static _rs_init(remoteStorage: RemoteStorage): void {
-    remoteStorage.access = new Access();
+  static _rs_init(): void {
     return;
   }
 }

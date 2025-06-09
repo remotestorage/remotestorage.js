@@ -1230,6 +1230,27 @@ export class RemoteStorage {
   }
 }
 
+// At this point the remoteStorage object has not been created yet. Only
+// its prototype exists so far, so we define self-constructing properties on
+// it, in order for devs not having to wait for feature loading before managing
+// access and caching settings
+Object.defineProperty(RemoteStorage.prototype, 'access', {
+  configurable: true,
+  get: function() {
+    const access = new Access();
+    Object.defineProperty(this, 'access', { value: access });
+    return access;
+  },
+});
+Object.defineProperty(RemoteStorage.prototype, 'caching', {
+  configurable: true,
+  get: function () {
+    const caching = new Caching(this);
+    Object.defineProperty(this, 'caching', { value: caching });
+    return caching;
+  }
+});
+
 export interface RemoteStorage extends EventHandling {}
 applyMixins(RemoteStorage, [EventHandling]);
 
