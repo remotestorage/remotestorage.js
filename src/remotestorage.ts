@@ -433,10 +433,9 @@ export class RemoteStorage {
     // load all features and emit `ready`
     this._init();
 
-    /**
-     * TODO: document
-     */
     this.fireInitial = function () {
+      // When caching is turned on, emit change events with origin "local" for
+      // all cached documents
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
