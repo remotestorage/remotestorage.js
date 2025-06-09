@@ -452,14 +452,6 @@ export class RemoteStorage {
     return this.remote.connected;
   }
 
-  /**
-   * FIXME: Instead of doing this, would be better to only
-   * export setAuthURL / getAuthURL from RemoteStorage prototype
-   *
-   * @ignore
-   */
-  static Authorize = Authorize;
-
   static SyncError = SyncError;
   static Unauthorized = UnauthorizedError;
   static DiscoveryError = Discover.DiscoveryError;
