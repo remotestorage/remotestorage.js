@@ -1037,7 +1037,7 @@ export class Sync {
   }
 
   async finishUnsuccessfulTask (task: SyncTask, err: Error): Promise<void> {
-    log('[Sync] Error', err);
+    log('[Sync]', err.message);
 
     this._finishedTasks.shift();
     delete this._timeStarted[task.path];
