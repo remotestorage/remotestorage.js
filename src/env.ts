@@ -1,5 +1,6 @@
 import EventHandling from './eventhandling';
 import { applyMixins } from './util';
+import log from './log';
 
 class Env {
   hiddenProperty: "hidden" | "mozHidden" | "msHidden" | "webkitHidden";
@@ -38,8 +39,10 @@ class Env {
 
   setVisibility (): void {
     if (document[this.hiddenProperty]) {
+      log(`[Env] Going into background mode`);
       this.goBackground();
     } else {
+      log(`[Env] Going into foreground mode`);
       this.goForeground();
     }
   }
