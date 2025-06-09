@@ -1,4 +1,5 @@
 import tv4 from 'tv4';
+import type RemoteStorage from './remotestorage';
 import type { JsonSchemas } from './interfaces/json_schema';
 import type { ChangeObj } from './interfaces/change_obj';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
@@ -7,7 +8,6 @@ import SchemaNotFound from './schema-not-found-error';
 import EventHandling from './eventhandling';
 import config from './config';
 import { applyMixins, cleanPath, isFolder } from './util';
-import RemoteStorage from './remotestorage';
 
 function getModuleNameFromBase(path: string): string {
   const parts = path.split('/');

@@ -1,3 +1,5 @@
+import type RemoteStorage from "./remotestorage";
+
 export type AccessMode = 'r' | 'rw';
 export type AccessScope = string;
 
@@ -21,11 +23,6 @@ export class Access {
   scopeModeMap: ScopeModeMap;
   rootPaths: string[];
   storageType: string;
-
-  // TODO create custom type for init function
-  static _rs_init(): void {
-    return;
-  }
 
   constructor() {
     this.reset();
@@ -196,6 +193,11 @@ export class Access {
    */
   setStorageType (type: string): void {
     this.storageType = type;
+  }
+
+  static _rs_init(remoteStorage: RemoteStorage): void {
+    remoteStorage.access = new Access();
+    return;
   }
 }
 

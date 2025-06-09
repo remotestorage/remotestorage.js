@@ -295,14 +295,19 @@ export class RemoteStorage {
   apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}} = {};
 
   /**
+   * Managing claimed access scopes
    */
   access: Access;
+
   /**
-   */
-  sync: Sync;
-  /**
+   * Managing cache settings
    */
   caching: Caching;
+
+  /**
+   * @internal
+   */
+  sync: Sync;
 
   /**
    * @internal
@@ -345,7 +350,7 @@ export class RemoteStorage {
    * Access to the local caching backend used. Usually either a
    * `RemoteStorage.IndexedDB` or `RemoteStorage.LocalStorage` instance.
    *
-   * Not available, when caching is turned off.
+   * Not available when caching is turned off.
    *
    * @internal
    */
@@ -1224,45 +1229,6 @@ export class RemoteStorage {
     }
   }
 }
-
-/**
- * @property access
- *
- * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
-*/
-Object.defineProperty(RemoteStorage.prototype, 'access', {
-  get: function() {
-    const access = new Access();
-    Object.defineProperty(this, 'access', {
-      value: access
-    });
-    return access;
-  },
-  configurable: true
-});
-
-// TODO Clean up/harmonize how modules are loaded and/or document this architecture properly
-//
-// At this point the remoteStorage object has not been created yet.
-// Only its prototype exists so far, so we define a self-constructing
-// property on there:
-
-/**
- * Property: caching
- *
- * Caching settings. A <RemoteStorage.Caching> instance.
- */
-// FIXME Was in rs_init of Caching but don't want to require RemoteStorage from there.
-Object.defineProperty(RemoteStorage.prototype, 'caching', {
-  configurable: true,
-  get: function () {
-    const caching = new Caching(this);
-    Object.defineProperty(this, 'caching', {
-      value: caching
-    });
-    return caching;
-  }
-});
 
 export interface RemoteStorage extends EventHandling {}
 applyMixins(RemoteStorage, [EventHandling]);
