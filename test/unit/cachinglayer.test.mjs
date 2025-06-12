@@ -95,4 +95,26 @@ describe("CachingLayer", function() {
       });
     });
   });
+
+  describe("#_emitChangeEvents", function() {
+    it("broadcasts the change to other browser tabs", function(done) {
+      this.rs.local.broadcastChannel = {
+        postMessage: (change) => {
+          expect(change.newValue).to.equal("bar");
+          done();
+        }
+      };
+
+      this.rs.local._emitChangeEvents([
+        {
+          path: "/foo/bar",
+          origin: 'window',
+          oldValue: "foo",
+          newValue: "bar",
+          oldContentType: "text/plain",
+          newContentType: "text/plain"
+        }
+      ]);
+    });
+  });
 });

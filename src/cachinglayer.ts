@@ -2,6 +2,7 @@ import type { ChangeObj } from './interfaces/change_obj';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
 import type { RSEvent } from './interfaces/rs_event';
 import type { RSItem, RSNode, RSNodes, ProcessNodes } from './interfaces/rs_node';
+import Env from './env';
 import EventHandling from './eventhandling';
 import config from './config';
 import log from './log';
@@ -9,6 +10,7 @@ import {
   applyMixins,
   deepClone,
   equal,
+  globalContext,
   isDocument,
   isFolder,
   pathsFromRoot
@@ -120,6 +122,21 @@ abstract class CachingLayer {
 
   abstract setNodes(nodes: RSNodes): Promise<void>;
 
+  /**
+   * Broadcast channel, used to inform other tabs about change events
+   */
+  broadcastChannel: BroadcastChannel;
+
+  constructor () {
+    const env = new Env();
+    if (env.isBrowser() && !!globalContext["BroadcastChannel"]) {
+      this.broadcastChannel = new BroadcastChannel('remotestorage:changes');
+      // Listen for change events from other tabs, and re-emit here
+      this.broadcastChannel.onmessage = (event: MessageEvent) => {
+        this.emitChange(event.data);
+      };
+    }
+  }
 
   // --------------------------------------------------
 
@@ -377,9 +394,16 @@ abstract class CachingLayer {
 
   private _emitChangeEvents(events: RSEvent[]) {
     for (let i = 0, len = events.length; i < len; i++) {
-      this.emitChange(events[i]);
+      const change = events[i];
+
+      this.emitChange(change);
+
       if (this.diffHandler) {
-        this.diffHandler(events[i].path);
+        this.diffHandler(change.path);
+      }
+
+      if (!!this.broadcastChannel && change.origin === "window") {
+        this.broadcastChannel.postMessage(change); // Broadcast to other tabs
       }
     }
   }
