@@ -840,7 +840,7 @@ describe("Sync", function() {
     });
   });
 
-  describe.only("#autoMerge", function() {
+  describe("#autoMerge", function() {
     describe("new node", function() {
       beforeEach(function() {
         this.node = {
