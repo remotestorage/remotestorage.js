@@ -840,8 +840,74 @@ describe("Sync", function() {
     });
   });
 
-  describe("#autoMerge", function() {
-    describe("when node was updated", function() {
+  describe.only("#autoMerge", function() {
+    describe("new node", function() {
+      beforeEach(function() {
+        this.node = {
+          path: "foo",
+          common: {},
+          remote: { body: "new value", contentType: "new content-type", revision: "remote" }
+        };
+      });
+
+      it("emits a 'change' event", function(done) {
+        this.rs.local.emitChange = function(changeEvent) {
+          expect(changeEvent).to.deep.equal({
+            origin: "remote",
+            path: "foo",
+            newValue: "new value",
+            oldValue: undefined,
+            newContentType: "new content-type",
+            oldContentType: undefined
+          });
+          done();
+        };
+
+        this.rs.sync.autoMerge(this.node);
+      });
+
+      it("merges the node items", function() {
+        expect(this.rs.sync.autoMerge(this.node)).to.deep.equal({
+          path: "foo",
+          common: { body: "new value", contentType: "new content-type", revision: "remote" }
+        });
+      });
+
+      describe("with zero-length body", function() {
+        beforeEach(function() {
+          this.node = {
+            path: "foo",
+            common: {},
+            remote: { body: "", contentType: "new content-type", revision: "remote" }
+          };
+        });
+
+        it("emits a 'change' event", function(done) {
+          this.rs.local.emitChange = function(changeEvent) {
+            expect(changeEvent).to.deep.equal({
+              origin: "remote",
+              path: "foo",
+              newValue: "",
+              oldValue: undefined,
+              newContentType: "new content-type",
+              oldContentType: undefined
+            });
+            done();
+          };
+
+          this.rs.sync.autoMerge(this.node);
+        });
+
+        it("merges the node items", function() {
+          expect(this.rs.sync.autoMerge(this.node)).to.deep.equal({
+            path: "foo",
+            common: { body: "", contentType: "new content-type", revision: "remote" }
+          });
+        });
+      });
+    });
+
+    describe("updated node", function() {
       beforeEach(function() {
         this.node = {
           path: "foo",
@@ -872,9 +938,42 @@ describe("Sync", function() {
           common: { body: "new value", contentType: "new content-type", revision: "remote" }
         });
       });
+
+      describe("with zero-length body", function() {
+        beforeEach(function() {
+          this.node = {
+            path: "foo",
+            common: { body: "old value", contentType: "old content-type", revision: "common" },
+            remote: { body: "", contentType: "new content-type", revision: "remote" }
+          };
+        });
+
+        it("emits a 'change' event", function(done) {
+          this.rs.local.emitChange = function(changeEvent) {
+            expect(changeEvent).to.deep.equal({
+              origin: "remote",
+              path: "foo",
+              newValue: "",
+              oldValue: "old value",
+              newContentType: "new content-type",
+              oldContentType: "old content-type"
+            });
+            done();
+          };
+
+          this.rs.sync.autoMerge(this.node);
+        });
+
+        it("merges the node items", function() {
+          expect(this.rs.sync.autoMerge(this.node)).to.deep.equal({
+            path: "foo",
+            common: { body: "", contentType: "new content-type", revision: "remote" }
+          });
+        });
+      });
     });
 
-    describe("when node was deleted", function() {
+    describe("deleted node", function() {
       describe("with node cached before", function() {
         beforeEach(function() {
           this.node = {
