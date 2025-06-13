@@ -507,10 +507,10 @@ export class Sync {
         lastCommonContentType: node.common.contentType
       });
 
-      if (node.remote.body) {
-        node.common = node.remote;
-      } else {
+      if (node.remote.body === false) {
         node.common = {};
+      } else {
+        node.common = node.remote;
       }
       delete node.remote;
       delete node.local;
@@ -562,12 +562,12 @@ export class Sync {
           newContentType: node.remote.contentType
         };
 
-        if (change.oldValue || change.newValue) {
+        if (change.oldValue !== undefined || change.newValue !== undefined) {
           this.rs.local.emitChange(change);
         }
 
-        if (!node.remote.body) { // no remote, so delete/don't create
-          return;
+        if (node.remote.body === false) {
+          return; // no remote, so delete
         }
 
         node.common = node.remote;
@@ -762,7 +762,7 @@ export class Sync {
         }
       }
 
-      if (typeof(node) !== 'object'  ||
+      if (typeof(node) !== 'object' ||
           node.path !== path ||
           typeof(node.common) !== 'object') {
         node = { path: path, common: {} };
