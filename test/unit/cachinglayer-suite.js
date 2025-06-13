@@ -211,7 +211,7 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
             test.assertAnd(nodes, {
               '/foo': undefined
             }, 'second pass');
-            nodes['/foo'] = {local: {some: 'data'}};
+            nodes['/foo'] = {local: {body: 'data'}};
             jobTwoCbCalled = true;
             return nodes;
           }).then(function() {
@@ -235,10 +235,10 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
 
             test.assertAnd(nodes, {
               '/foo': {
-                local: {some: 'data'}
+                local: {body: 'data'}
               }
             }, 'third pass');
-            nodes['/foo'] = {local: {some: 'other data'}};
+            nodes['/foo'] = {local: {body: 'other data'}};
             jobThreeCbCalled = true;
             return nodes;
           }).then(function() {

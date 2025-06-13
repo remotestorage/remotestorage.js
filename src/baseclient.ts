@@ -624,9 +624,8 @@ export class BaseClient {
    * @example
    * client.remove('path/to/object').then(() => console.log('item deleted'));
    */
-  // TODO add real return type
   // TODO Don't return the RemoteResponse directly, handle response properly
-  remove (path: string): Promise<unknown> {
+  async remove (path: string): Promise<QueuedRequestResponse> {
     if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
     }
@@ -634,7 +633,7 @@ export class BaseClient {
       console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
     }
 
-    return this.storage.delete(this.makePath(path));
+    return this.storage.delete(this.makePath(path), this.storage.connected);
   }
 
   /**

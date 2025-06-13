@@ -299,7 +299,7 @@ define(['./build/config', './build/inmemorystorage'], function (config, InMemory
 
             test.assertAnd(Object.keys(storage), storageKeys);
 
-            return env.ims.delete('/foo/bar/baz').then(function (r) {
+            return env.ims.delete('/foo/bar/baz', true).then(function (r) {
               test.assertAnd(r.statusCode, 200, 'Wrong statusCode: '+r.statusCode); //TODO belongs in separate test
               test.assertAnd(getLatest(storage['/foo/bar/baz']), undefined);
               test.assertAnd(getLatest(storage['/foo/bar/']).itemsMap, {});
@@ -327,7 +327,7 @@ define(['./build/config', './build/inmemorystorage'], function (config, InMemory
               });
             });
 
-            return env.ims.delete('/foo/bar/baz');
+            return env.ims.delete('/foo/bar/baz', true);
           });
         }
       },
@@ -340,7 +340,7 @@ define(['./build/config', './build/inmemorystorage'], function (config, InMemory
 
           return env.ims.put('/foo/bar/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function () {
             return env.ims.put('/foo/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function () {
-              return env.ims.delete('/foo/bar/baz').then(function (status) {
+              return env.ims.delete('/foo/bar/baz', true).then(function (status) {
                 test.assertAnd(getLatest(storage['/']).itemsMap, { 'foo/': true });
                 test.assertAnd(getLatest(storage['/foo/']).itemsMap, { 'baz': true });
                 test.assertAnd(getLatest(storage['/foo/baz']).body, 'bla');
@@ -357,7 +357,7 @@ define(['./build/config', './build/inmemorystorage'], function (config, InMemory
         run: function (env, test) {
           return env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function () {
             return env.ims.put('/foo/baz', 'bla', 'text/plain', 'a1b2c3').then(function () {
-              return env.ims.delete('/foo/bar/baz').then(function (status) {
+              return env.ims.delete('/foo/bar/baz', true).then(function (status) {
                 test.assert(env.ims._storage['/'].local.itemsMap, {'foo/': true});
               });
             });

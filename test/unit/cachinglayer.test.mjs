@@ -96,6 +96,115 @@ describe("CachingLayer", function() {
     });
   });
 
+  describe("#delete", function() {
+    describe("when connected", function() {
+      beforeEach(async function() {
+        this.rs.remote.connected = true;
+        this.rs.remote.online = true;
+        this.rs.caching.enable("/foo/");
+
+        await this.rs.local.setNodes({
+          "/foo/": {
+            path: "/foo/",
+            common: {
+              itemsMap: {
+                "one": true,
+                "two": true
+              },
+              contentType: "application/ld+json",
+              timestamp: new Date().getTime(),
+              revision: "oldie-but-goodie"
+            }
+          },
+          "/foo/one": {
+            path: "/foo/one",
+            common: {
+              body: "some data",
+              contentType: "text/plain",
+              timestamp: new Date().getTime(),
+              revision: "123456"
+            }
+          },
+          "/foo/two": {
+            path: "/foo/two",
+            common: {
+              body: "some other data",
+              contentType: "text/plain",
+              timestamp: new Date().getTime(),
+              revision: "abcdef"
+            }
+          }
+        });
+
+        await this.rs.local.delete('/foo/one', this.rs.remote.connected);
+      });
+
+      it("marks the node for deletion", async function() {
+        const nodes = await this.rs.local.getNodes(["/foo/", "/foo/one"]);
+        const folder = nodes["/foo/"];
+        const node = nodes["/foo/one"];
+
+        expect(Object.keys(folder.common.itemsMap)).to.deep.equal(["one", "two"]);
+        expect(Object.keys(folder.local.itemsMap)).to.deep.equal(["two"]);
+        expect(node.local.body).to.be.false;
+        expect(node.push.body).to.be.false;
+      });
+    });
+
+    describe("when disconnected", function() {
+      beforeEach(async function() {
+        this.rs.remote.connected = false;
+        this.rs.remote.online = false;
+        this.rs.caching.enable("/foo/");
+
+        await this.rs.local.setNodes({
+          "/foo/": {
+            path: "/foo/",
+            local: {
+              itemsMap: {
+                "one": true,
+                "two": true
+              },
+              contentType: "application/ld+json",
+              timestamp: new Date().getTime(),
+              revision: "oldie-but-goodie"
+            }
+          },
+          "/foo/one": {
+            path: "/foo/one",
+            local: {
+              body: "some data",
+              contentType: "text/plain",
+              timestamp: new Date().getTime(),
+              revision: "123456"
+            }
+          },
+          "/foo/two": {
+            path: "/foo/two",
+            local: {
+              body: "some other data",
+              contentType: "text/plain",
+              timestamp: new Date().getTime(),
+              revision: "abcdef"
+            }
+          }
+        });
+
+        await this.rs.local.delete('/foo/one', this.rs.remote.connected);
+      });
+
+      it("deletes the node immediately", async function() {
+        const nodes = await this.rs.local.getNodes(["/foo/", "/foo/one", "/foo/two"]);
+        const folder = nodes["/foo/"];
+
+        expect(folder.common).to.be.undefined;
+        expect(Object.keys(folder.local.itemsMap)).to.deep.equal(["two"]);
+        expect(nodes["/foo/one"]).to.be.undefined;
+        expect(nodes["/foo/two"].local.revision).to.equal("abcdef");
+      });
+    });
+  });
+
   describe("#_emitChangeEvents", function() {
     it("broadcasts the change to other browser tabs", function(done) {
       this.rs.local.broadcastChannel = {

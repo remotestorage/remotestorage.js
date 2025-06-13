@@ -42,11 +42,11 @@ const SyncedGetPutDelete = {
     }
   },
 
-  'delete': function (path: string): Promise<QueuedRequestResponse | RemoteResponse> {
+  'delete': function (path: string, remoteConnected: boolean): Promise<QueuedRequestResponse | RemoteResponse> {
     if (this.local) {
-      return this.local.delete(path);
+      return this.local.delete(path, remoteConnected);
     } else {
-      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
+      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path, remoteConnected));
     }
   },
 

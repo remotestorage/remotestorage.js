@@ -227,7 +227,7 @@ abstract class CachingLayer {
     return this._updateNodes(paths, _processNodes);
   }
 
-  async delete (path: string): Promise<QueuedRequestResponse> {
+  async delete (path: string, remoteConnected: boolean): Promise<QueuedRequestResponse> {
     const paths = pathsFromRoot(path);
 
     return this._updateNodes(paths, function (nodePaths, nodes) {
@@ -245,7 +245,7 @@ abstract class CachingLayer {
           // Document
           previous = getLatest(node);
           node.local = {
-            body: false,
+            body: remoteConnected ? false : undefined,
             previousBody: (previous ? previous.body : undefined),
             previousContentType: (previous ? previous.contentType : undefined),
           };
@@ -371,8 +371,13 @@ abstract class CachingLayer {
               newContentType: node.local.contentType
             });
           }
-          delete node.local.previousBody;
-          delete node.local.previousContentType;
+          if (node.local.body === undefined) {
+            // no remote connected, remove deleted node from cache immediately
+            nodes[path] = undefined;
+          } else {
+            delete node.local.previousBody;
+            delete node.local.previousContentType;
+          }
         }
       }
 
