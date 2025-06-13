@@ -1,4 +1,5 @@
 import tv4 from 'tv4';
+import type RemoteStorage from './remotestorage';
 import type { JsonSchemas } from './interfaces/json_schema';
 import type { ChangeObj } from './interfaces/change_obj';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
@@ -7,7 +8,6 @@ import SchemaNotFound from './schema-not-found-error';
 import EventHandling from './eventhandling';
 import config from './config';
 import { applyMixins, cleanPath, isFolder } from './util';
-import RemoteStorage from './remotestorage';
 
 function getModuleNameFromBase(path: string): string {
   const parts = path.split('/');
@@ -624,9 +624,8 @@ export class BaseClient {
    * @example
    * client.remove('path/to/object').then(() => console.log('item deleted'));
    */
-  // TODO add real return type
   // TODO Don't return the RemoteResponse directly, handle response properly
-  remove (path: string): Promise<unknown> {
+  async remove (path: string): Promise<QueuedRequestResponse> {
     if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
     }
@@ -634,7 +633,7 @@ export class BaseClient {
       console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
     }
 
-    return this.storage.delete(this.makePath(path));
+    return this.storage.delete(this.makePath(path), this.storage.connected);
   }
 
   /**

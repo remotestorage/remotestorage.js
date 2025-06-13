@@ -212,6 +212,10 @@ enum ApiKeyType {
  *
  * Emitted when a network request completes
  *
+ * ### `sync-started`
+ *
+ * Emitted when a sync procedure has started.
+ *
  * ### `sync-req-done`
  *
  * Emitted when a single sync request has finished. Callback functions
@@ -295,14 +299,19 @@ export class RemoteStorage {
   apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}} = {};
 
   /**
+   * Managing claimed access scopes
    */
   access: Access;
+
   /**
-   */
-  sync: Sync;
-  /**
+   * Managing cache settings
    */
   caching: Caching;
+
+  /**
+   * @internal
+   */
+  sync: Sync;
 
   /**
    * @internal
@@ -345,7 +354,7 @@ export class RemoteStorage {
    * Access to the local caching backend used. Usually either a
    * `RemoteStorage.IndexedDB` or `RemoteStorage.LocalStorage` instance.
    *
-   * Not available, when caching is turned off.
+   * Not available when caching is turned off.
    *
    * @internal
    */
@@ -374,7 +383,7 @@ export class RemoteStorage {
     this.addEvents([
       'ready', 'authing', 'connecting', 'connected', 'disconnected',
       'not-connected', 'conflict', 'error', 'features-loaded',
-      'sync-interval-change', 'sync-req-done', 'sync-done',
+      'sync-interval-change', 'sync-started', 'sync-req-done', 'sync-done',
       'wire-busy', 'wire-done', 'network-offline', 'network-online'
     ]);
 
@@ -433,10 +442,9 @@ export class RemoteStorage {
     // load all features and emit `ready`
     this._init();
 
-    /**
-     * TODO: document
-     */
     this.fireInitial = function () {
+      // When caching is turned on, emit change events with origin "local" for
+      // all cached documents
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
@@ -452,14 +460,6 @@ export class RemoteStorage {
   get connected (): boolean {
     return this.remote.connected;
   }
-
-  /**
-   * FIXME: Instead of doing this, would be better to only
-   * export setAuthURL / getAuthURL from RemoteStorage prototype
-   *
-   * @ignore
-   */
-  static Authorize = Authorize;
 
   static SyncError = SyncError;
   static Unauthorized = UnauthorizedError;
@@ -1094,19 +1094,19 @@ export class RemoteStorage {
   }
 
   /**
-   * TODO: document
+   * Add a handler to schedule periodic sync if sync enabled
+   *
    * @internal
    */
-  syncCycle (): void {
+  setupSyncCycle (): void {
     if (!this.sync || this.sync.stopped) { return; }
+    log('[Sync] Setting up sync cycle');
 
     this.on('sync-done', (): void => {
-      // FIXME Re-enable when modules are all imports
-      // log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
+      log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (this.sync && !this.sync.stopped) {
         if (this._syncTimer) {
           clearTimeout(this._syncTimer);
-          this._syncTimer = undefined;
         }
         this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
       }
@@ -1145,14 +1145,12 @@ export class RemoteStorage {
     this._syncTimer = undefined;
 
     if (this.sync) {
-      // FIXME Re-enable when modules are all imports
-      // log('[Sync] Stopping sync');
+      log('[Sync] Stopping sync');
       this.sync.stopped = true;
     } else {
       // The sync class has not been initialized yet, so we make sure it will
       // not start the syncing process as soon as it's initialized.
-      // FIXME Re-enable when modules are all imports
-      // log('[Sync] Will instantiate sync stopped');
+      log('[Sync] Will instantiate sync stopped');
       this.syncStopped = true;
     }
   }
@@ -1236,41 +1234,23 @@ export class RemoteStorage {
   }
 }
 
-/**
- * @property access
- *
- * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
-*/
+// At this point the remoteStorage object has not been created yet. Only
+// its prototype exists so far, so we define self-constructing properties on
+// it, in order for devs not having to wait for feature loading before managing
+// access and caching settings
 Object.defineProperty(RemoteStorage.prototype, 'access', {
+  configurable: true,
   get: function() {
     const access = new Access();
-    Object.defineProperty(this, 'access', {
-      value: access
-    });
+    Object.defineProperty(this, 'access', { value: access });
     return access;
   },
-  configurable: true
 });
-
-// TODO Clean up/harmonize how modules are loaded and/or document this architecture properly
-//
-// At this point the remoteStorage object has not been created yet.
-// Only its prototype exists so far, so we define a self-constructing
-// property on there:
-
-/**
- * Property: caching
- *
- * Caching settings. A <RemoteStorage.Caching> instance.
- */
-// FIXME Was in rs_init of Caching but don't want to require RemoteStorage from there.
 Object.defineProperty(RemoteStorage.prototype, 'caching', {
   configurable: true,
   get: function () {
     const caching = new Caching(this);
-    Object.defineProperty(this, 'caching', {
-      value: caching
-    });
+    Object.defineProperty(this, 'caching', { value: caching });
     return caching;
   }
 });

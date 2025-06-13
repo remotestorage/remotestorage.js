@@ -441,19 +441,19 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
       },
 
       {
-        desc: "#syncCycle registers an event handler to schedule periodic sync",
+        desc: "#setupSyncCycle registers an event handler to schedule periodic sync",
         run: function (env, test) {
           env.rs.sync = { sync: function(){} };
-          env.rs.syncCycle();
+          env.rs.setupSyncCycle();
 
           test.assert(env.rs._handlers["sync-done"].length, 1);
         }
       },
 
       {
-        desc: "#syncCycle does not register any event handlers when there is no sync instance",
+        desc: "#setupSyncCycle does not register any event handlers when there is no sync instance",
         run: function (env, test) {
-          env.rs.syncCycle();
+          env.rs.setupSyncCycle();
 
           test.assert(env.rs._handlers["sync-done"].length, 0);
         }
@@ -463,7 +463,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         desc: "sync-done handler does not reschedule a new sync when sync is stopped",
         run: function (env, test) {
           env.rs.sync = { sync: function() {} };
-          env.rs.syncCycle();
+          env.rs.setupSyncCycle();
 
           env.rs.sync.stopped = true;
 
@@ -477,7 +477,7 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         desc: "sync-done handler does not reschedule a new sync when there is no sync instance",
         run: function (env, test) {
           env.rs.sync = { sync: function() {} };
-          env.rs.syncCycle();
+          env.rs.setupSyncCycle();
 
           env.rs.sync = undefined;
 

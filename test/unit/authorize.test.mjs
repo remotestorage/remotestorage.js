@@ -46,22 +46,14 @@ globalThis.localStorageAvailable = localStorageAvailable;
 globalThis["sessionStorage"] = sessionStorage;
 
 describe("Authorize", () => {
-  const sandbox = sinon.createSandbox();
-
   beforeEach( () => {
-    localStorage.removeItem('remotestorage:backend');
-    localStorage.removeItem(WIRECLIENT_SETTINGS_KEY);
-    localStorage.removeItem(DISCOVER_SETTINGS_KEY);
-    localStorage.removeItem('remotestorage:api-keys');
-    sessionStorage.removeItem('remotestorage:codeVerifier');
-    sessionStorage.removeItem('remotestorage:state');
-
     globalThis.document.location.href = 'https://foo/bar';
   });
 
   afterEach(() => {
     fetchMock.reset();
-    sandbox.restore();
+    localStorage.clear();
+    sessionStorage.clear();
   });
 
   describe("#authorize", () => {
