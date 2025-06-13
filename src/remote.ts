@@ -67,9 +67,9 @@ export interface RemoteSettings {
 
 export interface RemoteResponse {
   statusCode: number;
-  revision?: string;
+  body?: string | { [key: string]: any; };
   contentType?: string;
-  body?: any;
+  revision?: string;
 }
 
 /**

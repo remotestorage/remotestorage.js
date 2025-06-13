@@ -339,7 +339,7 @@ class WireClient extends RemoteBase implements Remote {
         let itemsMap = {};
         if (typeof (r.body) !== 'undefined') {
           try {
-            r.body = JSON.parse(r.body);
+            r.body = JSON.parse(r.body as string);
           } catch (e) {
             return Promise.reject('Folder description at ' + this.href + cleanPath(path) + ' is not JSON');
           }

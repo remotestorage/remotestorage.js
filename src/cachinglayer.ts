@@ -187,7 +187,7 @@ abstract class CachingLayer {
     }
   }
 
-  async put (path: string, body: string, contentType: string): Promise<RSNodes> {
+  async put (path: string, body: string, contentType: string): Promise<QueuedRequestResponse> {
     const paths = pathsFromRoot(path);
 
     function _processNodes(nodePaths: string[], nodes: RSNodes): RSNodes {
@@ -227,7 +227,7 @@ abstract class CachingLayer {
     return this._updateNodes(paths, _processNodes);
   }
 
-  delete (path: string): unknown {
+  async delete (path: string): Promise<QueuedRequestResponse> {
     const paths = pathsFromRoot(path);
 
     return this._updateNodes(paths, function (nodePaths, nodes) {
@@ -263,11 +263,12 @@ abstract class CachingLayer {
           }
         }
       }
+
       return nodes;
     });
   }
 
-  flush(path: string): unknown {
+  flush(path: string): Promise<void> {
     return this._getAllDescendentPaths(path).then((paths: string[]) => {
       return this.getNodes(paths);
     }).then((nodes: RSNodes) => {
@@ -325,7 +326,7 @@ abstract class CachingLayer {
     this.diffHandler = diffHandler;
   }
 
-  private _updateNodes(paths: string[], _processNodes: ProcessNodes): Promise<RSNodes> {
+  private _updateNodes(paths: string[], _processNodes: ProcessNodes): Promise<QueuedRequestResponse> {
     return new Promise((resolve, reject) => {
       this._doUpdateNodes(paths, _processNodes, {
         resolve: resolve,
@@ -334,7 +335,7 @@ abstract class CachingLayer {
     });
   }
 
-  private _doUpdateNodes(paths: string[], _processNodes: ProcessNodes, promise) {
+  private async _doUpdateNodes(paths: string[], _processNodes: ProcessNodes, promise): Promise<void> {
     if (this._updateNodesRunning) {
       this._updateNodesQueued.push({
         paths: paths,
@@ -342,11 +343,11 @@ abstract class CachingLayer {
         promise: promise
       });
       return;
-    } else {
-      this._updateNodesRunning = true;
     }
+    this._updateNodesRunning = true;
 
-    this.getNodes(paths).then((nodes) => {
+    try {
+      let nodes = await this.getNodes(paths);
       const existingNodes = deepClone(nodes);
       const changeEvents = [];
 
@@ -375,21 +376,19 @@ abstract class CachingLayer {
         }
       }
 
-      this.setNodes(nodes).then(() => {
-        this._emitChangeEvents(changeEvents);
-        promise.resolve({statusCode: 200});
-      });
-    }).then(() => {
-      return Promise.resolve();
-    }, (err) => {
+      await this.setNodes(nodes);
+      this._emitChangeEvents(changeEvents);
+
+      promise.resolve({ statusCode: 200 });
+    } catch (err) {
       promise.reject(err);
-    }).then(() => {
-      this._updateNodesRunning = false;
-      const nextJob = this._updateNodesQueued.shift();
-      if (nextJob) {
-        this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
-      }
-    });
+    }
+
+    this._updateNodesRunning = false;
+    const nextJob = this._updateNodesQueued.shift();
+    if (nextJob) {
+      await this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
+    }
   }
 
   private _emitChangeEvents(events: RSEvent[]) {
