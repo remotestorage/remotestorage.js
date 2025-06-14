@@ -36,8 +36,8 @@ function getModuleNameFromBase(path: string): string {
  * * {@link getObject} and {@link storeObject} operate on JSON objects. Each object
  *   has a type.
  *
- * * {@link getFile} and {@link storeFile} operates on files. Each file has a MIME
- *   type.
+ * * {@link getFile} and {@link storeFile} operates on files. Each file has a
+ *   content/MIME type.
  *
  * * {@link getAll} returns all objects or files for the given folder path.
  *
@@ -436,8 +436,10 @@ export class BaseClient {
    *
    * @returns An object containing the content type as well as the file's content:
    *
-   * * `mimeType`<br>
-   *    String representing the MIME Type of the document.
+   * * `contentType`<br>
+   *    String containing the MIME Type of the document. (Usually just the
+   *    MIME type, but can theoretically contain extra metadata such as `charset`
+   *    for example.)
    * * `data`<br>
    *    Raw data of the document (either a string or an ArrayBuffer)
    *
@@ -446,13 +448,12 @@ export class BaseClient {
    *
    * ```js
    * client.getFile('path/to/some/image').then(file => {
-   *   const blob = new Blob([file.data], { type: file.mimeType });
+   *   const blob = new Blob([file.data], { type: file.contentType });
    *   const targetElement = document.findElementById('my-image-element');
    *   targetElement.src = window.URL.createObjectURL(blob);
    * });
    * ```
    */
-  // TODO add real return type
   async getFile (path: string, maxAge?: false | number): Promise<unknown> {
     if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getFile must be a string');
@@ -470,9 +471,9 @@ export class BaseClient {
   /**
    * Store raw data at a given path.
    *
-   * @param mimeType - MIME media type of the data being stored
-   * @param path     - Path relative to the module root
-   * @param body     - Raw data to store
+   * @param contentType - Content type (MIME media type) of the data being stored
+   * @param path        - Path relative to the module root
+   * @param body        - Raw data to store
    *
    * @returns A promise for the created/updated revision (ETag)
    *
@@ -499,9 +500,9 @@ export class BaseClient {
    * fileReader.readAsArrayBuffer(file);
    * ```
    */
-  async storeFile (mimeType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string> {
-    if (typeof mimeType !== 'string') {
-      return Promise.reject('Argument \'mimeType\' of baseClient.storeFile must be a string');
+  async storeFile (contentType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string> {
+    if (typeof contentType !== 'string') {
+      return Promise.reject('Argument \'contentType\' of baseClient.storeFile must be a string');
     }
     if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.storeFile must be a string');
@@ -513,7 +514,7 @@ export class BaseClient {
       console.warn('WARNING: Editing a document to which only read access (\'r\') was claimed');
     }
 
-    return this.storage.put(this.makePath(path), body, mimeType).then((r: QueuedRequestResponse) => {
+    return this.storage.put(this.makePath(path), body, contentType).then((r: QueuedRequestResponse) => {
       if (r.statusCode === 200 || r.statusCode === 201) {
         return r.revision;
       } else {
