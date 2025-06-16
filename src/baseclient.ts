@@ -147,8 +147,8 @@ function getModuleNameFromBase(path: string): string {
  * during sync.
  *
  * > [!NOTE]
- * > Automatically receiving remote changes depends on the {@link caching!Caching} settings
- * > for your module/paths.
+ * > Automatically receiving remote changes depends on the
+ * > {@link caching!Caching caching} settings for your module/paths.
  *
  * ### `window`
  *
@@ -180,13 +180,13 @@ function getModuleNameFromBase(path: string): string {
  * }
  * ```
  *
- * But when this change is pushed out by asynchronous synchronization, this change
- * may be rejected by the server, if the remote version has in the meantime changed
- * from `white` to  for instance `red`; this will then lead to a change event with
- * origin `conflict` (usually a few seconds after the event with origin `window`,
- * if you have those activated). Note that since you already changed it from
- * `white` to `blue` in the local version a few seconds ago, `oldValue` is now
- * your local value of `blue`:
+ * However, when this change is pushed out by the sync process, it will be
+ * rejected by the server, if the remote version has changed in the meantime,
+ * for example from `white` to `red`. This will lead to a change event with
+ * origin `conflict`, usually a few seconds after the event with origin
+ * `window`. Note that since you already changed it from `white` to `blue` in
+ * the local version a few seconds ago, `oldValue` is now your local value of
+ * `blue`:
  *
  * ```js
  * {
@@ -212,11 +212,6 @@ function getModuleNameFromBase(path: string): string {
  *
  * If there is an algorithm to merge the differences between local and remote
  * versions of the data, conflicts may be automatically resolved.
- * {@link storeObject} or {@link storeFile} must not be called synchronously from
- * the change event handler, nor by chaining Promises. {@link storeObject} or
- * {@link storeFile} must not be called until the next iteration of the JavaScript
- * Task Queue, using for example
- * [`setTimeout()`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout).
  *
  * If no algorithm exists, conflict resolution typically involves displaying local
  * and remote versions to the user, and having the user merge them, or choose

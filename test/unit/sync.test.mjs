@@ -838,6 +838,38 @@ describe("Sync", function() {
       expect(this.rs.sync.autoMergeDocument(node)).to
         .deep.equal(localAndRemoteRemoved);
     });
+
+    describe("when node was also changed on remote", function() {
+      beforeEach(function() {
+        this.emitChange = sinon.spy(this.rs.local, "emitChange");
+
+        this.rs.sync.autoMergeDocument({
+          path: "foo",
+          common: { body: "foo", contentType: "bloo", revision: "common" },
+          local: { body: "floo", contentType: "blaloo" },
+          remote: { body: "florb", revision: "updated-elsewhere" }
+        });
+      });
+
+      it("asynchronously emits a conflict event", function(done) {
+        expect(this.emitChange.called).to.be.false;
+
+        setTimeout(() => {
+          expect(this.emitChange.called).to.be.true;
+          expect(this.emitChange.getCall(0).firstArg).to.deep.equal({
+            origin: "conflict",
+            path: "foo",
+            oldValue: "floo",
+            newValue: "florb",
+            lastCommonValue: "foo",
+            oldContentType: "blaloo",
+            newContentType: undefined,
+            lastCommonContentType: "bloo"
+          });
+          done();
+        }, 20);
+      });
+    });
   });
 
   describe("#autoMerge", function() {
