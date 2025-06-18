@@ -507,17 +507,21 @@ export class Sync {
       node = mergeMutualDeletion(node);
       delete node.remote;
     } else if (node.remote.body !== undefined) {
-      log('[Sync] Emitting conflict event');
-      setTimeout(this.rs.local.emitChange.bind(this.rs.local), 10, {
-        origin:          'conflict',
-        path:            node.path,
-        oldValue:        node.local.body,
-        newValue:        node.remote.body,
-        lastCommonValue: node.common.body,
-        oldContentType:  node.local.contentType,
-        newContentType:  node.remote.contentType,
-        lastCommonContentType: node.common.contentType
-      });
+      if (node.remote.body === false && node.local?.body === false) {
+        // Deleted on both sides, nothing to do
+      } else {
+        log('[Sync] Emitting conflict event');
+        setTimeout(this.rs.local.emitChange.bind(this.rs.local), 10, {
+          origin:          'conflict',
+          path:            node.path,
+          oldValue:        node.local.body,
+          newValue:        node.remote.body,
+          lastCommonValue: node.common.body,
+          oldContentType:  node.local.contentType,
+          newContentType:  node.remote.contentType,
+          lastCommonContentType: node.common.contentType
+        });
+      }
 
       if (node.remote.body === false) {
         node.common = {};

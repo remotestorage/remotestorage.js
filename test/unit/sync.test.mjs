@@ -949,6 +949,56 @@ describe("Sync", function() {
         }, 20);
       });
     });
+
+    describe("when node was also deleted on remote", function() {
+      beforeEach(function() {
+        this.emitChange = sinon.spy(this.rs.local, "emitChange");
+
+        this.rs.sync.autoMergeDocument({
+          path: "foo",
+          common: { body: "foo", contentType: "bloo", revision: "common" },
+          local: { body: false },
+          remote: { body: false }
+        });
+      });
+
+      it("does not emit a conflict event", function(done) {
+        setTimeout(() => {
+          expect(this.emitChange.called).to.be.false;
+          done();
+        }, 20);
+      });
+    });
+
+    describe("when node was changed on remote, but deleted locally", function() {
+      beforeEach(function() {
+        this.emitChange = sinon.spy(this.rs.local, "emitChange");
+
+        this.rs.sync.autoMergeDocument({
+          path: "foo",
+          remote: { body: "bar", contentType: "text/plain", revision: "newrev"},
+          common: { body: "foo", contentType: "text/plain", revision: "common" },
+          local: { body: false }
+        });
+      });
+
+      it("emits a conflict event", function(done) {
+        setTimeout(() => {
+          expect(this.emitChange.called).to.be.true;
+          expect(this.emitChange.getCall(0).firstArg).to.deep.equal({
+            origin: "conflict",
+            path: "foo",
+            oldValue: false,
+            newValue: "bar",
+            lastCommonValue: "foo",
+            oldContentType: undefined,
+            newContentType: "text/plain",
+            lastCommonContentType: "text/plain"
+          });
+          done();
+        }, 20);
+      });
+    });
   });
 
   describe("#autoMergeFolder", function() {
