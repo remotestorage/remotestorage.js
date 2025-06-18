@@ -469,11 +469,25 @@ export class Sync {
       if (node.common.itemsMap) {
         for (const itemName in node.common.itemsMap) {
           if (!node.local.itemsMap[itemName]) {
-            // Indicates the node is either newly being fetched
-            // has been deleted locally (whether or not leading to conflict);
-            // before listing it in local listings, check if a local deletion
-            // exists.
+            // Indicates the node is either newly being fetched, or
+            // has been deleted locally (whether or not leading to
+            // conflict); before listing it in local listings, check
+            // if a local deletion exists.
             node.local.itemsMap[itemName] = false;
+          }
+        }
+
+        for (const itemName in node.local.itemsMap) {
+          if (!node.common.itemsMap[itemName]) {
+            // When an item appears in a folder's local itemsMap, but
+            // not in remote/common, it may or may not have been
+            // changed or deleted locally. The local itemsMap may
+            // only contain it, beause the item existed when
+            // *another* local item was changed, so we need to make
+            // sure that it's checked/processed again, so it will be
+            // deleted if there's no local change waiting to be
+            // pushed out.
+            this.addTask(node.path+itemName);
           }
         }
 
@@ -745,10 +759,10 @@ export class Sync {
     }
 
     const nodes = await this.rs.local.getNodes(paths);
-    let node: RSNode = nodes[path];
-    let parentNode: RSNode = nodes[parentPath];
-    let itemName: string;
+    const parentNode: RSNode = nodes[parentPath];
     const missingChildren = {};
+    let node: RSNode = nodes[path];
+    let itemName: string;
 
     function collectMissingChildren (folder): void {
       if (folder && folder.itemsMap) {
@@ -787,7 +801,15 @@ export class Sync {
       if (parentNode && parentNode.local && parentNode.local.itemsMap) {
         itemName = path.substring(parentPath.length);
 
-        parentNode.local.itemsMap[itemName] = true;
+        if (bodyOrItemsMap !== false) {
+          parentNode.local.itemsMap[itemName] = true;
+        } else {
+          if (parentNode.local.itemsMap[itemName]) {
+            // node is 404 on remote, can safely be removed from
+            // parent's local itemsMap now
+            delete parentNode.local.itemsMap[itemName];
+          }
+        }
 
         if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
           delete parentNode.local;

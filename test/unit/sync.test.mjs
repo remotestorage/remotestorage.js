@@ -689,6 +689,85 @@ describe("Sync", function() {
       });
     });
 
+    describe("Documents deleted both locally and on remote", function() {
+      beforeEach(async function() {
+        // three and four deleted on remote, three also deleted locally
+
+        const newRemoteMap = {
+          "one": { "ETag": "one" },
+          "two": { "ETag": "two" }
+        };
+
+        this.rs.local.setNodes({
+          "/foo/": {
+            path: "/foo/",
+            common: {
+              itemsMap: { "one": true, "two": true, "three": true, "four": true },
+              revision: "remotefolderrevision",
+              timestamp: 1397210425598,
+            },
+            local: {
+              itemsMap: { "one": true, "two": true, "four": true },
+              revision: "localfolderrevision",
+              timestamp: 1397210425612
+            }
+          },
+          "/foo/one": {
+            path: "/foo/one",
+            common: {
+              body: { foo: "one" },
+              contentType: "application/json",
+              revision: "one",
+              timestamp: 1234567891000
+            }
+          },
+          "/foo/two": {
+            path: "/foo/two",
+            local: {
+              body: { foo: "two" },
+              contentType: "application/json",
+              revision: "two",
+              timestamp: 1234567891000
+            }
+          },
+          "/foo/four": {
+            path: "/foo/four",
+            common: {
+              body: { foo: "four" },
+              contentType: "application/json",
+              revision: "four",
+              timestamp: 1234567891000
+            }
+          }
+        });
+
+        await this.rs.sync.handleResponse('/foo/', 'get', {
+          statusCode: 200, body: newRemoteMap,
+          contentType: 'application/ld+json',
+          revision: 'newfolderrevision'
+        });
+
+        this.nodes = await this.rs.local.getNodes([
+          "/foo/", "/foo/one", "/foo/two", "/foo/three", "/foo/four"
+        ]);
+      });
+
+      it("removes the document from the parent node's common itemsMap", async function() {
+        expect(this.nodes["/foo/"].common.itemsMap).to.deep.equal({
+          "one": true, "two": true
+        });
+      });
+
+      it("removes the parent node's local and remote itemsMap", function() {
+        expect(this.nodes["/foo/"].local).to.be.undefined;
+        expect(this.nodes["/foo/"].remote).to.be.undefined;
+      });
+
+      it("removes the deleted node from the cache", function() {
+        expect(this.nodes["/foo/four"]).to.be.undefined;
+      });
+    });
+
     describe("PUT without conflict", function() {
       beforeEach(async function() {
         this.rs.local.setNodes({
@@ -869,6 +948,86 @@ describe("Sync", function() {
           done();
         }, 20);
       });
+    });
+  });
+
+  describe("#autoMergeFolder", function() {
+    describe("documents updated on both sides", function() {
+      beforeEach(function() {
+        this.addTask = sinon.spy(this.rs.sync, "addTask");
+
+        this.nodeBefore = {
+          "path": "/foo/",
+          "remote": {
+            "revision": "incomingrevision",
+            "timestamp": 1750232323004,
+            "itemsMap": {
+              "1750232100702": true, // added remotely
+              "1750232294620": true, // no change
+            }
+          },
+          "common": {
+            "revision": "oldrevision",
+            "timestamp": 1750232313004,
+            "itemsMap": {
+              "1750232294620": true,
+            }
+          },
+          "local": {
+            "revision": "localrevision",
+            "timestamp": 1750232095577,
+            "itemsMap": {
+              "1750232294620": true,
+              "1750232283970": true, // uncertain state
+              "1750233526039": true, // added locally
+            }
+          }
+        };
+
+        this.nodeAfter = this.rs.sync.autoMergeFolder(this.nodeBefore);
+      });
+
+      it("adds new documents to the local itemsMap as uncached", function() {
+        expect(this.nodeAfter.local.itemsMap).to.deep.equal({
+          "1750232100702": false, // marked for fetch
+          "1750232294620": true,
+          "1750232283970": true,
+          "1750233526039": true
+        });
+      });
+
+      it("adds sync tasks for local items missing in incoming itemsMap", function() {
+        expect(this.addTask.callCount).to.equal(2);
+        expect(this.addTask.getCall(0).args[0]).to.equal("/foo/1750232283970");
+        expect(this.addTask.getCall(1).args[0]).to.equal("/foo/1750233526039");
+      });
+    });
+
+    describe("on an empty node", function() {
+      it("removes a remote version if it has a null revision", async function() {
+        const node = {
+          path: "foo", common: {}, remote: { revision: null }
+        };
+
+        expect(this.rs.sync.autoMergeDocument(node)).to
+          .deep.equal({ path: "foo", common: {} });
+      });
+    });
+
+    it("merges mutual deletions", function() {
+      const node = {
+        "path": "/myfavoritedrinks/b",
+        "common": { "timestamp": 1405488508303 },
+        "local":  { "body": false, "timestamp": 1405488515881 },
+        "remote": { "body": false, "timestamp": 1405488740722 }
+      };
+      const localAndRemoteRemoved = {
+        "path": "/myfavoritedrinks/b",
+        "common": { "timestamp": 1405488508303 }
+      };
+
+      expect(this.rs.sync.autoMergeDocument(node)).to
+        .deep.equal(localAndRemoteRemoved);
     });
   });
 
