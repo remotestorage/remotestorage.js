@@ -744,60 +744,60 @@ export class Sync {
       paths = [path, parentPath];
     }
 
-    return this.rs.local.getNodes(paths).then((nodes: RSNodes) => {
-      let itemName: string;
-      let node: RSNode = nodes[path];
-      let parentNode: RSNode;
-      const missingChildren = {};
+    const nodes = await this.rs.local.getNodes(paths);
+    let node: RSNode = nodes[path];
+    let parentNode: RSNode = nodes[parentPath];
+    let itemName: string;
+    const missingChildren = {};
 
-      function collectMissingChildren (folder): void {
-        if (folder && folder.itemsMap) {
-          for (itemName in folder.itemsMap) {
-            if (!bodyOrItemsMap[itemName]) {
-              missingChildren[itemName] = true;
-            }
+    function collectMissingChildren (folder): void {
+      if (folder && folder.itemsMap) {
+        for (itemName in folder.itemsMap) {
+          if (!bodyOrItemsMap[itemName]) {
+            missingChildren[itemName] = true;
           }
         }
       }
+    }
 
-      if (typeof(node) !== 'object' ||
-          node.path !== path ||
-          typeof(node.common) !== 'object') {
-        node = { path: path, common: {} };
-        nodes[path] = node;
+    if (typeof(node) !== 'object' ||
+        node.path !== path ||
+        typeof(node.common) !== 'object') {
+      node = { path: path, common: {} };
+      nodes[path] = node;
+    }
+
+    node.remote = {
+      revision: revision,
+      timestamp: this.now()
+    };
+
+    if (isFolder(path)) {
+      collectMissingChildren(node.common);
+      collectMissingChildren(node.remote);
+
+      node.remote.itemsMap = {};
+      for (itemName in bodyOrItemsMap as RSItem["itemsMap"]) {
+        node.remote.itemsMap[itemName] = true;
       }
+    } else {
+      node.remote.body = bodyOrItemsMap;
+      node.remote.contentType = contentType;
 
-      node.remote = {
-        revision: revision,
-        timestamp: this.now()
-      };
+      if (parentNode && parentNode.local && parentNode.local.itemsMap) {
+        itemName = path.substring(parentPath.length);
 
-      if (isFolder(path)) {
-        collectMissingChildren(node.common);
-        collectMissingChildren(node.remote);
+        parentNode.local.itemsMap[itemName] = true;
 
-        node.remote.itemsMap = {};
-        for (itemName in bodyOrItemsMap as RSItem["itemsMap"]) {
-          node.remote.itemsMap[itemName] = true;
-        }
-      } else {
-        node.remote.body = bodyOrItemsMap;
-        node.remote.contentType = contentType;
-
-        parentNode = nodes[parentPath];
-        if (parentNode && parentNode.local && parentNode.local.itemsMap) {
-          itemName = path.substring(parentPath.length);
-          parentNode.local.itemsMap[itemName] = true;
-          if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
-            delete parentNode.local;
-          }
+        if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+          delete parentNode.local;
         }
       }
+    }
 
-      nodes[path] = this.autoMerge(node);
+    nodes[path] = this.autoMerge(node);
 
-      return { toBeSaved: nodes, missingChildren };
-    });
+    return { toBeSaved: nodes, missingChildren };
   }
 
   /**
