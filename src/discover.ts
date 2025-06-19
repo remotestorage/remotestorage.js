@@ -90,12 +90,8 @@ Discover.DiscoveryError.prototype.constructor = Discover.DiscoveryError;
 Discover._rs_init = function (/*remoteStorage*/): void {
   hasLocalStorage = localStorageAvailable();
   if (hasLocalStorage) {
-    try {
-      const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-      cachedInfo = settings.cache;
-    } catch(e) {
-      /* empty */
-    }
+    const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    if (settings) { cachedInfo = settings.cache; }
   }
 };
 

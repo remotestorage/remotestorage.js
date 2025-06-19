@@ -22,11 +22,6 @@ export class Access {
   rootPaths: string[];
   storageType: string;
 
-  // TODO create custom type for init function
-  static _rs_init(): void {
-    return;
-  }
-
   constructor() {
     this.reset();
   }
@@ -196,6 +191,10 @@ export class Access {
    */
   setStorageType (type: string): void {
     this.storageType = type;
+  }
+
+  static _rs_init(): void {
+    return;
   }
 }
 
