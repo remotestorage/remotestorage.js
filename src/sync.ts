@@ -1046,11 +1046,8 @@ export class Sync {
     await this.collectTasks(false).then(() => {
       // See if there are any more tasks that are not refresh tasks
       if (!this.hasTasks() || this.stopped) {
-        log('[Sync] Sync is done! Reschedule?', Object.keys(this._tasks).length, this.stopped);
-        if (!this.done) {
-          this.done = true;
-          this.rs._emit('sync-done', { completed: true });
-        }
+        if (!this.done) { this.done = true; }
+        this.rs._emit('sync-done', { completed: true });
       } else {
         // Use a 10ms timeout to let the JavaScript runtime catch its breath
         // (and hopefully force an IndexedDB auto-commit?), and also to cause
