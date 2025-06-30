@@ -54,7 +54,7 @@ locally. If the path is '/', rs.js drops it.
 - Content-Type is not fully supported due to limitations of the
   Dropbox API
 - Dropbox preserves cases but is not case-sensitive
-- `getItemURL` is not implemented yet (see issue 1052)
+- `getItemURL` is not implemented yet (see [issue 1052](https://github.com/remotestorage/remotestorage.js/issues/1052))
 
 ## Google Drive
 
@@ -73,5 +73,5 @@ Console](https://console.developers.google.com/flows/enableapi?apiid=drive).
 
 ### Known issues
 
-- Sharing public files is not supported yet (see issue 1051)
-- `getItemURL` is not implemented yet (see issue 1054)
+- Sharing public files is not supported yet (see [issue 1051](https://github.com/remotestorage/remotestorage.js/issues/1051))
+- `getItemURL` is not implemented yet (see [issue 1054](https://github.com/remotestorage/remotestorage.js/issues/1054))
