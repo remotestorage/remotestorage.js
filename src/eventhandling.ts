@@ -76,7 +76,7 @@ export class EventHandling {
   _emit (eventName: string, ...args: unknown[]): void {
     this._validateEvent(eventName);
     this._handlers[eventName].slice().forEach((handler) => {
-      handler.apply(this, args);
+      handler(...args);
     });
   }
 

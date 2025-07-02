@@ -5,6 +5,7 @@ import fetchMock from 'fetch-mock';
 
 import { localStorage } from '../helpers/memoryStorage.mjs';
 
+import config from "../../build/config.js";
 import Discover from '../../build/discover.js';
 
 chai.use(chaiAsPromised);
@@ -76,6 +77,16 @@ const jrdJimbo = {
 };
 
 describe('Webfinger discovery', () => {
+  before(() => {
+    config.requestTimeout = 20;
+    config.discoveryTimeout = 20;
+  });
+
+  after(() => {
+    localStorage.clear();
+    config.requestTimout = 30000;
+    config.discoveryTimeout = 5000;
+  });
 
   describe('successful lookup', () => {
     before(() => {
@@ -103,10 +114,7 @@ describe('Webfinger discovery', () => {
       });
     });
 
-    after(() => {
-      localStorage.removeItem('remotestorage:discover');
-      fetchMock.reset();
-    });
+    after(() => fetchMock.reset());
   });
 
   describe('record missing', () => {

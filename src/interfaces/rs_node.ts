@@ -1,5 +1,20 @@
+export type RSItem = {
+  body?: string | object | false;
+  contentType?: string;
+  contentLength?: number;
+  revision?: string;
+  timestamp?: number;
+  itemsMap?: { [key: string]: any; };
+  previousBody?: string | object | false;
+  previousContentType?: string;
+}
+
 export type RSNode = {
-  [key: string]: any;
+  path: string;
+  common?: RSItem;
+  local?: RSItem;
+  remote?: RSItem;
+  push?: RSItem;
 };
 
 export type RSNodes = {
