@@ -20,6 +20,11 @@ for a single file:
 $ ./node_modules/.bin/jaribu test/unit/cachinglayer-suite.js
 ```
 
+For the Mocha tests:
+
+```sh
+$ npm run test:mocha
+```
 ::: warning
 We're in the process of porting the tests to Mocha/Chai. Also see `npm run
 test:mocha`.
