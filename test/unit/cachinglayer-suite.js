@@ -49,11 +49,6 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
             push:   { foo: 'bar' },
             remote: { foo: 'bar' }
           },
-          legacyNode = {
-            path:        '/foo',
-            body:        'asdf',
-            contentType: 'text/plain'
-          };
           deletedLocalNode = {
             path:   '/a/b',
             local:  { body: false },
@@ -68,8 +63,6 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
           test.assertAnd(getLatest(localNode).contentType, 'c');
           test.assertAnd(getLatest(commonNode).body, 'b');
           test.assertAnd(getLatest(commonNode).contentType, 'c');
-          test.assertAnd(getLatest(legacyNode).body, 'asdf');
-          test.assertAnd(getLatest(legacyNode).contentType, 'text/plain');
           test.assertAnd(getLatest(deletedLocalNode), undefined);
           test.done();
         }
@@ -134,7 +127,7 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
       },
 
       {
-        desc: "_emitChange emits change events",
+        desc: "emitChange emits change events",
         run: function(env, test) {
           var changeEvent = {
             path:   '/foo',
@@ -145,12 +138,12 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
             test.assert(event, changeEvent);
           });
 
-          env.ims._emitChange(changeEvent);
+          env.ims.emitChange(changeEvent);
         }
       },
 
       {
-        desc: "_emitChange doesn't emit events that are not enabled",
+        desc: "emitChange doesn't emit events that are not enabled",
         run: function(env, test) {
           var changeEvent = {
             path:   '/foo',
@@ -163,7 +156,7 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
             test.result(false, 'change event should not have been fired');
           });
 
-          env.ims._emitChange(changeEvent);
+          env.ims.emitChange(changeEvent);
 
           setTimeout(function() {
             test.done();
@@ -218,7 +211,7 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
             test.assertAnd(nodes, {
               '/foo': undefined
             }, 'second pass');
-            nodes['/foo'] = {local: {some: 'data'}};
+            nodes['/foo'] = {local: {body: 'data'}};
             jobTwoCbCalled = true;
             return nodes;
           }).then(function() {
@@ -242,10 +235,10 @@ define(['require', './build/util', './build/config', './build/inmemorystorage'],
 
             test.assertAnd(nodes, {
               '/foo': {
-                local: {some: 'data'}
+                local: {body: 'data'}
               }
             }, 'third pass');
-            nodes['/foo'] = {local: {some: 'other data'}};
+            nodes['/foo'] = {local: {body: 'other data'}};
             jobThreeCbCalled = true;
             return nodes;
           }).then(function() {

@@ -57,19 +57,19 @@ export class RemoteBase extends EventHandling {
 
 export interface RemoteSettings {
   userAddress?: string;
-  href?: string;              // remoteStorage server's base URL
-  storageApi?: string;        // spec version
-  token?: string | false;   // OAuth2 access token
-  refreshToken?: string;      // OAuth2 refresh token
-  tokenType?: string;         // type of access token; usually 'bearer'
+  href?: string;          // remoteStorage server's base URL
+  storageApi?: string;    // spec version
+  token?: string | false; // OAuth2 access token
+  refreshToken?: string;  // OAuth2 refresh token
+  tokenType?: string;     // type of access token; usually 'bearer'
   properties?: object;
 }
 
 export interface RemoteResponse {
   statusCode: number;
-  revision?: string;
+  body?: string | { [key: string]: any; };
   contentType?: string;
-  body?: any;
+  revision?: string;
 }
 
 /**
@@ -130,6 +130,13 @@ export interface Remote {
   clientId?: string;
 
   /**
+   * OAuth2 access token
+   *
+   * @internal
+   */
+  token?: string | false;
+
+  /**
    * OAuth2 PKCE
    *
    * @internal
@@ -149,7 +156,7 @@ export interface Remote {
 
   stopWaitingForToken (): void;
 
-  get (path: string, options: { ifMatch?: string; ifNoneMatch?: string }): Promise<RemoteResponse>;
+  get (path: string, options?: { ifMatch?: string; ifNoneMatch?: string }): Promise<RemoteResponse>;
 
   put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string }): Promise<RemoteResponse>
 
