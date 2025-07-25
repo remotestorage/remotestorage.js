@@ -3,7 +3,7 @@
 Before contributing to remoteStorage.js, make sure your patch passes the
 test suite, and your code style passes the code linting suite.
 
-We use the [Jaribu](https://github.com/silverbucket/jaribu) framework
+We use the [Mocha](https://mochajs.org) and [Jaribu](https://github.com/silverbucket/jaribu) frameworks
 for our test suites and [JSHint](http://jshint.com/about/) for linting.
 Both are set as dev dependencies in `package.json`, so after installing
 those via `npm install`, you can use the following command to run
