@@ -36,7 +36,7 @@ remoteStorage-compatible storage account. We recommend
 local test server.
 
 You can also get an account with a hoster, or use another
-remoteStorage server implementation: [Servers](https://wiki.remotestorage.io/Servers).
+remoteStorage server implementation: [Servers](https://remotestorage.io/servers).
 
 ### Visual File Browser
 
