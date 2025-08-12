@@ -729,7 +729,7 @@ export class Sync {
         collectSubPaths(node.common, path);
         collectSubPaths(node.local, path);
       } else {
-        if (node.common && typeof(node.common.body) !== undefined) {
+        if (node.common && typeof(node.common.body) !== 'undefined') {
           changedNodes[path] = deepClone(node);
           changedNodes[path].remote = {
             body:      false,
