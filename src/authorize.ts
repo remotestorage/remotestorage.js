@@ -1,5 +1,5 @@
+import type RemoteStorage from './remotestorage';
 import log from './log';
-import RemoteStorage from './remotestorage';
 import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
 import { EventHandler } from './eventhandling';

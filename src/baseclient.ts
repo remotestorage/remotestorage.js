@@ -1,4 +1,5 @@
 import tv4 from 'tv4';
+import type RemoteStorage from './remotestorage';
 import type { JsonSchemas } from './interfaces/json_schema';
 import type { ChangeObj } from './interfaces/change_obj';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
@@ -7,7 +8,6 @@ import SchemaNotFound from './schema-not-found-error';
 import EventHandling from './eventhandling';
 import config from './config';
 import { applyMixins, cleanPath, isFolder } from './util';
-import RemoteStorage from './remotestorage';
 
 function getModuleNameFromBase(path: string): string {
   const parts = path.split('/');
@@ -147,8 +147,8 @@ function getModuleNameFromBase(path: string): string {
  * during sync.
  *
  * > [!NOTE]
- * > Automatically receiving remote changes depends on the {@link caching!Caching} settings
- * > for your module/paths.
+ * > Automatically receiving remote changes depends on the
+ * > {@link caching!Caching caching} settings for your module/paths.
  *
  * ### `window`
  *
@@ -180,13 +180,13 @@ function getModuleNameFromBase(path: string): string {
  * }
  * ```
  *
- * But when this change is pushed out by asynchronous synchronization, this change
- * may be rejected by the server, if the remote version has in the meantime changed
- * from `white` to  for instance `red`; this will then lead to a change event with
- * origin `conflict` (usually a few seconds after the event with origin `window`,
- * if you have those activated). Note that since you already changed it from
- * `white` to `blue` in the local version a few seconds ago, `oldValue` is now
- * your local value of `blue`:
+ * However, when this change is pushed out by the sync process, it will be
+ * rejected by the server, if the remote version has changed in the meantime,
+ * for example from `white` to `red`. This will lead to a change event with
+ * origin `conflict`, usually a few seconds after the event with origin
+ * `window`. Note that since you already changed it from `white` to `blue` in
+ * the local version a few seconds ago, `oldValue` is now your local value of
+ * `blue`:
  *
  * ```js
  * {
@@ -212,11 +212,6 @@ function getModuleNameFromBase(path: string): string {
  *
  * If there is an algorithm to merge the differences between local and remote
  * versions of the data, conflicts may be automatically resolved.
- * {@link storeObject} or {@link storeFile} must not be called synchronously from
- * the change event handler, nor by chaining Promises. {@link storeObject} or
- * {@link storeFile} must not be called until the next iteration of the JavaScript
- * Task Queue, using for example
- * [`setTimeout()`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout).
  *
  * If no algorithm exists, conflict resolution typically involves displaying local
  * and remote versions to the user, and having the user merge them, or choose
@@ -625,9 +620,8 @@ export class BaseClient {
    * @example
    * client.remove('path/to/object').then(() => console.log('item deleted'));
    */
-  // TODO add real return type
   // TODO Don't return the RemoteResponse directly, handle response properly
-  remove (path: string): Promise<unknown> {
+  async remove (path: string): Promise<QueuedRequestResponse> {
     if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
     }
@@ -635,7 +629,7 @@ export class BaseClient {
       console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
     }
 
-    return this.storage.delete(this.makePath(path));
+    return this.storage.delete(this.makePath(path), this.storage.connected);
   }
 
   /**

@@ -1,7 +1,8 @@
 import type { ChangeObj } from './interfaces/change_obj';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
 import type { RSEvent } from './interfaces/rs_event';
-import type { RSNode, RSNodes, ProcessNodes } from './interfaces/rs_node';
+import type { RSItem, RSNode, RSNodes, ProcessNodes } from './interfaces/rs_node';
+import Env from './env';
 import EventHandling from './eventhandling';
 import config from './config';
 import log from './log';
@@ -9,12 +10,13 @@ import {
   applyMixins,
   deepClone,
   equal,
+  globalContext,
   isDocument,
   isFolder,
   pathsFromRoot
 } from './util';
 
-function getLatest (node: RSNode): any {
+function getLatest (node: RSNode): RSItem {
   if (typeof (node) !== 'object' || typeof (node.path) !== 'string') {
     return;
   }
@@ -37,16 +39,6 @@ function getLatest (node: RSNode): any {
     if (node.common && node.common.body && node.common.contentType) {
       return node.common;
     }
-    // Migration code! Once all apps use at least this version of the lib, we
-    // can publish clean-up code that migrates over any old-format data, and
-    // stop supporting it. For now, new apps will support data in both
-    // formats, thanks to this:
-    if (node.body && node.contentType) {
-      return {
-        body: node.body,
-        contentType: node.contentType
-      };
-    }
   }
 }
 
@@ -55,7 +47,9 @@ function isOutdated (nodes: RSNodes, maxAge: number): boolean {
     if (nodes[path] && nodes[path].remote) {
       return true;
     }
+
     const nodeVersion = getLatest(nodes[path]);
+
     if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
       return false;
     } else if (!nodeVersion) {
@@ -128,6 +122,21 @@ abstract class CachingLayer {
 
   abstract setNodes(nodes: RSNodes): Promise<void>;
 
+  /**
+   * Broadcast channel, used to inform other tabs about change events
+   */
+  broadcastChannel: BroadcastChannel;
+
+  constructor () {
+    const env = new Env();
+    if (env.isBrowser() && !!globalContext["BroadcastChannel"]) {
+      this.broadcastChannel = new BroadcastChannel('remotestorage:changes');
+      // Listen for change events from other tabs, and re-emit here
+      this.broadcastChannel.onmessage = (event: MessageEvent) => {
+        this.emitChange(event.data);
+      };
+    }
+  }
 
   // --------------------------------------------------
 
@@ -138,15 +147,15 @@ abstract class CachingLayer {
     if (typeof (maxAge) === 'number') {
       return this.getNodes(pathsFromRoot(path))
         .then((objs) => {
-          const node: RSNode = getLatest(objs[path]);
+          const item: RSItem = getLatest(objs[path]);
 
           if (isOutdated(objs, maxAge)) {
             return queueGetRequest(path);
-          } else if (node) {
+          } else if (item) {
             return {
               statusCode: 200,
-              body: node.body || node.itemsMap,
-              contentType: node.contentType
+              body: item.body || item.itemsMap,
+              contentType: item.contentType
             };
           } else {
             return { statusCode: 404 };
@@ -155,21 +164,21 @@ abstract class CachingLayer {
     } else {
       return this.getNodes([path])
         .then((objs) => {
-          const node: RSNode = getLatest(objs[path]);
+          const item: RSItem = getLatest(objs[path]);
 
-          if (node) {
+          if (item) {
             if (isFolder(path)) {
-              for (const i in node.itemsMap) {
+              for (const i in item.itemsMap) {
                 // the hasOwnProperty check here is only because our jshint settings require it:
-                if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
-                  delete node.itemsMap[i];
+                if (item.itemsMap.hasOwnProperty(i) && item.itemsMap[i] === false) {
+                  delete item.itemsMap[i];
                 }
               }
             }
             return {
               statusCode: 200,
-              body: node.body || node.itemsMap,
-              contentType: node.contentType
+              body: item.body || item.itemsMap,
+              contentType: item.contentType
             };
           } else {
             return {statusCode: 404};
@@ -178,7 +187,7 @@ abstract class CachingLayer {
     }
   }
 
-  async put (path: string, body: unknown, contentType: string): Promise<RSNodes> {
+  async put (path: string, body: string, contentType: string): Promise<QueuedRequestResponse> {
     const paths = pathsFromRoot(path);
 
     function _processNodes(nodePaths: string[], nodes: RSNodes): RSNodes {
@@ -186,7 +195,7 @@ abstract class CachingLayer {
         for (let i = 0, len = nodePaths.length; i < len; i++) {
           const nodePath = nodePaths[i];
           let node = nodes[nodePath];
-          let previous: RSNode;
+          let previous: RSItem;
 
           if (!node) {
             nodes[nodePath] = node = makeNode(nodePath);
@@ -218,7 +227,7 @@ abstract class CachingLayer {
     return this._updateNodes(paths, _processNodes);
   }
 
-  delete (path: string): unknown {
+  async delete (path: string, remoteConnected: boolean): Promise<QueuedRequestResponse> {
     const paths = pathsFromRoot(path);
 
     return this._updateNodes(paths, function (nodePaths, nodes) {
@@ -236,7 +245,7 @@ abstract class CachingLayer {
           // Document
           previous = getLatest(node);
           node.local = {
-            body: false,
+            body: remoteConnected ? false : undefined,
             previousBody: (previous ? previous.body : undefined),
             previousContentType: (previous ? previous.contentType : undefined),
           };
@@ -254,12 +263,12 @@ abstract class CachingLayer {
           }
         }
       }
+
       return nodes;
     });
   }
 
-  flush(path: string): unknown {
-
+  flush(path: string): Promise<void> {
     return this._getAllDescendentPaths(path).then((paths: string[]) => {
       return this.getNodes(paths);
     }).then((nodes: RSNodes) => {
@@ -267,7 +276,7 @@ abstract class CachingLayer {
         const node = nodes[nodePath];
 
         if (node && node.common && node.local) {
-          this._emitChange({
+          this.emitChange({
             path: node.path,
             origin: 'local',
             oldValue: (node.local.body === false ? undefined : node.local.body),
@@ -281,7 +290,10 @@ abstract class CachingLayer {
     });
   }
 
-  private _emitChange(obj: ChangeObj): void {
+  /**
+   * Emit a change event
+   */
+  emitChange(obj: ChangeObj): void {
     if (config.changeEvents[obj.origin]) {
       this._emit('change', obj);
     }
@@ -294,7 +306,7 @@ abstract class CachingLayer {
       if (isDocument(node.path)) {
         const latest = getLatest(node);
         if (latest) {
-          this._emitChange({
+          this.emitChange({
             path: node.path,
             origin: 'local',
             oldValue: undefined,
@@ -314,27 +326,7 @@ abstract class CachingLayer {
     this.diffHandler = diffHandler;
   }
 
-  migrate(node: RSNode): RSNode {
-    if (typeof (node) === 'object' && !node.common) {
-      node.common = {};
-      if (typeof (node.path) === 'string') {
-        if (node.path.substr(-1) === '/' && typeof (node.body) === 'object') {
-          node.common.itemsMap = node.body;
-        }
-      } else {
-        //save legacy content of document node as local version
-        if (!node.local) {
-          node.local = {};
-        }
-        node.local.body = node.body;
-        node.local.contentType = node.contentType;
-      }
-    }
-    return node;
-  }
-
-
-  private _updateNodes(paths: string[], _processNodes: ProcessNodes): Promise<RSNodes> {
+  private _updateNodes(paths: string[], _processNodes: ProcessNodes): Promise<QueuedRequestResponse> {
     return new Promise((resolve, reject) => {
       this._doUpdateNodes(paths, _processNodes, {
         resolve: resolve,
@@ -343,7 +335,7 @@ abstract class CachingLayer {
     });
   }
 
-  private _doUpdateNodes(paths: string[], _processNodes: ProcessNodes, promise) {
+  private async _doUpdateNodes(paths: string[], _processNodes: ProcessNodes, promise): Promise<void> {
     if (this._updateNodesRunning) {
       this._updateNodesQueued.push({
         paths: paths,
@@ -351,11 +343,11 @@ abstract class CachingLayer {
         promise: promise
       });
       return;
-    } else {
-      this._updateNodesRunning = true;
     }
+    this._updateNodesRunning = true;
 
-    this.getNodes(paths).then((nodes) => {
+    try {
+      let nodes = await this.getNodes(paths);
       const existingNodes = deepClone(nodes);
       const changeEvents = [];
 
@@ -379,33 +371,43 @@ abstract class CachingLayer {
               newContentType: node.local.contentType
             });
           }
-          delete node.local.previousBody;
-          delete node.local.previousContentType;
+          if (node.local.body === undefined) {
+            // no remote connected, remove deleted node from cache immediately
+            nodes[path] = undefined;
+          } else {
+            delete node.local.previousBody;
+            delete node.local.previousContentType;
+          }
         }
       }
 
-      this.setNodes(nodes).then(() => {
-        this._emitChangeEvents(changeEvents);
-        promise.resolve({statusCode: 200});
-      });
-    }).then(() => {
-      return Promise.resolve();
-    }, (err) => {
+      await this.setNodes(nodes);
+      this._emitChangeEvents(changeEvents);
+
+      promise.resolve({ statusCode: 200 });
+    } catch (err) {
       promise.reject(err);
-    }).then(() => {
-      this._updateNodesRunning = false;
-      const nextJob = this._updateNodesQueued.shift();
-      if (nextJob) {
-        this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
-      }
-    });
+    }
+
+    this._updateNodesRunning = false;
+    const nextJob = this._updateNodesQueued.shift();
+    if (nextJob) {
+      await this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
+    }
   }
 
   private _emitChangeEvents(events: RSEvent[]) {
     for (let i = 0, len = events.length; i < len; i++) {
-      this._emitChange(events[i]);
+      const change = events[i];
+
+      this.emitChange(change);
+
       if (this.diffHandler) {
-        this.diffHandler(events[i].path);
+        this.diffHandler(change.path);
+      }
+
+      if (!!this.broadcastChannel && change.origin === "window") {
+        this.broadcastChannel.postMessage(change); // Broadcast to other tabs
       }
     }
   }

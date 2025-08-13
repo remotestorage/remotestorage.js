@@ -1,3 +1,5 @@
+import type { QueuedRequestResponse } from './interfaces/queued_request_response';
+import type { RemoteResponse } from './remote';
 import log from './log';
 
 function shareFirst(path: string): boolean {
@@ -16,7 +18,7 @@ function defaultMaxAge(context): false | number {
 }
 
 const SyncedGetPutDelete = {
-  get: function (path: string, maxAge: undefined | false | number): Promise<unknown> {
+  get: function (path: string, maxAge: undefined | false | number): Promise<QueuedRequestResponse | RemoteResponse> {
     if (!this.local) {
       return this.remote.get(path);
     } else {
@@ -29,7 +31,7 @@ const SyncedGetPutDelete = {
     }
   },
 
-  put: function (path: string, body: unknown, contentType: string): Promise<unknown> {
+  put: function (path: string, body: unknown, contentType: string): Promise<QueuedRequestResponse | RemoteResponse> {
     if (shareFirst.bind(this)(path)) {
       return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
     }
@@ -40,16 +42,17 @@ const SyncedGetPutDelete = {
     }
   },
 
-  'delete': function (path: string): Promise<unknown> {
+  'delete': function (path: string, remoteConnected: boolean): Promise<QueuedRequestResponse | RemoteResponse> {
     if (this.local) {
-      return this.local.delete(path);
+      return this.local.delete(path, remoteConnected);
     } else {
-      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
+      return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path, remoteConnected));
     }
   },
 
-  _wrapBusyDone: async function (result: Promise<unknown>): Promise<unknown> {
+  _wrapBusyDone: async function (result: Promise<QueuedRequestResponse | RemoteResponse>): Promise<QueuedRequestResponse | RemoteResponse> {
     this._emit('wire-busy');
+
     return result.then((r) => {
       this._emit('wire-done', { success: true });
       return Promise.resolve(r);
