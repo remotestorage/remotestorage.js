@@ -28,6 +28,10 @@ $ yarn add -D remotestoragejs
 ```sh [bun]
 $ bun add -D remotestoragejs
 ```
+
+```sh [deno]
+$ deno add npm:remotestoragejs
+```
 :::
 
 ## Examples
