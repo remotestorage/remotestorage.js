@@ -1,7 +1,8 @@
+import type { ChangeObj } from './interfaces/change_obj';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
-import type { RSNode, RSNodes } from './interfaces/rs_node';
+import type { RSItem, RSNode, RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
-declare function getLatest(node: RSNode): any;
+declare function getLatest(node: RSNode): RSItem;
 declare function isOutdated(nodes: RSNodes, maxAge: number): boolean;
 declare function makeNode(path: string): RSNode;
 /**
@@ -23,14 +24,21 @@ declare abstract class CachingLayer {
     abstract diffHandler(...args: any[]): any;
     abstract forAllNodes(cb: (node: any) => any): Promise<void>;
     abstract setNodes(nodes: RSNodes): Promise<void>;
+    /**
+     * Broadcast channel, used to inform other tabs about change events
+     */
+    broadcastChannel: BroadcastChannel;
+    constructor();
     get(path: string, maxAge: number, queueGetRequest: (path2: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse>;
-    put(path: string, body: unknown, contentType: string): Promise<RSNodes>;
-    delete(path: string): unknown;
-    flush(path: string): unknown;
-    private _emitChange;
+    put(path: string, body: string, contentType: string): Promise<QueuedRequestResponse>;
+    delete(path: string, remoteConnected: boolean): Promise<QueuedRequestResponse>;
+    flush(path: string): Promise<void>;
+    /**
+     * Emit a change event
+     */
+    emitChange(obj: ChangeObj): void;
     fireInitial(): void;
     onDiff(diffHandler: any): void;
-    migrate(node: RSNode): RSNode;
     private _updateNodes;
     private _doUpdateNodes;
     private _emitChangeEvents;

@@ -1,5 +1,4 @@
 import Access from './access';
-import Authorize from './authorize';
 import BaseClient from './baseclient';
 import Caching from './caching';
 import IndexedDB from './indexeddb';
@@ -109,6 +108,10 @@ declare enum ApiKeyType {
  *
  * Emitted when ready, but no storage connected ("anonymous mode")
  *
+ * > [!NOTE]
+ * > In non-browser environments, this will always be emitted (before any
+ * > potential `connected` events after)
+ *
  * ### `connected`
  *
  * Emitted when a remote storage has been connected
@@ -162,6 +165,10 @@ declare enum ApiKeyType {
  * ### `wire-done`
  *
  * Emitted when a network request completes
+ *
+ * ### `sync-started`
+ *
+ * Emitted when a sync procedure has started.
  *
  * ### `sync-req-done`
  *
@@ -253,14 +260,17 @@ export declare class RemoteStorage {
         };
     };
     /**
+     * Managing claimed access scopes
      */
     access: Access;
     /**
-     */
-    sync: Sync;
-    /**
+     * Managing cache settings
      */
     caching: Caching;
+    /**
+     * @internal
+     */
+    sync: Sync;
     /**
      * @internal
      */
@@ -299,7 +309,7 @@ export declare class RemoteStorage {
      * Access to the local caching backend used. Usually either a
      * `RemoteStorage.IndexedDB` or `RemoteStorage.LocalStorage` instance.
      *
-     * Not available, when caching is turned off.
+     * Not available when caching is turned off.
      *
      * @internal
      */
@@ -321,13 +331,6 @@ export declare class RemoteStorage {
      * Indicating if remoteStorage is currently connected.
      */
     get connected(): boolean;
-    /**
-     * FIXME: Instead of doing this, would be better to only
-     * export setAuthURL / getAuthURL from RemoteStorage prototype
-     *
-     * @ignore
-     */
-    static Authorize: typeof Authorize;
     static SyncError: typeof SyncError;
     static Unauthorized: typeof UnauthorizedError;
     static DiscoveryError: (message: any) => void;
@@ -631,10 +634,11 @@ export declare class RemoteStorage {
      */
     setRequestTimeout(timeout: number): void;
     /**
-     * TODO: document
+     * Add a handler to schedule periodic sync if sync enabled
+     *
      * @internal
      */
-    syncCycle(): void;
+    setupSyncCycle(): void;
     /**
      * Start synchronization with remote storage, downloading and uploading any
      * changes within the cached paths.

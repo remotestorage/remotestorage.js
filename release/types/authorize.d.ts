@@ -1,4 +1,4 @@
-import RemoteStorage from './remotestorage';
+import type RemoteStorage from './remotestorage';
 import { Remote } from "./remote";
 interface AuthResult {
     access_token?: string;

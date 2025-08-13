@@ -17,7 +17,6 @@ export declare class Access {
     scopeModeMap: ScopeModeMap;
     rootPaths: string[];
     storageType: string;
-    static _rs_init(): void;
     constructor();
     /**
      * Holds an array of claimed scopes:
@@ -107,6 +106,7 @@ export declare class Access {
      * @internal
      */
     setStorageType(type: string): void;
+    static _rs_init(): void;
 }
 export default Access;
 //# sourceMappingURL=access.d.ts.map

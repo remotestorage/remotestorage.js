@@ -132,8 +132,8 @@ Events with origin `remote` are fired when remote changes are discovered
 during sync.
 
 > [!NOTE]
-> Automatically receiving remote changes depends on the [caching!Caching](../../caching/classes/Caching.md) settings
-> for your module/paths.
+> Automatically receiving remote changes depends on the
+> [caching](../../caching/classes/Caching.md) settings for your module/paths.
 
 ### `window`
 
@@ -164,13 +164,13 @@ you have set `config.changeEvents.window` to `true` for your RemoteStorage insta
 }
 ```
 
-But when this change is pushed out by asynchronous synchronization, this change
-may be rejected by the server, if the remote version has in the meantime changed
-from `white` to  for instance `red`; this will then lead to a change event with
-origin `conflict` (usually a few seconds after the event with origin `window`,
-if you have those activated). Note that since you already changed it from
-`white` to `blue` in the local version a few seconds ago, `oldValue` is now
-your local value of `blue`:
+However, when this change is pushed out by the sync process, it will be
+rejected by the server, if the remote version has changed in the meantime,
+for example from `white` to `red`. This will lead to a change event with
+origin `conflict`, usually a few seconds after the event with origin
+`window`. Note that since you already changed it from `white` to `blue` in
+the local version a few seconds ago, `oldValue` is now your local value of
+`blue`:
 
 ```js
 {
@@ -196,11 +196,6 @@ conflict.
 
 If there is an algorithm to merge the differences between local and remote
 versions of the data, conflicts may be automatically resolved.
-[storeObject](BaseClient.md#storeobject) or [storeFile](BaseClient.md#storefile) must not be called synchronously from
-the change event handler, nor by chaining Promises. [storeObject](BaseClient.md#storeobject) or
-[storeFile](BaseClient.md#storefile) must not be called until the next iteration of the JavaScript
-Task Queue, using for example
-[`setTimeout()`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout).
 
 If no algorithm exists, conflict resolution typically involves displaying local
 and remote versions to the user, and having the user merge them, or choose
@@ -223,7 +218,7 @@ corresponding `publicClient` it is `/public/<moduleName>/`.
 
 #### Defined in
 
-[baseclient.ts:239](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L239)
+[baseclient.ts:234](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L234)
 
 ## Methods
 
@@ -247,7 +242,7 @@ Usually called via [`on()`](#on)
 
 #### Defined in
 
-[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/eventhandling.ts#L29)
+[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L29)
 
 ***
 
@@ -286,7 +281,7 @@ client.cache('lists/', 'SEEN');
 
 #### Defined in
 
-[baseclient.ts:684](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L684)
+[baseclient.ts:678](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L678)
 
 ***
 
@@ -344,7 +339,7 @@ client.declareType('todo-item', {
 
 #### Defined in
 
-[baseclient.ts:734](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L734)
+[baseclient.ts:728](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L728)
 
 ***
 
@@ -420,7 +415,7 @@ Example response:
 
 #### Defined in
 
-[baseclient.ts:395](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L395)
+[baseclient.ts:390](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L390)
 
 ***
 
@@ -470,7 +465,7 @@ client.getFile('path/to/some/image').then(file => {
 
 #### Defined in
 
-[baseclient.ts:457](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L457)
+[baseclient.ts:452](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L452)
 
 ***
 
@@ -501,7 +496,7 @@ The full URL of the item, including the storage origin, or `undefined`
 
 #### Defined in
 
-[baseclient.ts:656](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L656)
+[baseclient.ts:650](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L650)
 
 ***
 
@@ -571,7 +566,7 @@ Example of a listing object:
 
 #### Defined in
 
-[baseclient.ts:326](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L326)
+[baseclient.ts:321](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L321)
 
 ***
 
@@ -607,7 +602,7 @@ client.getObject('/path/to/object').then(obj => console.log(obj));
 
 #### Defined in
 
-[baseclient.ts:541](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L541)
+[baseclient.ts:536](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L536)
 
 ***
 
@@ -643,13 +638,13 @@ remoteStorage.on('connected', function() {
 
 #### Defined in
 
-[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/eventhandling.ts#L55)
+[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L55)
 
 ***
 
 ### remove()
 
-> **remove**(`path`): `Promise`\<`unknown`\>
+> **remove**(`path`): `Promise`\<`QueuedRequestResponse`\>
 
 Remove node at given path from storage. Triggers synchronization.
 
@@ -661,7 +656,7 @@ Path relative to the module root.
 
 #### Returns
 
-`Promise`\<`unknown`\>
+`Promise`\<`QueuedRequestResponse`\>
 
 #### Example
 
@@ -671,7 +666,7 @@ client.remove('path/to/object').then(() => console.log('item deleted'));
 
 #### Defined in
 
-[baseclient.ts:630](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L630)
+[baseclient.ts:624](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L624)
 
 ***
 
@@ -693,7 +688,7 @@ Remove a previously installed event handler
 
 #### Defined in
 
-[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/eventhandling.ts#L62)
+[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L62)
 
 ***
 
@@ -718,7 +713,7 @@ A new `BaseClient` operating on a subpath of the current base path
 
 #### Defined in
 
-[baseclient.ts:272](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L272)
+[baseclient.ts:267](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L267)
 
 ***
 
@@ -774,7 +769,7 @@ fileReader.readAsArrayBuffer(file);
 
 #### Defined in
 
-[baseclient.ts:503](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L503)
+[baseclient.ts:498](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L498)
 
 ***
 
@@ -827,7 +822,7 @@ client.storeObject('bookmark', path, bookmark)
 
 #### Defined in
 
-[baseclient.ts:589](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L589)
+[baseclient.ts:584](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L584)
 
 ***
 
@@ -864,4 +859,4 @@ var result = client.validate(document);
 
 #### Defined in
 
-[baseclient.ts:766](https://github.com/remotestorage/remotestorage.js/blob/a883b85da66e86fad01e632f66b390973ef0772e/src/baseclient.ts#L766)
+[baseclient.ts:760](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L760)

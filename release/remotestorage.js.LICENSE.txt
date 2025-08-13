@@ -15,4 +15,4 @@
  *
  */
 
-/*! remotestorage.js 2.0.0-beta.7, https://remotestorage.io, MIT licensed */
+/*! remotestorage.js 2.0.0-beta.8, https://remotestorage.io, MIT licensed */

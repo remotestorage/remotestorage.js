@@ -34,6 +34,7 @@
 import type { RSNode, RSNodes } from './interfaces/rs_node';
 import EventHandling from './eventhandling';
 import CachingLayer from './cachinglayer';
+import type RemoteStorage from './remotestorage';
 declare class IndexedDB extends CachingLayer {
     db: any;
     getsRunning: number;
@@ -63,11 +64,15 @@ declare class IndexedDB extends CachingLayer {
      */
     flushChangesQueued(): void;
     /**
-     * TODO: Document
+     * Retrieve nodes from the database
+     *
+     * @internal
      */
     getNodesFromDb(paths: string[]): Promise<RSNodes>;
     /**
-     * TODO: Document
+     * Store nodes in the database
+     *
+     * @internal
      */
     setNodesInDb(nodes: {
         [key: string]: unknown;
@@ -86,7 +91,7 @@ declare class IndexedDB extends CachingLayer {
      */
     static open(name: string, callback: (p: unknown, p2?: unknown) => unknown): void;
     /**
-     * TODO: Document
+     * Cleanup: Delete IndexedDB database
      */
     static clean(databaseName: string, callback: () => void): void;
     /**
@@ -96,7 +101,7 @@ declare class IndexedDB extends CachingLayer {
      *
      * @protected
      */
-    static _rs_init(remoteStorage: unknown): Promise<void>;
+    static _rs_init(remoteStorage: RemoteStorage): Promise<void>;
     /**
      * Inform about the availability of the IndexedDB backend.
      *
@@ -113,7 +118,7 @@ declare class IndexedDB extends CachingLayer {
      *
      * @protected
      */
-    static _rs_cleanup(remoteStorage: any): Promise<unknown>;
+    static _rs_cleanup(remoteStorage: RemoteStorage): Promise<unknown>;
     diffHandler(): void;
 }
 interface IndexedDB extends EventHandling {

@@ -26,9 +26,11 @@ export interface RemoteSettings {
 }
 export interface RemoteResponse {
     statusCode: number;
-    revision?: string;
+    body?: string | {
+        [key: string]: any;
+    };
     contentType?: string;
-    body?: any;
+    revision?: string;
 }
 /**
  * The public interface for WireClient, GoogleDrive & Dropbox
@@ -81,6 +83,12 @@ export interface Remote {
      */
     clientId?: string;
     /**
+     * OAuth2 access token
+     *
+     * @internal
+     */
+    token?: string | false;
+    /**
      * OAuth2 PKCE
      *
      * @internal
@@ -95,7 +103,7 @@ export interface Remote {
      */
     connect?(): void;
     stopWaitingForToken(): void;
-    get(path: string, options: {
+    get(path: string, options?: {
         ifMatch?: string;
         ifNoneMatch?: string;
     }): Promise<RemoteResponse>;

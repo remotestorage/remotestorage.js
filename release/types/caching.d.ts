@@ -1,9 +1,10 @@
+import type RemoteStorage from './remotestorage';
 /**
  * @class
  *
  * The caching class gets initialized as `remoteStorage.caching`, unless the
- * {@link remotestorage!RemoteStorage RemoteStorage} instance is created with the option `cache: false`, disabling
- * caching entirely.
+ * {@link remotestorage!RemoteStorage RemoteStorage} instance is created with
+ * the option `cache: false`, disabling caching entirely.
  *
  * In case your app hasn't explictly configured caching, the default setting is to
  * cache any documents that have been either created or requested since your app
@@ -40,8 +41,9 @@
 export declare class Caching {
     pendingActivations: string[];
     activateHandler: (firstPending: string) => void;
+    private _access;
     private _rootPaths;
-    constructor();
+    constructor(remoteStorage: RemoteStorage);
     /**
      * Configure caching for a given path explicitly.
      *
@@ -100,7 +102,7 @@ export declare class Caching {
      * @example
      * ```js
      * remoteStorage.caching.checkPath('documents/').then(strategy => {
-     *   console.log(`caching strategy for 'documents/': ${strategy}`));
+     *   console.log(`caching strategy for 'documents/': ${strategy}`);
      *   // "caching strategy for 'documents/': SEEN"
      * });
      * ```

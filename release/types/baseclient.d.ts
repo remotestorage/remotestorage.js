@@ -1,8 +1,9 @@
 import tv4 from 'tv4';
+import type RemoteStorage from './remotestorage';
 import type { JsonSchemas } from './interfaces/json_schema';
 import type { ChangeObj } from './interfaces/change_obj';
+import type { QueuedRequestResponse } from './interfaces/queued_request_response';
 import EventHandling from './eventhandling';
-import RemoteStorage from './remotestorage';
 /**
  * A `BaseClient` instance is the main endpoint you will use for interacting
  * with a connected storage: listing, reading, creating, updating and deleting
@@ -25,8 +26,8 @@ import RemoteStorage from './remotestorage';
  * * {@link getObject} and {@link storeObject} operate on JSON objects. Each object
  *   has a type.
  *
- * * {@link getFile} and {@link storeFile} operates on files. Each file has a MIME
- *   type.
+ * * {@link getFile} and {@link storeFile} operates on files. Each file has a
+ *   content/MIME type.
  *
  * * {@link getAll} returns all objects or files for the given folder path.
  *
@@ -136,8 +137,8 @@ import RemoteStorage from './remotestorage';
  * during sync.
  *
  * > [!NOTE]
- * > Automatically receiving remote changes depends on the {@link caching!Caching} settings
- * > for your module/paths.
+ * > Automatically receiving remote changes depends on the
+ * > {@link caching!Caching caching} settings for your module/paths.
  *
  * ### `window`
  *
@@ -169,13 +170,13 @@ import RemoteStorage from './remotestorage';
  * }
  * ```
  *
- * But when this change is pushed out by asynchronous synchronization, this change
- * may be rejected by the server, if the remote version has in the meantime changed
- * from `white` to  for instance `red`; this will then lead to a change event with
- * origin `conflict` (usually a few seconds after the event with origin `window`,
- * if you have those activated). Note that since you already changed it from
- * `white` to `blue` in the local version a few seconds ago, `oldValue` is now
- * your local value of `blue`:
+ * However, when this change is pushed out by the sync process, it will be
+ * rejected by the server, if the remote version has changed in the meantime,
+ * for example from `white` to `red`. This will lead to a change event with
+ * origin `conflict`, usually a few seconds after the event with origin
+ * `window`. Note that since you already changed it from `white` to `blue` in
+ * the local version a few seconds ago, `oldValue` is now your local value of
+ * `blue`:
  *
  * ```js
  * {
@@ -201,11 +202,6 @@ import RemoteStorage from './remotestorage';
  *
  * If there is an algorithm to merge the differences between local and remote
  * versions of the data, conflicts may be automatically resolved.
- * {@link storeObject} or {@link storeFile} must not be called synchronously from
- * the change event handler, nor by chaining Promises. {@link storeObject} or
- * {@link storeFile} must not be called until the next iteration of the JavaScript
- * Task Queue, using for example
- * [`setTimeout()`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout).
  *
  * If no algorithm exists, conflict resolution typically involves displaying local
  * and remote versions to the user, and having the user merge them, or choose
@@ -356,8 +352,10 @@ export declare class BaseClient {
      *
      * @returns An object containing the content type as well as the file's content:
      *
-     * * `mimeType`<br>
-     *    String representing the MIME Type of the document.
+     * * `contentType`<br>
+     *    String containing the MIME Type of the document. (Usually just the
+     *    MIME type, but can theoretically contain extra metadata such as `charset`
+     *    for example.)
      * * `data`<br>
      *    Raw data of the document (either a string or an ArrayBuffer)
      *
@@ -366,7 +364,7 @@ export declare class BaseClient {
      *
      * ```js
      * client.getFile('path/to/some/image').then(file => {
-     *   const blob = new Blob([file.data], { type: file.mimeType });
+     *   const blob = new Blob([file.data], { type: file.contentType });
      *   const targetElement = document.findElementById('my-image-element');
      *   targetElement.src = window.URL.createObjectURL(blob);
      * });
@@ -376,9 +374,9 @@ export declare class BaseClient {
     /**
      * Store raw data at a given path.
      *
-     * @param mimeType - MIME media type of the data being stored
-     * @param path     - Path relative to the module root
-     * @param body     - Raw data to store
+     * @param contentType - Content type (MIME media type) of the data being stored
+     * @param path        - Path relative to the module root
+     * @param body        - Raw data to store
      *
      * @returns A promise for the created/updated revision (ETag)
      *
@@ -405,7 +403,7 @@ export declare class BaseClient {
      * fileReader.readAsArrayBuffer(file);
      * ```
      */
-    storeFile(mimeType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string>;
+    storeFile(contentType: string, path: string, body: string | ArrayBuffer | ArrayBufferView): Promise<string>;
     /**
      * Get a JSON object from the given path.
      *
@@ -457,7 +455,7 @@ export declare class BaseClient {
      * @example
      * client.remove('path/to/object').then(() => console.log('item deleted'));
      */
-    remove(path: string): Promise<unknown>;
+    remove(path: string): Promise<QueuedRequestResponse>;
     /**
      * Retrieve full URL of a document. Useful for example for sharing the public
      * URL of an item in the ``/public`` folder.

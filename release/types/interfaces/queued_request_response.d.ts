@@ -1,6 +1,6 @@
 export type QueuedRequestResponse = {
     statusCode: number;
-    body?: object;
+    body?: string | object;
     contentType?: string;
     revision?: string;
 };

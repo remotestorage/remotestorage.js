@@ -1,8 +1,8 @@
 # Class: Caching
 
 The caching class gets initialized as `remoteStorage.caching`, unless the
-[RemoteStorage](../../remotestorage/classes/RemoteStorage.md) instance is created with the option `cache: false`, disabling
-caching entirely.
+[RemoteStorage](../../remotestorage/classes/RemoteStorage.md) instance is created with
+the option `cache: false`, disabling caching entirely.
 
 In case your app hasn't explictly configured caching, the default setting is to
 cache any documents that have been either created or requested since your app
@@ -61,14 +61,14 @@ caching strategy for the path
 
 ```js
 remoteStorage.caching.checkPath('documents/').then(strategy => {
-  console.log(`caching strategy for 'documents/': ${strategy}`));
+  console.log(`caching strategy for 'documents/': ${strategy}`);
   // "caching strategy for 'documents/': SEEN"
 });
 ```
 
 #### Defined in
 
-[caching.ts:157](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/caching.ts#L157)
+[caching.ts:158](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L158)
 
 ***
 
@@ -99,7 +99,7 @@ remoteStorage.caching.disable('/bookmarks/');
 
 #### Defined in
 
-[caching.ts:124](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/caching.ts#L124)
+[caching.ts:125](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L125)
 
 ***
 
@@ -129,7 +129,7 @@ remoteStorage.caching.enable('/bookmarks/');
 
 #### Defined in
 
-[caching.ts:107](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/caching.ts#L107)
+[caching.ts:108](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L108)
 
 ***
 
@@ -151,7 +151,7 @@ Callback function
 
 #### Defined in
 
-[caching.ts:133](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/caching.ts#L133)
+[caching.ts:134](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L134)
 
 ***
 
@@ -173,7 +173,7 @@ remoteStorage.caching.reset();
 
 #### Defined in
 
-[caching.ts:175](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/caching.ts#L175)
+[caching.ts:176](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L176)
 
 ***
 
@@ -207,4 +207,4 @@ remoteStorage.caching.set('/bookmarks/archive/', 'SEEN');
 
 #### Defined in
 
-[caching.ts:67](https://github.com/remotestorage/remotestorage.js/blob/a199c15fb409a17fd444aa7fba846e7fecc5981d/src/caching.ts#L67)
+[caching.ts:70](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L70)
