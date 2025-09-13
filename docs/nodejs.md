@@ -74,6 +74,14 @@ want to consider as an option when writing non-browser applications.
   it may be necessary to set `global.fetch` with a polyfill such as
   [node-fetch](https://www.npmjs.com/package/node-fetch).
 
+::: tip
+You may also want to consider modern JavaScript/TypeScript runtimes other than
+Node.js, depending on your use case. With [Deno](https://deno.com/) for
+example, you have `localStorage` (but not `IndexedDB`) included, so it does in
+fact cache your data similar to how a browser would do it.
+:::
+
+
 ## Examples
 
 -   [hubot-remotestorage-logger](https://github.com/67P/hubot-remotestorage-logger),
