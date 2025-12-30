@@ -150,15 +150,6 @@ class WireClient extends RemoteBase implements Remote {
     }
   }
 
-  get storageType () {
-    if (this.storageApi) {
-      const spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
-      return spec ? spec[1] : '2012.04';
-    } else {
-      return undefined;
-    }
-  }
-
   async _request (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
     if (this.isForbiddenRequestMethod(method, uri)) {
       return Promise.reject(`Don't use ${method} on directories!`);
