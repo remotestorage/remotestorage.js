@@ -217,7 +217,7 @@ describe('WireClient', () => {
       expect(done).to.equal(1);
     });
 
-    it('#put emits "wire-busy" and "wire-done" on failed request', async () => {
+    it('#delete emits "wire-busy" and "wire-done" on failed request', async () => {
       await expect(connectedClient.delete('/foo/fail')).to.be.rejected;
       expect(busy).to.equal(1);
       expect(done).to.equal(1);
@@ -230,6 +230,11 @@ describe('WireClient', () => {
         { name: 'getOK', url: `${BASE_URI}/foo/bar` },
         { status: 200, headers: { 'Content-Type': 'text/plain; charset=UTF-8' },
           body: 'OK' }
+      );
+      fetchMock.mock(
+        { name: 'getJSON', url: `${BASE_URI}/foo/json` },
+        { status: 200, headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+          body: '{"foo": "bar"}' }
       );
       fetchMock.mock(
         { name: 'getUnauthorized', url: `${BASE_URI}/foo/unauthorized` },
@@ -281,7 +286,7 @@ describe('WireClient', () => {
       connectedClient.get('/foo/unauthorized');
     });
 
-    it('strips duplicate slahes from the path', async () => {
+    it('strips duplicate slashes from the path', async () => {
       const res = await connectedClient.get('/foo//bar');
       expect(res.body).to.equal('OK');
     });
@@ -291,6 +296,13 @@ describe('WireClient', () => {
       expect(res.statusCode).to.equal(200);
       expect(res.contentType).to.equal('text/plain; charset=UTF-8');
       expect(res.body).to.equal('OK');
+    });
+
+    it('does not unpack JSON responses', async () => {
+      const res = await connectedClient.get('/foo/json');
+      expect(res.statusCode).to.equal(200);
+      expect(res.contentType).to.equal('application/json; charset=UTF-8');
+      expect(res.body).to.equal('{"foo": "bar"}');
     });
 
     it('returns raw response body when charset set to "binary"', async () => {
@@ -428,6 +440,8 @@ describe('WireClient', () => {
 
   describe('#put', () => {
     beforeEach(() => {
+      connectedClient.configure({ storageApi: 'draft-dejong-remotestorage-02' });
+
       fetchMock.mock(
         { name: 'putFileOK', url: `${BASE_URI}/foo/bar`, method: 'PUT' },
         { status: 200, headers: { 'ETag': '"rev123"' } }
@@ -460,7 +474,6 @@ describe('WireClient', () => {
     });
 
     it('sends If-None-Match header when revisions are supported and rev is given', async () => {
-      connectedClient.configure({ storageApi: 'draft-dejong-remotestorage-02' });
       await connectedClient.put('/foo/bar', '1', 'text/plain', { ifNoneMatch: 'etag1' });
       const call = fetchMock.calls('putFileOK')[0];
       expect(call[1].headers['If-None-Match']).to.equal('"etag1"');
@@ -468,7 +481,6 @@ describe('WireClient', () => {
     });
 
     it('sends If-Match header when revisions are supported and rev is given', async () => {
-      connectedClient.configure({ storageApi: 'draft-dejong-remotestorage-02' });
       await connectedClient.put('/foo/bar', '1', 'text/plain', { ifMatch: 'etag2' });
       const call = fetchMock.calls('putFileOK')[0];
       expect(call[1].headers['If-Match']).to.equal('"etag2"');
