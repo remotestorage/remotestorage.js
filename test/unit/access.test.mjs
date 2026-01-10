@@ -145,6 +145,139 @@ describe('Access', () => {
     });
   });
 
+  describe('#checkPathPermission (wildcard)', () => {
+    describe("*:r (read everywhere)", () => {
+      beforeEach(() => {
+        access.claim('*', 'r');
+      });
+
+      it('allows reading across all modules and paths', () => {
+        // readings
+        expect(access.checkPathPermission('/readings/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/readings/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/readings/a/b', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/readings/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/readings/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/readings/a/b', 'r')).to.equal(true);
+        // writings
+        expect(access.checkPathPermission('/writings/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/writings/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/writings/a/b', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a/b', 'r')).to.equal(true);
+        // others
+        expect(access.checkPathPermission('/foo/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/foo/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/foo/a/b', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo/a/b', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/foo', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/', 'r')).to.equal(true);
+      });
+    });
+
+    describe("*:r writes (only inside writings)", () => {
+      beforeEach(() => {
+        access.claim('*', 'r');
+        access.claim('writings', 'rw');
+      });
+
+      it('disallows writes except inside writings', () => {
+        // readings
+        expect(access.checkPathPermission('/readings/a', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/readings/a/', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/readings/a/b', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/public/readings/a', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/public/readings/a/', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/public/readings/a/b', 'rw')).to.equal(false);
+        // writings
+        expect(access.checkPathPermission('/writings/a', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/writings/a/', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/writings/a/b', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a/', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a/b', 'rw')).to.equal(true);
+        // others
+        expect(access.checkPathPermission('/foo/a', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/foo/a/', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/foo/a/b', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/public/foo/a', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/public/foo/a/', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/public/foo/a/b', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/foo', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/public/foo', 'rw')).to.equal(false);
+        expect(access.checkPathPermission('/public/', 'rw')).to.equal(false);
+      });
+    });
+
+    describe('*:rw (read/write everywhere)', () => {
+      beforeEach(() => {
+        access.claim('*', 'rw');
+      });
+
+      it('allows reading across all modules and paths', () => {
+        // readings
+        expect(access.checkPathPermission('/readings/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/readings/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/readings/a/b', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/readings/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/readings/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/readings/a/b', 'r')).to.equal(true);
+        // writings
+        expect(access.checkPathPermission('/writings/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/writings/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/writings/a/b', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a/b', 'r')).to.equal(true);
+        // others
+        expect(access.checkPathPermission('/foo/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/foo/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/foo/a/b', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo/a', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo/a/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo/a/b', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/foo', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo', 'r')).to.equal(true);
+        expect(access.checkPathPermission('/public/', 'r')).to.equal(true);
+      });
+
+      it('allows writing across all modules and paths', () => {
+        // readings
+        expect(access.checkPathPermission('/readings/a', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/readings/a/', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/readings/a/b', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/readings/a', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/readings/a/', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/readings/a/b', 'rw')).to.equal(true);
+        // writings
+        expect(access.checkPathPermission('/writings/a', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/writings/a/', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/writings/a/b', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a/', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/writings/a/b', 'rw')).to.equal(true);
+        // others
+        expect(access.checkPathPermission('/foo/a', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/foo/a/', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/foo/a/b', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo/a', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo/a/', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo/a/b', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/foo', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/foo', 'rw')).to.equal(true);
+        expect(access.checkPathPermission('/public/', 'rw')).to.equal(true);
+      });
+    });
+  });
+
   describe('#rootPaths', () => {
     it('contain correct private paths', () => {
       access.claim('readings', 'r');
