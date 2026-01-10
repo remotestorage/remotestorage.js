@@ -180,7 +180,7 @@ describe('Access', () => {
       });
     });
 
-    describe("*:r writes (only inside writings)", () => {
+    describe("*:r with writings:rw", () => {
       beforeEach(() => {
         access.claim('*', 'r');
         access.claim('writings', 'rw');
