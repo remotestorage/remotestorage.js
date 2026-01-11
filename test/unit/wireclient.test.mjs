@@ -21,12 +21,27 @@ describe('WireClient', () => {
   beforeEach(() => {
     rs = new RemoteStorage();
     client = new WireClient(rs);
+    // Defensive reset to avoid leakage across tests
+    client.configure({ href: undefined, token: undefined, userAddress: undefined, storageApi: undefined });
+    client.connected = false;
+
     connectedClient = new WireClient(rs);
     connectedClient.configure({ href: BASE_URI, token: TOKEN });
   });
 
   afterEach(() => {
     fetchMock.reset();
+    // Ensure clients are disconnected and cleaned up
+    if (client) {
+      client.connected = false;
+      client.href = undefined;
+      client.token = undefined;
+    }
+    if (connectedClient) {
+      connectedClient.href = undefined;
+      connectedClient.token = undefined;
+      connectedClient.connected = false;
+    }
     rs = undefined;
     client = undefined;
     connectedClient = undefined;
