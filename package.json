@@ -13,7 +13,7 @@
   "homepage": "https://remotestorage.io",
   "scripts": {
     "test": "tsc && bash scripts/test-all.sh",
-    "test:mocha": "mocha test/unit/*.test.mjs --exit",
+    "test:mocha": "mocha test/unit/*.test.mjs",
     "test:watch": "mocha test/unit/*.test.mjs --watch --reporter dot",
     "lint": "eslint --ext=ts src/",
     "lint:quiet": "eslint --quiet --ext=ts src/",
