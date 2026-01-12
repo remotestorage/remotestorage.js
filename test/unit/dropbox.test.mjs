@@ -897,7 +897,7 @@ describe('Dropbox backend', () => {
       await new Promise(resolve => {
         const id = setInterval(() => {
           if (fetchMock.calls().length >= 2) {
-            clearTimeout(id);
+            clearInterval(id);
             resolve(null);
           }
         }, 5);
