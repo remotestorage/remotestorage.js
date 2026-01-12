@@ -92,7 +92,7 @@ describe('Dropbox backend', () => {
         size: CONTENT.length,
         content_hash: "3489e9a9d9"
       };
-      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}}, {delay: 10_000});
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}}, {delay: 100});
       await expect(dropbox.get('/wug/blicket')).to.be.rejectedWith(/timeout/);
 
       config.requestTimeout = originalTimeout;
