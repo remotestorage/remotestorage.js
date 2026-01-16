@@ -63,6 +63,7 @@ describe('Dropbox backend', () => {
   });
 
   afterEach(() => {
+    config.requestTimeout = originalTimeout;
     rs.stopSync();
     rs.disconnect();
     Dropbox._rs_cleanup(rs);
@@ -92,10 +93,8 @@ describe('Dropbox backend', () => {
         size: CONTENT.length,
         content_hash: "3489e9a9d9"
       };
-      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}}, {delay: 10_000});
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, {status: 200, body: CONTENT, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}}, {delay: 100});
       await expect(dropbox.get('/wug/blicket')).to.be.rejectedWith(/timeout/);
-
-      config.requestTimeout = originalTimeout;
     });
 
     it("fetchDelta doesn't reject on timeouts", async () => {
@@ -107,8 +106,6 @@ describe('Dropbox backend', () => {
         {delay: 100}
       );
       await expect(dropbox.fetchDelta()).to.be.fulfilled;
-
-      config.requestTimeout = originalTimeout;
     });
 
     it("fetchDelta fails when offline", async () => {
@@ -897,7 +894,7 @@ describe('Dropbox backend', () => {
       await new Promise(resolve => {
         const id = setInterval(() => {
           if (fetchMock.calls().length >= 2) {
-            clearTimeout(id);
+            clearInterval(id);
             resolve(null);
           }
         }, 5);
