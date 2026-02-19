@@ -60,7 +60,6 @@ declare class WireClient extends RemoteBase implements Remote {
     };
     properties: object;
     constructor(rs: RemoteStorage);
-    get storageType(): string;
     _request(method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse>;
     /**
      * Sets the userAddress, href, storageApi, token, and properties of a
