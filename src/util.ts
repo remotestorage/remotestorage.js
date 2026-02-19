@@ -117,6 +117,11 @@ export const equal = (a: any, b: any, seen = []): boolean => {
     b = new Uint8Array(b);
   }
 
+  // typeof null is 'object'. If either is null, check if they are equal.
+  if ((a === null || b === null) && a !== b) {
+    return false;
+  }
+  
   // If this point has been reached, a and b are either arrays or objects.
 
   if (a instanceof Array) {

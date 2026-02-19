@@ -70,6 +70,13 @@ describe('util', () => {
       expect(equal(arr1, arr2)).to.equal(true);
       expect(equal(arr1, arr3)).to.equal(false);
       expect(equal(arr1, arr4)).to.equal(false);
+
+      expect(equal(null, null)).to.equal(true);
+      expect(equal(undefined, null)).to.equal(false);
+      expect(equal(null, {key: "value"})).to.equal(false);
+      expect(equal({key: "value"}, null)).to.equal(false);
+      expect(equal({key: null}, {key: undefined})).to.equal(false);
+      expect(equal({key: null}, {key: null})).to.equal(true);
     });
 
     it('clones objects deeply', () => {
