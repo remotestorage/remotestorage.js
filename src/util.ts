@@ -118,10 +118,10 @@ export const equal = (a: any, b: any, seen = []): boolean => {
   }
 
   // typeof null is 'object'. If either is null, check if they are equal.
-  if ((a === null || b === null) && a !== b) {
-    return false;
+  if (a === null || b === null) {
+    return a === b;
   }
-  
+
   // If this point has been reached, a and b are either arrays or objects.
 
   if (a instanceof Array) {
