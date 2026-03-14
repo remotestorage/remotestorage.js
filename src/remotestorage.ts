@@ -39,6 +39,46 @@ const globalContext = getGlobalContext();
 // }
 
 let hasLocalStorage: boolean;
+const AUTHORIZED_SCOPE_KEY = 'remotestorage:authorized-scope';
+const PENDING_SCOPE_KEY = 'remotestorage:pending-scope';
+
+interface StoredScopeSettings {
+  backend?: 'remotestorage' | 'dropbox' | 'googledrive';
+  scope?: string;
+}
+
+interface ScopeChangeEvent {
+  authorizedScope: string;
+  requestedScope: string;
+  reauthorize: () => void;
+}
+
+function normalizeScope (scope?: string): string | null {
+  if (typeof scope !== 'string') {
+    return null;
+  }
+
+  const scopes = scope
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (scopes.length === 0) {
+    return null;
+  }
+
+  return Array.from(new Set(scopes)).sort().join(' ');
+}
+
+function readStoredScopeSettings (key: string): StoredScopeSettings | null {
+  const settings = getJSONFromLocalStorage(key);
+
+  if (typeof settings === 'object' && settings !== null) {
+    return settings as StoredScopeSettings;
+  }
+
+  return null;
+}
 
 // TODO document and/or refactor (seems weird)
 function emitUnauthorized(r) {
@@ -203,6 +243,13 @@ enum ApiKeyType {
  * ### `authing`
  *
  * Emitted before redirecting to the OAuth server
+ *
+ * ### `scope-change-required`
+ *
+ * Emitted when the currently claimed access scopes differ from the last
+ * authorized scope stored in localStorage. The callback receives an object
+ * containing the previously authorized scope, the currently requested scope,
+ * and a `reauthorize()` helper.
  *
  * ### `wire-busy`
  *
@@ -373,6 +420,9 @@ export class RemoteStorage {
    * @internal
    */
   fireInitial: Function;
+  _authorizedScope: string | null;
+  _scopeChangeRequired: boolean;
+  _scopeChangeEvent: ScopeChangeEvent | null;
 
 
   constructor (cfg?: object) {
@@ -383,7 +433,7 @@ export class RemoteStorage {
     this.addEvents([
       'ready', 'authing', 'connecting', 'connected', 'disconnected',
       'not-connected', 'conflict', 'error', 'features-loaded',
-      'sync-interval-change', 'sync-started', 'sync-req-done', 'sync-done',
+      'scope-change-required', 'sync-interval-change', 'sync-started', 'sync-req-done', 'sync-done',
       'wire-busy', 'wire-done', 'network-offline', 'network-online'
     ]);
 
@@ -407,10 +457,18 @@ export class RemoteStorage {
       }
     }
 
+    this._authorizedScope = this._loadAuthorizedScope();
+    this._scopeChangeRequired = false;
+    this._scopeChangeEvent = null;
+
     // Keep a reference to the orginal `on` function
     const origOn = this.on;
 
     this.on = function (eventName: string, handler: Function): void {
+      if (eventName === 'scope-change-required' && this._scopeChangeRequired && this._scopeChangeEvent) {
+        setTimeout(handler, 0, this._scopeChangeEvent);
+      }
+
       if (this._allLoaded) {
         // check if the handler should be called immediately, because the
         // event has happened already
@@ -459,6 +517,10 @@ export class RemoteStorage {
    */
   get connected (): boolean {
     return this.remote.connected;
+  }
+
+  get scopeChangeRequired (): boolean {
+    return this._scopeChangeRequired;
   }
 
   static SyncError = SyncError;
@@ -592,6 +654,7 @@ export class RemoteStorage {
             // Token supplied directly by app/developer/user
             log('Skipping authorization sequence and connecting with known token');
             this.remote.configure({ token: token });
+            this._rememberAuthorizedScope(this.access.scopeParameter);
           } else {
             throw new Error("Supplied bearer token must be a string");
           }
@@ -626,6 +689,13 @@ export class RemoteStorage {
   }
 
   /**
+   * Alias for {@link reconnect}, intended for permission refresh flows.
+   */
+  reauthorize (): void {
+    this.reconnect();
+  }
+
+  /**
    * "Disconnect" from remote server to terminate current session.
    *
    * This method clears all stored settings and deletes the entire local
@@ -641,6 +711,8 @@ export class RemoteStorage {
         properties: null
       });
     }
+    this._forgetPendingScope();
+    this._rememberAuthorizedScope(null);
     this._setGPD({
       get: this._pendingGPD('get'),
       put: this._pendingGPD('put'),
@@ -685,6 +757,127 @@ export class RemoteStorage {
         localStorage.removeItem('remotestorage:backend');
       }
     }
+
+    this._authorizedScope = this._loadAuthorizedScope();
+    this._checkScopeChange();
+  }
+
+  _rememberPendingScope (scope?: string): void {
+    const normalizedScope = normalizeScope(scope);
+
+    if (!hasLocalStorage) {
+      return;
+    }
+
+    if (!normalizedScope || !this.backend) {
+      localStorage.removeItem(PENDING_SCOPE_KEY);
+      return;
+    }
+
+    localStorage.setItem(PENDING_SCOPE_KEY, JSON.stringify({
+      backend: this.backend,
+      scope: normalizedScope
+    }));
+  }
+
+  _forgetPendingScope (): void {
+    if (hasLocalStorage) {
+      localStorage.removeItem(PENDING_SCOPE_KEY);
+    }
+  }
+
+  _rememberAuthorizedScope (scope?: string): void {
+    const normalizedScope = normalizeScope(scope);
+
+    if (!hasLocalStorage) {
+      this._authorizedScope = normalizedScope;
+      this._checkScopeChange();
+      return;
+    }
+
+    if (!normalizedScope || !this.backend) {
+      localStorage.removeItem(AUTHORIZED_SCOPE_KEY);
+      this._authorizedScope = null;
+      this._checkScopeChange();
+      return;
+    }
+
+    localStorage.setItem(AUTHORIZED_SCOPE_KEY, JSON.stringify({
+      backend: this.backend,
+      scope: normalizedScope
+    }));
+    this._authorizedScope = normalizedScope;
+    this._checkScopeChange();
+  }
+
+  _completeAuthorization (scope?: string): void {
+    const normalizedScope = this._loadPendingScope() || normalizeScope(scope);
+    this._forgetPendingScope();
+
+    if (normalizedScope) {
+      this._rememberAuthorizedScope(normalizedScope);
+    } else {
+      this._checkScopeChange();
+    }
+  }
+
+  _checkScopeChange (): void {
+    const requestedScope = normalizeScope(this.access.scopeParameter);
+    const authorizedScope = this._authorizedScope || this._loadAuthorizedScope();
+    const scopeChangeRequired = !!(requestedScope && authorizedScope && requestedScope !== authorizedScope);
+    const shouldEmit = scopeChangeRequired && (
+      !this._scopeChangeRequired ||
+      !this._scopeChangeEvent ||
+      this._scopeChangeEvent.requestedScope !== requestedScope ||
+      this._scopeChangeEvent.authorizedScope !== authorizedScope
+    );
+
+    this._scopeChangeRequired = scopeChangeRequired;
+
+    if (scopeChangeRequired) {
+      this._scopeChangeEvent = this._buildScopeChangeEvent(requestedScope, authorizedScope);
+      if (shouldEmit) {
+        this._emit('scope-change-required', this._scopeChangeEvent);
+      }
+    } else {
+      this._scopeChangeEvent = null;
+    }
+  }
+
+  private _loadAuthorizedScope (): string | null {
+    if (!hasLocalStorage || !this.backend) {
+      return null;
+    }
+
+    const settings = readStoredScopeSettings(AUTHORIZED_SCOPE_KEY);
+
+    if (!settings || settings.backend !== this.backend) {
+      return null;
+    }
+
+    return normalizeScope(settings.scope);
+  }
+
+  private _loadPendingScope (): string | null {
+    if (!hasLocalStorage || !this.backend) {
+      return null;
+    }
+
+    const settings = readStoredScopeSettings(PENDING_SCOPE_KEY);
+
+    if (!settings || settings.backend !== this.backend) {
+      return null;
+    }
+
+    return normalizeScope(settings.scope);
+  }
+
+  private _buildScopeChangeEvent (requestedScope = normalizeScope(this.access.scopeParameter), authorizedScope = this._authorizedScope): ScopeChangeEvent {
+    return {
+      requestedScope: requestedScope || '',
+      authorizedScope: authorizedScope || '',
+      reauthorize: this.reauthorize.bind(this)
+    };
   }
 
   /**
@@ -1241,7 +1434,7 @@ export class RemoteStorage {
 Object.defineProperty(RemoteStorage.prototype, 'access', {
   configurable: true,
   get: function() {
-    const access = new Access();
+    const access = new Access(this);
     Object.defineProperty(this, 'access', { value: access });
     return access;
   },

@@ -8,8 +8,12 @@ import Dropbox from '../../build/dropbox.js';
 import { EventHandling } from '../../build/eventhandling.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
 import { applyMixins } from '../../build/util.js';
+import { localStorage } from '../helpers/memoryStorage.mjs';
 
 chai.use(chaiAsPromised);
+
+const AUTHORIZED_SCOPE_KEY = 'remotestorage:authorized-scope';
+const WIRECLIENT_SETTINGS_KEY = 'remotestorage:wireclient';
 
 class FakeRemote {
   constructor (connected) {
@@ -225,6 +229,60 @@ describe("RemoteStorage", function() {
 
     it("must be less than (or equal to) 1 hour", function() {
       expect(() => this.rs.setSyncInterval(3600001)).to.throw(/not a valid sync interval/);
+    });
+  });
+
+  describe("#scope-change-required", function() {
+    beforeEach(function() {
+      this.rs.disconnect();
+      localStorage.clear();
+
+      localStorage.setItem('remotestorage:backend', 'remotestorage');
+      localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        userAddress: 'user@example.com',
+        href: 'https://storage.example.com/users/user/',
+        storageApi: 'draft-dejong-remotestorage-02',
+        token: 'sekrit'
+      }));
+    });
+
+    it("emits a sticky event when claimed scope differs from the stored authorized scope", function(done) {
+      localStorage.setItem(AUTHORIZED_SCOPE_KEY, JSON.stringify({
+        backend: 'remotestorage',
+        scope: 'contacts:rw'
+      }));
+
+      this.rs = new RemoteStorage({ cache: false });
+      this.rs.access.claim('contacts', 'r');
+
+      setTimeout(() => {
+        this.rs.on('scope-change-required', (event) => {
+          expect(event.authorizedScope).to.equal('contacts:rw');
+          expect(event.requestedScope).to.equal('contacts:r');
+          expect(this.rs.scopeChangeRequired).to.equal(true);
+          done();
+        });
+      }, 0);
+    });
+
+    it("clears the pending scope-change state after authorization completes with the current scope", function() {
+      localStorage.setItem(AUTHORIZED_SCOPE_KEY, JSON.stringify({
+        backend: 'remotestorage',
+        scope: 'contacts:rw'
+      }));
+
+      this.rs = new RemoteStorage({ cache: false });
+      this.rs.access.claim('contacts', 'r');
+
+      expect(this.rs.scopeChangeRequired).to.equal(true);
+
+      this.rs._completeAuthorization('contacts:r');
+
+      expect(this.rs.scopeChangeRequired).to.equal(false);
+      expect(JSON.parse(localStorage.getItem(AUTHORIZED_SCOPE_KEY))).to.deep.equal({
+        backend: 'remotestorage',
+        scope: 'contacts:r'
+      });
     });
   });
 });

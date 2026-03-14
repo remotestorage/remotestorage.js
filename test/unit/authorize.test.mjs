@@ -16,6 +16,8 @@ chai.use(chaiAsPromised);
 
 const WIRECLIENT_SETTINGS_KEY = 'remotestorage:wireclient';
 const DISCOVER_SETTINGS_KEY = 'remotestorage:discover';
+const AUTHORIZED_SCOPE_KEY = 'remotestorage:authorized-scope';
+const PENDING_SCOPE_KEY = 'remotestorage:pending-scope';
 const AUTH_URL = 'https://example.com/oauth2/authorize';
 const TOKEN_URL = 'https://example.com/oauth2/token';
 const REFRESH_TOKEN = '7-_IbSBsp5wAAA';
@@ -72,6 +74,10 @@ describe("Authorize", () => {
 
       const expectedUrl = AUTH_URL + '?redirect_uri=https%3A%2F%2Fnote.app.com%2F&scope=notes%3Arw&client_id=opaque&state=CSRF-protection&response_type=token&code_challenge=ABCDEFGHI&code_challenge_method=plain';
       expect(document.location.href).to.equal(expectedUrl);
+      expect(JSON.parse(localStorage.getItem(PENDING_SCOPE_KEY))).to.deep.equal({
+        backend: 'remotestorage',
+        scope: 'notes:rw'
+      });
     });
   });
 
@@ -149,7 +155,11 @@ describe("Authorize", () => {
       mockRemote._emit = () => {};
       const configureSpy = sinon.spy(mockRemote, 'configure');
       rs.remote = mockRemote;
-      rs.setBackend(undefined);
+      rs.setBackend('remotestorage');
+      localStorage.setItem(PENDING_SCOPE_KEY, JSON.stringify({
+        backend: 'remotestorage',
+        scope: 'documents:r notes:rw'
+      }));
 
       rs._handlers['features-loaded'][0]();
 
@@ -173,6 +183,11 @@ describe("Authorize", () => {
         token: newAccessToken,
         tokenType: 'bearer'
       });
+      expect(JSON.parse(localStorage.getItem(AUTHORIZED_SCOPE_KEY))).to.deep.equal({
+        backend: 'remotestorage',
+        scope: 'documents:r notes:rw'
+      });
+      expect(localStorage.getItem(PENDING_SCOPE_KEY)).to.be.null;
       expect(sessionStorage.getItem('remotestorage:codeVerifier')).to.be.null;
     });
   });

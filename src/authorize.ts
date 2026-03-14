@@ -10,6 +10,7 @@ interface AuthResult {
   access_token?: string;
   refresh_token?: string;
   code?: string;
+  scope?: string;
   rsDiscovery?: object;
   error?: string;
   remotestorage?: string;
@@ -129,6 +130,8 @@ export class Authorize {
       throw new Error("Cannot authorize due to undefined or empty scope; did you forget to access.claim()?");
     }
 
+    remoteStorage._rememberPendingScope(options.scope);
+
     // TODO add a test for this
     // keep track of the discovery data during redirect if we can't save it in localStorage
     if (!localStorageAvailable() && remoteStorage.backend === 'remotestorage') {
@@ -153,6 +156,7 @@ export class Authorize {
         .openWindow(url, options.redirectUri, 'location=yes,clearsessioncache=yes,clearcache=yes')
         .then((authResult: AuthResult) => {
           remoteStorage.remote.configure({ token: authResult.access_token });
+          remoteStorage._completeAuthorization(authResult.scope || options.scope);
         });
       return;
     }
@@ -273,6 +277,7 @@ export class Authorize {
       }
 
       if (params.error) {
+        remoteStorage._forgetPendingScope();
         if (params.error === 'access_denied') {
           throw new UnauthorizedError('Authorization failed: access denied', { code: 'access_denied' });
         } else {
@@ -288,6 +293,7 @@ export class Authorize {
 
       if (params.access_token) {
         remoteStorage.remote.configure({ token: params.access_token });
+        remoteStorage._completeAuthorization(params.scope);
         authParamsUsed = true;
       }
 
@@ -350,12 +356,14 @@ export class Authorize {
           };
           if (settings.token) {
             remoteStorage.remote.configure(settings);
+            remoteStorage._completeAuthorization(xhr?.response?.scope);
           } else {
             remoteStorage._emit('error', new Error(`no access_token in "successful" response: ${xhr.response}`));
           }
           sessionStorage.removeItem('remotestorage:codeVerifier');
           break;
         default:
+          remoteStorage._forgetPendingScope();
           remoteStorage._emit('error', new Error(`${xhr.statusText}: ${xhr.response}`));
       }
     }
