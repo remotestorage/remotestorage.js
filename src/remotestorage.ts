@@ -461,12 +461,16 @@ export class RemoteStorage {
     this._scopeChangeRequired = false;
     this._scopeChangeEvent = null;
 
-    // Keep a reference to the orginal `on` function
+    // Keep a reference to the original `on` function
     const origOn = this.on;
 
     this.on = function (eventName: string, handler: Function): void {
+      const registration = origOn.call(this, eventName, handler);
+
       if (eventName === 'scope-change-required' && this._scopeChangeRequired && this._scopeChangeEvent) {
-        setTimeout(handler, 0, this._scopeChangeEvent);
+        setTimeout(() => {
+          handler(this._scopeChangeEvent);
+        }, 0);
       }
 
       if (this._allLoaded) {
@@ -494,7 +498,7 @@ export class RemoteStorage {
         }
       }
 
-      return origOn.call(this, eventName, handler);
+      return registration;
     };
 
     // load all features and emit `ready`
@@ -548,7 +552,7 @@ export class RemoteStorage {
       options.scope = this.access.scopeParameter;
     }
 
-    if (globalContext.cordova) {
+    if (globalContext.cordova && typeof config.cordovaRedirectUri === 'string') {
       options.redirectUri = config.cordovaRedirectUri;
     } else {
       const location = Authorize.getLocation();
