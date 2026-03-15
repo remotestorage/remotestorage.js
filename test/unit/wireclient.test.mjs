@@ -566,6 +566,18 @@ describe('WireClient', () => {
       expect(call[1].headers).to.have.property('Content-Type').which.equals('text/html; charset=UTF-8');
     });
 
+    it('converts binary string body to Uint8Array to prevent UTF-8 encoding', async () => {
+      const binaryStr = String.fromCharCode(200, 201, 202);
+      await connectedClient.put('/foo/binary', binaryStr, 'application/octet-stream');
+      const call = fetchMock.calls('putBinary')[0];
+      expect(call[1].headers).to.have.property('Content-Type').which.equals('application/octet-stream; charset=binary');
+      const body = call[1].body;
+      expect(body).to.be.an.instanceOf(Uint8Array);
+      expect(body[0]).to.equal(200);
+      expect(body[1]).to.equal(201);
+      expect(body[2]).to.equal(202);
+    });
+
     it('adds binary charset for ArrayBuffer PUT', async () => {
       await connectedClient.put('/foo/binary', new ArrayBuffer(3), 'image/jpeg');
       const call = fetchMock.calls('putBinary')[0];

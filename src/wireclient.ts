@@ -366,6 +366,13 @@ class WireClient extends RemoteBase implements Remote {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
+    if (typeof body === 'string' && /[\u0080-\uffff]/.test(body)) {
+      const buf = new Uint8Array(body.length);
+      for (let i = 0; i < body.length; i++) {
+        buf[i] = body.charCodeAt(i);
+      }
+      body = buf;
+    }
     if ((!contentType.match(/charset=/)) && (body instanceof ArrayBuffer || isArrayBufferView(body))) {
       contentType += '; charset=binary';
     }
