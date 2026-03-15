@@ -578,6 +578,13 @@ describe('WireClient', () => {
       expect(body[2]).to.equal(202);
     });
 
+    it('does not convert non-ASCII text strings with text content type', async () => {
+      await connectedClient.put('/foo/bar', 'café', 'text/plain');
+      const call = fetchMock.calls('putFileOK')[0];
+      expect(call[1].headers).to.have.property('Content-Type').which.equals('text/plain');
+      expect(call[1].body).to.equal('café');
+    });
+
     it('adds binary charset for ArrayBuffer PUT', async () => {
       await connectedClient.put('/foo/binary', new ArrayBuffer(3), 'image/jpeg');
       const call = fetchMock.calls('putBinary')[0];

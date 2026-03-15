@@ -369,7 +369,8 @@ class WireClient extends RemoteBase implements Remote {
     // Convert binary strings to Uint8Array to prevent fetch() from UTF-8
     // encoding non-ASCII characters (code points 128+), which corrupts
     // binary data by expanding single bytes into multi-byte sequences.
-    if (typeof body === 'string' && /[\u0080-\uffff]/.test(body)) {
+    // Only applies to non-text content types without an explicit charset.
+    if (typeof body === 'string' && !contentType.match(/^text\/|charset=/) && /[\u0080-\uffff]/.test(body)) {
       const buf = new Uint8Array(body.length);
       for (let i = 0; i < body.length; i++) {
         buf[i] = body.charCodeAt(i);
