@@ -229,7 +229,7 @@ export class Sync {
     return ((typeof(rev) !== 'object') ||
             (Array.isArray(rev)) ||
             (rev.revision && typeof(rev.revision) !== 'string') ||
-            (rev.body && typeof(rev.body) !== 'string' && typeof(rev.body) !== 'object') ||
+            (rev.body && typeof(rev.body) !== 'string' && typeof(rev.body) !== 'object' && !(rev.body instanceof ArrayBuffer) && !ArrayBuffer.isView(rev.body)) ||
             (rev.contentType && typeof(rev.contentType) !== 'string') ||
             (rev.contentLength && typeof(rev.contentLength) !== 'number') ||
             (rev.timestamp && typeof(rev.timestamp) !== 'number') ||
@@ -425,7 +425,7 @@ export class Sync {
           return taskFor('put', path,
             this.rs.remote.put(
               path,
-              node.push.body as string | ArrayBuffer | ArrayBufferView,
+              node.push.body as XMLHttpRequestBodyInit,
               node.push.contentType,
               options
             )
