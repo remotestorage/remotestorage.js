@@ -585,6 +585,23 @@ describe('WireClient', () => {
       expect(call[1].body).to.equal('café');
     });
 
+    it('does not convert non-ASCII strings with application/json content type', async () => {
+      await connectedClient.put('/foo/bar', '{"name":"café"}', 'application/json');
+      const call = fetchMock.calls('putFileOK')[0];
+      expect(call[1].headers).to.have.property('Content-Type').which.equals('application/json');
+      expect(call[1].body).to.equal('{"name":"café"}');
+    });
+
+    it('converts binary string even when charset=binary is already set', async () => {
+      const binaryStr = String.fromCharCode(200, 201, 202);
+      await connectedClient.put('/foo/binary', binaryStr, 'application/octet-stream; charset=binary');
+      const call = fetchMock.calls('putBinary')[0];
+      expect(call[1].headers).to.have.property('Content-Type').which.equals('application/octet-stream; charset=binary');
+      const body = call[1].body;
+      expect(body).to.be.an.instanceOf(Uint8Array);
+      expect(body[0]).to.equal(200);
+    });
+
     it('adds binary charset for ArrayBuffer PUT', async () => {
       await connectedClient.put('/foo/binary', new ArrayBuffer(3), 'image/jpeg');
       const call = fetchMock.calls('putBinary')[0];
