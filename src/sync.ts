@@ -320,7 +320,7 @@ export class Sync {
   }
 
   needsRemotePut (node: RSNode): boolean {
-    return node.local && node.local.body !== undefined && node.local.body !== false;
+    return !!(node.local && node.local.body !== undefined && node.local.body !== false);
   }
 
   needsRemoteDelete (node: RSNode): boolean {

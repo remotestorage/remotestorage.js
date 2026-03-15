@@ -18,6 +18,9 @@ function _fixArrayBuffers(srcObj: object, dstObj: object) {
         const srcArr = new Int8Array(srcObj[field]);
         const dstArr = new Int8Array(dstObj[field]);
         dstArr.set(srcArr);
+      } else if (ArrayBuffer.isView(srcObj[field])) {
+        const typed = srcObj[field];
+        dstObj[field] = new (typed.constructor as any)(typed);
       } else {
         _fixArrayBuffers(srcObj[field], dstObj[field]);
       }

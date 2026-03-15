@@ -437,6 +437,64 @@ describe("Sync", function() {
     });
   });
 
+  describe("#doTask with ArrayBuffer body", function() {
+    beforeEach(function() {
+      this.rs.sync.doTasks = this.original.doTasks;
+    });
+
+    it("issues a PUT with the ArrayBuffer body intact", async function() {
+      const buf = new Uint8Array([72, 101, 108, 108, 111]).buffer;
+      await this.rs.local.setNodes({
+        "/test/bin": {
+          path: "/test/bin",
+          local: {
+            body: buf,
+            contentType: "application/octet-stream",
+            timestamp: 1234567891000
+          }
+        }
+      });
+
+      let putBody;
+      this.rs.remote.put = function(path, body) {
+        putBody = body;
+        return Promise.resolve({ statusCode: 200, revision: "rev1" });
+      };
+
+      const task = await this.rs.sync.doTask("/test/bin");
+      await task.promise;
+
+      expect(putBody).to.be.an.instanceOf(ArrayBuffer);
+      expect(new Uint8Array(putBody)).to.deep.equal(new Uint8Array([72, 101, 108, 108, 111]));
+    });
+
+    it("issues a PUT with a Uint8Array body intact", async function() {
+      const typed = new Uint8Array([1, 2, 3]);
+      await this.rs.local.setNodes({
+        "/test/typed": {
+          path: "/test/typed",
+          local: {
+            body: typed,
+            contentType: "application/octet-stream",
+            timestamp: 1234567891000
+          }
+        }
+      });
+
+      let putBody;
+      this.rs.remote.put = function(path, body) {
+        putBody = body;
+        return Promise.resolve({ statusCode: 200, revision: "rev1" });
+      };
+
+      const task = await this.rs.sync.doTask("/test/typed");
+      await task.promise;
+
+      expect(putBody).to.be.an.instanceOf(Uint8Array);
+      expect(putBody).to.deep.equal(new Uint8Array([1, 2, 3]));
+    });
+  });
+
   describe("#handleResponse", function() {
     describe("Fetching a new document", function() {
       describe("with no pending changes in parent folder", function() {
@@ -833,7 +891,7 @@ describe("Sync", function() {
 
       it("returns false when node.local is undefined", function() {
         const node = { common: { body: "content" } };
-        expect(!!this.rs.sync.needsRemotePut(node)).to.be.false;
+        expect(this.rs.sync.needsRemotePut(node)).to.be.false;
       });
     });
 
