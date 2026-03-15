@@ -366,6 +366,9 @@ class WireClient extends RemoteBase implements Remote {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
     }
+    // Convert binary strings to Uint8Array to prevent fetch() from UTF-8
+    // encoding non-ASCII characters (code points 128+), which corrupts
+    // binary data by expanding single bytes into multi-byte sequences.
     if (typeof body === 'string' && /[\u0080-\uffff]/.test(body)) {
       const buf = new Uint8Array(body.length);
       for (let i = 0; i < body.length; i++) {
