@@ -805,6 +805,38 @@ describe("Sync", function() {
       });
     });
 
+    describe("needsRemotePut", function() {
+      it("returns true for a string body", function() {
+        const node = { local: { body: "content", contentType: "text/plain" } };
+        expect(this.rs.sync.needsRemotePut(node)).to.be.true;
+      });
+
+      it("returns true for an empty string body", function() {
+        const node = { local: { body: "", contentType: "text/plain" } };
+        expect(this.rs.sync.needsRemotePut(node)).to.be.true;
+      });
+
+      it("returns true for an ArrayBuffer body", function() {
+        const node = { local: { body: new ArrayBuffer(8), contentType: "application/octet-stream" } };
+        expect(this.rs.sync.needsRemotePut(node)).to.be.true;
+      });
+
+      it("returns true for a Uint8Array body", function() {
+        const node = { local: { body: new Uint8Array([1, 2, 3]), contentType: "application/octet-stream" } };
+        expect(this.rs.sync.needsRemotePut(node)).to.be.true;
+      });
+
+      it("returns false when body is false (delete)", function() {
+        const node = { local: { body: false } };
+        expect(this.rs.sync.needsRemotePut(node)).to.be.false;
+      });
+
+      it("returns false when node.local is undefined", function() {
+        const node = { common: { body: "content" } };
+        expect(!!this.rs.sync.needsRemotePut(node)).to.be.false;
+      });
+    });
+
     describe("PUT with conflict", function() {
       beforeEach(async function() {
         this.rs.local.setNodes({

@@ -320,7 +320,7 @@ export class Sync {
   }
 
   needsRemotePut (node: RSNode): boolean {
-    return node.local && typeof(node.local.body) === "string";
+    return node.local && node.local.body !== undefined && node.local.body !== false;
   }
 
   needsRemoteDelete (node: RSNode): boolean {
@@ -425,7 +425,7 @@ export class Sync {
           return taskFor('put', path,
             this.rs.remote.put(
               path,
-              node.push.body as string, // TODO string | ArrayBuffer?
+              node.push.body as string | ArrayBuffer | ArrayBufferView,
               node.push.contentType,
               options
             )
