@@ -399,8 +399,8 @@ class IndexedDB extends CachingLayer {
         } else {
           DEFAULT_DB = db;
           // TODO Use specific type
-          (db as any).onerror = () => {
-            remoteStorage._emit('error', err);
+          (db as any).onerror = evt => {
+            remoteStorage._emit('error', new Error(`database error: ${evt?.type}`));
           };
           resolve();
         }
