@@ -393,14 +393,14 @@ class IndexedDB extends CachingLayer {
   static _rs_init (remoteStorage: RemoteStorage): Promise<void> {
     return new Promise((resolve, reject) => {
 
-      IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
+      IndexedDB.open(DEFAULT_DB_NAME, function (err, db: IDBDatabase) {
         if (err) {
           reject(err);
         } else {
           DEFAULT_DB = db;
           // TODO Use specific type
           (db as any).onerror = evt => {
-            remoteStorage._emit('error', new Error(`database error: ${evt?.type}`));
+            remoteStorage._emit('error', IndexedDB.eventToError(evt));
           };
           resolve();
         }
@@ -472,6 +472,20 @@ class IndexedDB extends CachingLayer {
 
       IndexedDB.clean(DEFAULT_DB_NAME, resolve as () => void);
     });
+  }
+
+  static eventToError(evt: Event) : Error {
+    const transaction = (evt?.target as IDBTransaction);
+    const error = transaction?.error;
+    if (error) {
+      return error;
+    } else {
+      if (transaction?.db?.name) {
+        return new Error(`error in store(s) “${transaction.objectStoreNames}” in database “${transaction.db.name}”`);
+      } else {
+        return new Error('unknown IndexedDB error');
+      }
+    }
   }
 
   diffHandler() {
