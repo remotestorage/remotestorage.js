@@ -393,10 +393,14 @@ class IndexedDB extends CachingLayer {
   static _rs_init (remoteStorage: RemoteStorage): Promise<void> {
     return new Promise((resolve, reject) => {
 
-      IndexedDB.open(DEFAULT_DB_NAME, function (err, db: IDBDatabase) {
+      IndexedDB.open(DEFAULT_DB_NAME, function (err, db?: IDBDatabase) {
         if (err) {
           reject(err);
         } else {
+          if (!db) {
+            reject(new Error('IndexedDB opened without a database instance'));
+            return;
+          }
           DEFAULT_DB = db;
           // TODO Use specific type
           (db as any).onerror = evt => {
