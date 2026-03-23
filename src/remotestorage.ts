@@ -1439,7 +1439,11 @@ Object.defineProperty(RemoteStorage.prototype, 'access', {
   configurable: true,
   get: function() {
     const access = new Access(this);
-    Object.defineProperty(this, 'access', { value: access });
+    Object.defineProperty(this, 'access', {
+      value: access,
+      writable: true,
+      configurable: true
+    });
     return access;
   },
 });
@@ -1447,7 +1451,11 @@ Object.defineProperty(RemoteStorage.prototype, 'caching', {
   configurable: true,
   get: function () {
     const caching = new Caching(this);
-    Object.defineProperty(this, 'caching', { value: caching });
+    Object.defineProperty(this, 'caching', {
+      value: caching,
+      writable: true,
+      configurable: true
+    });
     return caching;
   }
 });
