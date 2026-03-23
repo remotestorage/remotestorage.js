@@ -489,7 +489,7 @@ class IndexedDB extends CachingLayer {
         const storeNames = storeNamesList
           ? Array.from(storeNamesList as unknown as ArrayLike<string>).join(', ')
           : '';
-        return new Error(`error in store(s) “${storeNames}” in database “${transaction.db.name}”`);
+        return new Error(`Error in store(s) “${storeNames}” in database “${transaction.db.name}”`);
       } else {
         return new Error('unknown IndexedDB error');
       }
