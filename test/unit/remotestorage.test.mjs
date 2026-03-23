@@ -246,7 +246,7 @@ describe("RemoteStorage", function() {
       }));
     });
 
-    it("emits a sticky event when claimed scope differs from the stored authorized scope", function(done) {
+    it("emits a sticky event when claimed permissions differs from the stored authorized scope", function(done) {
       localStorage.setItem(AUTHORIZED_SCOPE_KEY, JSON.stringify({
         backend: 'remotestorage',
         scope: 'contacts:rw'
@@ -259,6 +259,26 @@ describe("RemoteStorage", function() {
         this.rs.on('scope-change-required', (event) => {
           expect(event.authorizedScope).to.equal('contacts:rw');
           expect(event.requestedScope).to.equal('contacts:r');
+          expect(this.rs.scopeChangeRequired).to.equal(true);
+          done();
+        });
+      }, 0);
+    });
+
+    
+    it("emits a sticky event when claimed category differs from the stored authorized scope", function(done) {
+      localStorage.setItem(AUTHORIZED_SCOPE_KEY, JSON.stringify({
+        backend: 'remotestorage',
+        scope: 'contacts:rw'
+      }));
+
+      this.rs = new RemoteStorage({ cache: false });
+      this.rs.access.claim('addressbook', 'rw');
+
+      setTimeout(() => {
+        this.rs.on('scope-change-required', (event) => {
+          expect(event.authorizedScope).to.equal('addressbook:rw');
+          expect(event.requestedScope).to.equal('addressbook:rw');
           expect(this.rs.scopeChangeRequired).to.equal(true);
           done();
         });
