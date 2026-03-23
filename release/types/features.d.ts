@@ -31,6 +31,7 @@ declare const Features: {
     _fireReady(): void;
     featuresLoaded(): void;
     _collectCleanupFunctions(): void;
+    _attachRemote(remote: any): void;
 };
 export = Features;
 //# sourceMappingURL=features.d.ts.map

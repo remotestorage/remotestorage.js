@@ -4,6 +4,8 @@ import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
+import locationFactory from '../helpers/location.mjs';
+import { localStorage } from '../helpers/memoryStorage.mjs';
 import Dropbox from '../../build/dropbox.js';
 import { EventHandling } from '../../build/eventhandling.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
@@ -24,9 +26,31 @@ class FakeRemote {
 }
 applyMixins(FakeRemote, [ EventHandling ]);
 
+const webFingerRecord = {
+  subject: 'acct:user@ho.st',
+  links: [
+    {
+      rel: 'http://tools.ietf.org/id/draft-dejong-remotestorage',
+      href: 'https://storage.ho.st/user',
+      type: 'draft-dejong-remotestorage-13',
+      properties: {
+        'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-13',
+        'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://storage.ho.st/oauth'
+      }
+    }
+  ]
+};
+
+locationFactory('https://todo.app/app');
+
 describe("RemoteStorage", function() {
   beforeEach(function() {
+    globalThis.document.location.href = 'https://todo.app/app';
     this.rs = new RemoteStorage({ cache: false });
+    localStorage.clear();
+    delete globalThis.remoteStorageExtension;
+    delete globalThis.RemoteStorageExtension;
+    delete globalThis.__remoteStorageExtension;
   });
 
   afterEach(function() {
@@ -34,6 +58,10 @@ describe("RemoteStorage", function() {
     this.rs = undefined;
     fetchMock.reset();
     sinon.reset();
+    localStorage.clear();
+    delete globalThis.remoteStorageExtension;
+    delete globalThis.RemoteStorageExtension;
+    delete globalThis.__remoteStorageExtension;
   });
 
   describe('#addModule', function() {
@@ -67,15 +95,18 @@ describe("RemoteStorage", function() {
   });
 
   describe("#connect", function() {
-    before(function() {
+    beforeEach(function() {
       fetchMock.mock(/acct\:timeout@example\.com/, 200, {
         delay: 1000
       });
       fetchMock.mock(/personal\.ho\.st/, 200);
-      fetchMock.mock(/acct\:user@ho\.st/, 200);
-    });
-
-    beforeEach(function() {
+      fetchMock.mock('https://ho.st/.well-known/webfinger?resource=acct:user@ho.st', {
+        status: 200,
+        body: webFingerRecord,
+        headers: {
+          'Content-Type': 'application/jrd+json; charset=utf-8'
+        }
+      });
       this.rs = new RemoteStorage({
         cache: false,
         discoveryTimeout: 10
@@ -137,6 +168,154 @@ describe("RemoteStorage", function() {
       this.rs.connect('user@ho.st');
 
       expect(this.rs.backend).to.equal('remotestorage');
+    });
+
+    it('falls back to page OAuth when no extension bridge is available', async function() {
+      this.rs.access.claim('notes', 'rw');
+      const authorizeSpy = sinon.spy(this.rs, 'authorize');
+
+      this.rs.connect('user@ho.st');
+      await new Promise(resolve => setTimeout(resolve, 25));
+
+      expect(authorizeSpy.calledOnce).to.equal(true);
+      expect(authorizeSpy.getCall(0).args[0].authURL).to.equal('https://storage.ho.st/oauth');
+      expect(authorizeSpy.getCall(0).args[0].scope).to.equal('notes:rw');
+    });
+
+    it('uses the extension bridge when available and keeps tokens out of page state', async function() {
+      this.rs.access.claim('notes', 'rw');
+      const authorizeSpy = sinon.spy(this.rs, 'authorize');
+      const connectSpy = sinon.spy(async (request) => ({
+        sessionId: 'session-123',
+        href: request.href,
+        storageApi: request.storageApi,
+        userAddress: request.userAddress,
+        grantedScopes: request.requestedScopes
+      }));
+      globalThis.remoteStorageExtension = {
+        ping: async () => ({ version: 1 }),
+        connect: connectSpy,
+        request: async () => ({ statusCode: 200, body: 'ok', contentType: 'text/plain' })
+      };
+
+      const connected = new Promise(resolve => this.rs.on('connected', resolve));
+      this.rs.connect('user@ho.st');
+      await connected;
+
+      expect(authorizeSpy.called).to.equal(false);
+      expect(connectSpy.calledOnce).to.equal(true);
+      expect(connectSpy.getCall(0).args[0]).to.include({
+        backend: 'remotestorage',
+        origin: 'https://todo.app',
+        requestedScopes: 'notes:rw',
+        userAddress: 'user@ho.st'
+      });
+      expect(this.rs.remote.connected).to.equal(true);
+      expect(this.rs.remote.sessionId).to.equal('session-123');
+      expect(this.rs.remote.token).to.equal(undefined);
+      expect(JSON.parse(localStorage.getItem('remotestorage:wireclient'))).to.deep.equal({
+        userAddress: 'user@ho.st'
+      });
+    });
+
+    it('sends the full claimed scope set to the extension', async function() {
+      this.rs.access.claim('notes', 'rw');
+      this.rs.access.claim('contacts', 'r');
+      const connectSpy = sinon.spy(async (request) => ({
+        sessionId: 'session-456',
+        href: request.href,
+        storageApi: request.storageApi,
+        userAddress: request.userAddress,
+        grantedScopes: request.requestedScopes
+      }));
+      globalThis.remoteStorageExtension = {
+        ping: async () => ({ version: 1 }),
+        connect: connectSpy,
+        request: async () => ({ statusCode: 200, body: 'ok', contentType: 'text/plain' })
+      };
+
+      const connected = new Promise(resolve => this.rs.on('connected', resolve));
+      this.rs.connect('user@ho.st');
+      await connected;
+
+      expect(connectSpy.calledOnce).to.equal(true);
+      expect(connectSpy.getCall(0).args[0].requestedScopes).to.equal('notes:rw contacts:r');
+    });
+
+    it('uses the active extension account when connect() is called without a user address', async function() {
+      this.rs.access.claim('notes', 'rw');
+      const authorizeSpy = sinon.spy(this.rs, 'authorize');
+      const connectSpy = sinon.spy(async (request) => ({
+        sessionId: 'session-active',
+        href: request.href,
+        storageApi: request.storageApi,
+        userAddress: request.userAddress,
+        grantedScopes: request.requestedScopes
+      }));
+      globalThis.remoteStorageExtension = {
+        ping: async () => ({
+          version: 1,
+          activeAccountId: 'active@ho.st',
+          accounts: [
+            {
+              accountId: 'active@ho.st',
+              active: true,
+              href: 'https://storage.ho.st/active',
+              storageApi: 'draft-dejong-remotestorage-13',
+              userAddress: 'active@ho.st'
+            }
+          ]
+        }),
+        connect: connectSpy,
+        request: async () => ({ statusCode: 200, body: 'ok', contentType: 'text/plain' })
+      };
+
+      const connected = new Promise(resolve => this.rs.on('connected', resolve));
+      this.rs.connect();
+      await connected;
+
+      expect(authorizeSpy.called).to.equal(false);
+      expect(connectSpy.calledOnce).to.equal(true);
+      expect(connectSpy.getCall(0).args[0]).to.include({
+        origin: 'https://todo.app',
+        requestedScopes: 'notes:rw',
+        userAddress: 'active@ho.st',
+        href: 'https://storage.ho.st/active',
+        storageApi: 'draft-dejong-remotestorage-13'
+      });
+      expect(this.rs.remote.connected).to.equal(true);
+      expect(this.rs.remote.sessionId).to.equal('session-active');
+    });
+
+    it('emits an auth error and does not fall back when the extension denies access', async function() {
+      this.rs.access.claim('notes', 'rw');
+      const authorizeSpy = sinon.spy(this.rs, 'authorize');
+      globalThis.remoteStorageExtension = {
+        ping: async () => ({ version: 1 }),
+        connect: async () => Promise.reject({ code: 'access_denied', message: 'nope' })
+      };
+
+      const error = new Promise(resolve => this.rs.on('error', resolve));
+      this.rs.connect('user@ho.st');
+      const err = await error;
+
+      expect(authorizeSpy.called).to.equal(false);
+      expect(err.name).to.equal('Unauthorized');
+      expect(err.code).to.equal('extension_denied');
+      expect(this.rs.remote.connected).to.equal(false);
+    });
+
+    it('falls back to page OAuth when the extension bridge version is unsupported', async function() {
+      this.rs.access.claim('notes', 'rw');
+      const authorizeSpy = sinon.spy(this.rs, 'authorize');
+      globalThis.remoteStorageExtension = {
+        ping: async () => ({ version: 2 })
+      };
+
+      this.rs.connect('user@ho.st');
+      await new Promise(resolve => setTimeout(resolve, 25));
+
+      expect(authorizeSpy.calledOnce).to.equal(true);
     });
   });
 

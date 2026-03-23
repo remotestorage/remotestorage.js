@@ -11,6 +11,7 @@ import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import { Remote } from "./remote";
 import type { AuthorizeOptions } from './authorize';
+import type { StorageInfo } from './interfaces/storage_info';
 import type { Sync } from './sync';
 import * as util from './util';
 /**
@@ -381,7 +382,7 @@ export declare class RemoteStorage {
      * @example
      * remoteStorage.connect('user@example.com');
      */
-    connect(userAddress: string, token?: string): void;
+    connect(userAddress?: string, token?: string): void;
     /**
      * Reconnect the remote server to get a new authorization.
      *
@@ -519,7 +520,23 @@ export declare class RemoteStorage {
     /**
      * @internal
      */
+    _attachRemote: (remote: any) => void;
+    /**
+     * @internal
+     */
     initFeature: (featureName: any) => void;
+    /**
+     * @internal
+     */
+    _connectWithExtension(info: StorageInfo): Promise<boolean>;
+    /**
+     * @internal
+     */
+    _connectWithExtensionAccount(): Promise<boolean>;
+    /**
+     * @internal
+     */
+    _ensureWireClientRemote(): void;
     /**
      * TODO: document
      * @internal

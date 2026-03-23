@@ -203,29 +203,12 @@ const Features = {
     // eslint-disable-next-line new-cap
     this.local = config.cache && this.features.local && new this.features.local();
 
-    // this.remote set by WireClient._rs_init as lazy property on
-    // RS.prototype
-
     if (this.local && this.remote) {
-      this._setGPD(SGPD, this);
       this._bindChange(this.local);
-    } else if (this.remote) {
-      this._setGPD(this.remote, this.remote);
     }
-    if (this.remote) {
-      this.remote.on('connected', () => {
-        this._fireReady();
-        this._emit('connected');
-      });
-      this.remote.on('not-connected', () => {
-        this._fireReady();
-        this._emit('not-connected');
-      });
-      if (this.remote.connected) {
-        this._fireReady();
-        this._emit('connected');
-      }
 
+    if (this.remote) {
+      this._attachRemote(this.remote);
       if (!this.hasFeature('Authorize')) {
         this.remote.stopWaitingForToken();
       }
@@ -250,6 +233,30 @@ const Features = {
       if (typeof(cleanup) === 'function') {
         this._cleanups.push(cleanup);
       }
+    }
+  },
+
+  _attachRemote (remote): void {
+    this.remote = remote;
+
+    if (this.local) {
+      this._setGPD(SGPD, this);
+    } else {
+      this._setGPD(remote, remote);
+    }
+
+    remote.on('connected', () => {
+      this._fireReady();
+      this._emit('connected');
+    });
+    remote.on('not-connected', () => {
+      this._fireReady();
+      this._emit('not-connected');
+    });
+
+    if (remote.connected) {
+      this._fireReady();
+      this._emit('connected');
     }
   }
 };

@@ -1,4 +1,4 @@
-export type RSItem = {
+export declare type RSItem = {
     body?: string | object | false;
     contentType?: string;
     contentLength?: number;
@@ -10,17 +10,17 @@ export type RSItem = {
     previousBody?: string | object | false;
     previousContentType?: string;
 };
-export type RSNode = {
+export declare type RSNode = {
     path: string;
     common?: RSItem;
     local?: RSItem;
     remote?: RSItem;
     push?: RSItem;
 };
-export type RSNodes = {
+export declare type RSNodes = {
     [key: string]: RSNode;
 };
-export type ProcessNodes = {
+export declare type ProcessNodes = {
     (nodePaths: string[], nodes: RSNodes): RSNodes;
 };
 //# sourceMappingURL=rs_node.d.ts.map

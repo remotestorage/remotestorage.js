@@ -25,6 +25,9 @@ import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import Features from './features';
 import { Remote } from "./remote";
+import WireClient from './wireclient';
+import ExtensionBridge, { ExtensionBridgeError } from './extension-bridge';
+import ExtensionRemote from './extension-remote';
 
 import type { AuthorizeOptions } from './authorize';
 import type { StorageInfo } from './interfaces/storage_info';
@@ -551,8 +554,40 @@ export class RemoteStorage {
    * @example
    * remoteStorage.connect('user@example.com');
    */
-  connect (userAddress: string, token?: string): void {
+  connect (userAddress?: string, token?: string): void {
     this.setBackend('remotestorage');
+    userAddress = typeof userAddress === 'string' ? userAddress.trim() : '';
+
+    if (!userAddress) {
+      if (typeof token !== 'undefined') {
+        this._emit('error', new RemoteStorage.DiscoveryError("A user address is required when connecting with a pre-supplied token."));
+        return;
+      }
+
+      this._emit('connecting');
+      this._emit('authing');
+
+      this._connectWithExtensionAccount().catch((error) => {
+        if (error instanceof ExtensionBridgeError) {
+          if (error.code === 'denied') {
+            this._emit('error', new UnauthorizedError('Authorization failed: access denied by extension', { code: 'extension_denied' }));
+            return;
+          }
+          if (error.code === 'not_authenticated') {
+            this._emit('error', new UnauthorizedError('No remoteStorage account is authenticated in the extension.', { code: 'extension_not_authenticated' }));
+            return;
+          }
+          if (error.code === 'not_available' || error.code === 'unsupported') {
+            this._emit('error', new RemoteStorage.DiscoveryError("No user address supplied and no compatible remoteStorage extension account is available."));
+            return;
+          }
+        }
+
+        this._emit('error', error);
+      });
+      return;
+    }
+
     if (userAddress.indexOf('@') < 0 && !userAddress.match(/^(https?:\/\/)?[^\s\/$\.?#]+\.[^\s]*$/)) {
       this._emit('error', new RemoteStorage.DiscoveryError("Not a valid user address or URL."));
       return;
@@ -579,9 +614,32 @@ export class RemoteStorage {
     });
     this._emit('connecting');
 
-    Discover(userAddress).then((info: StorageInfo): void => {
+    Discover(userAddress).then(async (info: StorageInfo): Promise<void> => {
       this._emit('authing');
       info.userAddress = userAddress;
+
+      if (typeof token === 'undefined') {
+        try {
+          const connected = await this._connectWithExtension(info);
+          if (connected) {
+            return;
+          }
+        } catch (error) {
+          if (error instanceof ExtensionBridgeError) {
+            if (error.code === 'denied') {
+              this._emit('error', new UnauthorizedError('Authorization failed: access denied by extension', { code: 'extension_denied' }));
+              return;
+            }
+            if (error.code === 'not_authenticated') {
+              this._emit('error', new UnauthorizedError('No matching remoteStorage account is authenticated in the extension.', { code: 'extension_not_authenticated' }));
+              return;
+            }
+          }
+          throw error;
+        }
+      }
+
+      this._ensureWireClientRemote();
       this.remote.configure(info);
       if (! this.remote.connected) {
         if (info.authURL) {
@@ -633,7 +691,12 @@ export class RemoteStorage {
    */
   disconnect (): void {
     if (this.remote) {
-      this.remote.configure({
+      const remote = this.remote;
+      const disconnectResult = typeof remote.disconnect === 'function' ? remote.disconnect() : undefined;
+      if (typeof(disconnectResult) === 'object' && typeof(disconnectResult.then) === 'function') {
+        disconnectResult.catch(() => undefined);
+      }
+      remote.configure({
         userAddress: null,
         href: null,
         storageApi: null,
@@ -864,7 +927,89 @@ export class RemoteStorage {
   /**
    * @internal
    */
+  _attachRemote = Features._attachRemote;
+  /**
+   * @internal
+   */
   initFeature = Features.initFeature;
+
+  /**
+   * @internal
+   */
+  async _connectWithExtension (info: StorageInfo): Promise<boolean> {
+    try {
+      const location = Authorize.getLocation();
+      let redirectUri = location.origin;
+      if (location.pathname !== '/') {
+        redirectUri += location.pathname;
+      }
+      const clientId = redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
+      const response = await ExtensionBridge.connect({
+        backend: 'remotestorage',
+        origin: location.origin,
+        userAddress: info.userAddress,
+        href: info.href,
+        storageApi: info.storageApi,
+        authURL: info.authURL,
+        properties: info.properties,
+        redirectUri: redirectUri,
+        clientId: clientId,
+        requestedScopes: this.access.scopeParameter
+      });
+      const remote = new ExtensionRemote(this);
+      this._attachRemote(remote);
+      remote.configure({
+        userAddress: response.userAddress,
+        href: response.href,
+        storageApi: response.storageApi,
+        properties: info.properties,
+        sessionId: response.sessionId,
+        grantedScopes: response.grantedScopes || this.access.scopeParameter
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof ExtensionBridgeError) {
+        if (error.fallback) {
+          return false;
+        }
+        throw error;
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  async _connectWithExtensionAccount (): Promise<boolean> {
+    const pingResult = await ExtensionBridge.ping();
+    const accounts = Array.isArray(pingResult.accounts) ? pingResult.accounts : [];
+    const activeAccount = accounts.find((account) => {
+      return account.active || account.accountId === pingResult.activeAccountId;
+    });
+
+    if (!activeAccount) {
+      throw new ExtensionBridgeError('No remoteStorage account is authenticated in the extension.', 'not_authenticated', false);
+    }
+
+    return this._connectWithExtension({
+      authURL: activeAccount.authURL,
+      href: activeAccount.href,
+      properties: {},
+      storageApi: activeAccount.storageApi,
+      userAddress: activeAccount.userAddress
+    });
+  }
+
+  /**
+   * @internal
+   */
+  _ensureWireClientRemote (): void {
+    if (this.remote instanceof ExtensionRemote) {
+      this._attachRemote(new WireClient(this));
+    }
+  }
 
   //
   // GET/PUT/DELETE INTERFACE HELPERS

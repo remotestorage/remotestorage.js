@@ -154,6 +154,8 @@ export interface Remote {
    */
   connect? (): void;
 
+  disconnect? (): Promise<void> | void;
+
   stopWaitingForToken (): void;
 
   get (path: string, options?: { ifMatch?: string; ifNoneMatch?: string }): Promise<RemoteResponse>;

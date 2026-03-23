@@ -102,6 +102,7 @@ export interface Remote {
      * @internal
      */
     connect?(): void;
+    disconnect?(): Promise<void> | void;
     stopWaitingForToken(): void;
     get(path: string, options?: {
         ifMatch?: string;

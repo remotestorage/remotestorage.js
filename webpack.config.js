@@ -35,12 +35,10 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'release'),
     filename: 'remotestorage.js',
-    library: {
-      name: 'RemoteStorage',
-      type: 'umd',
-      export: 'default',
-      umdNamedDefine: true,
-    },
+    library: 'RemoteStorage',
+    libraryTarget: 'umd',
+    libraryExport: 'default',
+    umdNamedDefine: true,
     globalObject: 'this'
   }
 };
