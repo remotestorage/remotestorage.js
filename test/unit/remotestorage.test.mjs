@@ -284,5 +284,26 @@ describe("RemoteStorage", function() {
         scope: 'contacts:r'
       });
     });
+
+    it("clears runtime scope-change state when the backend is cleared", function() {
+      localStorage.setItem(AUTHORIZED_SCOPE_KEY, JSON.stringify({
+        backend: 'remotestorage',
+        scope: 'contacts:rw'
+      }));
+
+      this.rs = new RemoteStorage({ cache: false });
+      this.rs.access.claim('contacts', 'r');
+
+      expect(this.rs.scopeChangeRequired).to.equal(true);
+
+      this.rs.setBackend(undefined);
+
+      expect(this.rs.scopeChangeRequired).to.equal(false);
+      expect(this.rs._scopeChangeEvent).to.equal(null);
+      expect(JSON.parse(localStorage.getItem(AUTHORIZED_SCOPE_KEY))).to.deep.equal({
+        backend: 'remotestorage',
+        scope: 'contacts:rw'
+      });
+    });
   });
 });

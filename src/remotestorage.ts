@@ -383,7 +383,7 @@ export class RemoteStorage {
 
   /**
    */
-  backend: 'remotestorage' | 'dropbox' | 'googledrive';
+  backend?: 'remotestorage' | 'dropbox' | 'googledrive';
 
   /**
    * Depending on the chosen backend, this is either an instance of `WireClient`,
@@ -752,7 +752,7 @@ export class RemoteStorage {
   /**
    * @internal
    */
-  setBackend (backendType: 'remotestorage' | 'dropbox' | 'googledrive'): void {
+  setBackend (backendType?: 'remotestorage' | 'dropbox' | 'googledrive'): void {
     this.backend = backendType;
 
     if (hasLocalStorage) {
@@ -761,6 +761,15 @@ export class RemoteStorage {
       } else {
         localStorage.removeItem('remotestorage:backend');
       }
+    }
+
+    if (typeof backendType === 'undefined') {
+      // Clearing the active backend should also clear any in-memory scope drift
+      // state, while leaving per-backend persisted scope snapshots untouched.
+      this._authorizedScope = null;
+      this._scopeChangeRequired = false;
+      this._scopeChangeEvent = null;
+      return;
     }
 
     this._authorizedScope = this._loadAuthorizedScope();
