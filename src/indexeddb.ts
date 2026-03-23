@@ -491,7 +491,7 @@ class IndexedDB extends CachingLayer {
           : '';
         return new Error(`Error in store(s) “${storeNames}” in database “${transaction.db.name}”`);
       } else {
-        return new Error('unknown IndexedDB error');
+        return new Error('Unknown IndexedDB error');
       }
     }
   }
