@@ -25,6 +25,7 @@ export class Access {
 
   constructor(rs?: { _checkScopeChange?: () => void; }) {
     this.rs = rs;
+    // Avoid emitting a spurious "empty scope" check while RS is still booting.
     this.reset(false);
   }
 

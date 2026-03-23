@@ -468,6 +468,7 @@ export class RemoteStorage {
       const registration = origOn.call(this, eventName, handler);
 
       if (eventName === 'scope-change-required' && this._scopeChangeRequired && this._scopeChangeEvent) {
+        // Treat this as a sticky startup condition, so late listeners still see it.
         setTimeout(() => {
           handler(this._scopeChangeEvent);
         }, 0);
@@ -815,6 +816,8 @@ export class RemoteStorage {
   }
 
   _completeAuthorization (scope?: string): void {
+    // Prefer the stored pre-redirect request, because OAuth responses don't
+    // always echo the granted scope back.
     const normalizedScope = this._loadPendingScope() || normalizeScope(scope);
     this._forgetPendingScope();
 
@@ -828,6 +831,7 @@ export class RemoteStorage {
   _checkScopeChange (): void {
     const requestedScope = normalizeScope(this.access.scopeParameter);
     const authorizedScope = this._authorizedScope || this._loadAuthorizedScope();
+    // Any normalized scope drift should prompt reauth, even when permissions shrink.
     const scopeChangeRequired = !!(requestedScope && authorizedScope && requestedScope !== authorizedScope);
     const shouldEmit = scopeChangeRequired && (
       !this._scopeChangeRequired ||
@@ -1440,6 +1444,7 @@ Object.defineProperty(RemoteStorage.prototype, 'access', {
   get: function() {
     const access = new Access(this);
     Object.defineProperty(this, 'access', {
+      // Keep this overrideable so tests and custom integrations can swap in fakes.
       value: access,
       writable: true,
       configurable: true

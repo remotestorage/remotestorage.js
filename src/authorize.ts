@@ -132,6 +132,8 @@ export class Authorize {
     }
 
     if (typeof remoteStorage._rememberPendingScope === 'function') {
+      // Some providers omit `scope` in the callback/token response, so remember
+      // what we asked for before leaving the page.
       remoteStorage._rememberPendingScope(options.scope);
     }
 
