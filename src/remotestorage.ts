@@ -664,6 +664,8 @@ export class RemoteStorage {
       }
     }, (/*err*/) => {
       this._emit('error', new RemoteStorage.DiscoveryError("No storage information found for this user address."));
+    }).catch((error) => {
+      this._emit('error', error);
     });
   }
 
@@ -694,7 +696,9 @@ export class RemoteStorage {
       const remote = this.remote;
       const disconnectResult = typeof remote.disconnect === 'function' ? remote.disconnect() : undefined;
       if (typeof(disconnectResult) === 'object' && typeof(disconnectResult.then) === 'function') {
-        disconnectResult.catch(() => undefined);
+        disconnectResult.catch((error) => {
+          log('[RemoteStorage] remote.disconnect() failed:', error);
+        });
       }
       remote.configure({
         userAddress: null,
@@ -943,7 +947,11 @@ export class RemoteStorage {
       if (location.pathname !== '/') {
         redirectUri += location.pathname;
       }
-      const clientId = redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
+      const clientIdMatch = redirectUri.match(/^(https?:\/\/[^/]+)/);
+      if (!clientIdMatch) {
+        throw new ExtensionBridgeError('Cannot determine client ID from current origin.', 'unsupported', true);
+      }
+      const clientId = clientIdMatch[0];
       const response = await ExtensionBridge.connect({
         backend: 'remotestorage',
         origin: location.origin,

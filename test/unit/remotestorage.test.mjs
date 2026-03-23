@@ -9,7 +9,45 @@ import { localStorage } from '../helpers/memoryStorage.mjs';
 import Dropbox from '../../build/dropbox.js';
 import { EventHandling } from '../../build/eventhandling.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
+import ExtensionBridgeModule from '../../build/extension-bridge.js';
 import { applyMixins } from '../../build/util.js';
+
+const ExtensionBridge = ExtensionBridgeModule.ExtensionBridge || ExtensionBridgeModule.default;
+
+/**
+ * Install a fake extension bridge that responds to CustomEvent messages
+ * on `document`, mimicking a real content script.
+ */
+function installFakeBridge (handlers) {
+  function listener (event) {
+    const detail = event.detail;
+    if (!detail || detail.direction !== 'page-to-extension') { return; }
+
+    const handler = handlers[detail.method];
+    if (!handler) {
+      document.dispatchEvent(new CustomEvent('remotestorage-bridge', {
+        detail: { id: detail.id, error: { code: 'unsupported', message: 'Unknown method' } }
+      }));
+      return;
+    }
+
+    Promise.resolve()
+      .then(() => handler(detail.payload))
+      .then((payload) => {
+        document.dispatchEvent(new CustomEvent('remotestorage-bridge', {
+          detail: { id: detail.id, payload }
+        }));
+      })
+      .catch((error) => {
+        document.dispatchEvent(new CustomEvent('remotestorage-bridge', {
+          detail: { id: detail.id, error: error instanceof Error ? { code: error.code, message: error.message } : error }
+        }));
+      });
+  }
+
+  document.addEventListener('remotestorage-bridge', listener);
+  return () => document.removeEventListener('remotestorage-bridge', listener);
+}
 
 chai.use(chaiAsPromised);
 
@@ -48,9 +86,11 @@ describe("RemoteStorage", function() {
     globalThis.document.location.href = 'https://todo.app/app';
     this.rs = new RemoteStorage({ cache: false });
     localStorage.clear();
-    delete globalThis.remoteStorageExtension;
-    delete globalThis.RemoteStorageExtension;
-    delete globalThis.__remoteStorageExtension;
+    if (ExtensionBridge) {
+      if (ExtensionBridge._resetVerification) { ExtensionBridge._resetVerification(); }
+      if (ExtensionBridge._setHandshakeTimeout) { ExtensionBridge._setHandshakeTimeout(50); }
+    }
+    if (this._removeBridge) { this._removeBridge(); this._removeBridge = null; }
   });
 
   afterEach(function() {
@@ -59,9 +99,11 @@ describe("RemoteStorage", function() {
     fetchMock.reset();
     sinon.reset();
     localStorage.clear();
-    delete globalThis.remoteStorageExtension;
-    delete globalThis.RemoteStorageExtension;
-    delete globalThis.__remoteStorageExtension;
+    if (this._removeBridge) { this._removeBridge(); this._removeBridge = null; }
+    if (ExtensionBridge) {
+      if (ExtensionBridge._resetVerification) { ExtensionBridge._resetVerification(); }
+      if (ExtensionBridge._setHandshakeTimeout) { ExtensionBridge._setHandshakeTimeout(2000); }
+    }
   });
 
   describe('#addModule', function() {
@@ -107,10 +149,15 @@ describe("RemoteStorage", function() {
           'Content-Type': 'application/jrd+json; charset=utf-8'
         }
       });
+      if (this._removeBridge) { this._removeBridge(); this._removeBridge = null; }
       this.rs = new RemoteStorage({
         cache: false,
         discoveryTimeout: 10
       });
+    });
+
+    afterEach(function() {
+      if (this._removeBridge) { this._removeBridge(); this._removeBridge = null; }
     });
 
     it("throws DiscoveryError when userAddress doesn't contain an @ or URL", function(done) {
@@ -175,7 +222,8 @@ describe("RemoteStorage", function() {
       const authorizeSpy = sinon.spy(this.rs, 'authorize');
 
       this.rs.connect('user@ho.st');
-      await new Promise(resolve => setTimeout(resolve, 25));
+      // Wait longer than the bridge handshake timeout (50ms in test mode)
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       expect(authorizeSpy.calledOnce).to.equal(true);
       expect(authorizeSpy.getCall(0).args[0].authURL).to.equal('https://storage.ho.st/oauth');
@@ -185,26 +233,29 @@ describe("RemoteStorage", function() {
     it('uses the extension bridge when available and keeps tokens out of page state', async function() {
       this.rs.access.claim('notes', 'rw');
       const authorizeSpy = sinon.spy(this.rs, 'authorize');
-      const connectSpy = sinon.spy(async (request) => ({
-        sessionId: 'session-123',
-        href: request.href,
-        storageApi: request.storageApi,
-        userAddress: request.userAddress,
-        grantedScopes: request.requestedScopes
-      }));
-      globalThis.remoteStorageExtension = {
+      let connectPayload = null;
+      this._removeBridge = installFakeBridge({
         ping: async () => ({ version: 1 }),
-        connect: connectSpy,
+        connect: async (request) => {
+          connectPayload = request;
+          return {
+            sessionId: 'session-123',
+            href: request.href,
+            storageApi: request.storageApi,
+            userAddress: request.userAddress,
+            grantedScopes: request.requestedScopes
+          };
+        },
         request: async () => ({ statusCode: 200, body: 'ok', contentType: 'text/plain' })
-      };
+      });
 
       const connected = new Promise(resolve => this.rs.on('connected', resolve));
       this.rs.connect('user@ho.st');
       await connected;
 
       expect(authorizeSpy.called).to.equal(false);
-      expect(connectSpy.calledOnce).to.equal(true);
-      expect(connectSpy.getCall(0).args[0]).to.include({
+      expect(connectPayload).to.not.equal(null);
+      expect(connectPayload).to.include({
         backend: 'remotestorage',
         origin: 'https://todo.app',
         requestedScopes: 'notes:rw',
@@ -221,38 +272,36 @@ describe("RemoteStorage", function() {
     it('sends the full claimed scope set to the extension', async function() {
       this.rs.access.claim('notes', 'rw');
       this.rs.access.claim('contacts', 'r');
-      const connectSpy = sinon.spy(async (request) => ({
-        sessionId: 'session-456',
-        href: request.href,
-        storageApi: request.storageApi,
-        userAddress: request.userAddress,
-        grantedScopes: request.requestedScopes
-      }));
-      globalThis.remoteStorageExtension = {
+      let connectPayload = null;
+      this._removeBridge = installFakeBridge({
         ping: async () => ({ version: 1 }),
-        connect: connectSpy,
+        connect: async (request) => {
+          connectPayload = request;
+          return {
+            sessionId: 'session-456',
+            href: request.href,
+            storageApi: request.storageApi,
+            userAddress: request.userAddress,
+            grantedScopes: request.requestedScopes
+          };
+        },
         request: async () => ({ statusCode: 200, body: 'ok', contentType: 'text/plain' })
-      };
+      });
 
       const connected = new Promise(resolve => this.rs.on('connected', resolve));
       this.rs.connect('user@ho.st');
       await connected;
 
-      expect(connectSpy.calledOnce).to.equal(true);
-      expect(connectSpy.getCall(0).args[0].requestedScopes).to.equal('notes:rw contacts:r');
+      expect(connectPayload).to.not.equal(null);
+      expect(connectPayload.requestedScopes).to.equal('notes:rw contacts:r');
     });
 
     it('uses the active extension account when connect() is called without a user address', async function() {
+
       this.rs.access.claim('notes', 'rw');
       const authorizeSpy = sinon.spy(this.rs, 'authorize');
-      const connectSpy = sinon.spy(async (request) => ({
-        sessionId: 'session-active',
-        href: request.href,
-        storageApi: request.storageApi,
-        userAddress: request.userAddress,
-        grantedScopes: request.requestedScopes
-      }));
-      globalThis.remoteStorageExtension = {
+      let connectPayload = null;
+      this._removeBridge = installFakeBridge({
         ping: async () => ({
           version: 1,
           activeAccountId: 'active@ho.st',
@@ -266,17 +315,26 @@ describe("RemoteStorage", function() {
             }
           ]
         }),
-        connect: connectSpy,
+        connect: async (request) => {
+          connectPayload = request;
+          return {
+            sessionId: 'session-active',
+            href: request.href,
+            storageApi: request.storageApi,
+            userAddress: request.userAddress,
+            grantedScopes: request.requestedScopes
+          };
+        },
         request: async () => ({ statusCode: 200, body: 'ok', contentType: 'text/plain' })
-      };
+      });
 
       const connected = new Promise(resolve => this.rs.on('connected', resolve));
       this.rs.connect();
       await connected;
 
       expect(authorizeSpy.called).to.equal(false);
-      expect(connectSpy.calledOnce).to.equal(true);
-      expect(connectSpy.getCall(0).args[0]).to.include({
+      expect(connectPayload).to.not.equal(null);
+      expect(connectPayload).to.include({
         origin: 'https://todo.app',
         requestedScopes: 'notes:rw',
         userAddress: 'active@ho.st',
@@ -288,12 +346,13 @@ describe("RemoteStorage", function() {
     });
 
     it('emits an auth error and does not fall back when the extension denies access', async function() {
+
       this.rs.access.claim('notes', 'rw');
       const authorizeSpy = sinon.spy(this.rs, 'authorize');
-      globalThis.remoteStorageExtension = {
+      this._removeBridge = installFakeBridge({
         ping: async () => ({ version: 1 }),
-        connect: async () => Promise.reject({ code: 'access_denied', message: 'nope' })
-      };
+        connect: async () => { throw { code: 'access_denied', message: 'nope' }; }
+      });
 
       const error = new Promise(resolve => this.rs.on('error', resolve));
       this.rs.connect('user@ho.st');
@@ -308,12 +367,12 @@ describe("RemoteStorage", function() {
     it('falls back to page OAuth when the extension bridge version is unsupported', async function() {
       this.rs.access.claim('notes', 'rw');
       const authorizeSpy = sinon.spy(this.rs, 'authorize');
-      globalThis.remoteStorageExtension = {
+      this._removeBridge = installFakeBridge({
         ping: async () => ({ version: 2 })
-      };
+      });
 
       this.rs.connect('user@ho.st');
-      await new Promise(resolve => setTimeout(resolve, 25));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       expect(authorizeSpy.calledOnce).to.equal(true);
     });

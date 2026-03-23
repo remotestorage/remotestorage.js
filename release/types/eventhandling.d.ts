@@ -1,6 +1,6 @@
 /**
  */
-export declare type EventHandler = (event?: unknown) => void;
+export type EventHandler = (event?: unknown) => void;
 export declare class EventHandling {
     /**
      * @internal

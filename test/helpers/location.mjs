@@ -82,9 +82,25 @@ class MockLocation {
   }
 }
 
+// Minimal CustomEvent polyfill for Node.js test environments
+if (typeof globalThis.CustomEvent === 'undefined') {
+  globalThis.CustomEvent = class CustomEvent extends Event {
+    constructor(type, params = {}) {
+      super(type, params);
+      this.detail = params.detail !== undefined ? params.detail : null;
+    }
+  };
+}
+
 export default function locationFactory(url) {
-  if (!('document' in globalThis)) {
-    globalThis["document"] = {};
+  if (!('document' in globalThis) || typeof globalThis.document.addEventListener !== 'function') {
+    // Create document as an EventTarget so it supports addEventListener/dispatchEvent
+    const doc = new EventTarget();
+    // Preserve existing properties if upgrading a stub
+    if ('document' in globalThis) {
+      Object.assign(doc, globalThis.document);
+    }
+    globalThis["document"] = doc;
   }
   globalThis.document.location = new MockLocation(url);
 }

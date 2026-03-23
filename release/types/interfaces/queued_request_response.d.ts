@@ -1,4 +1,4 @@
-export declare type QueuedRequestResponse = {
+export type QueuedRequestResponse = {
     statusCode: number;
     body?: string | object;
     contentType?: string;

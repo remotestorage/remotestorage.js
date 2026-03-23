@@ -1,5 +1,5 @@
 import type { StorageInfo } from './interfaces/storage_info';
-declare type ExtensionBridgeErrorCode = 'denied' | 'not_available' | 'not_authenticated' | 'unsupported' | 'invalid_response' | 'request_failed';
+type ExtensionBridgeErrorCode = 'denied' | 'not_available' | 'not_authenticated' | 'unsupported' | 'invalid_response' | 'request_failed';
 export interface ExtensionBridgePingResult {
     accounts?: ExtensionBridgeAccount[];
     activeAccountId?: string | null;
@@ -46,26 +46,41 @@ export interface ExtensionBridgeRequestResponse {
     revision?: string;
     statusCode: number;
 }
-interface ExtensionProvider {
-    connect?(request: ExtensionBridgeConnectRequest): Promise<ExtensionBridgeConnectResponse>;
-    disconnect?(sessionId: string): Promise<void> | void;
-    ping?(): Promise<ExtensionBridgePingResult> | ExtensionBridgePingResult;
-    request?(request: ExtensionBridgeRequestOptions): Promise<ExtensionBridgeRequestResponse>;
-    version?: number | string;
-}
 export declare class ExtensionBridgeError extends Error {
     code: ExtensionBridgeErrorCode;
     fallback: boolean;
     constructor(message: string, code: ExtensionBridgeErrorCode, fallback: boolean);
 }
 export declare class ExtensionBridge {
-    static getProvider(): ExtensionProvider | undefined;
+    private static _verified;
+    /**
+     * Perform a version handshake with the extension via the message-based
+     * channel. Returns true only if a trusted extension responds with a
+     * supported version.
+     */
     static isAvailable(): Promise<boolean>;
     static connect(request: ExtensionBridgeConnectRequest): Promise<ExtensionBridgeConnectResponse>;
     static ping(): Promise<ExtensionBridgePingResult>;
     static request(request: ExtensionBridgeRequestOptions): Promise<ExtensionBridgeRequestResponse>;
     static disconnect(sessionId: string): Promise<void>;
-    private static getAvailableProvider;
+    /**
+     * Verify the extension is present and running a supported version via
+     * the message-based channel.
+     */
+    private static _verifyExtension;
+    /**
+     * Reset verification state. Useful for testing or when the extension
+     * may have been unloaded.
+     *
+     * @internal
+     */
+    static _resetVerification(): void;
+    /**
+     * Set the handshake timeout in milliseconds.
+     *
+     * @internal
+     */
+    static _setHandshakeTimeout(ms: number): void;
 }
 export default ExtensionBridge;
 //# sourceMappingURL=extension-bridge.d.ts.map

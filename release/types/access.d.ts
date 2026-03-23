@@ -1,5 +1,5 @@
-export declare type AccessMode = 'r' | 'rw';
-export declare type AccessScope = string;
+export type AccessMode = 'r' | 'rw';
+export type AccessScope = string;
 interface ScopeEntry {
     name: string;
     mode: AccessMode;
