@@ -1110,7 +1110,7 @@ function hookSync(rs, ...args): void {
     return this.dropbox.fetchDelta(rs, ...args).
       then(rs._dropboxOrigSync, function (err) {
         rs._emit('error', new SyncError(err));
-        rs._emit('sync-done');
+        rs._emit('sync-done', { completed: false });
       });
   }.bind(rs);
 }
