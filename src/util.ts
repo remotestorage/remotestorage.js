@@ -1,39 +1,5 @@
 // Reusable utility functions
 
-/**
- * Takes an object and its copy as produced by the _deepClone function
- * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
- * of being cloned to new ArrayBuffers with the same content.
- *
- * It recurses into sub-objects, but skips arrays if they occur.
- */
-function _fixArrayBuffers(srcObj: object, dstObj: object) {
-  if (typeof (srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
-    return;
-  }
-  for (const field in srcObj) {
-    if (typeof (srcObj[field]) === 'object' && srcObj[field] !== null) {
-      if (srcObj[field].toString() === '[object ArrayBuffer]') {
-        dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
-        const srcArr = new Int8Array(srcObj[field]);
-        const dstArr = new Int8Array(dstObj[field]);
-        dstArr.set(srcArr);
-      } else if (ArrayBuffer.isView(srcObj[field])) {
-        const view = srcObj[field];
-        if (view instanceof DataView) {
-          const buf = new ArrayBuffer(view.byteLength);
-          new Uint8Array(buf).set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength));
-          dstObj[field] = new DataView(buf);
-        } else {
-          dstObj[field] = new (view.constructor as any)(view);
-        }
-      } else {
-        _fixArrayBuffers(srcObj[field], dstObj[field]);
-      }
-    }
-  }
-}
-
 export const logError = (error: string | Error): void => {
   if (typeof (error) === 'string') {
     console.error(error);
@@ -187,9 +153,7 @@ export const deepClone = (obj: any): any => {
   if (obj === undefined) {
     return undefined;
   } else {
-    const clone = JSON.parse(JSON.stringify(obj));
-    _fixArrayBuffers(obj, clone);
-    return clone;
+    return structuredClone(obj);
   }
 };
 
