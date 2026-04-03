@@ -237,7 +237,7 @@ describe("RemoteStorage", function() {
       this.rs.disconnect();
       localStorage.clear();
 
-      localStorage.setItem('remotestorage:backend', 'remotestorage');
+      this.rs.setBackend('remotestorage');
       localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
         userAddress: 'user@example.com',
         href: 'https://storage.example.com/users/user/',
