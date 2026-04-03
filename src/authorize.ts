@@ -157,7 +157,7 @@ export class Authorize {
     // FIXME declare potential `cordova` property on global somehow, so we don't have to
     // use a string accessor here.
     if (globalContext['cordova'] &&
-        (Authorize.getLocation().href.indexOf('file:') === 0 ||
+        (Authorize.getLocation().href.startsWith('file:') ||
          (typeof config.cordovaRedirectUri === 'string' &&
           options.redirectUri === config.cordovaRedirectUri))) {
       Authorize

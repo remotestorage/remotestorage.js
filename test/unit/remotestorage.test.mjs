@@ -247,18 +247,29 @@ describe("RemoteStorage", function() {
     });
 
     it("emits a sticky event when claimed scope differs from the stored authorized scope", function(done) {
-      localStorage.setItem(AUTHORIZED_SCOPE_KEY, JSON.stringify({
-        backend: 'remotestorage',
-        scope: 'contacts:rw'
-      }));
-
-      this.rs = new RemoteStorage({ cache: false });
+      this.rs._completeAuthorization('contacts:rw');
       this.rs.access.claim('contacts', 'r');
 
       setTimeout(() => {
         this.rs.on('scope-change-required', (event) => {
           expect(event.authorizedScope).to.equal('contacts:rw');
           expect(event.requestedScope).to.equal('contacts:r');
+          expect(event.reauthorize).to.be.a('function');
+          expect(this.rs.scopeChangeRequired).to.equal(true);
+          done();
+        });
+      }, 0);
+    });
+
+    it("emits a sticky event when the claimed category changes", function(done) {
+      this.rs._completeAuthorization('contacts:rw');
+      this.rs.access.claim('documents', 'rw');
+
+      setTimeout(() => {
+        this.rs.on('scope-change-required', (event) => {
+          expect(event.authorizedScope).to.equal('contacts:rw');
+          expect(event.requestedScope).to.equal('documents:rw');
+          expect(event.reauthorize).to.be.a('function');
           expect(this.rs.scopeChangeRequired).to.equal(true);
           done();
         });
@@ -266,12 +277,7 @@ describe("RemoteStorage", function() {
     });
 
     it("clears the pending scope-change state after authorization completes with the current scope", function() {
-      localStorage.setItem(AUTHORIZED_SCOPE_KEY, JSON.stringify({
-        backend: 'remotestorage',
-        scope: 'contacts:rw'
-      }));
-
-      this.rs = new RemoteStorage({ cache: false });
+      this.rs._completeAuthorization('contacts:rw');
       this.rs.access.claim('contacts', 'r');
 
       expect(this.rs.scopeChangeRequired).to.equal(true);
@@ -286,12 +292,7 @@ describe("RemoteStorage", function() {
     });
 
     it("clears runtime scope-change state when the backend is cleared", function() {
-      localStorage.setItem(AUTHORIZED_SCOPE_KEY, JSON.stringify({
-        backend: 'remotestorage',
-        scope: 'contacts:rw'
-      }));
-
-      this.rs = new RemoteStorage({ cache: false });
+      this.rs._completeAuthorization('contacts:rw');
       this.rs.access.claim('contacts', 'r');
 
       expect(this.rs.scopeChangeRequired).to.equal(true);
