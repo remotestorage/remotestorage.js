@@ -21,9 +21,12 @@ export class Access {
   scopeModeMap: ScopeModeMap;
   rootPaths: string[];
   storageType: string;
+  rs?: { _checkScopeChange?: () => void; };
 
-  constructor() {
-    this.reset();
+  constructor(rs?: { _checkScopeChange?: () => void; }) {
+    this.rs = rs;
+    // Avoid emitting a spurious "empty scope" check while RS is still booting.
+    this.reset(false);
   }
 
   /**
@@ -74,6 +77,7 @@ export class Access {
     }
     this._adjustRootPaths(scope);
     this.scopeModeMap[scope] = mode;
+    this._notifyChange();
   }
 
   /**
@@ -99,11 +103,13 @@ export class Access {
     for (const name in this.scopeModeMap) {
       savedMap[name] = this.scopeModeMap[name];
     }
-    this.reset();
+    this.reset(false);
     delete savedMap[scope];
     for (const name in savedMap) {
-      this.claim(name as AccessScope, savedMap[name]);
+      this._adjustRootPaths(name as AccessScope);
+      this.scopeModeMap[name] = savedMap[name];
     }
+    this._notifyChange();
   }
 
   /**
@@ -141,9 +147,12 @@ export class Access {
    *
    * @ignore
    */
-  reset(): void {
+  reset(notifyChange = true): void {
     this.rootPaths = [];
     this.scopeModeMap = {};
+    if (notifyChange) {
+      this._notifyChange();
+    }
   }
 
   /**
@@ -191,6 +200,12 @@ export class Access {
    */
   setStorageType (type: string): void {
     this.storageType = type;
+  }
+
+  private _notifyChange (): void {
+    if (this.rs && typeof this.rs._checkScopeChange === 'function') {
+      this.rs._checkScopeChange();
+    }
   }
 
   static _rs_init(): void {

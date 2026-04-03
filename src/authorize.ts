@@ -1,4 +1,5 @@
 import type RemoteStorage from './remotestorage';
+import config from './config';
 import log from './log';
 import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
@@ -10,6 +11,7 @@ interface AuthResult {
   access_token?: string;
   refresh_token?: string;
   code?: string;
+  scope?: string;
   rsDiscovery?: object;
   error?: string;
   remotestorage?: string;
@@ -129,6 +131,12 @@ export class Authorize {
       throw new Error("Cannot authorize due to undefined or empty scope; did you forget to access.claim()?");
     }
 
+    if (typeof remoteStorage._rememberPendingScope === 'function') {
+      // Some providers omit `scope` in the callback/token response, so remember
+      // what we asked for before leaving the page.
+      remoteStorage._rememberPendingScope(options.scope);
+    }
+
     // TODO add a test for this
     // keep track of the discovery data during redirect if we can't save it in localStorage
     if (!localStorageAvailable() && remoteStorage.backend === 'remotestorage') {
@@ -148,11 +156,17 @@ export class Authorize {
 
     // FIXME declare potential `cordova` property on global somehow, so we don't have to
     // use a string accessor here.
-    if (globalContext['cordova']) {
+    if (globalContext['cordova'] &&
+        (Authorize.getLocation().href.startsWith('file:') ||
+         (typeof config.cordovaRedirectUri === 'string' &&
+          options.redirectUri === config.cordovaRedirectUri))) {
       Authorize
         .openWindow(url, options.redirectUri, 'location=yes,clearsessioncache=yes,clearcache=yes')
         .then((authResult: AuthResult) => {
           remoteStorage.remote.configure({ token: authResult.access_token });
+          if (typeof remoteStorage._completeAuthorization === 'function') {
+            remoteStorage._completeAuthorization(authResult.scope || options.scope);
+          }
         });
       return;
     }
@@ -273,6 +287,9 @@ export class Authorize {
       }
 
       if (params.error) {
+        if (typeof remoteStorage._forgetPendingScope === 'function') {
+          remoteStorage._forgetPendingScope();
+        }
         if (params.error === 'access_denied') {
           throw new UnauthorizedError('Authorization failed: access denied', { code: 'access_denied' });
         } else {
@@ -288,6 +305,9 @@ export class Authorize {
 
       if (params.access_token) {
         remoteStorage.remote.configure({ token: params.access_token });
+        if (typeof remoteStorage._completeAuthorization === 'function') {
+          remoteStorage._completeAuthorization(params.scope);
+        }
         authParamsUsed = true;
       }
 
@@ -350,12 +370,18 @@ export class Authorize {
           };
           if (settings.token) {
             remoteStorage.remote.configure(settings);
+            if (typeof remoteStorage._completeAuthorization === 'function') {
+              remoteStorage._completeAuthorization(xhr?.response?.scope);
+            }
           } else {
             remoteStorage._emit('error', new Error(`no access_token in "successful" response: ${xhr.response}`));
           }
           sessionStorage.removeItem('remotestorage:codeVerifier');
           break;
         default:
+          if (typeof remoteStorage._forgetPendingScope === 'function') {
+            remoteStorage._forgetPendingScope();
+          }
           remoteStorage._emit('error', new Error(`${xhr.statusText}: ${xhr.response}`));
       }
     }
