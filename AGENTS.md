@@ -40,7 +40,7 @@
 
 # Languages and Tooling
 
-- TypeScript (target modern ES), Mocha/Chai, Sinon, ESLint (`@typescript-eslint`), Webpack, Typedoc.
+- TypeScript (target `es2015`, module `commonjs`), Mocha/Chai, Sinon, ESLint (`@typescript-eslint`), Webpack, Typedoc.
 - Formatting: esformatter is only used for `src/sync.js` via `npm run format` (legacy). Prefer ESLint autofix for TS files.
 
 # Code Style Guidelines
