@@ -1,0 +1,31 @@
+{
+  "approvals": {
+    "mode": "on_request"
+  },
+  "sandbox": {
+    "filesystem": "workspace_write",
+    "network": "restricted"
+  },
+  "prompts": {
+    "allowlist": {
+      "shell": [
+        "npm run dev",
+        "npm run build:dev",
+        "npm run build:js",
+        "npm run test",
+        "npm run test:mocha",
+        "npm run test:watch",
+        "npm run lint",
+        "npm run lint:quiet",
+        "npm run lint:specs",
+        "npm run lint:specs:quiet",
+        "npm run format",
+        "npm install"
+      ]
+    }
+  },
+  "metadata": {
+    "version": "1.0.3",
+    "notes": "Allow dev/test npm scripts and npm install; other shell commands require on-request approval."
+  }
+}
