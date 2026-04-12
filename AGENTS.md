@@ -181,8 +181,8 @@
 - Config file: `opencode.config.json` at repo root.
 - Approvals: `on_request` — assistant asks before sensitive actions.
 - Sandbox: `workspace_write` filesystem; `restricted` network.
-- Prompts: always prompt for `shell`.
+- Prompts: require an explicit user approval for `shell` commands unless the command is in the shell allowlist below.
 - Allowlist (shell): npm scripts `dev`, `build:dev`, `build:js`, `test`, `test:mocha`, `test:watch`, `lint`, `lint:quiet`, `lint:specs`, `lint:specs:quiet`, `format`; command `npm install`.
-- Behavior: Allowlisted npm scripts run without extra prompt.
+- Behavior: Allowlisted shell commands bypass the extra approval prompt; all other shell commands require explicit user permission before tool use.
 - RESTRICTIONS: For ANY shell command not in the allowlist (including `git`, `gh`, `ls`, `rm`, etc.), you MUST explicitly ask the user for permission in the chat BEFORE using the tool.
 - GIT/GH POLICY: NEVER run `git commit`, `git push`, or `gh` commands without a direct, explicit request from the user.
