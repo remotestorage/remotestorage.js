@@ -7,7 +7,6 @@
     "network": "restricted"
   },
   "prompts": {
-    "always": ["shell"],
     "allowlist": {
       "shell": [
         "npm run dev",
