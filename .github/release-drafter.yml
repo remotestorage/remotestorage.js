@@ -1,0 +1,24 @@
+categories:
+  - title: "Features"
+    labels:
+      - "feature"
+  - title: "Improvements"
+    labels:
+      - "improvement"
+  - title: "Bug Fixes"
+    labels:
+      - "bug"
+  - title: "Dev Environment & CI"
+    label: "dev environment"
+version-resolver:
+  minor:
+    labels:
+      - "feature"
+  patch:
+    labels:
+      - "improvement"
+      - "bug"
+      - "dev environment"
+  default: patch
+template: |
+  $CHANGES
