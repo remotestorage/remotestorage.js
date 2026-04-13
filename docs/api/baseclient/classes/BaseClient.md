@@ -723,11 +723,8 @@ A new `BaseClient` operating on a subpath of the current base path
 
 Store raw data at a given path.
 
-For binary data, always use an `ArrayBuffer` or `ArrayBufferView`
-(e.g. `Uint8Array`) — not a binary string. String bodies are only
-reliably synced on environments that support `structuredClone`; on
-older browsers without it, binary strings will lose fidelity during
-the internal deep-clone step.
+For binary data, use an `ArrayBuffer` or `ArrayBufferView`
+(e.g. `Uint8Array`), not a binary string.
 
 #### Parameters
 
