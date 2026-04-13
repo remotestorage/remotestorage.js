@@ -466,6 +466,12 @@ export class BaseClient {
   /**
    * Store raw data at a given path.
    *
+   * For binary data, always use an `ArrayBuffer` or `ArrayBufferView`
+   * (e.g. `Uint8Array`) — not a binary string. String bodies are only
+   * reliably synced on environments that support `structuredClone`; on
+   * older browsers without it, binary strings will lose fidelity during
+   * the internal deep-clone step.
+   *
    * @param contentType - Content type (MIME media type) of the data being stored
    * @param path        - Path relative to the module root
    * @param body        - Raw data to store

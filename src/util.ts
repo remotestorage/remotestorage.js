@@ -152,8 +152,10 @@ export const equal = (a: any, b: any, seen = []): boolean => {
 export const deepClone = (obj: any): any => {
   if (obj === undefined) {
     return undefined;
-  } else {
+  } else if (typeof structuredClone === 'function') {
     return structuredClone(obj);
+  } else {
+    return JSON.parse(JSON.stringify(obj));
   }
 };
 
