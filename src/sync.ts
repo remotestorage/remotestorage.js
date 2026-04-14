@@ -229,7 +229,7 @@ export class Sync {
     return ((typeof(rev) !== 'object') ||
             (Array.isArray(rev)) ||
             (rev.revision && typeof(rev.revision) !== 'string') ||
-            (rev.body && typeof(rev.body) !== 'string' && typeof(rev.body) !== 'object') ||
+            (rev.body && typeof(rev.body) !== 'string' && typeof(rev.body) !== 'object')  ||
             (rev.contentType && typeof(rev.contentType) !== 'string') ||
             (rev.contentLength && typeof(rev.contentLength) !== 'number') ||
             (rev.timestamp && typeof(rev.timestamp) !== 'number') ||
@@ -320,7 +320,7 @@ export class Sync {
   }
 
   needsRemotePut (node: RSNode): boolean {
-    return node.local && typeof(node.local.body) === "string";
+    return !!(node.local && node.local.body !== undefined && node.local.body !== false);
   }
 
   needsRemoteDelete (node: RSNode): boolean {
@@ -425,7 +425,7 @@ export class Sync {
           return taskFor('put', path,
             this.rs.remote.put(
               path,
-              node.push.body as string, // TODO string | ArrayBuffer?
+              node.push.body as XMLHttpRequestBodyInit,
               node.push.contentType,
               options
             )

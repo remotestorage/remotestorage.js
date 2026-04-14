@@ -187,7 +187,7 @@ abstract class CachingLayer {
     }
   }
 
-  async put (path: string, body: string, contentType: string): Promise<QueuedRequestResponse> {
+  async put (path: string, body: string | ArrayBuffer | ArrayBufferView, contentType: string): Promise<QueuedRequestResponse> {
     const paths = pathsFromRoot(path);
 
     function _processNodes(nodePaths: string[], nodes: RSNodes): RSNodes {
