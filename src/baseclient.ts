@@ -466,12 +466,10 @@ export class BaseClient {
   /**
    * Store raw data at a given path.
    *
-   * For binary data, use an `ArrayBuffer` or `ArrayBufferView`
-   * (e.g. `Uint8Array`), not a binary string.
-   *
    * @param contentType - Content type (MIME media type) of the data being stored
    * @param path        - Path relative to the module root
-   * @param body        - Raw data to store
+   * @param body        - Raw data to store. For binary data, use an `ArrayBuffer`
+   *                      or `ArrayBufferView` (e.g. `Uint8Array`), not a binary string.
    *
    * @returns A promise for the created/updated revision (ETag)
    *

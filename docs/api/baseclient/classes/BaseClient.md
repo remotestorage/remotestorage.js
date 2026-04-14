@@ -723,9 +723,6 @@ A new `BaseClient` operating on a subpath of the current base path
 
 Store raw data at a given path.
 
-For binary data, use an `ArrayBuffer` or `ArrayBufferView`
-(e.g. `Uint8Array`), not a binary string.
-
 #### Parameters
 
 • **contentType**: `string`
