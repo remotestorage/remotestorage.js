@@ -13,16 +13,9 @@ account.
 
 ## Sync after writes
 
-When caching is enabled, local writes are automatically queued for sync to the
-remote server. You do not need to call `startSync()` after calling
-`storeObject()`, `storeFile()`, or `remove()` — the library handles pushing
-local changes during the next sync cycle.
-
-::: tip
-`startSync()` is for manually triggering a check for _remote_ changes (e.g. a
-user-facing "sync now" button, or when returning to a tab after it was in the
-background). It is not needed to push local writes.
-:::
+When caching is enabled, `storeObject()`, `storeFile()`, and `remove()` save
+changes locally first and synchronize them with the remote server
+automatically. You usually do not need any extra sync call after writing data.
 
 ## Using BaseClient
 
