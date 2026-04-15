@@ -258,7 +258,7 @@ export class Authorize {
     if (typeof location === 'string') {
       document.location.href = location;
     } else if (typeof location === 'object') {
-      document.location = location;
+      (document as any).location = location;
     } else {
       throw "Invalid location " + location;
     }
