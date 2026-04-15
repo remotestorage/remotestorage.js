@@ -11,6 +11,19 @@ connecting storage if it fits your use case. Any data written locally is
 automatically synced to the remote storage server when connecting an
 account.
 
+## Sync after writes
+
+When caching is enabled, local writes are automatically queued for sync to the
+remote server. You do not need to call `startSync()` after calling
+`storeObject()`, `storeFile()`, or `remove()` — the library handles pushing
+local changes during the next sync cycle.
+
+::: tip
+`startSync()` is for manually triggering a check for _remote_ changes (e.g. a
+user-facing "sync now" button, or when returning to a tab after it was in the
+background). It is not needed to push local writes.
+:::
+
 ## Using BaseClient
 
 A [BaseClient][2] instance is the main endpoint for interacting with
