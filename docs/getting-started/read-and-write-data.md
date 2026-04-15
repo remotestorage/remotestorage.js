@@ -64,10 +64,12 @@ client.storeObject('my-custom-type', path, { foo: 1, bar: 2 })
   .catch((err) => console.log(err));
 ```
 
+::: tip
 When caching is enabled, `storeFile()`, `storeObject()`, and `remove()` save
 changes locally first and synchronize them with the remote server
 automatically. In most apps, you do not need to trigger anything extra after
 writing data.
+:::
 
 [1]: ../api/remotestorage/classes/RemoteStorage
 [2]: ../api/baseclient/classes/BaseClient
