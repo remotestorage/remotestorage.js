@@ -3,6 +3,7 @@
 .#*
 *.swp
 *.log
+.agents
 /build
 /gitno
 cache
@@ -10,3 +11,4 @@ node_modules
 tags
 docs/api/index.md
 docs/.vitepress/dist/
+skills-lock.json
