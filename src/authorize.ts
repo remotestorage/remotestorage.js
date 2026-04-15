@@ -361,7 +361,7 @@ export class Authorize {
       );
 
       switch (xhr.status) {
-        case 200:
+        case 200: {
           log(`[Authorize] access token good for ${xhr?.response?.expires_in} seconds`);
           const settings = {
             token: xhr?.response?.access_token,
@@ -378,6 +378,7 @@ export class Authorize {
           }
           sessionStorage.removeItem('remotestorage:codeVerifier');
           break;
+        }
         default:
           if (typeof remoteStorage._forgetPendingScope === 'function') {
             remoteStorage._forgetPendingScope();
