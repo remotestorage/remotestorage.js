@@ -31,13 +31,7 @@ export default tseslint.config(
         Int32Array: true,
         Uint32Array: true,
         Float32Array: true,
-        Float64Array: true,
-        describe: true,
-        before: true,
-        beforeEach: true,
-        after: true,
-        afterEach: true,
-        it: true
+        Float64Array: true
       },
       parserOptions: {
         ecmaVersion: 2020
