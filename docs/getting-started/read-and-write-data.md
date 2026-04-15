@@ -11,12 +11,6 @@ connecting storage if it fits your use case. Any data written locally is
 automatically synced to the remote storage server when connecting an
 account.
 
-## Sync after writes
-
-When caching is enabled, `storeObject()`, `storeFile()`, and `remove()` save
-changes locally first and synchronize them with the remote server
-automatically. You usually do not need any extra sync call after writing data.
-
 ## Using BaseClient
 
 A [BaseClient][2] instance is the main endpoint for interacting with
@@ -69,6 +63,11 @@ client.storeObject('my-custom-type', path, { foo: 1, bar: 2 })
   .then(() => console.log('object saved'))
   .catch((err) => console.log(err));
 ```
+
+When caching is enabled, `storeFile()`, `storeObject()`, and `remove()` save
+changes locally first and synchronize them with the remote server
+automatically. In most apps, you do not need to trigger anything extra after
+writing data.
 
 [1]: ../api/remotestorage/classes/RemoteStorage
 [2]: ../api/baseclient/classes/BaseClient
