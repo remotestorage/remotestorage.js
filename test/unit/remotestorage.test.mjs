@@ -1,5 +1,6 @@
 import 'mocha';
-import chai, { expect } from 'chai';
+import * as chai from "chai";
+import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
