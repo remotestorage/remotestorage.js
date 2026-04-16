@@ -912,7 +912,7 @@ export class Sync {
       status.successful = (series === 2 ||
                            statusCode === 304 ||
                            statusCode === 412 ||
-                           statusCode === 404),
+                           statusCode === 404);
       status.conflict   = (statusCode === 412);
       status.unAuth     = ((statusCode === 401 && this.rs.remote.token !== Authorize.IMPLIED_FAKE_TOKEN) ||
                            statusCode === 402 ||

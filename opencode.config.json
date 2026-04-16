@@ -20,7 +20,8 @@
         "npm run lint:specs",
         "npm run lint:specs:quiet",
         "npm run format",
-        "npm install"
+        "npm install",
+        "npm outdated"
       ]
     }
   },
