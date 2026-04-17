@@ -20,7 +20,7 @@ import LocalStorage from './localstorage';
 import { EventHandling, EventHandler } from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
-import Discover from './discover';
+import DiscoverModule from './discover';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import Features from './features';
@@ -530,7 +530,8 @@ export class RemoteStorage {
 
   static SyncError = SyncError;
   static Unauthorized = UnauthorizedError;
-  static DiscoveryError = Discover.DiscoveryError;
+  static Discover = DiscoverModule;
+  static DiscoveryError = DiscoverModule.DiscoveryError;
   static util = util;
 
   /**
@@ -646,7 +647,7 @@ export class RemoteStorage {
     });
     this._emit('connecting');
 
-    Discover(userAddress).then((info: StorageInfo): void => {
+    RemoteStorage.Discover(userAddress).then((info: StorageInfo): void => {
       this._emit('authing');
       info.userAddress = userAddress;
       this.remote.configure(info);

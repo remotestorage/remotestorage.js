@@ -79,13 +79,13 @@ const jrdJimbo = {
 
 describe('Webfinger discovery', () => {
   before(() => {
-    config.requestTimeout = 20;
-    config.discoveryTimeout = 20;
+    config.requestTimeout = 500;
+    config.discoveryTimeout = 500;
   });
 
   after(() => {
     localStorage.clear();
-    config.requestTimout = 30000;
+    config.requestTimeout = 30000;
     config.discoveryTimeout = 5000;
   });
 
