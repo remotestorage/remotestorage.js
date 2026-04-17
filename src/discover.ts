@@ -30,54 +30,58 @@ let cachedInfo = {};
  **/
 
 const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
-  return new Promise((resolve, reject) => {
+  if (userAddress in cachedInfo) {
+    return Promise.resolve(cachedInfo[userAddress]);
+  }
 
-    if (userAddress in cachedInfo) {
-      return resolve(cachedInfo[userAddress]);
+  const webFinger = new WebFinger({
+    tls_only: false,
+    uri_fallback: true,
+    request_timeout: config.discoveryTimeout
+  });
+
+  let timer;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error('timed out'));
+    }, config.discoveryTimeout);
+  });
+
+  return Promise.race([
+    webFinger.lookup(userAddress),
+    timeoutPromise
+  ]).then(response => {
+    clearTimeout(timer);
+
+    if ((typeof response.idx.links.remotestorage !== 'object') ||
+        (typeof response.idx.links.remotestorage.length !== 'number') ||
+        (response.idx.links.remotestorage.length <= 0)) {
+      log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.object));
+      throw new Error("WebFinger record for " + userAddress + " does not have remotestorage defined in the links section.");
     }
 
-    const webFinger = new WebFinger({
-      tls_only: false,
-      uri_fallback: true,
-      request_timeout: config.discoveryTimeout
-    });
+    const rs = response.idx.links.remotestorage[0];
+    const properties = rs.properties || {};
+    const authURL    = properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
+                       properties['auth-endpoint'];
+    const storageApi = properties['http://remotestorage.io/spec/version'] ||
+                       rs.type;
 
-    const timer = setTimeout(() => {
-      return reject(new Error('timed out'));
-    }, config.discoveryTimeout);
+    cachedInfo[userAddress] = {
+      href: rs.href,
+      storageApi,
+      authURL,
+      properties
+    };
 
-    webFinger.lookup(userAddress).then(response => {
-      clearTimeout(timer);
-      if ((typeof response.idx.links.remotestorage !== 'object') ||
-          (typeof response.idx.links.remotestorage.length !== 'number') ||
-          (response.idx.links.remotestorage.length <= 0)) {
-        log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.object));
-        return reject("WebFinger record for " + userAddress + " does not have remotestorage defined in the links section.");
-      }
+    if (hasLocalStorage) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ cache: cachedInfo }));
+    }
 
-      const rs = response.idx.links.remotestorage[0];
-      const properties = rs.properties || {};
-      const authURL    = properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
-                         properties['auth-endpoint'];
-      const storageApi = properties['http://remotestorage.io/spec/version'] ||
-                         rs.type;
-
-      cachedInfo[userAddress] = {
-        href: rs.href,
-        storageApi,
-        authURL,
-        properties
-      };
-
-      if (hasLocalStorage) {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify({ cache: cachedInfo }));
-      }
-
-      return resolve(cachedInfo[userAddress]);
-    }).catch(err => {
-      clearTimeout(timer);
-      return reject(err);
-    });
+    return cachedInfo[userAddress];
+  }).catch(err => {
+    clearTimeout(timer);
+    throw err;
   });
 };
 
