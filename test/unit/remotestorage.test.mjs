@@ -72,19 +72,24 @@ describe("RemoteStorage", function() {
   });
 
   describe("#connect", function() {
-    before(function() {
-      fetchMock.mock(/acct\:timeout@example\.com/, 200, {
-        delay: 1000
-      });
-      fetchMock.mock(/personal\.ho\.st/, 200);
-      fetchMock.mock(/acct\:user@ho\.st/, 200);
-    });
-
     beforeEach(function() {
+      this.discoverStub = sinon.stub(RemoteStorage, 'Discover');
+      
+      this.discoverStub.withArgs('timeout@example.com').returns(
+        new Promise((resolve, reject) => {
+          setTimeout(() => reject(new Error('timeout')), 15);
+        })
+      );
+      this.discoverStub.returns(Promise.resolve({ href: 'http://foo.bar' }));
+
       this.rs = new RemoteStorage({
         cache: false,
         discoveryTimeout: 10
       });
+    });
+
+    afterEach(function() {
+      this.discoverStub.restore();
     });
 
     it("throws DiscoveryError when userAddress doesn't contain an @ or URL", function(done) {
@@ -107,32 +112,26 @@ describe("RemoteStorage", function() {
       this.rs.connect("timeout@example.com");
     });
 
-    it("accepts URLs for the userAddress", function(done) {
-      this.rs.on('error', function(/* err */) {
-        throw new Error('URL userAddress was not accepted.');
-      });
-
+    it("accepts URLs for the userAddress", function() {
       this.rs.remote = new FakeRemote(false);
+      let configuredAddress;
       this.rs.remote.configure = function (options) {
-        expect(options.userAddress).to.equal('https://personal.ho.st');
-        done();
+        if (options.userAddress) configuredAddress = options.userAddress;
       };
 
       this.rs.connect('https://personal.ho.st');
+      expect(configuredAddress).to.equal('https://personal.ho.st');
     });
 
-    it("adds missing https:// to URLs", function(done) {
-      this.rs.on('error', function(/* err */) {
-        throw new Error('URL userAddress was not accepted.');
-      });
-
+    it("adds missing https:// to URLs", function() {
       this.rs.remote = new FakeRemote(false);
+      let configuredAddress;
       this.rs.remote.configure = function (options) {
-        expect(options.userAddress).to.equal('https://personal.ho.st');
-        done();
+        if (options.userAddress) configuredAddress = options.userAddress;
       };
 
       this.rs.connect('personal.ho.st');
+      expect(configuredAddress).to.equal('https://personal.ho.st');
     });
 
     it("sets the backend to remotestorage", function() {

@@ -42,32 +42,31 @@ const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
       request_timeout: config.discoveryTimeout
     });
 
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       return reject(new Error('timed out'));
     }, config.discoveryTimeout);
 
-    return webFinger.lookup(userAddress, function (err, response) {
-      if (err) {
-        return reject(err);
-      } else if ((typeof response.idx.links.remotestorage !== 'object') ||
-                 (typeof response.idx.links.remotestorage.length !== 'number') ||
-                 (response.idx.links.remotestorage.length <= 0)) {
-        log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.json));
+    webFinger.lookup(userAddress).then(response => {
+      clearTimeout(timer);
+      if ((typeof response.idx.links.remotestorage !== 'object') ||
+          (typeof response.idx.links.remotestorage.length !== 'number') ||
+          (response.idx.links.remotestorage.length <= 0)) {
+        log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.object));
         return reject("WebFinger record for " + userAddress + " does not have remotestorage defined in the links section.");
       }
 
       const rs = response.idx.links.remotestorage[0];
-      const authURL = rs.properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
-                    rs.properties['auth-endpoint'];
-      const storageApi = rs.properties['http://remotestorage.io/spec/version'] ||
-                       rs.type;
+      const properties = rs.properties || {};
+      const authURL    = properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
+                         properties['auth-endpoint'];
+      const storageApi = properties['http://remotestorage.io/spec/version'] ||
+                         rs.type;
 
-      // cache fetched data
       cachedInfo[userAddress] = {
         href: rs.href,
-        storageApi: storageApi,
-        authURL: authURL,
-        properties: rs.properties
+        storageApi,
+        authURL,
+        properties
       };
 
       if (hasLocalStorage) {
@@ -75,6 +74,9 @@ const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
       }
 
       return resolve(cachedInfo[userAddress]);
+    }).catch(err => {
+      clearTimeout(timer);
+      return reject(err);
     });
   });
 };
