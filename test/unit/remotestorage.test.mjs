@@ -86,6 +86,9 @@ describe("RemoteStorage", function() {
         cache: false,
         discoveryTimeout: 10
       });
+
+      sinon.stub(this.rs, 'authorize');
+      sinon.stub(this.rs, 'impliedauth');
     });
 
     afterEach(function() {
