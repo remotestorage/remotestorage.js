@@ -51,6 +51,10 @@ describe('Dropbox backend', () => {
     rs = new RemoteStorage();
     rs.setApiKeys({dropbox: CLIENT_ID});   // an app would do this
 
+    // Prevent the background sync engine and fetchDelta from starting on 'connected'
+    rs.stopSync();
+    rs._handlers['connected'] = [];
+
     dropbox = rs.dropbox;
     dropbox.configure({
       userAddress: USER_ADDRESS,
