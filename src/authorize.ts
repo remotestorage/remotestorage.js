@@ -52,7 +52,6 @@ function hasAuthCallbackParams (params: AuthResult): boolean {
     typeof params.code === 'string' ||
     typeof params.error === 'string' ||
     typeof params.remotestorage === 'string' ||
-    typeof params.state === 'string' ||
     typeof params.rsDiscovery === 'object';
 }
 
