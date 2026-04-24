@@ -47,6 +47,15 @@ export interface AuthorizeOptions {
 // This is set in _rs_init and needed for removal in _rs_cleanup
 let onFeaturesLoaded: EventHandler;
 
+function hasAuthCallbackParams (params: AuthResult): boolean {
+  return typeof params.access_token === 'string' ||
+    typeof params.code === 'string' ||
+    typeof params.error === 'string' ||
+    typeof params.remotestorage === 'string' ||
+    typeof params.state === 'string' ||
+    typeof params.rsDiscovery === 'object';
+}
+
 function extractParams (url?: string): AuthResult {
   // FF already decodes the URL fragment in document.location.hash, so use this instead:
   // eslint-disable-next-line
@@ -270,9 +279,10 @@ export class Authorize {
 
   static _rs_init = function (remoteStorage: RemoteStorage): void {
     const params = extractParams();
+    const hasCallbackParams = hasAuthCallbackParams(params);
     let location: Location;
 
-    if (params) {
+    if (hasCallbackParams) {
       location = Authorize.getLocation();
       location.hash = '';
     }
@@ -281,7 +291,7 @@ export class Authorize {
     onFeaturesLoaded = function(): void {
       let authParamsUsed = false;
 
-      if (!params) {
+      if (!hasCallbackParams) {
         remoteStorage.remote.stopWaitingForToken();
         return;
       }

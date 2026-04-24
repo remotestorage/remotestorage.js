@@ -150,9 +150,18 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
       },
 
       {
-        desc: "_rs_init removes params from the fragment",
+        desc: "_rs_init preserves fragments that are not OAuth callbacks",
         run: function(env, test) {
           document.location.href = 'http://foo/bar#foo=bar';
+          env.Authorize._rs_init(new RemoteStorage());
+          test.assert(env.Authorize.getLocation().href, 'http://foo/bar#foo=bar');
+        }
+      },
+
+      {
+        desc: "_rs_init removes OAuth callback params from the fragment",
+        run: function(env, test) {
+          document.location.href = 'http://foo/bar#access_token=my-token&state=foo';
           env.Authorize._rs_init(new RemoteStorage());
           test.assert(env.Authorize.getLocation().hash, '');
         }

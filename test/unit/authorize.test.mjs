@@ -44,6 +44,21 @@ class MockRemote extends RemoteBase {
   }
 }
 
+function createStorage(remote) {
+  return {
+    _handlers: {
+      'features-loaded': []
+    },
+    remote,
+    on(eventName, handler) {
+      this._handlers[eventName].push(handler);
+    },
+    removeEventListener(eventName, handler) {
+      this._handlers[eventName] = this._handlers[eventName].filter((item) => item !== handler);
+    }
+  };
+}
+
 locationFactory('https://foo/bar');
 globalThis.localStorageAvailable = localStorageAvailable;
 globalThis["sessionStorage"] = sessionStorage;
@@ -111,6 +126,53 @@ describe("Authorize", () => {
   });
 
   describe("'features-loaded' handler", () => {
+    it("preserves hash routes that are not OAuth callbacks", () => {
+      const mockRemote = new MockRemote({});
+      const stopWaitingForTokenSpy = sinon.spy();
+      mockRemote.stopWaitingForToken = stopWaitingForTokenSpy;
+      const rs = createStorage(mockRemote);
+      rs.remote = mockRemote;
+      document.location.href = 'https://example.com/#/todos';
+
+      Authorize._rs_init(rs);
+
+      expect(document.location.hash).to.equal('#/todos');
+
+      rs._handlers['features-loaded'][0]();
+
+      expect(stopWaitingForTokenSpy.calledOnce).to.equal(true);
+      expect(document.location.hash).to.equal('#/todos');
+    });
+
+    it("clears OAuth callback params from the hash during init", () => {
+      const mockRemote = new MockRemote({});
+      const rs = createStorage(mockRemote);
+      rs.remote = mockRemote;
+      document.location.href = 'https://example.com/#access_token=foo&state=bar';
+
+      Authorize._rs_init(rs);
+
+      expect(document.location.hash).to.equal('');
+    });
+
+    it("ignores non-auth hash params that happen to contain an equals sign", () => {
+      const mockRemote = new MockRemote({});
+      const stopWaitingForTokenSpy = sinon.spy();
+      mockRemote.stopWaitingForToken = stopWaitingForTokenSpy;
+      const rs = createStorage(mockRemote);
+      rs.remote = mockRemote;
+      document.location.href = 'https://example.com/#foo=bar';
+
+      Authorize._rs_init(rs);
+
+      expect(document.location.hash).to.equal('#foo=bar');
+
+      rs._handlers['features-loaded'][0]();
+
+      expect(stopWaitingForTokenSpy.calledOnce).to.equal(true);
+      expect(document.location.hash).to.equal('#foo=bar');
+    });
+
     it("when it sees a code but no code verifier, doesn't call remote.configure()", async () => {
       const rs = new RemoteStorage();
       const mockRemote = new MockRemote(rs);
