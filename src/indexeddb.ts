@@ -329,14 +329,15 @@ class IndexedDB extends CachingLayer {
 
         log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
 
-        if (event.oldVersion !== 1) {
+        if (!db.objectStoreNames.contains('nodes')) {
           log("[IndexedDB] Creating object store: nodes");
           db.createObjectStore('nodes', {keyPath: 'path'});
         }
 
-        log("[IndexedDB] Creating object store: changes");
-
-        db.createObjectStore('changes', {keyPath: 'path'});
+        if (!db.objectStoreNames.contains('changes')) {
+          log("[IndexedDB] Creating object store: changes");
+          db.createObjectStore('changes', {keyPath: 'path'});
+        }
       };
 
       req.onsuccess = function () {
@@ -346,6 +347,7 @@ class IndexedDB extends CachingLayer {
         const db = req.result;
         if (!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
           log("[IndexedDB] Missing object store. Resetting the database.");
+          db.close();
           IndexedDB.clean(name, function () {
             IndexedDB.open(name, callback);
           });
@@ -371,6 +373,10 @@ class IndexedDB extends CachingLayer {
    */
   static clean (databaseName: string, callback: () => void) {
     const req = indexedDB.deleteDatabase(databaseName);
+
+    req.onblocked = function (evt) {
+      console.warn(`Deleting IndexedDB database "${databaseName}" is blocked by another open connection`, evt);
+    };
 
     req.onsuccess = function () {
       log(`[IndexedDB] Deleted database "${databaseName}"`);
