@@ -1208,6 +1208,7 @@ export class Sync {
     remoteStorage.stopSync();
     remoteStorage.removeEventListener('ready', setupSync);
     remoteStorage.removeEventListener('connected', syncOnConnect);
+    remoteStorage.caching.resetActivationHandler();
 
     remoteStorage.sync = undefined;
     delete remoteStorage.sync;

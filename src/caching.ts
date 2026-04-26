@@ -141,6 +141,16 @@ export class Caching {
   }
 
   /**
+   * Reset activation state for sync lifecycle cleanup.
+   *
+   * @internal
+   */
+  resetActivationHandler (): void {
+    this.activateHandler = undefined;
+    this.pendingActivations = [];
+  }
+
+  /**
    * Retrieve caching setting for a given path, or its next parent
    * with a caching strategy set.
    *
