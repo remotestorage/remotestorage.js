@@ -213,8 +213,33 @@ export const getJSONFromLocalStorage = (key: string): { [key: string]: any } => 
  * @returns {boolean}
  */
 export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType: string): boolean => {
+  // The `charset=binary` branch is kept for backward compatibility: files uploaded
+  // with a release <=2.0.0-beta.9 carry that non-standard suffix in their stored
+  // Content-Type. New uploads no longer emit it; the control-char heuristic below
+  // handles them.
   // eslint-disable-next-line no-control-regex
   return !!((mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x08\x0E-\x1F\uFFFD]/.test(content as string));
+};
+
+/**
+ * Strip the legacy `; charset=binary` parameter from a Content-Type.
+ *
+ * Releases <=2.0.0-beta.9 appended this non-standard parameter to all binary
+ * PUTs, so files written back then still carry it in their stored Content-Type
+ * forever. We sanitize on read so callers never see it: some browsers refuse
+ * to render an `<img>` whose Blob type carries the suffix.
+ *
+ * Only the `charset=binary` parameter is removed; legitimate parameters like
+ * `charset=UTF-8` on `text/html` are preserved.
+ *
+ * @param {string} mimeType - The raw Content-Type as returned by the server.
+ * @returns {string} The Content-Type with any `; charset=binary` removed.
+ */
+export const stripLegacyCharsetBinary = (mimeType: string | null): string | null => {
+  if (!mimeType) {
+    return mimeType;
+  }
+  return mimeType.replace(/\s*;\s*charset=binary\b/i, '');
 };
 
 /**

@@ -321,17 +321,27 @@ describe('WireClient', () => {
       expect(res.body).to.equal('{"foo": "bar"}');
     });
 
-    it('returns raw response body when charset set to "binary"', async () => {
+    it('returns raw response body and strips legacy charset=binary suffix from contentType', async () => {
       fetchMock.mock(`${BASE_URI}/foo/binary`, {
         status: 200, body: 'something',
         headers: { 'Content-Type': 'application/octet-stream; charset=binary' }
       });
       const res = await connectedClient.get('/foo/binary');
       expect(res.statusCode).to.equal(200);
-      expect(res.contentType).to.equal('application/octet-stream; charset=binary');
+      expect(res.contentType).to.equal('application/octet-stream');
       expect(res.body).to.be.a('ArrayBuffer');
       const text = new TextDecoder('utf-8').decode(new Uint8Array(res.body));
       expect(text).to.equal('something');
+    });
+
+    it('preserves legitimate charset parameters in contentType', async () => {
+      fetchMock.mock(`${BASE_URI}/foo/text`, {
+        status: 200, body: 'hello',
+        headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+      });
+      const res = await connectedClient.get('/foo/text');
+      expect(res.statusCode).to.equal(200);
+      expect(res.contentType).to.equal('text/html; charset=UTF-8');
     });
 
     it('returns text when content type missing and body only contains printable characters', async () => {
@@ -567,13 +577,13 @@ describe('WireClient', () => {
       expect(call[1].headers).to.have.property('Content-Type').which.equals('text/html; charset=UTF-8');
     });
 
-    it('adds binary charset for ArrayBuffer PUT', async () => {
+    it('does not add charset for ArrayBuffer PUT', async () => {
       await connectedClient.put('/foo/binary', new ArrayBuffer(3), 'image/jpeg');
       const call = fetchMock.calls('putBinary')[0];
-      expect(call[1].headers).to.have.property('Content-Type').which.equals('image/jpeg; charset=binary');
+      expect(call[1].headers).to.have.property('Content-Type').which.equals('image/jpeg');
     });
 
-    it('does not add second binary charset for ArrayBuffer PUT', async () => {
+    it('preserves caller-supplied charset for ArrayBuffer PUT', async () => {
       await connectedClient.put('/foo/binary', new ArrayBuffer(3), 'image/jpeg; charset=custom');
       const call = fetchMock.calls('putBinary')[0];
       expect(call[1].headers).to.have.property('Content-Type').which.equals('image/jpeg; charset=custom');
