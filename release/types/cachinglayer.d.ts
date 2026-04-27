@@ -30,7 +30,7 @@ declare abstract class CachingLayer {
     broadcastChannel: BroadcastChannel;
     constructor();
     get(path: string, maxAge: number, queueGetRequest: (path2: string) => Promise<QueuedRequestResponse>): Promise<QueuedRequestResponse>;
-    put(path: string, body: string, contentType: string): Promise<QueuedRequestResponse>;
+    put(path: string, body: string | ArrayBuffer | ArrayBufferView, contentType: string): Promise<QueuedRequestResponse>;
     delete(path: string, remoteConnected: boolean): Promise<QueuedRequestResponse>;
     flush(path: string): Promise<void>;
     /**

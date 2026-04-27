@@ -11,8 +11,14 @@ import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import { Remote } from "./remote";
 import type { AuthorizeOptions } from './authorize';
+import type { StorageInfo } from './interfaces/storage_info';
 import type { Sync } from './sync';
 import * as util from './util';
+interface ScopeChangeEvent {
+    authorizedScope: string;
+    requestedScope: string;
+    reauthorize: () => void;
+}
 /**
  * Represents a data module
  *
@@ -158,6 +164,13 @@ declare enum ApiKeyType {
  *
  * Emitted before redirecting to the OAuth server
  *
+ * ### `scope-change-required`
+ *
+ * Emitted when the currently claimed access scopes differ from the last
+ * authorized scope stored in localStorage. The callback receives an object
+ * containing the previously authorized scope, the currently requested scope,
+ * and a `reauthorize()` helper.
+ *
  * ### `wire-busy`
  *
  * Emitted when a network request starts
@@ -293,7 +306,7 @@ export declare class RemoteStorage {
     delete: Function;
     /**
      */
-    backend: 'remotestorage' | 'dropbox' | 'googledrive';
+    backend?: 'remotestorage' | 'dropbox' | 'googledrive';
     /**
      * Depending on the chosen backend, this is either an instance of `WireClient`,
      * `Dropbox` or `GoogleDrive`.
@@ -326,13 +339,24 @@ export declare class RemoteStorage {
      * @internal
      */
     fireInitial: Function;
+    _authorizedScope: string | null;
+    _scopeChangeRequired: boolean;
+    _scopeChangeEvent: ScopeChangeEvent | null;
     constructor(cfg?: object);
     /**
      * Indicating if remoteStorage is currently connected.
      */
     get connected(): boolean;
+    get scopeChangeRequired(): boolean;
     static SyncError: typeof SyncError;
     static Unauthorized: typeof UnauthorizedError;
+    static Discover: {
+        (userAddress: string): Promise<StorageInfo>;
+        DiscoveryError(message: any): void;
+        _rs_init(): void;
+        _rs_supported(): boolean;
+        _rs_cleanup(): void;
+    };
     static DiscoveryError: (message: any) => void;
     static util: typeof util;
     /**
@@ -390,6 +414,10 @@ export declare class RemoteStorage {
      */
     reconnect(): void;
     /**
+     * Alias for {@link reconnect}, intended for permission refresh flows.
+     */
+    reauthorize(): void;
+    /**
      * "Disconnect" from remote server to terminate current session.
      *
      * This method clears all stored settings and deletes the entire local
@@ -399,7 +427,15 @@ export declare class RemoteStorage {
     /**
      * @internal
      */
-    setBackend(backendType: 'remotestorage' | 'dropbox' | 'googledrive'): void;
+    setBackend(backendType?: 'remotestorage' | 'dropbox' | 'googledrive'): void;
+    _rememberPendingScope(scope?: string): void;
+    _forgetPendingScope(): void;
+    _rememberAuthorizedScope(scope?: string): void;
+    _completeAuthorization(scope?: string): void;
+    _checkScopeChange(): void;
+    private _loadAuthorizedScope;
+    private _loadPendingScope;
+    private _buildScopeChangeEvent;
     /**
      * Add a `change` event handler for the given path. Whenever a change
      * happens (as determined by the local backend, such as e.g.

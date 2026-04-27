@@ -1,5 +1,7 @@
 # Class: Caching
 
+Defined in: [caching.ts:45](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/caching.ts#L45)
+
 The caching class gets initialized as `remoteStorage.caching`, unless the
 [RemoteStorage](../../remotestorage/classes/RemoteStorage.md) instance is created with
 the option `cache: false`, disabling caching entirely.
@@ -7,7 +9,7 @@ the option `cache: false`, disabling caching entirely.
 In case your app hasn't explictly configured caching, the default setting is to
 cache any documents that have been either created or requested since your app
 loaded. For offline-capable apps, it usually makes sense to enable full,
-automatic caching of all documents, which is what [enable](Caching.md#enable) will do.
+automatic caching of all documents, which is what [enable](#enable) will do.
 
 Enabling full caching has several benefits:
 
@@ -42,12 +44,16 @@ For each subtree, you can set the caching strategy to ``ALL``, ``SEEN``
 
 > **checkPath**(`path`): `string`
 
+Defined in: [caching.ts:168](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/caching.ts#L168)
+
 Retrieve caching setting for a given path, or its next parent
 with a caching strategy set.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Path to retrieve setting for
 
@@ -66,15 +72,13 @@ remoteStorage.caching.checkPath('documents/').then(strategy => {
 });
 ```
 
-#### Defined in
-
-[caching.ts:158](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L158)
-
 ***
 
 ### disable()
 
 > **disable**(`path`): `void`
+
+Defined in: [caching.ts:125](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/caching.ts#L125)
 
 Disable caching for a given path.
 
@@ -83,7 +87,9 @@ successfully pushed to the remote).
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Path to disable caching for
 
@@ -97,15 +103,13 @@ Path to disable caching for
 remoteStorage.caching.disable('/bookmarks/');
 ```
 
-#### Defined in
-
-[caching.ts:125](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L125)
-
 ***
 
 ### enable()
 
 > **enable**(`path`): `void`
+
+Defined in: [caching.ts:108](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/caching.ts#L108)
 
 Enable caching for a given path.
 
@@ -113,7 +117,9 @@ Uses caching strategy ``ALL``.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Path to enable caching for
 
@@ -127,21 +133,21 @@ Path to enable caching for
 remoteStorage.caching.enable('/bookmarks/');
 ```
 
-#### Defined in
-
-[caching.ts:108](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L108)
-
 ***
 
 ### onActivate()
 
 > **onActivate**(`cb`): `void`
 
+Defined in: [caching.ts:134](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/caching.ts#L134)
+
 Set a callback for when caching is activated for a path.
 
 #### Parameters
 
-• **cb**
+##### cb
+
+(`firstPending`) => `void`
 
 Callback function
 
@@ -149,15 +155,13 @@ Callback function
 
 `void`
 
-#### Defined in
-
-[caching.ts:134](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L134)
-
 ***
 
 ### reset()
 
 > **reset**(): `void`
+
+Defined in: [caching.ts:186](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/caching.ts#L186)
 
 Reset the state of caching by deleting all caching information.
 
@@ -171,15 +175,13 @@ Reset the state of caching by deleting all caching information.
 remoteStorage.caching.reset();
 ```
 
-#### Defined in
-
-[caching.ts:176](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L176)
-
 ***
 
 ### set()
 
 > **set**(`path`, `strategy`): `void`
+
+Defined in: [caching.ts:70](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/caching.ts#L70)
 
 Configure caching for a given path explicitly.
 
@@ -187,11 +189,15 @@ Not needed when using ``enable``/``disable``.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Path to cache
 
-• **strategy**: `"ALL"` \| `"SEEN"` \| `"FLUSH"`
+##### strategy
+
+`"ALL"` \| `"SEEN"` \| `"FLUSH"`
 
 Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
 
@@ -204,7 +210,3 @@ Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
 ```js
 remoteStorage.caching.set('/bookmarks/archive/', 'SEEN');
 ```
-
-#### Defined in
-
-[caching.ts:70](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/caching.ts#L70)

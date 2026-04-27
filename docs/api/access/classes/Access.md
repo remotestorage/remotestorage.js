@@ -1,5 +1,7 @@
 # Class: Access
 
+Defined in: [access.ts:20](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/access.ts#L20)
+
 This class is for requesting and managing access to modules/folders on the
 remote. It gets initialized as `remoteStorage.access`.
 
@@ -9,15 +11,21 @@ remote. It gets initialized as `remoteStorage.access`.
 
 > **claim**(`scope`, `mode`): `void`
 
+Defined in: [access.ts:71](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/access.ts#L71)
+
 Claim access on a given scope with given mode.
 
 #### Parameters
 
-• **scope**: `string`
+##### scope
+
+`string`
 
 An access scope, such as `contacts` or `calendar`
 
-• **mode**: `AccessMode`
+##### mode
+
+`AccessMode`
 
 Access mode. Either `r` for read-only or `rw` for read/write
 
@@ -37,7 +45,3 @@ Claiming root access, meaning complete access to all files and folders of a stor
 ```javascript
 remoteStorage.access.claim('*', 'rw');
 ```
-
-#### Defined in
-
-[access.ts:68](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/access.ts#L68)

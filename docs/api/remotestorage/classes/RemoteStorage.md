@@ -1,5 +1,7 @@
 # Class: RemoteStorage
 
+Defined in: [remotestorage.ts:323](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L323)
+
 Create a `remoteStorage` class instance so:
 
 ```js
@@ -36,7 +38,7 @@ const remoteStorage = new RemoteStorage({
 ## Events
 
 You can add event handlers to your `remoteStorage` instance by using the
-[on](RemoteStorage.md#on) function. For example:
+[on](#on) function. For example:
 
 ```js
 remoteStorage.on('connected', function() {
@@ -102,6 +104,13 @@ Emitted before webfinger lookup
 ### `authing`
 
 Emitted before redirecting to the OAuth server
+
+### `scope-change-required`
+
+Emitted when the currently claimed access scopes differ from the last
+authorized scope stored in localStorage. The callback receives an object
+containing the previously authorized scope, the currently requested scope,
+and a `reauthorize()` helper.
 
 ### `wire-busy`
 
@@ -172,31 +181,23 @@ one, and `remote.online` is set back to true
 
 Emitted when the sync interval changes
 
-## Extends
-
-- `EventHandling`
-
 ## Properties
 
 ### access
 
 > **access**: [`Access`](../../access/classes/Access.md)
 
+Defined in: [remotestorage.ts:351](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L351)
+
 Managing claimed access scopes
-
-#### Defined in
-
-[remotestorage.ts:304](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L304)
 
 ***
 
-### backend
+### backend?
 
-> **backend**: `"remotestorage"` \| `"dropbox"` \| `"googledrive"`
+> `optional` **backend?**: `"remotestorage"` \| `"dropbox"` \| `"googledrive"`
 
-#### Defined in
-
-[remotestorage.ts:339](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L339)
+Defined in: [remotestorage.ts:386](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L386)
 
 ***
 
@@ -204,17 +205,17 @@ Managing claimed access scopes
 
 > **caching**: [`Caching`](../../caching/classes/Caching.md)
 
+Defined in: [remotestorage.ts:356](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L356)
+
 Managing cache settings
-
-#### Defined in
-
-[remotestorage.ts:309](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L309)
 
 ***
 
 ### remote
 
 > **remote**: [`Remote`](../../remote/interfaces/Remote.md)
+
+Defined in: [remotestorage.ts:398](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L398)
 
 Depending on the chosen backend, this is either an instance of `WireClient`,
 `Dropbox` or `GoogleDrive`.
@@ -228,25 +229,21 @@ remoteStorage.remote.connected
 // false
 ```
 
-#### Defined in
-
-[remotestorage.ts:351](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L351)
-
 ## Accessors
 
 ### connected
 
-> `get` **connected**(): `boolean`
+#### Get Signature
+
+> **get** **connected**(): `boolean`
+
+Defined in: [remotestorage.ts:523](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L523)
 
 Indicating if remoteStorage is currently connected.
 
-#### Returns
+##### Returns
 
 `boolean`
-
-#### Defined in
-
-[remotestorage.ts:460](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L460)
 
 ## Methods
 
@@ -254,23 +251,25 @@ Indicating if remoteStorage is currently connected.
 
 > **addEventListener**(`eventName`, `handler`): `void`
 
+Defined in: [eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L29)
+
 Install an event handler for the given event name
 
 Usually called via [`on()`](#on)
 
 #### Parameters
 
-• **eventName**: `string`
+##### eventName
 
-• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+`string`
+
+##### handler
+
+[`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
 
 #### Returns
 
 `void`
-
-#### Defined in
-
-[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L29)
 
 ***
 
@@ -278,11 +277,15 @@ Usually called via [`on()`](#on)
 
 > **addModule**(`module`): `void`
 
+Defined in: [remotestorage.ts:1402](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1402)
+
 Add remoteStorage data module
 
 #### Parameters
 
-• **module**: [`RSModule`](../interfaces/RSModule.md)
+##### module
+
+[`RSModule`](../interfaces/RSModule.md)
 
 A data module object
 
@@ -318,15 +321,13 @@ remoteStorage.bookmarks.archive.getAll(false)
   .then(bookmarks => console.log(bookmarks));
 ```
 
-#### Defined in
-
-[remotestorage.ts:1191](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L1191)
-
 ***
 
 ### connect()
 
-> **connect**(`userAddress`, `token`?): `void`
+> **connect**(`userAddress`, `token?`): `void`
+
+Defined in: [remotestorage.ts:622](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L622)
 
 Connect to a remoteStorage server.
 
@@ -352,11 +353,15 @@ Special cases:
 
 #### Parameters
 
-• **userAddress**: `string`
+##### userAddress
+
+`string`
 
 The user address (user@host) or URL to connect to.
 
-• **token?**: `string`
+##### token?
+
+`string`
 
 (optional) A bearer token acquired beforehand
 
@@ -370,15 +375,13 @@ The user address (user@host) or URL to connect to.
 remoteStorage.connect('user@example.com');
 ```
 
-#### Defined in
-
-[remotestorage.ts:554](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L554)
-
 ***
 
 ### disableLog()
 
 > **disableLog**(): `void`
+
+Defined in: [remotestorage.ts:942](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L942)
 
 Disable remoteStorage debug logging
 
@@ -386,15 +389,13 @@ Disable remoteStorage debug logging
 
 `void`
 
-#### Defined in
-
-[remotestorage.ts:731](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L731)
-
 ***
 
 ### disconnect()
 
 > **disconnect**(): `void`
+
+Defined in: [remotestorage.ts:710](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L710)
 
 "Disconnect" from remote server to terminate current session.
 
@@ -405,15 +406,13 @@ cache.
 
 `void`
 
-#### Defined in
-
-[remotestorage.ts:634](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L634)
-
 ***
 
 ### enableLog()
 
 > **enableLog**(): `void`
+
+Defined in: [remotestorage.ts:935](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L935)
 
 Enable remoteStorage debug logging.
 
@@ -427,15 +426,13 @@ const remoteStorage = new RemoteStorage({ logging: true });
 
 `void`
 
-#### Defined in
-
-[remotestorage.ts:724](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L724)
-
 ***
 
 ### getBackgroundSyncInterval()
 
 > **getBackgroundSyncInterval**(): `number`
+
+Defined in: [remotestorage.ts:1239](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1239)
 
 Get the value of the sync interval when application is in the background
 
@@ -452,15 +449,13 @@ remoteStorage.getBackgroundSyncInterval();
 // 60000
 ```
 
-#### Defined in
-
-[remotestorage.ts:1028](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L1028)
-
 ***
 
 ### getCurrentSyncInterval()
 
 > **getCurrentSyncInterval**(): `number`
+
+Defined in: [remotestorage.ts:1275](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1275)
 
 Get the value of the current sync interval. Can be background or
 foreground, custom or default.
@@ -478,15 +473,13 @@ remoteStorage.getCurrentSyncInterval();
 // 15000
 ```
 
-#### Defined in
-
-[remotestorage.ts:1064](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L1064)
-
 ***
 
 ### getRequestTimeout()
 
 > **getRequestTimeout**(): `number`
+
+Defined in: [remotestorage.ts:1288](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1288)
 
 Get the value of the current network request timeout
 
@@ -503,15 +496,13 @@ remoteStorage.getRequestTimeout();
 // 30000
 ```
 
-#### Defined in
-
-[remotestorage.ts:1077](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L1077)
-
 ***
 
 ### getSyncInterval()
 
 > **getSyncInterval**(): `number`
+
+Defined in: [remotestorage.ts:1205](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1205)
 
 Get the value of the sync interval when application is in the foreground
 
@@ -528,27 +519,29 @@ remoteStorage.getSyncInterval();
 // 10000
 ```
 
-#### Defined in
-
-[remotestorage.ts:994](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L994)
-
 ***
 
 ### on()
 
 > **on**(`eventName`, `handler`): `void`
 
+Defined in: [eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L55)
+
 Register an event handler for the given event name
 
-Alias for [addEventListener](RemoteStorage.md#addeventlistener)
+Alias for [addEventListener](#addeventlistener)
 
 #### Parameters
 
-• **eventName**: `string`
+##### eventName
+
+`string`
 
 Name of the event
 
-• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+##### handler
+
+[`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
 
 Function to handle the event
 
@@ -564,15 +557,13 @@ remoteStorage.on('connected', function() {
 });
 ```
 
-#### Defined in
-
-[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L55)
-
 ***
 
 ### onChange()
 
 > **onChange**(`path`, `handler`): `void`
+
+Defined in: [remotestorage.ts:919](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L919)
 
 Add a `change` event handler for the given path. Whenever a change
 happens (as determined by the local backend, such as e.g.
@@ -585,11 +576,15 @@ given 'path', the given handler is called.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Absolute path to attach handler to
 
-• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+##### handler
+
+[`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
 
 A function to handle the change
 
@@ -605,15 +600,27 @@ remoteStorage.onChange('/bookmarks/', function() {
 })
 ```
 
-#### Defined in
+***
 
-[remotestorage.ts:708](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L708)
+### reauthorize()
+
+> **reauthorize**(): `void`
+
+Defined in: [remotestorage.ts:700](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L700)
+
+Alias for [reconnect](#reconnect), intended for permission refresh flows.
+
+#### Returns
+
+`void`
 
 ***
 
 ### reconnect()
 
 > **reconnect**(): `void`
+
+Defined in: [remotestorage.ts:687](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L687)
 
 Reconnect the remote server to get a new authorization.
 
@@ -624,37 +631,37 @@ Useful when not using the connect widget and encountering an
 
 `void`
 
-#### Defined in
-
-[remotestorage.ts:618](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L618)
-
 ***
 
 ### removeEventListener()
 
 > **removeEventListener**(`eventName`, `handler`): `void`
 
+Defined in: [eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L62)
+
 Remove a previously installed event handler
 
 #### Parameters
 
-• **eventName**: `string`
+##### eventName
 
-• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+`string`
+
+##### handler
+
+[`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
 
 #### Returns
 
 `void`
-
-#### Defined in
-
-[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L62)
 
 ***
 
 ### scope()
 
 > **scope**(`path`): [`BaseClient`](../../baseclient/classes/BaseClient.md)
+
+Defined in: [remotestorage.ts:1186](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1186)
 
 This method allows you to quickly instantiate a BaseClient, which you can
 use to directly read and manipulate data in the connected storage account.
@@ -664,7 +671,9 @@ create a [data module](../../../data-modules/) for your app to use.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 The base directory of the BaseClient that will be returned
               (with a leading and a trailing slash)
@@ -682,27 +691,29 @@ remoteStorage.scope('/pictures/').getListing('');
 remoteStorage.scope('/public/pictures/').getListing('');
 ```
 
-#### Defined in
-
-[remotestorage.ts:975](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L975)
-
 ***
 
 ### setApiKeys()
 
 > **setApiKeys**(`apiKeys`): `boolean` \| `void`
 
+Defined in: [remotestorage.ts:966](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L966)
+
 Set the OAuth key/ID for GoogleDrive and/or Dropbox backend support.
 
 #### Parameters
 
-• **apiKeys**
+##### apiKeys
 
 A config object
 
-• **apiKeys.dropbox**: `string`
+###### dropbox?
 
-• **apiKeys.googledrive**: `string`
+`string`
+
+###### googledrive?
+
+`string`
 
 #### Returns
 
@@ -717,22 +728,22 @@ remoteStorage.setApiKeys({
 });
 ```
 
-#### Defined in
-
-[remotestorage.ts:755](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L755)
-
 ***
 
 ### setBackgroundSyncInterval()
 
 > **setBackgroundSyncInterval**(`interval`): `void`
 
+Defined in: [remotestorage.ts:1252](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1252)
+
 Set the value of the sync interval when the application is in the
 background
 
 #### Parameters
 
-• **interval**: `number`
+##### interval
+
+`number`
 
 Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
 
@@ -746,15 +757,13 @@ Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
 remoteStorage.setBackgroundSyncInterval(90000);
 ```
 
-#### Defined in
-
-[remotestorage.ts:1041](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L1041)
-
 ***
 
 ### setCordovaRedirectUri()
 
 > **setCordovaRedirectUri**(`uri`): `void`
+
+Defined in: [remotestorage.ts:1012](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1012)
 
 Set redirect URI to be used for the OAuth redirect within the
 in-app-browser window in Cordova apps. See
@@ -762,7 +771,9 @@ in-app-browser window in Cordova apps. See
 
 #### Parameters
 
-• **uri**: `string`
+##### uri
+
+`string`
 
 A valid HTTP(S) URI
 
@@ -776,21 +787,21 @@ A valid HTTP(S) URI
 remoteStorage.setCordovaRedirectUri('https://app.example.com');
 ```
 
-#### Defined in
-
-[remotestorage.ts:801](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L801)
-
 ***
 
 ### setRequestTimeout()
 
 > **setRequestTimeout**(`timeout`): `void`
 
+Defined in: [remotestorage.ts:1300](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1300)
+
 Set the timeout for network requests.
 
 #### Parameters
 
-• **timeout**: `number`
+##### timeout
+
+`number`
 
 Timeout in milliseconds
 
@@ -804,21 +815,21 @@ Timeout in milliseconds
 remoteStorage.setRequestTimeout(30000);
 ```
 
-#### Defined in
-
-[remotestorage.ts:1089](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L1089)
-
 ***
 
 ### setSyncInterval()
 
 > **setSyncInterval**(`interval`): `void`
 
+Defined in: [remotestorage.ts:1217](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1217)
+
 Set the value of the sync interval when application is in the foreground
 
 #### Parameters
 
-• **interval**: `number`
+##### interval
+
+`number`
 
 Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
 
@@ -832,15 +843,13 @@ Sync interval in milliseconds (between 2000 and 3600000 [1 hour])
 remoteStorage.setSyncInterval(20000);
 ```
 
-#### Defined in
-
-[remotestorage.ts:1006](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L1006)
-
 ***
 
 ### startSync()
 
 > **startSync**(): `Promise`\<`void`\>
+
+Defined in: [remotestorage.ts:1341](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1341)
 
 Start synchronization with remote storage, downloading and uploading any
 changes within the cached paths.
@@ -857,22 +866,16 @@ when shifting between offline and online a lot.
 
 A Promise which resolves when the sync has finished
 
-#### Defined in
-
-[remotestorage.ts:1130](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L1130)
-
 ***
 
 ### stopSync()
 
 > **stopSync**(): `void`
 
+Defined in: [remotestorage.ts:1354](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L1354)
+
 Stop the periodic synchronization.
 
 #### Returns
 
 `void`
-
-#### Defined in
-
-[remotestorage.ts:1143](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L1143)

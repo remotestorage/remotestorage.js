@@ -1,7 +1,5 @@
 # eventhandling
 
-## Index
-
-### Type Aliases
+## Type Aliases
 
 - [EventHandler](type-aliases/EventHandler.md)

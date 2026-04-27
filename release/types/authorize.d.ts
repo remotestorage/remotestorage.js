@@ -4,6 +4,7 @@ interface AuthResult {
     access_token?: string;
     refresh_token?: string;
     code?: string;
+    scope?: string;
     rsDiscovery?: object;
     error?: string;
     remotestorage?: string;

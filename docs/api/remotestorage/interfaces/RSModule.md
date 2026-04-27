@@ -1,5 +1,7 @@
 # Interface: RSModule
 
+Defined in: [remotestorage.ts:123](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L123)
+
 Represents a data module
 
 ## Example
@@ -25,17 +27,23 @@ Represents a data module
 
 ## Properties
 
-### builder()
+### builder
 
 > **builder**: (`privateClient`, `publicClient`) => `object`
+
+Defined in: [remotestorage.ts:131](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L131)
 
 A module builder function, which defines the actual module
 
 #### Parameters
 
-• **privateClient**: [`BaseClient`](../../baseclient/classes/BaseClient.md)
+##### privateClient
 
-• **publicClient**: [`BaseClient`](../../baseclient/classes/BaseClient.md)
+[`BaseClient`](../../baseclient/classes/BaseClient.md)
+
+##### publicClient
+
+[`BaseClient`](../../baseclient/classes/BaseClient.md)
 
 #### Returns
 
@@ -47,11 +55,7 @@ A module builder function, which defines the actual module
 
 ###### Index Signature
 
- \[`key`: `string`\]: `any`
-
-#### Defined in
-
-[remotestorage.ts:91](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L91)
+\[`key`: `string`\]: `any`
 
 ***
 
@@ -59,8 +63,6 @@ A module builder function, which defines the actual module
 
 > **name**: `string`
 
+Defined in: [remotestorage.ts:127](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L127)
+
 The module's name, which is also the category (i.e. base folder) for document URLs on the remote storage
-
-#### Defined in
-
-[remotestorage.ts:87](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remotestorage.ts#L87)
