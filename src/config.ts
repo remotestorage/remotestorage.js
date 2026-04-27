@@ -11,10 +11,7 @@ const config = {
     conflict: true
   },
   cordovaRedirectUri: undefined,
-  // Allow WebFinger discovery to target localhost / private-IP hosts. Defaults
-  // to true because remoteStorage.js runs in browsers, where cross-origin
-  // requests are already gated by the same-origin policy / CORS, so
-  // webfinger.js v3's SSRF protection offers no extra safety here. Set to
+  // Allow WebFinger discovery to target localhost / private-IP hosts. Set to
   // false in non-browser embedders that want the SSRF guard back.
   discoveryAllowPrivateAddresses: true,
   logging: false,
