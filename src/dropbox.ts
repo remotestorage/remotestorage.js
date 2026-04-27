@@ -494,10 +494,6 @@ class Dropbox extends RemoteBase implements Remote {
       return {statusCode: 412, revision: savedRev};
     }
 
-    if ((!contentType.match(/charset=/)) && isBinaryData(body)) {
-      contentType += '; charset=binary';
-    }
-
     if (body.length > 150 * 1024 * 1024) {
       //https://www.dropbox.com/developers/core/docs#chunked-upload
       throw new Error("Cannot upload file larger than 150MB");

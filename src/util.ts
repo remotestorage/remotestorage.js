@@ -213,6 +213,10 @@ export const getJSONFromLocalStorage = (key: string): { [key: string]: any } => 
  * @returns {boolean}
  */
 export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType: string): boolean => {
+  // The `charset=binary` branch is kept for backward compatibility: files uploaded
+  // with a release <=2.0.0-beta.9 carry that non-standard suffix in their stored
+  // Content-Type. New uploads no longer emit it; the control-char heuristic below
+  // handles them.
   // eslint-disable-next-line no-control-regex
   return !!((mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x08\x0E-\x1F\uFFFD]/.test(content as string));
 };
