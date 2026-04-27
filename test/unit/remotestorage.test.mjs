@@ -56,6 +56,8 @@ describe("RemoteStorage", function() {
       }});
 
       expect(this.rs['foo-bar'].it).to.equal('worked');
+      // Also exposes the camelCase alias (see RemoteStorage#addModule)
+      expect(this.rs.fooBar.it).to.equal('worked');
     });
 
     it('is called when passing a module to the RemoteStorage constructor', function() {
