@@ -165,7 +165,7 @@ define(['./build/wireclient', './build/remotestorage'], function (WireClient, Re
             iAmA: 'ArrayBufferMock',
             content: 'response content'
           });
-          test.assert(r.contentType, 'image/png; charset=binary');
+          test.assert(r.contentType, 'image/png');
         }, function (err) {
           test.result(false, err);
         });

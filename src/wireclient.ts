@@ -42,7 +42,8 @@ import {
   getTextFromArrayBuffer,
   isFolder,
   localStorageAvailable,
-  shouldBeTreatedAsBinary
+  shouldBeTreatedAsBinary,
+  stripLegacyCharsetBinary
 } from './util';
 import {requestWithTimeout} from "./requests";
 import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
@@ -214,7 +215,7 @@ class WireClient extends RemoteBase implements Remote {
           return Promise.resolve({
             statusCode: response.status,
             body: response.response,
-            contentType: mimeType,
+            contentType: stripLegacyCharsetBinary(mimeType),
             revision: revision
           });
         } else {
@@ -224,7 +225,7 @@ class WireClient extends RemoteBase implements Remote {
               return Promise.resolve({
                 statusCode: response.status,
                 body: textContent,
-                contentType: mimeType,
+                contentType: stripLegacyCharsetBinary(mimeType),
                 revision: revision
               });
             });

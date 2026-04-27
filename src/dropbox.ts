@@ -7,6 +7,7 @@ import {
   applyMixins,
   isFolder,
   shouldBeTreatedAsBinary,
+  stripLegacyCharsetBinary,
   getJSONFromLocalStorage,
   getTextFromArrayBuffer,
   localStorageAvailable,
@@ -453,7 +454,7 @@ class Dropbox extends RemoteBase implements Remote {
         return {
           statusCode: status,
           body: body,
-          contentType: mime,
+          contentType: stripLegacyCharsetBinary(mime),
           revision: rev
         };
       });
