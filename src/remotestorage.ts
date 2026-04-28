@@ -175,13 +175,6 @@ enum ApiKeyType {
  * > For the change events configuration, you have to set all events
  * > explicitly.  Otherwise it disables the unspecified ones.
  *
- * > [!TIP]
- * > `discoveryAllowPrivateAddresses` controls whether WebFinger discovery may
- * > target localhost / private-IP storage servers. It defaults to `true`
- * > because cross-origin requests in browsers are already gated by the
- * > same-origin policy / CORS. Set it to `false` in non-browser embedders
- * > that want webfinger.js's SSRF protection back.
- *
  * ## Events
  *
  * You can add event handlers to your `remoteStorage` instance by using the
