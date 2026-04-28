@@ -160,7 +160,10 @@ enum ApiKeyType {
  *     conflict: true
  *   },
  *   cordovaRedirectUri: undefined,
- *   discoveryAllowPrivateAddresses: true,
+ *   discovery: {
+ *     allowPrivateAddresses: true,
+ *     timeout: 5000
+ *   },
  *   logging: false,
  *   modules: []
  * });
@@ -429,7 +432,17 @@ export class RemoteStorage {
   constructor (cfg?: object) {
     // Initial configuration property settings.
     // TODO use modern JS to merge object properties
-    if (typeof cfg === 'object') { extend(config, cfg); }
+    if (typeof cfg === 'object' && cfg !== null) {
+      // Pull out nested option groups so the shallow `extend` below doesn't
+      // overwrite the whole sub-object when the caller only sets a subset
+      // (e.g. `{ discovery: { timeout: 10 } }` keeps the default
+      // `allowPrivateAddresses`).
+      const { discovery, ...rest } = cfg as { discovery?: object };
+      extend(config, rest);
+      if (discovery && typeof discovery === 'object') {
+        extend(config.discovery, discovery);
+      }
+    }
 
     this.addEvents([
       'ready', 'authing', 'connecting', 'connected', 'disconnected',

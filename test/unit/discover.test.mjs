@@ -94,13 +94,13 @@ const jrdJimbo = {
 describe('Webfinger discovery', () => {
   before(() => {
     config.requestTimeout = 500;
-    config.discoveryTimeout = 500;
+    config.discovery.timeout = 500;
   });
 
   after(() => {
     localStorage.clear();
     config.requestTimeout = 30000;
-    config.discoveryTimeout = 5000;
+    config.discovery.timeout = 5000;
   });
 
   describe('successful lookup', () => {
@@ -148,14 +148,14 @@ describe('Webfinger discovery', () => {
       expect(info.authURL).to.equal('http://localhost:8000/oauth/alice');
     });
 
-    it("rejects localhost addresses when discoveryAllowPrivateAddresses is false", async () => {
-      const previous = config.discoveryAllowPrivateAddresses;
-      config.discoveryAllowPrivateAddresses = false;
+    it("rejects localhost addresses when discovery.allowPrivateAddresses is false", async () => {
+      const previous = config.discovery.allowPrivateAddresses;
+      config.discovery.allowPrivateAddresses = false;
       try {
         // Use a fresh address so the in-module cache does not short-circuit the lookup.
         await expect(Discover('bob@localhost:9000')).to.be.rejectedWith(/private or internal addresses/);
       } finally {
-        config.discoveryAllowPrivateAddresses = previous;
+        config.discovery.allowPrivateAddresses = previous;
       }
     });
 

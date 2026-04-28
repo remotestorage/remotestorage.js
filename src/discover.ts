@@ -37,20 +37,15 @@ const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
   const webFinger = new WebFinger({
     tls_only: false,
     uri_fallback: true,
-    request_timeout: config.discoveryTimeout,
-    // Defaults to true (see config.ts) so that browser apps can discover
-    // localhost / LAN remoteStorage servers, since the same-origin policy /
-    // CORS already gate cross-origin requests there. Non-browser embedders
-    // can opt back into webfinger.js v3's SSRF guard via
-    // `new RemoteStorage({ discoveryAllowPrivateAddresses: false })`.
-    allow_private_addresses: config.discoveryAllowPrivateAddresses
+    request_timeout: config.discovery.timeout,
+    allow_private_addresses: config.discovery.allowPrivateAddresses
   });
 
   let timer;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       reject(new Error('timed out'));
-    }, config.discoveryTimeout);
+    }, config.discovery.timeout);
   });
 
   return Promise.race([
