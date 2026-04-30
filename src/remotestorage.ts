@@ -433,7 +433,7 @@ export class RemoteStorage {
     // Initial configuration property settings.
     // TODO use modern JS to merge object properties
     if (typeof cfg === 'object' && cfg !== null) {
-      // Pull out nested option groups so the shallow `extend` below doesn't
+      // Pull out nested option groups so the `Object.assign` below doesn't
       // overwrite the whole sub-object when the caller only sets a subset
       // (e.g. `{ discovery: { timeout: 10 } }` keeps the default
       // `allowPrivateAddresses`).
