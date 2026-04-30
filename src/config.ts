@@ -11,13 +11,19 @@ const config = {
     conflict: true
   },
   cordovaRedirectUri: undefined,
+  discovery: {
+    // Allow WebFinger discovery to target localhost / private-IP hosts. Set to
+    // false in non-browser embedders that want the SSRF guard back.
+    allowPrivateAddresses: true,
+    // WebFinger lookup timeout, in milliseconds.
+    timeout: 5000
+  },
   logging: false,
   modules: [],
   // the following are not public and will probably be moved away from the
   // default config
   backgroundSyncInterval: 60000,
   disableFeatures: [],
-  discoveryTimeout: 5000,
   isBackground: false,
   requestTimeout: 30000,
   syncInterval: 10000

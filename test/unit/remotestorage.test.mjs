@@ -5,6 +5,7 @@ import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
+import config from '../../build/config.js';
 import Dropbox from '../../build/dropbox.js';
 import { EventHandling } from '../../build/eventhandling.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
@@ -39,6 +40,27 @@ describe("RemoteStorage", function() {
     this.rs = undefined;
     fetchMock.reset();
     sinon.reset();
+  });
+
+  describe('constructor config', function() {
+    it("merges nested `discovery` options with the defaults", function() {
+      const previousTimeout = config.discovery.timeout;
+      const previousAllow = config.discovery.allowPrivateAddresses;
+      try {
+        // Setting only `timeout` must not clobber the default `allowPrivateAddresses`.
+        new RemoteStorage({ cache: false, discovery: { timeout: 1234 } }).disconnect();
+        expect(config.discovery.timeout).to.equal(1234);
+        expect(config.discovery.allowPrivateAddresses).to.equal(previousAllow);
+
+        // Setting only `allowPrivateAddresses` must not clobber `timeout`.
+        new RemoteStorage({ cache: false, discovery: { allowPrivateAddresses: false } }).disconnect();
+        expect(config.discovery.timeout).to.equal(1234);
+        expect(config.discovery.allowPrivateAddresses).to.equal(false);
+      } finally {
+        config.discovery.timeout = previousTimeout;
+        config.discovery.allowPrivateAddresses = previousAllow;
+      }
+    });
   });
 
   describe('#addModule', function() {
@@ -84,7 +106,7 @@ describe("RemoteStorage", function() {
 
       this.rs = new RemoteStorage({
         cache: false,
-        discoveryTimeout: 10
+        discovery: { timeout: 10 }
       });
 
       sinon.stub(this.rs, 'authorize');
