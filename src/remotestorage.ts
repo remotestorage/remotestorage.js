@@ -438,9 +438,9 @@ export class RemoteStorage {
       // (e.g. `{ discovery: { timeout: 10 } }` keeps the default
       // `allowPrivateAddresses`).
       const { discovery, ...rest } = cfg as { discovery?: object };
-      extend(config, rest);
+      Object.assign(config, rest);
       if (discovery && typeof discovery === 'object') {
-        extend(config.discovery, discovery);
+        Object.assign(config.discovery, discovery);
       }
     }
 
