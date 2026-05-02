@@ -27,8 +27,8 @@ import Authorize from "./authorize";
  * When remoteStorage.backend is set to 'dropbox', this backend will
  * initialize and replace remoteStorage.remote with remoteStorage.dropbox.
  *
- * In order to ensure compatibility with the public folder, <BaseClient.getItemURL>
- * gets hijacked to return the Dropbox public share URL.
+ * Files stored under the ``/public/`` folder can be shared via
+ * <BaseClient.getItemURL>, which returns a Dropbox shared link URL.
  *
  * To use this backend, you need to specify the Dropbox app key like so:
  *
@@ -45,8 +45,7 @@ import Authorize from "./authorize";
  *   - Listing and deleting folders with more than 10'000 files will cause problems
  *   - Content-Type is not supported; TODO: use file_properties
  *   - Dropbox preserves cases but is not case-sensitive
- *   - getItemURL is asynchronous which means it returns useful values
- *     after the syncCycle
+ *   - Authorizing a new app requires the ``sharing.write`` OAuth scope
  */
 
 let hasLocalStorage;
