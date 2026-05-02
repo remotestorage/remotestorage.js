@@ -1187,4 +1187,83 @@ describe('Dropbox backend', () => {
       expect(result).to.have.property('statusCode', 409);
     });
   });
+
+  describe("getItemURL", () => {
+    const LIST_SHARED_URL = 'https://api.dropbox.com/2/sharing/list_shared_links';
+    const PUBLIC_PATH = '/public/photo.jpg';
+    const SHARE_URL = 'https://www.dropbox.com/s/abc123/photo.jpg?dl=0';
+
+    it("returns undefined for non-public paths", async () => {
+      const url = await dropbox.getItemURL('/private/secret.txt');
+      expect(url).to.be.undefined;
+    });
+
+    it("returns undefined for public folder paths (not files)", async () => {
+      const url = await dropbox.getItemURL('/public/');
+      expect(url).to.be.undefined;
+    });
+
+    it("returns cached URL from _itemRefs without making an API call", async () => {
+      dropbox._itemRefs[PUBLIC_PATH] = SHARE_URL;
+
+      const url = await dropbox.getItemURL(PUBLIC_PATH);
+
+      expect(url).to.equal(SHARE_URL);
+      expect(fetchMock.calls()).to.have.lengthOf(0);
+    });
+
+    it("calls share() and returns new URL when not cached", async () => {
+      sandbox.spy(dropbox, 'share');
+      fetchMock.mock(
+        {name: 'postSharing', method: 'POST', url: SHARING_URL},
+        {status: 200, body: JSON.stringify({
+          name: 'photo.jpg',
+          path_lower: '/remotestorage/public/photo.jpg',
+          url: SHARE_URL
+        })}
+      );
+
+      const url = await dropbox.getItemURL(PUBLIC_PATH);
+
+      expect(url).to.equal(SHARE_URL);
+      expect(dropbox.share.callCount).to.equal(1);
+      expect(dropbox.share.getCall(0).args[0]).to.equal(PUBLIC_PATH);
+      expect(dropbox._itemRefs[PUBLIC_PATH]).to.equal(SHARE_URL);
+    });
+
+    it("fetches existing link when Dropbox reports shared_link_already_exists", async () => {
+      fetchMock.mock(
+        {name: 'postSharing', method: 'POST', url: SHARING_URL},
+        {status: 409, body: JSON.stringify({
+          error: {'.tag': 'shared_link_already_exists'},
+          error_summary: 'shared_link_already_exists/...'
+        })}
+      );
+      fetchMock.mock(
+        {name: 'listSharing', method: 'POST', url: LIST_SHARED_URL},
+        {status: 200, body: JSON.stringify({
+          links: [{url: SHARE_URL}],
+          has_more: false
+        })}
+      );
+
+      const url = await dropbox.getItemURL(PUBLIC_PATH);
+
+      expect(url).to.equal(SHARE_URL);
+      expect(dropbox._itemRefs[PUBLIC_PATH]).to.equal(SHARE_URL);
+    });
+
+    it("rejects when the Dropbox API returns an unexpected error", async () => {
+      const uncachedPath = '/public/other.jpg';
+      fetchMock.mock(
+        {name: 'postSharing', method: 'POST', url: SHARING_URL},
+        {status: 409, body: JSON.stringify({
+          error: {'.tag': 'no_permission'},
+          error_summary: 'no_permission/...'
+        })}
+      );
+
+      await expect(dropbox.getItemURL(uncachedPath)).to.be.rejectedWith('API error');
+    });
+  });
 });

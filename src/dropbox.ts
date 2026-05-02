@@ -53,7 +53,7 @@ let hasLocalStorage;
 const AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
 const ACCOUNT_URL = 'https://api.dropboxapi.com/2/users/get_current_account';
 const TOKEN_URL = 'https://api.dropboxapi.com/oauth2/token';
-const OAUTH_SCOPE = 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write';
+const OAUTH_SCOPE = 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write sharing.write';
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const FOLDER_URL = 'https://api.dropboxapi.com/2/files/list_folder';
 const CONTINUE_URL = 'https://api.dropboxapi.com/2/files/list_folder/continue';
@@ -577,6 +577,26 @@ class Dropbox extends RemoteBase implements Remote {
     if (path.match(/^\/public\/.*[^/]$/) && this._itemRefs[path] === undefined) {
       return this.share(path);
     }
+  }
+
+  /**
+   * Retrieve the publicly-accessible URL for a path.
+   *
+   * For files under ``/public/``, returns a Dropbox shared link — fetching
+   * one from the API if not yet cached. For all other paths returns
+   * ``undefined`` because Dropbox has no concept of unauthenticated access
+   * outside the public folder.
+   *
+   * Implements {@link Remote.getItemURL}.
+   */
+  async getItemURL (path: string): Promise<string | undefined> {
+    if (!path.match(/^\/public\/.*[^/]$/)) {
+      return undefined;
+    }
+    if (this._itemRefs[path]) {
+      return this._itemRefs[path];
+    }
+    return this.share(path);
   }
 
   /**
@@ -1157,35 +1177,6 @@ function unHookSyncCycle(rs): void  {
   delete rs._dropboxOrigSyncCycle;
 }
 
-/**
- * Overwrite BaseClient's getItemURL with our own implementation
- *
- * TODO: getItemURL still needs to be implemented
- *
- * @param {object} rs - RemoteStorage instance
- *
- * @private
- */
-function hookGetItemURL (rs): void {
-  if (rs._origBaseClientGetItemURL) { return; }
-  rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
-  BaseClient.prototype.getItemURL = function (/*path*/) {
-    throw new Error('getItemURL is not implemented for Dropbox yet');
-  };
-}
-
-/**
- * Restore BaseClient's getItemURL original implementation
- *
- * @param {object} rs - RemoteStorage instance
- *
- * @private
- */
-function unHookGetItemURL(rs): void {
-  if (! rs._origBaseClientGetItemURL) { return; }
-  BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
-  delete rs._origBaseClientGetItemURL;
-}
 
 /**
  * TODO: document
@@ -1218,7 +1209,6 @@ function hookIt(rs: RemoteStorage): void {
     // right after sync is initialized
     hookSyncCycle(rs);
   }
-  hookGetItemURL(rs);
 }
 
 /**
@@ -1227,7 +1217,6 @@ function hookIt(rs: RemoteStorage): void {
 function unHookIt(rs: RemoteStorage): void {
   unHookRemote(rs);
   unHookSync(rs);
-  unHookGetItemURL(rs);
   unHookSyncCycle(rs);
 }
 

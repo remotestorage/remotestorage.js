@@ -424,8 +424,9 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
           env.storage.connected = true;
           env.storage.remote = { href: 'http://example.com/test' };
 
-          var itemURL = env.client.getItemURL('A%2FB /C/%bla//D');
-          test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+          env.client.getItemURL('A%2FB /C/%bla//D').then(function(itemURL) {
+            test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+          });
         }
       },
 
@@ -435,11 +436,13 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
           env.storage.connected = true;
           env.storage.remote = { href: 'http://example.com/test' };
 
-          test.assert(env.client.getItemURL("Capture d'écran"),
-                      'http://example.com/test/foo/Capture%20d%27%C3%A9cran');
-
-          test.assert(env.client.getItemURL('So they said "hey"'),
-                      'http://example.com/test/foo/So%20they%20said%20%22hey%22');
+          Promise.all([
+            env.client.getItemURL("Capture d'écran"),
+            env.client.getItemURL('So they said "hey"')
+          ]).then(function(urls) {
+            test.assert(urls[0], 'http://example.com/test/foo/Capture%20d%27%C3%A9cran');
+            test.assert(urls[1], 'http://example.com/test/foo/So%20they%20said%20%22hey%22');
+          });
         }
       },
 

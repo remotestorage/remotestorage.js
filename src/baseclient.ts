@@ -639,25 +639,24 @@ export class BaseClient {
    *
    * @param path - Path relative to the module root.
    *
-   * @returns The full URL of the item, including the storage origin, or `undefined`
-   *          if no remote storage is connected
-   *
-   * > [!WARNING]
-   * > This method currently only works for remoteStorage
-   * > backends. The GitHub issues for implementing it for Dropbox and Google
-   * > are 1052 and 1054.
+   * @returns A promise resolving to the full URL of the item, or `undefined`
+   *          if no remote storage is connected. For standard remoteStorage
+   *          backends the URL is derived from the server's base href. For
+   *          cloud backends (Dropbox, Google Drive) a share link is fetched
+   *          or created via the provider's API.
    */
-  // TODO refactor this into the Remote interface
-  getItemURL (path: string): string | undefined {
+  async getItemURL (path: string): Promise<string | undefined> {
     if (typeof path !== 'string') {
       throw 'Argument \'path\' of baseClient.getItemURL must be a string';
     }
-    if (this.storage.connected) {
-      path = cleanPath(this.makePath(path));
-      return this.storage.remote.href + path;
-    } else {
+    if (!this.storage.connected) {
       return undefined;
     }
+    if (typeof this.storage.remote.getItemURL === 'function') {
+      return this.storage.remote.getItemURL(this.makePath(path));
+    }
+    // Standard remoteStorage backend: href is a plain base URL
+    return this.storage.remote.href + cleanPath(this.makePath(path));
   }
 
   /**
