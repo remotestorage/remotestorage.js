@@ -426,6 +426,8 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
 
           env.client.getItemURL('A%2FB /C/%bla//D').then(function(itemURL) {
             test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+          }, function(err) {
+            test.result(false, err);
           });
         }
       },
@@ -440,8 +442,43 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
             env.client.getItemURL("Capture d'écran"),
             env.client.getItemURL('So they said "hey"')
           ]).then(function(urls) {
-            test.assert(urls[0], 'http://example.com/test/foo/Capture%20d%27%C3%A9cran');
+            test.assertAnd(urls[0], 'http://example.com/test/foo/Capture%20d%27%C3%A9cran');
             test.assert(urls[1], 'http://example.com/test/foo/So%20they%20said%20%22hey%22');
+          }, function(err) {
+            test.result(false, err);
+          });
+        }
+      },
+
+      {
+        desc: "#getItemURL returns undefined when not connected",
+        run: function(env, test) {
+          env.storage.connected = false;
+          env.storage.remote = { href: 'http://example.com/test' };
+
+          env.client.getItemURL('foo').then(function(url) {
+            test.assert(url, undefined);
+          }, function(err) {
+            test.result(false, err);
+          });
+        }
+      },
+
+      {
+        desc: "#getItemURL delegates to remote.getItemURL when available",
+        run: function(env, test) {
+          env.storage.connected = true;
+          env.storage.remote = {
+            href: 'http://example.com/test',
+            getItemURL: function(path) {
+              return Promise.resolve('https://custom-backend.example.com' + path);
+            }
+          };
+
+          env.client.getItemURL('myfile.txt').then(function(url) {
+            test.assert(url, 'https://custom-backend.example.com/foo/myfile.txt');
+          }, function(err) {
+            test.result(false, err);
           });
         }
       },
