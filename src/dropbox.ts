@@ -52,7 +52,7 @@ let hasLocalStorage;
 const AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
 const ACCOUNT_URL = 'https://api.dropboxapi.com/2/users/get_current_account';
 const TOKEN_URL = 'https://api.dropboxapi.com/oauth2/token';
-const OAUTH_SCOPE = 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write sharing.write';
+const OAUTH_SCOPE = 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write sharing.read sharing.write';
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const FOLDER_URL = 'https://api.dropboxapi.com/2/files/list_folder';
 const CONTINUE_URL = 'https://api.dropboxapi.com/2/files/list_folder/continue';
