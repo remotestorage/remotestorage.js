@@ -424,8 +424,12 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
           env.storage.connected = true;
           env.storage.remote = { href: 'http://example.com/test' };
 
-          var itemURL = env.client.getItemURL('A%2FB /C/%bla//D');
-          test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+          env.client.getItemURL('A%2FB /C/%bla//D').then(function(itemURL) {
+            test.assertAnd(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+            test.done();
+          }, function(err) {
+            test.result(false, err);
+          });
         }
       },
 
@@ -435,11 +439,51 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
           env.storage.connected = true;
           env.storage.remote = { href: 'http://example.com/test' };
 
-          test.assert(env.client.getItemURL("Capture d'écran"),
-                      'http://example.com/test/foo/Capture%20d%27%C3%A9cran');
+          Promise.all([
+            env.client.getItemURL("Capture d'écran"),
+            env.client.getItemURL('So they said "hey"')
+          ]).then(function(urls) {
+            test.assertAnd(urls[0], 'http://example.com/test/foo/Capture%20d%27%C3%A9cran');
+            test.assertAnd(urls[1], 'http://example.com/test/foo/So%20they%20said%20%22hey%22');
+            test.done();
+          }, function(err) {
+            test.result(false, err);
+          });
+        }
+      },
 
-          test.assert(env.client.getItemURL('So they said "hey"'),
-                      'http://example.com/test/foo/So%20they%20said%20%22hey%22');
+      {
+        desc: "#getItemURL returns undefined when not connected",
+        run: function(env, test) {
+          env.storage.connected = false;
+          env.storage.remote = { href: 'http://example.com/test' };
+
+          env.client.getItemURL('foo').then(function(url) {
+            test.assertAnd(url, undefined);
+            test.done();
+          }, function(err) {
+            test.result(false, err);
+          });
+        }
+      },
+
+      {
+        desc: "#getItemURL delegates to remote.getItemURL when available",
+        run: function(env, test) {
+          env.storage.connected = true;
+          env.storage.remote = {
+            href: 'http://example.com/test',
+            getItemURL: function(path) {
+              return Promise.resolve('https://custom-backend.example.com' + path);
+            }
+          };
+
+          env.client.getItemURL('myfile.txt').then(function(url) {
+            test.assertAnd(url, 'https://custom-backend.example.com/foo/myfile.txt');
+            test.done();
+          }, function(err) {
+            test.result(false, err);
+          });
         }
       },
 
