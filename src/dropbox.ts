@@ -61,7 +61,7 @@ const UPLOAD_URL = 'https://content.dropboxapi.com/2/files/upload';
 const DELETE_URL = 'https://api.dropboxapi.com/2/files/delete';
 const METADATA_URL = 'https://api.dropboxapi.com/2/files/get_metadata';
 const CREATE_SHARED_URL = 'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings';
-const LIST_SHARED_URL = 'https://api.dropbox.com/2/sharing/list_shared_links';
+const LIST_SHARED_URL = 'https://api.dropboxapi.com/2/sharing/list_shared_links';
 const PATH_PREFIX = '/remotestorage';
 const NUM_RETRIES = 3;
 

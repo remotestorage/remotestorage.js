@@ -425,7 +425,8 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
           env.storage.remote = { href: 'http://example.com/test' };
 
           env.client.getItemURL('A%2FB /C/%bla//D').then(function(itemURL) {
-            test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+            test.assertAnd(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+            test.done();
           }, function(err) {
             test.result(false, err);
           });
@@ -443,7 +444,8 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
             env.client.getItemURL('So they said "hey"')
           ]).then(function(urls) {
             test.assertAnd(urls[0], 'http://example.com/test/foo/Capture%20d%27%C3%A9cran');
-            test.assert(urls[1], 'http://example.com/test/foo/So%20they%20said%20%22hey%22');
+            test.assertAnd(urls[1], 'http://example.com/test/foo/So%20they%20said%20%22hey%22');
+            test.done();
           }, function(err) {
             test.result(false, err);
           });
@@ -457,7 +459,8 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
           env.storage.remote = { href: 'http://example.com/test' };
 
           env.client.getItemURL('foo').then(function(url) {
-            test.assert(url, undefined);
+            test.assertAnd(url, undefined);
+            test.done();
           }, function(err) {
             test.result(false, err);
           });
@@ -476,7 +479,8 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
           };
 
           env.client.getItemURL('myfile.txt').then(function(url) {
-            test.assert(url, 'https://custom-backend.example.com/foo/myfile.txt');
+            test.assertAnd(url, 'https://custom-backend.example.com/foo/myfile.txt');
+            test.done();
           }, function(err) {
             test.result(false, err);
           });

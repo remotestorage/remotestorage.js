@@ -1189,7 +1189,7 @@ describe('Dropbox backend', () => {
   });
 
   describe("getItemURL", () => {
-    const LIST_SHARED_URL = 'https://api.dropbox.com/2/sharing/list_shared_links';
+    const LIST_SHARED_URL = 'https://api.dropboxapi.com/2/sharing/list_shared_links';
     const PUBLIC_PATH = '/public/photo.jpg';
     const SHARE_URL = 'https://www.dropbox.com/s/abc123/photo.jpg?dl=0';
 
