@@ -45,7 +45,7 @@ import Authorize from "./authorize";
  *   - Listing and deleting folders with more than 10'000 files will cause problems
  *   - Content-Type is not supported; TODO: use file_properties
  *   - Dropbox preserves cases but is not case-sensitive
- *   - Authorizing a new app requires the ``sharing.write`` OAuth scope
+ *   - Authorizing a new app requires the ``sharing.read`` and ``sharing.write`` OAuth scope
  */
 
 let hasLocalStorage;
