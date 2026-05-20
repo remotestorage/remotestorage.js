@@ -12,10 +12,7 @@ const config = {
   },
   cordovaRedirectUri: undefined,
   discovery: {
-    // Allow WebFinger discovery to target localhost / private-IP hosts. Set to
-    // false in non-browser embedders that want the SSRF guard back.
     allowPrivateAddresses: true,
-    // WebFinger lookup timeout, in milliseconds.
     timeout: 5000
   },
   logging: false,
