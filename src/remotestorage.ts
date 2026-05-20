@@ -160,6 +160,10 @@ enum ApiKeyType {
  *     conflict: true
  *   },
  *   cordovaRedirectUri: undefined,
+ *   discovery: {
+ *     allowPrivateAddresses: true,
+ *     timeout: 5000
+ *   },
  *   logging: false,
  *   modules: []
  * });
@@ -319,6 +323,16 @@ enum ApiKeyType {
  * ### `sync-interval-change`
  *
  * Emitted when the sync interval changes
+ *
+ * @param cfg - Optional configuration object; all properties are optional
+ * @param cfg.discovery - WebFinger discovery settings
+ * @param cfg.discovery.allowPrivateAddresses - Whether WebFinger may target
+ *   localhost / private-IP hosts. Defaults to `true` because cross-origin
+ *   requests in browsers are already gated by the same-origin policy / CORS.
+ *   Set to `false` in non-browser embedders to re-enable webfinger.js's SSRF
+ *   guard.
+ * @param cfg.discovery.timeout - WebFinger lookup timeout in milliseconds
+ *   (default: 5000)
  */
 export class RemoteStorage {
   /**
@@ -428,7 +442,17 @@ export class RemoteStorage {
   constructor (cfg?: object) {
     // Initial configuration property settings.
     // TODO use modern JS to merge object properties
-    if (typeof cfg === 'object') { extend(config, cfg); }
+    if (typeof cfg === 'object' && cfg !== null) {
+      // Pull out nested option groups so the `Object.assign` below doesn't
+      // overwrite the whole sub-object when the caller only sets a subset
+      // (e.g. `{ discovery: { timeout: 10 } }` keeps the default
+      // `allowPrivateAddresses`).
+      const { discovery, ...rest } = cfg as { discovery?: object };
+      Object.assign(config, rest);
+      if (discovery && typeof discovery === 'object') {
+        Object.assign(config.discovery, discovery);
+      }
+    }
 
     this.addEvents([
       'ready', 'authing', 'connecting', 'connected', 'disconnected',
