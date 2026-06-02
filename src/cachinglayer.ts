@@ -13,7 +13,8 @@ import {
   globalContext,
   isDocument,
   isFolder,
-  pathsFromRoot
+  pathsFromRoot,
+  stripLegacyCharsetBinary
 } from './util';
 
 function getLatest (node: RSNode): RSItem {
@@ -155,7 +156,7 @@ abstract class CachingLayer {
             return {
               statusCode: 200,
               body: item.body || item.itemsMap,
-              contentType: item.contentType
+              contentType: stripLegacyCharsetBinary(item.contentType || null)
             };
           } else {
             return { statusCode: 404 };
@@ -178,7 +179,7 @@ abstract class CachingLayer {
             return {
               statusCode: 200,
               body: item.body || item.itemsMap,
-              contentType: item.contentType
+              contentType: stripLegacyCharsetBinary(item.contentType || null)
             };
           } else {
             return {statusCode: 404};
