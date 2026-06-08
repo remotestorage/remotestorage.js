@@ -109,37 +109,6 @@ class FileIdCache {
 }
 
 /**
- * Overwrite BaseClient's getItemURL with our own implementation
- *
- * TODO: Still needs to be implemented. At the moment it just throws
- * and error saying that it's not implemented yet.
- *
- * @param {object} rs - RemoteStorage instance
- *
- * @private
- */
-function hookGetItemURL (rs): void {
-  if (rs._origBaseClientGetItemURL) { return; }
-  rs._origBaseClientGetItemURL = BaseClient.prototype.getItemURL;
-  BaseClient.prototype.getItemURL = function (/* path */): never {
-    throw new Error('getItemURL is not implemented for Google Drive yet');
-  };
-}
-
-/**
- * Restore BaseClient's getItemURL original implementation
- *
- * @param {object} rs - RemoteStorage instance
- *
- * @private
- */
-function unHookGetItemURL (rs): void {
-  if (!rs._origBaseClientGetItemURL) { return; }
-  BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
-  delete rs._origBaseClientGetItemURL;
-}
-
-/**
  * @class GoogleDrive
  *
  * To use this backend, you need to specify the app's client ID like so:
@@ -725,6 +694,10 @@ class GoogleDrive extends RemoteBase implements Remote {
     });
   }
 
+  async getItemURL(_path: string): Promise<never> {
+    throw new Error('getItemURL is not implemented for Google Drive yet');
+  }
+
   /**
    * Initialize the Google Drive backend.
    *
@@ -739,8 +712,6 @@ class GoogleDrive extends RemoteBase implements Remote {
       if (remoteStorage.backend === 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;
-
-        hookGetItemURL(remoteStorage);
       }
     }
   }
@@ -769,7 +740,6 @@ class GoogleDrive extends RemoteBase implements Remote {
       remoteStorage.remote = remoteStorage._origRemote;
       delete remoteStorage._origRemote;
     }
-    unHookGetItemURL(remoteStorage);
   }
 }
 

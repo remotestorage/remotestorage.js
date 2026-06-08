@@ -642,8 +642,10 @@ export class BaseClient {
    * @returns A promise resolving to the full URL of the item, or `undefined`
    *          if no remote storage is connected. For standard remoteStorage
    *          backends the URL is derived from the server's base href. For
-   *          cloud backends (Dropbox, Google Drive) a share link is fetched
-   *          or created via the provider's API.
+   *          Dropbox, a share link is fetched or created via the provider's API.
+   *
+   * @warning Not yet implemented for Google Drive — throws an error when called
+   *          with that backend.
    */
   async getItemURL (path: string): Promise<string | undefined> {
     if (typeof path !== 'string') {
