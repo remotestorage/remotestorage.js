@@ -644,8 +644,10 @@ export class BaseClient {
    *          backends the URL is derived from the server's base href. For
    *          Dropbox, a share link is fetched or created via the provider's API.
    *
-   * @warning Not yet implemented for Google Drive — throws an error when called
-   *          with that backend.
+   * > [!WARNING]
+   * > This method currently only works for remoteStorage and Dropbox
+   * > backends. The GitHub issue for implementing it for Google Drive
+   * > is #1054.
    */
   async getItemURL (path: string): Promise<string | undefined> {
     if (typeof path !== 'string') {
