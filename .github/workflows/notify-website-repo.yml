@@ -5,12 +5,14 @@ on:
     branches:
       - master
 
+permissions: {}
+
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
       - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
           token: ${{ secrets.RS_DISPATCH_PAT }}
           repository: remotestorage/website
