@@ -300,12 +300,12 @@ export class BaseClient {
    *     "screenshot-20170902-1913.png": {
    *       "ETag": "6749fcb9eef3f9e46bb537ed020aeece",
    *       "Content-Length": 53698,
-   *       "Content-Type": "image/png;charset=binary"
+   *       "Content-Type": "image/png"
    *     },
    *     "screenshot-20170823-0142.png": {
    *       "ETag": "92ab84792ef3f9e46bb537edac9bc3a1",
    *       "Content-Length": 412401,
-   *       "Content-Type": "image/png;charset=binary"
+   *       "Content-Type": "image/png"
    *     }
    *   }
    * }
