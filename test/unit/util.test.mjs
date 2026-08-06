@@ -43,6 +43,17 @@ describe('util', () => {
     });
   });
 
+  describe('binary content detection', () => {
+    it('treats C1 control characters as binary', () => {
+      expect(util.shouldBeTreatedAsBinary('\u0080', '')).to.equal(true);
+      expect(util.shouldBeTreatedAsBinary('\u009F', '')).to.equal(true);
+    });
+
+    it('does not treat characters above the C1 range as binary', () => {
+      expect(util.shouldBeTreatedAsBinary('\u00A0', '')).to.equal(false);
+    });
+  });
+
   describe('equality and cloning', () => {
     it('compares objects deeply', () => {
       const deepClone = util.deepClone;

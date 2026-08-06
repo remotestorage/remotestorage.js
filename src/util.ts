@@ -218,7 +218,7 @@ export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType:
   // Content-Type. New uploads no longer emit it; the control-char heuristic below
   // handles them.
   // eslint-disable-next-line no-control-regex
-  return !!((mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x08\x0E-\x1F\uFFFD]/.test(content as string));
+  return !!((mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x08\x0E-\x1F\x80-\x9F\uFFFD]/.test(content as string));
 };
 
 /**
