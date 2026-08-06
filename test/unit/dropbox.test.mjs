@@ -314,6 +314,20 @@ describe('Dropbox backend', () => {
       await expect(p).to.be.rejectedWith(/not connected/);
     });
 
+    it('sends a GET request to the Dropbox download endpoint', async () => {
+      fetchMock.mock(
+        {name: 'getFile', method: 'GET', url: DOWNLOAD_URL},
+        {status: 200, body: 'content', headers: {'Dropbox-API-Result': '{}'}}
+      );
+
+      await dropbox.get('/foo/bar');
+
+      const calls = fetchMock.calls();
+      expect(calls).to.have.lengthOf(1);
+      expect(calls[0][0]).to.equal(DOWNLOAD_URL);
+      expect(calls[0][1]).to.have.property('method', 'GET');
+    });
+
     it('with network failure emits network-offline if remote.online was true, and wire-busy & wire-done', async () => {
       const mockNetworkOffline = sinon.spy();
       const mockWireBusy = sinon.spy();
@@ -1177,6 +1191,7 @@ describe('Dropbox backend', () => {
       expect(calls[0][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);
       expect(calls[0][1]).to.have.property('body', JSON.stringify({path: "/remotestorage/spam/ham"}));
       expect(result).to.have.property('statusCode', 200);
+      expect(result).to.have.property('revision', '1001');
       expect(dropbox._revCache.get('/spam/ham')).to.be.null;
     });
 
@@ -1213,6 +1228,7 @@ describe('Dropbox backend', () => {
       expect(calls[1][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);
       expect(calls[1][1]).to.have.property('body', JSON.stringify({path: "/remotestorage/fnord/xyzzy"}));
       expect(result).to.have.property('statusCode', 200);
+      expect(result).to.have.property('revision', metadata.rev);
       expect(dropbox._revCache.get('/fnord/xyzzy')).to.be.null;
     });
 
