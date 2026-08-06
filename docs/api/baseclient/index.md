@@ -1,7 +1,5 @@
 # baseclient
 
-## Index
-
-### Classes
+## Classes
 
 - [BaseClient](classes/BaseClient.md)

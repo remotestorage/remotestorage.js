@@ -11,13 +11,16 @@ const config = {
     conflict: true
   },
   cordovaRedirectUri: undefined,
+  discovery: {
+    allowPrivateAddresses: true,
+    timeout: 5000
+  },
   logging: false,
   modules: [],
   // the following are not public and will probably be moved away from the
   // default config
   backgroundSyncInterval: 60000,
   disableFeatures: [],
-  discoveryTimeout: 5000,
   isBackground: false,
   requestTimeout: 30000,
   syncInterval: 10000

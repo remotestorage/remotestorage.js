@@ -27,14 +27,14 @@ token that you acquired beforehand:
 remoteStorage.connect('user@example.com', 'abcdef123456')
 ```
 
-This will skip the entire OAuth process, because you did that before in
-some other way, of course.
+This will skip the entire OAuth process in favor of acquiring a token
+beforehand, without the browser redirect.
 
 ## Obtaining a token
 
-For some programs, like e.g. a server daemon, you can usually acquire
-the token from your server manually, and then just configure it for
-example as environment variable, when running your program.
+For some programs, for example a server daemon, you can acquire the token from
+your RS server manually, and then use it from a config file or environment
+variable in your application.
 
 For CLI programs, and if you actually want to integrate the OAuth flow
 in your program, one possible solution is the following:
@@ -64,7 +64,19 @@ rs-backup is not using remoteStorage.js at all, which you might also
 want to consider as an option when writing non-browser applications.
 :::
 
-## Caveats
+## Other considerations
+
+### Discovery
+
+In most cases, you will want to set `discovery.allowPrivateAddresses` to
+`false` when creating your [RemoteStorage][1] instance.
+
+This setting controls whether WebFinger may target localhost/private-IP hosts.
+It defaults to `true` because cross-origin requests in browsers are already
+gated by the same-origin policy / CORS.  Setting it to `false` in non-browser
+embedders will re-enable webfinger.js's SSRF guard.
+
+### Caveats
 
 - IndexedDB and localStorage are not supported by default in Node.js,
   so the library will fall back to in-memory storage for caching data
@@ -89,3 +101,5 @@ fact cache your data similar to how a browser would do it.
     accounts using the
     [chat-messages](https://www.npmjs.com/package/remotestorage-module-chat-messages)
     module
+
+[1]: ./api/remotestorage/classes/RemoteStorage.html

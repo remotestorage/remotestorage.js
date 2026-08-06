@@ -1,11 +1,9 @@
 # remote
 
-## Index
-
-### Classes
+## Classes
 
 - [RemoteBase](classes/RemoteBase.md)
 
-### Interfaces
+## Interfaces
 
 - [Remote](interfaces/Remote.md)

@@ -1,7 +1,5 @@
 # caching
 
-## Index
-
-### Classes
+## Classes
 
 - [Caching](classes/Caching.md)

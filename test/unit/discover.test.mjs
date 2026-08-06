@@ -48,6 +48,20 @@ const jrdJimmy = {
   ]
 };
 
+const jrdLocalhost = {
+  "subject": "acct:alice@localhost:8000",
+  "links": [
+    {
+      "rel": "http://tools.ietf.org/id/draft-dejong-remotestorage",
+      "href": "http://localhost:8000/storage/alice",
+      "properties": {
+        "http://remotestorage.io/spec/version": "draft-dejong-remotestorage-13",
+        "http://tools.ietf.org/html/rfc6749#section-4.2": "http://localhost:8000/oauth/alice"
+      }
+    }
+  ]
+};
+
 const jrdJimbo = {
   "subject": "acct:jimmy@kosmos.social",
   "aliases": [
@@ -80,13 +94,13 @@ const jrdJimbo = {
 describe('Webfinger discovery', () => {
   before(() => {
     config.requestTimeout = 500;
-    config.discoveryTimeout = 500;
+    config.discovery.timeout = 500;
   });
 
   after(() => {
     localStorage.clear();
     config.requestTimeout = 30000;
-    config.discoveryTimeout = 5000;
+    config.discovery.timeout = 5000;
   });
 
   describe('successful lookup', () => {
@@ -113,6 +127,36 @@ describe('Webfinger discovery', () => {
         const cachedInfo = JSON.parse(localStorage.getItem('remotestorage:discover')).cache;
         expect(cachedInfo['jimmy@kosmos.org'].href).to.equal('https://storage.kosmos.org/jimmy');
       });
+    });
+
+    after(() => fetchMock.reset());
+  });
+
+  describe('localhost / private addresses (regression for #1384)', () => {
+    before(() => {
+      fetchMock.mock(
+        'http://localhost:8000/.well-known/webfinger?resource=acct:alice@localhost:8000',
+        { status: 200, body: jrdLocalhost, headers: {
+          'Content-Type': 'application/jrd+json; charset=utf-8'
+        }},
+      );
+    });
+
+    it("resolves storage info for a localhost address by default", async () => {
+      const info = await Discover('alice@localhost:8000');
+      expect(info.href).to.equal('http://localhost:8000/storage/alice');
+      expect(info.authURL).to.equal('http://localhost:8000/oauth/alice');
+    });
+
+    it("rejects localhost addresses when discovery.allowPrivateAddresses is false", async () => {
+      const previous = config.discovery.allowPrivateAddresses;
+      config.discovery.allowPrivateAddresses = false;
+      try {
+        // Use a fresh address so the in-module cache does not short-circuit the lookup.
+        await expect(Discover('bob@localhost:9000')).to.be.rejectedWith(/private or internal addresses/);
+      } finally {
+        config.discovery.allowPrivateAddresses = previous;
+      }
     });
 
     after(() => fetchMock.reset());

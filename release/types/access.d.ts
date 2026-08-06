@@ -17,7 +17,12 @@ export declare class Access {
     scopeModeMap: ScopeModeMap;
     rootPaths: string[];
     storageType: string;
-    constructor();
+    rs?: {
+        _checkScopeChange?: () => void;
+    };
+    constructor(rs?: {
+        _checkScopeChange?: () => void;
+    });
     /**
      * Holds an array of claimed scopes:
      *
@@ -86,7 +91,7 @@ export declare class Access {
      *
      * @ignore
      */
-    reset(): void;
+    reset(notifyChange?: boolean): void;
     /**
      * Return the module name for a given path.
      */
@@ -106,6 +111,7 @@ export declare class Access {
      * @internal
      */
     setStorageType(type: string): void;
+    private _notifyChange;
     static _rs_init(): void;
 }
 export default Access;

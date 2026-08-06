@@ -1,11 +1,9 @@
 # remotestorage
 
-## Index
-
-### Classes
+## Classes
 
 - [RemoteStorage](classes/RemoteStorage.md)
 
-### Interfaces
+## Interfaces
 
 - [RSModule](interfaces/RSModule.md)

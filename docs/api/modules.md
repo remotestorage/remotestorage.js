@@ -1,4 +1,4 @@
-# remoteStorage.js v2.0.0-beta.8
+# remoteStorage.js v2.0.0-beta.9
 
 ## Modules
 

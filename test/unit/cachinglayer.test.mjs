@@ -66,6 +66,24 @@ describe("CachingLayer", function() {
             timestamp: new Date().getTime() - 60000,
             revision: 'oldie-but-goodie'
           }
+        },
+        '/foo/binary': {
+          path: '/foo/binary',
+          common: {
+            body: 'binary data',
+            contentType: 'image/png; charset=binary',
+            timestamp: new Date().getTime(),
+            revision: 'legacy'
+          }
+        },
+        '/foo/html': {
+          path: '/foo/html',
+          common: {
+            body: '<p>hello</p>',
+            contentType: 'text/html; charset=UTF-8',
+            timestamp: new Date().getTime(),
+            revision: 'html'
+          }
         }
       });
     });
@@ -92,6 +110,20 @@ describe("CachingLayer", function() {
       const res = await this.rs.local.get('/foo/two', 5, this.rs.sync.queueGetRequest.bind(this.rs.sync));
       expect(res).to.deep.equal({
         statusCode: 200, body: 'ohai', contentType: 'text/plain'
+      });
+    });
+
+    it("strips legacy charset=binary from cached contentType", async function() {
+      const res = await this.rs.local.get('/foo/binary', 120000, this.rs.sync.queueGetRequest.bind(this.rs.sync));
+      expect(res).to.deep.equal({
+        statusCode: 200, body: 'binary data', contentType: 'image/png'
+      });
+    });
+
+    it("preserves legitimate charset parameters in cached contentType", async function() {
+      const res = await this.rs.local.get('/foo/html', 120000, this.rs.sync.queueGetRequest.bind(this.rs.sync));
+      expect(res).to.deep.equal({
+        statusCode: 200, body: '<p>hello</p>', contentType: 'text/html; charset=UTF-8'
       });
     });
   });

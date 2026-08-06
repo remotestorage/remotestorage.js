@@ -1,5 +1,5 @@
 export type RSItem = {
-    body?: string | object | false;
+    body?: string | object | ArrayBuffer | ArrayBufferView | false;
     contentType?: string;
     contentLength?: number;
     revision?: string;
@@ -7,7 +7,7 @@ export type RSItem = {
     itemsMap?: {
         [key: string]: any;
     };
-    previousBody?: string | object | false;
+    previousBody?: string | object | ArrayBuffer | ArrayBufferView | false;
     previousContentType?: string;
 };
 export type RSNode = {

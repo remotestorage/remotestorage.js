@@ -1,15 +1,15 @@
-# Type Alias: EventHandler()
+# Type Alias: EventHandler
 
-> **EventHandler**: (`event`?) => `void`
+> **EventHandler** = (`event?`) => `void`
+
+Defined in: [eventhandling.ts:5](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L5)
 
 ## Parameters
 
-• **event?**: `unknown`
+### event?
+
+`unknown`
 
 ## Returns
 
 `void`
-
-## Defined in
-
-[eventhandling.ts:5](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L5)

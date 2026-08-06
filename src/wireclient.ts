@@ -42,9 +42,10 @@ import {
   getTextFromArrayBuffer,
   isFolder,
   localStorageAvailable,
-  shouldBeTreatedAsBinary
+  shouldBeTreatedAsBinary,
+  stripLegacyCharsetBinary
 } from './util';
-import {requestWithTimeout, isArrayBufferView} from "./requests";
+import {requestWithTimeout} from "./requests";
 import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
 
 let hasLocalStorage;
@@ -214,7 +215,7 @@ class WireClient extends RemoteBase implements Remote {
           return Promise.resolve({
             statusCode: response.status,
             body: response.response,
-            contentType: mimeType,
+            contentType: stripLegacyCharsetBinary(mimeType),
             revision: revision
           });
         } else {
@@ -224,7 +225,7 @@ class WireClient extends RemoteBase implements Remote {
               return Promise.resolve({
                 statusCode: response.status,
                 body: textContent,
-                contentType: mimeType,
+                contentType: stripLegacyCharsetBinary(mimeType),
                 revision: revision
               });
             });
@@ -365,9 +366,6 @@ class WireClient extends RemoteBase implements Remote {
   put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (!this.connected) {
       return Promise.reject('not connected (path: ' + path + ')');
-    }
-    if ((!contentType.match(/charset=/)) && (body instanceof ArrayBuffer || isArrayBufferView(body))) {
-      contentType += '; charset=binary';
     }
     const headers = {'Content-Type': contentType};
     if (this.supportsRevs) {

@@ -305,6 +305,32 @@ describe('Dropbox backend', () => {
     });
   });
 
+  describe("disconnect", () => {
+    it("removes SETTINGS_KEY and the shares cache from localStorage", async () => {
+      const sharesKey = `${SETTINGS_KEY}:shares`;
+      localStorage.setItem(sharesKey, JSON.stringify({ '/public/foo.txt': 'https://db.tt/link' }));
+
+      await dropbox.configure({ userAddress: null, token: null, refreshToken: null });
+
+      expect(localStorage.getItem(SETTINGS_KEY)).to.be.null;
+      expect(localStorage.getItem(sharesKey)).to.be.null;
+    });
+
+    it("resets credentials and connection state in RemoteStorage", async () => {
+      rs.remote = dropbox;
+      rs.setBackend('dropbox');
+      expect(dropbox.refreshToken).to.equal(REFRESH_TOKEN);
+
+      rs.disconnect();
+
+      expect(dropbox.connected).to.be.false;
+      expect(dropbox.refreshToken).to.be.null;
+      expect(dropbox.token).to.be.null;
+      expect(dropbox.userAddress).to.be.null;
+      expect(rs.backend).to.be.undefined;
+    });
+  });
+
   describe("get", () => {
     it('rejects a promise if not connected', async () => {
       dropbox.connected = false;

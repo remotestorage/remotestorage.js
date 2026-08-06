@@ -81,6 +81,13 @@ describe("Sync", function() {
       Sync._rs_cleanup(this.rs);
       expect(typeof this.rs.sync).to.equal("undefined");
     });
+
+    it("clears the caching activation handler", function() {
+      Sync._rs_cleanup(this.rs);
+      this.rs.caching.enable("/foo/");
+      this.rs.sync = new Sync(this.rs);
+      expect(this.rs.sync._tasks).to.have.property("/foo/");
+    });
   });
 
   describe("#getParentPath", function() {

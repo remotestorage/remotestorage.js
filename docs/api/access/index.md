@@ -1,7 +1,5 @@
 # access
 
-## Index
-
-### Classes
+## Classes
 
 - [Access](classes/Access.md)

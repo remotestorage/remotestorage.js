@@ -7,6 +7,7 @@ import {
   applyMixins,
   isFolder,
   shouldBeTreatedAsBinary,
+  stripLegacyCharsetBinary,
   getJSONFromLocalStorage,
   getTextFromArrayBuffer,
   localStorageAvailable,
@@ -243,6 +244,7 @@ class Dropbox extends RemoteBase implements Remote {
       this.connected = false;
       if (hasLocalStorage) {
         localStorage.removeItem(SETTINGS_KEY);
+        localStorage.removeItem(`${SETTINGS_KEY}:shares`);
       }
       this.rs.setBackend(undefined);
     };
@@ -453,7 +455,7 @@ class Dropbox extends RemoteBase implements Remote {
         return {
           statusCode: status,
           body: body,
-          contentType: mime,
+          contentType: stripLegacyCharsetBinary(mime),
           revision: rev
         };
       });
@@ -492,10 +494,6 @@ class Dropbox extends RemoteBase implements Remote {
     if (options && (options.ifNoneMatch === '*') &&
         savedRev && (savedRev !== 'rev')) {
       return {statusCode: 412, revision: savedRev};
-    }
-
-    if ((!contentType.match(/charset=/)) && isBinaryData(body)) {
-      contentType += '; charset=binary';
     }
 
     if (body.length > 150 * 1024 * 1024) {

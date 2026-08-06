@@ -14,6 +14,6 @@ jobs:
   update_release_draft:
     runs-on: ubuntu-latest
     steps:
-      - uses: release-drafter/release-drafter@v7
+      - uses: release-drafter/release-drafter@ed4bc48ec97379be2258e7b7ac2624a3e26ab809   # v7.4.0
         with:
           config-name: release-drafter.yml # the default, loads '.github/release-drafter.yml'

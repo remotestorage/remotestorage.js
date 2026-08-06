@@ -93,6 +93,12 @@ export declare class Caching {
      */
     onActivate(cb: (firstPending: string) => void): void;
     /**
+     * Reset activation state for sync lifecycle cleanup.
+     *
+     * @internal
+     */
+    resetActivationHandler(): void;
+    /**
      * Retrieve caching setting for a given path, or its next parent
      * with a caching strategy set.
      *

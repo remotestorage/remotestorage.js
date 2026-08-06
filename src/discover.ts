@@ -37,14 +37,15 @@ const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
   const webFinger = new WebFinger({
     tls_only: false,
     uri_fallback: true,
-    request_timeout: config.discoveryTimeout
+    request_timeout: config.discovery.timeout,
+    allow_private_addresses: config.discovery.allowPrivateAddresses
   });
 
   let timer;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       reject(new Error('timed out'));
-    }, config.discoveryTimeout);
+    }, config.discovery.timeout);
   });
 
   return Promise.race([

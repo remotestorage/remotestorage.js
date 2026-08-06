@@ -5,6 +5,7 @@ import {
   isFolder,
   cleanPath,
   shouldBeTreatedAsBinary,
+  stripLegacyCharsetBinary,
   getJSONFromLocalStorage,
   getTextFromArrayBuffer,
   localStorageAvailable
@@ -494,7 +495,7 @@ class GoogleDrive extends RemoteBase implements Remote {
             return {
               statusCode: 200,
               body: body,
-              contentType: meta.mimeType,
+              contentType: stripLegacyCharsetBinary(meta.mimeType),
               revision: etagWithoutQuotes
             };
           });

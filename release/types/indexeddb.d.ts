@@ -119,6 +119,7 @@ declare class IndexedDB extends CachingLayer {
      * @protected
      */
     static _rs_cleanup(remoteStorage: RemoteStorage): Promise<unknown>;
+    static eventToError(evt: Event): Error;
     diffHandler(): void;
 }
 interface IndexedDB extends EventHandling {

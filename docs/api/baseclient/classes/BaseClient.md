@@ -1,5 +1,7 @@
 # Class: BaseClient
 
+Defined in: [baseclient.ts:220](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L220)
+
 A `BaseClient` instance is the main endpoint you will use for interacting
 with a connected storage: listing, reading, creating, updating and deleting
 documents, as well as handling incoming changes.
@@ -10,23 +12,23 @@ and one for public documents.
 
 However, you can also instantiate a BaseClient outside of a data module using
 the `remoteStorage.scope()` function. Similarly, you can create a new scoped
-client within another client, using the `BaseClient`'s own [scope](BaseClient.md#scope).
+client within another client, using the `BaseClient`'s own [scope](#scope).
 
 ## Read/write operations
 
 A `BaseClient` deals with three types of data: folders, objects and files.
 
-* [getListing](BaseClient.md#getlisting) returns a mapping of all items within a folder.
+* [getListing](#getlisting) returns a mapping of all items within a folder.
 
-* [getObject](BaseClient.md#getobject) and [storeObject](BaseClient.md#storeobject) operate on JSON objects. Each object
+* [getObject](#getobject) and [storeObject](#storeobject) operate on JSON objects. Each object
   has a type.
 
-* [getFile](BaseClient.md#getfile) and [storeFile](BaseClient.md#storefile) operates on files. Each file has a
+* [getFile](#getfile) and [storeFile](#storefile) operates on files. Each file has a
   content/MIME type.
 
-* [getAll](BaseClient.md#getall) returns all objects or files for the given folder path.
+* [getAll](#getall) returns all objects or files for the given folder path.
 
-* [remove](BaseClient.md#remove) operates on either objects or files (but not folders; folders
+* [remove](#remove) operates on either objects or files (but not folders; folders
   are created and removed implictly).
 
 ## Caching logic for read operations
@@ -123,7 +125,7 @@ Example:
 ```
 
 > [!TIP]
-> You may also use for example [getAll](BaseClient.md#getall) instead, and choose to
+> You may also use for example [getAll](#getall) instead, and choose to
 > deactivate these.
 
 ### `remote`
@@ -190,7 +192,7 @@ the local version a few seconds ago, `oldValue` is now your local value of
 
 #### Conflict Resolution
 
-Conflicts are resolved by calling [storeObject](BaseClient.md#storeobject) or [storeFile](BaseClient.md#storefile) on
+Conflicts are resolved by calling [storeObject](#storeobject) or [storeFile](#storefile) on
 the device where the conflict surfaced. Other devices are not aware of the
 conflict.
 
@@ -201,24 +203,18 @@ If no algorithm exists, conflict resolution typically involves displaying local
 and remote versions to the user, and having the user merge them, or choose
 which version to keep.
 
-## Extends
-
-- `EventHandling`
-
 ## Properties
 
 ### base
 
 > **base**: `string`
 
-Base path, which this [BaseClient](BaseClient.md) operates on.
+Defined in: [baseclient.ts:234](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L234)
+
+Base path, which this BaseClient operates on.
 
 For the module's `privateClient` this would be the module name, and for the
 corresponding `publicClient` it is `/public/<moduleName>/`.
-
-#### Defined in
-
-[baseclient.ts:234](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L234)
 
 ## Methods
 
@@ -226,29 +222,33 @@ corresponding `publicClient` it is `/public/<moduleName>/`.
 
 > **addEventListener**(`eventName`, `handler`): `void`
 
+Defined in: [eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L29)
+
 Install an event handler for the given event name
 
 Usually called via [`on()`](#on)
 
 #### Parameters
 
-• **eventName**: `string`
+##### eventName
 
-• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+`string`
+
+##### handler
+
+[`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
 
 #### Returns
 
 `void`
 
-#### Defined in
-
-[eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L29)
-
 ***
 
 ### cache()
 
-> **cache**(`path`, `strategy`): [`BaseClient`](BaseClient.md)
+> **cache**(`path`, `strategy?`): `BaseClient`
+
+Defined in: [baseclient.ts:679](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L679)
 
 Set caching strategy for a given path and its children.
 
@@ -257,18 +257,22 @@ for a detailed description of the available strategies.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Path to cache
 
-• **strategy**: `"ALL"` \| `"SEEN"` \| `"FLUSH"` = `'ALL'`
+##### strategy?
+
+`"ALL"` \| `"SEEN"` \| `"FLUSH"`
 
 Caching strategy. One of 'ALL', 'SEEN', or FLUSH'.
                   Defaults to 'ALL'.
 
 #### Returns
 
-[`BaseClient`](BaseClient.md)
+`BaseClient`
 
 The same `BaseClient` instance this method is called on to allow
          for method chaining
@@ -279,15 +283,13 @@ The same `BaseClient` instance this method is called on to allow
 client.cache('lists/', 'SEEN');
 ```
 
-#### Defined in
-
-[baseclient.ts:678](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L678)
-
 ***
 
 ### declareType()
 
-> **declareType**(`alias`, `uriOrSchema`, `schema`?): `void`
+> **declareType**(`alias`, `uriOrSchema`, `schema?`): `void`
+
+Defined in: [baseclient.ts:729](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L729)
 
 Declare a remoteStorage object type using a JSON Schema. Visit
 [json-schema.org](http://json-schema.org) for details.
@@ -296,16 +298,22 @@ See [Defining data types](../../../data-modules/defining-data-types) for more in
 
 #### Parameters
 
-• **alias**: `string`
+##### alias
+
+`string`
 
 A type alias/shortname
 
-• **uriOrSchema**: `string` \| `JsonSchema`
+##### uriOrSchema
+
+`string` \| `JsonSchema`
 
 JSON-LD URI of the schema, or a JSON Schema object.
                      The URI is automatically generated if none given.
 
-• **schema?**: `JsonSchema`
+##### schema?
+
+`JsonSchema`
 
 (optional) A JSON Schema object describing the object type
 
@@ -337,25 +345,27 @@ client.declareType('todo-item', {
 })
 ```
 
-#### Defined in
-
-[baseclient.ts:728](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L728)
-
 ***
 
 ### getAll()
 
-> **getAll**(`path`?, `maxAge`?): `Promise`\<`unknown`\>
+> **getAll**(`path?`, `maxAge?`): `Promise`\<`unknown`\>
+
+Defined in: [baseclient.ts:390](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L390)
 
 Get all objects directly below a given path.
 
 #### Parameters
 
-• **path?**: `string`
+##### path?
+
+`string`
 
 (optional) Path to the folder. Must end in a forward slash.
 
-• **maxAge?**: `number` \| `false`
+##### maxAge?
+
+`number` \| `false`
 
 (optional) Either `false` or the maximum age of cached
                 objects in milliseconds. See [caching logic for read
@@ -410,29 +420,31 @@ Example response:
 ```
 > [!NOTE]
 > For items that are not JSON-stringified objects (for example stored using
-> [storeFile](BaseClient.md#storefile) instead of [storeObject](BaseClient.md#storeobject)), the object's value is
+> [storeFile](#storefile) instead of [storeObject](#storeobject)), the object's value is
 > filled in with `true`.
-
-#### Defined in
-
-[baseclient.ts:390](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L390)
 
 ***
 
 ### getFile()
 
-> **getFile**(`path`, `maxAge`?): `Promise`\<`unknown`\>
+> **getFile**(`path`, `maxAge?`): `Promise`\<`unknown`\>
+
+Defined in: [baseclient.ts:452](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L452)
 
 Get the file at the given path. A file is raw data, as opposed to
-a JSON object (use [getObject](BaseClient.md#getobject) for that).
+a JSON object (use [getObject](#getobject) for that).
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Relative path from the module root (without leading slash).
 
-• **maxAge?**: `number` \| `false`
+##### maxAge?
+
+`number` \| `false`
 
 (optional) Either ``false`` or the maximum age of
                 the cached file in milliseconds. See [caching logic for read
@@ -463,22 +475,22 @@ client.getFile('path/to/some/image').then(file => {
 });
 ```
 
-#### Defined in
-
-[baseclient.ts:452](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L452)
-
 ***
 
 ### getItemURL()
 
 > **getItemURL**(`path`): `string`
 
+Defined in: [baseclient.ts:651](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L651)
+
 Retrieve full URL of a document. Useful for example for sharing the public
 URL of an item in the ``/public`` folder.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Path relative to the module root.
 
@@ -494,25 +506,27 @@ The full URL of the item, including the storage origin, or `undefined`
 > backends. The GitHub issues for implementing it for Dropbox and Google
 > are 1052 and 1054.
 
-#### Defined in
-
-[baseclient.ts:650](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L650)
-
 ***
 
 ### getListing()
 
-> **getListing**(`path`?, `maxAge`?): `Promise`\<`unknown`\>
+> **getListing**(`path?`, `maxAge?`): `Promise`\<`unknown`\>
+
+Defined in: [baseclient.ts:321](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L321)
 
 Get a list of child nodes below a given path.
 
 #### Parameters
 
-• **path?**: `string`
+##### path?
+
+`string`
 
 The path to query. It must end with a forward slash.
 
-• **maxAge?**: `number` \| `false`
+##### maxAge?
+
+`number` \| `false`
 
 (optional) Either `false` or the maximum age of cached
                 listing in milliseconds. See [caching logic for read
@@ -564,25 +578,27 @@ Example of a listing object:
 > item names as properties with `true` as value. See issues 721 and 1108 —
 > contributions welcome!
 
-#### Defined in
-
-[baseclient.ts:321](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L321)
-
 ***
 
 ### getObject()
 
-> **getObject**(`path`, `maxAge`?): `Promise`\<`unknown`\>
+> **getObject**(`path`, `maxAge?`): `Promise`\<`unknown`\>
+
+Defined in: [baseclient.ts:537](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L537)
 
 Get a JSON object from the given path.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Relative path from the module root (without leading slash).
 
-• **maxAge?**: `number` \| `false`
+##### maxAge?
+
+`number` \| `false`
 
 (optional) Either `false` or the maximum age of
                 cached object in milliseconds. See [caching logic for read
@@ -600,27 +616,29 @@ A promise, resolving with the requested object, or `null` if non-existent
 client.getObject('/path/to/object').then(obj => console.log(obj));
 ```
 
-#### Defined in
-
-[baseclient.ts:536](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L536)
-
 ***
 
 ### on()
 
 > **on**(`eventName`, `handler`): `void`
 
+Defined in: [eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L55)
+
 Register an event handler for the given event name
 
-Alias for [addEventListener](BaseClient.md#addeventlistener)
+Alias for [addEventListener](#addeventlistener)
 
 #### Parameters
 
-• **eventName**: `string`
+##### eventName
+
+`string`
 
 Name of the event
 
-• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+##### handler
+
+[`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
 
 Function to handle the event
 
@@ -636,21 +654,21 @@ remoteStorage.on('connected', function() {
 });
 ```
 
-#### Defined in
-
-[eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L55)
-
 ***
 
 ### remove()
 
 > **remove**(`path`): `Promise`\<`QueuedRequestResponse`\>
 
+Defined in: [baseclient.ts:625](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L625)
+
 Remove node at given path from storage. Triggers synchronization.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 Path relative to the module root.
 
@@ -664,56 +682,54 @@ Path relative to the module root.
 client.remove('path/to/object').then(() => console.log('item deleted'));
 ```
 
-#### Defined in
-
-[baseclient.ts:624](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L624)
-
 ***
 
 ### removeEventListener()
 
 > **removeEventListener**(`eventName`, `handler`): `void`
 
+Defined in: [eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L62)
+
 Remove a previously installed event handler
 
 #### Parameters
 
-• **eventName**: `string`
+##### eventName
 
-• **handler**: [`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
+`string`
+
+##### handler
+
+[`EventHandler`](../../eventhandling/type-aliases/EventHandler.md)
 
 #### Returns
 
 `void`
 
-#### Defined in
-
-[eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/eventhandling.ts#L62)
-
 ***
 
 ### scope()
 
-> **scope**(`path`): [`BaseClient`](BaseClient.md)
+> **scope**(`path`): `BaseClient`
+
+Defined in: [baseclient.ts:267](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L267)
 
 Instantiate a new client, scoped to a subpath of the current client's
 path.
 
 #### Parameters
 
-• **path**: `string`
+##### path
+
+`string`
 
 The path to scope the new client to
 
 #### Returns
 
-[`BaseClient`](BaseClient.md)
+`BaseClient`
 
 A new `BaseClient` operating on a subpath of the current base path
-
-#### Defined in
-
-[baseclient.ts:267](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L267)
 
 ***
 
@@ -721,21 +737,30 @@ A new `BaseClient` operating on a subpath of the current base path
 
 > **storeFile**(`contentType`, `path`, `body`): `Promise`\<`string`\>
 
+Defined in: [baseclient.ts:499](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L499)
+
 Store raw data at a given path.
 
 #### Parameters
 
-• **contentType**: `string`
+##### contentType
+
+`string`
 
 Content type (MIME media type) of the data being stored
 
-• **path**: `string`
+##### path
+
+`string`
 
 Path relative to the module root
 
-• **body**: `string` \| `ArrayBuffer` \| `ArrayBufferView`
+##### body
 
-Raw data to store
+`string` \| `ArrayBuffer` \| `ArrayBufferView`\<`ArrayBufferLike`\>
+
+Raw data to store. For binary data, use an `ArrayBuffer`
+                     or `ArrayBufferView` (e.g. `Uint8Array`), not a binary string.
 
 #### Returns
 
@@ -767,17 +792,15 @@ fileReader.onload = function () {
 fileReader.readAsArrayBuffer(file);
 ```
 
-#### Defined in
-
-[baseclient.ts:498](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L498)
-
 ***
 
 ### storeObject()
 
 > **storeObject**(`typeAlias`, `path`, `object`): `Promise`\<`string`\>
 
-Store an object at given path. Triggers synchronization. See [declareType](BaseClient.md#declaretype) and
+Defined in: [baseclient.ts:585](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L585)
+
+Store an object at given path. Triggers synchronization. See [declareType](#declaretype) and
 [Defining data types](../../../data-modules/defining-data-types)
 for info on object types.
 
@@ -785,15 +808,21 @@ Must not be called more than once per second for any given `path`.
 
 #### Parameters
 
-• **typeAlias**: `string`
+##### typeAlias
+
+`string`
 
 Unique type of this object within this module.
 
-• **path**: `string`
+##### path
+
+`string`
 
 Path relative to the module root.
 
-• **object**: `object`
+##### object
+
+`object`
 
 A JavaScript object to be stored at the given path.
                    Must be serializable as JSON.
@@ -820,21 +849,19 @@ client.storeObject('bookmark', path, bookmark)
       .catch((err) => console.log(err));
 ```
 
-#### Defined in
-
-[baseclient.ts:584](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L584)
-
 ***
 
 ### validate()
 
 > **validate**(`object`): `object`
 
+Defined in: [baseclient.ts:761](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L761)
+
 Validate an object against the associated schema.
 
 #### Parameters
 
-• **object**
+##### object
 
 JS object to validate. Must have a `@context` property.
 
@@ -856,7 +883,3 @@ var result = client.validate(document);
 //   valid: true
 // }
 ```
-
-#### Defined in
-
-[baseclient.ts:760](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/baseclient.ts#L760)

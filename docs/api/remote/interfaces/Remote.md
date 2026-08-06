@@ -1,5 +1,7 @@
 # Interface: Remote
 
+Defined in: [remote.ts:78](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remote.ts#L78)
+
 The public interface for WireClient, GoogleDrive & Dropbox
 
 ## Properties
@@ -8,11 +10,9 @@ The public interface for WireClient, GoogleDrive & Dropbox
 
 > **connected**: `boolean`
 
+Defined in: [remote.ts:82](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remote.ts#L82)
+
 Whether or not a remote store is connected
-
-#### Defined in
-
-[remote.ts:82](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remote.ts#L82)
 
 ***
 
@@ -20,23 +20,19 @@ Whether or not a remote store is connected
 
 > **online**: `boolean`
 
+Defined in: [remote.ts:87](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remote.ts#L87)
+
 Whether last sync action was successful or not
-
-#### Defined in
-
-[remote.ts:87](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remote.ts#L87)
 
 ***
 
 ### properties?
 
-> `optional` **properties**: `object`
+> `optional` **properties?**: `object`
+
+Defined in: [remote.ts:123](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remote.ts#L123)
 
 The JSON-parsed properties object from the user's WebFinger record
-
-#### Defined in
-
-[remote.ts:123](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remote.ts#L123)
 
 ***
 
@@ -44,8 +40,6 @@ The JSON-parsed properties object from the user's WebFinger record
 
 > **userAddress**: `string`
 
+Defined in: [remote.ts:92](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remote.ts#L92)
+
 The user address of the connected user
-
-#### Defined in
-
-[remote.ts:92](https://github.com/remotestorage/remotestorage.js/blob/16fab691d67a1b3ad2e8a6ceaebe1544aa1cae54/src/remote.ts#L92)
