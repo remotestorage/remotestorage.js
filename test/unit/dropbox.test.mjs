@@ -6,6 +6,7 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
 import { localStorage } from '../helpers/memoryStorage.mjs';
+import { backendBehavior } from '../helpers/backend-behavior.mjs';
 
 import config from "../../build/config.js";
 import Dropbox from "../../build/dropbox.js";
@@ -337,6 +338,20 @@ describe('Dropbox backend', () => {
       const p = dropbox.get('/frack');
       expect(p).to.be.instanceof(Promise);
       await expect(p).to.be.rejectedWith(/not connected/);
+    });
+
+    it('sends a GET request to the Dropbox download endpoint', async () => {
+      fetchMock.mock(
+        {name: 'getFile', method: 'GET', url: DOWNLOAD_URL},
+        {status: 200, body: 'content', headers: {'Dropbox-API-Result': '{}'}}
+      );
+
+      await dropbox.get('/foo/bar');
+
+      const calls = fetchMock.calls();
+      expect(calls).to.have.lengthOf(1);
+      expect(calls[0][0]).to.equal(DOWNLOAD_URL);
+      expect(calls[0][1]).to.have.property('method', 'GET');
     });
 
     it('with network failure emits network-offline if remote.online was true, and wire-busy & wire-done', async () => {
@@ -701,6 +716,53 @@ describe('Dropbox backend', () => {
       expect(result).to.have.property('body').which.is.instanceof(ArrayBuffer);
       expect(ArrayBuffer.isView(result.body)).to.equal(false);
       expect(new Uint16Array(result.body)).to.deep.equal(data);
+    });
+
+    it("triggers fetchDelta first when initial fetch isn't complete and ifNoneMatch is given", async () => {
+      // Reproduces the guard at src/dropbox.ts:380 — a conditional GET issued
+      // before the first fetchDelta must defer until the local rev cache has
+      // caught up with the server, so the ifNoneMatch comparison is correct.
+      dropbox._initialFetchDone = false;
+      const fetchDeltaSpy = sandbox.spy(dropbox, 'fetchDelta');
+
+      fetchMock.mock(
+        {name: 'postFolder', method: 'POST', url: FOLDER_URL},
+        {status: 200, body: JSON.stringify({entries: []})}
+      );
+      fetchMock.mock(
+        {name: 'getFile', url: DOWNLOAD_URL},
+        {status: 304}
+      );
+
+      const result = await dropbox.get('/foo', { ifNoneMatch: 'whatever' });
+
+      expect(fetchDeltaSpy.callCount).to.equal(1);
+      const calls = fetchMock.calls();
+      // fetchDelta (postFolder) must be called before the GET request
+      expect(calls[0][0]).to.equal(FOLDER_URL);
+      expect(calls[1][0]).to.equal(DOWNLOAD_URL);
+      expect(result).to.have.property('statusCode', 304);
+    });
+
+    it("responses without a Content-Type header still work", async () => {
+      const REVISION = '101';
+      const CONTENT = 'response-body';
+      // Use a binary body + sendAsJson:false so fetchMock doesn't auto-inject
+      // a Content-Type response header. Verifies the dropbox adapter copes
+      // when the server doesn't supply one (see src/dropbox.ts:435).
+      const data = new TextEncoder().encode(CONTENT);
+      const apiResult = { rev: REVISION };
+      fetchMock.mock(
+        {name: 'getFile', url: DOWNLOAD_URL},
+        {status: 200, body: data, headers: {'Dropbox-API-Result': httpHeaderSafeJson(apiResult)}},
+        {sendAsJson: false}
+      );
+
+      const result = await dropbox.get('/foo/bar');
+
+      expect(result).to.have.property('statusCode', 200);
+      expect(result).to.have.property('body', CONTENT);
+      expect(result).to.have.property('revision', REVISION);
     });
 
     it("responds with status 304 Not Modified if revision matches the server", async () => {
@@ -1155,6 +1217,7 @@ describe('Dropbox backend', () => {
       expect(calls[0][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);
       expect(calls[0][1]).to.have.property('body', JSON.stringify({path: "/remotestorage/spam/ham"}));
       expect(result).to.have.property('statusCode', 200);
+      expect(result).to.have.property('revision', '1001');
       expect(dropbox._revCache.get('/spam/ham')).to.be.null;
     });
 
@@ -1191,6 +1254,7 @@ describe('Dropbox backend', () => {
       expect(calls[1][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);
       expect(calls[1][1]).to.have.property('body', JSON.stringify({path: "/remotestorage/fnord/xyzzy"}));
       expect(result).to.have.property('statusCode', 200);
+      expect(result).to.have.property('revision', metadata.rev);
       expect(dropbox._revCache.get('/fnord/xyzzy')).to.be.null;
     });
 
@@ -1212,5 +1276,20 @@ describe('Dropbox backend', () => {
       expect(calls[0][1]).to.have.property('body', JSON.stringify({path: "/remotestorage/widget/gadget"}));
       expect(result).to.have.property('statusCode', 409);
     });
+  });
+});
+
+// Generic backend assertions shared with other backend adapters.
+// Lives in its own describe block (no shared beforeEach) so the helper's
+// freshly-constructed client isn't pre-configured/connected by surrounding setup.
+describe('Dropbox', () => {
+  beforeEach(() => {
+    localStorage.removeItem(SETTINGS_KEY);
+  });
+
+  backendBehavior(() => {
+    const rs = new RemoteStorage();
+    rs.setApiKeys({ dropbox: 'some-client-id' });
+    return rs.dropbox;
   });
 });

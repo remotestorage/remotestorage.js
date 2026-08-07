@@ -968,6 +968,7 @@ class Dropbox extends RemoteBase implements Remote {
    *
    * @returns {Promise} A promise for an object with the following structure:
    *          statusCode - HTTP status code
+   *          revision - revision of the deleted file, if any
    *
    * @private
    */
@@ -994,7 +995,10 @@ class Dropbox extends RemoteBase implements Remote {
         this.rs._emit('error', new Error(responseBody.error_summary));
       }
 
-      return Promise.resolve({statusCode: response.status});
+      return Promise.resolve({
+        statusCode: response.status,
+        revision: response.status === 200 ? responseBody.rev : undefined
+      });
     }).then(result => {
       if (result.statusCode === 200 || result.statusCode === 404) {
         this._revCache.delete(path);
