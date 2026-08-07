@@ -741,7 +741,7 @@ describe('Dropbox backend', () => {
       // fetchDelta (postFolder) must be called before the GET request
       expect(calls[0][0]).to.equal(FOLDER_URL);
       expect(calls[1][0]).to.equal(DOWNLOAD_URL);
-      expect(result).to.have.property('statusCode');
+      expect(result).to.have.property('statusCode', 304);
     });
 
     it("responses without a Content-Type header still work", async () => {

@@ -50,5 +50,75 @@ describe("request helpers", () => {
       await expect(requestWithTimeout('GET', URL, {})).to
         .eventually.be.an('object').with.property('response', BODY);
     });
+
+    describe('XMLHttpRequest fallback', () => {
+      let originalFetch;
+      let originalXMLHttpRequest;
+
+      beforeEach(() => {
+        originalFetch = globalThis.fetch;
+        originalXMLHttpRequest = globalThis.XMLHttpRequest;
+        globalThis.fetch = undefined;
+      });
+
+      afterEach(() => {
+        globalThis.fetch = originalFetch;
+        globalThis.XMLHttpRequest = originalXMLHttpRequest;
+      });
+
+      it('sends requests via XMLHttpRequest when fetch is unavailable', async () => {
+        const URL = 'https://example.net/';
+        const instances = [];
+
+        class MockXMLHttpRequest {
+          constructor() {
+            this.headers = {};
+            instances.push(this);
+          }
+
+          open(method, url, async) {
+            this.openArgs = { method, url, async };
+          }
+
+          setRequestHeader(name, value) {
+            this.headers[name] = value;
+          }
+
+          send(body) {
+            this.body = body;
+          }
+        }
+
+        globalThis.XMLHttpRequest = MockXMLHttpRequest;
+        const requestPromise = requestWithTimeout('POST', URL, {
+          body: 'Hello!',
+          headers: { Authorization: 'Bearer token' }
+        });
+        const xhr = instances[0];
+
+        expect(xhr.openArgs).to.deep.equal({ method: 'POST', url: URL, async: true });
+        expect(xhr.headers).to.deep.equal({ Authorization: 'Bearer token' });
+        expect(xhr.body).to.equal('Hello!');
+
+        xhr.onload();
+        await expect(requestPromise).to.eventually.equal(xhr);
+      });
+
+      it('rejects when XMLHttpRequest reports an error', async () => {
+        const networkError = new Error('Network error');
+
+        class MockXMLHttpRequest {
+          open() {}
+          send() {
+            this.onerror(networkError);
+          }
+        }
+
+        globalThis.XMLHttpRequest = MockXMLHttpRequest;
+
+        await expect(requestWithTimeout('GET', 'https://example.org/', {})).to
+          .be.rejectedWith(networkError);
+      });
+    });
   });
 });
