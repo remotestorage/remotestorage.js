@@ -615,6 +615,19 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
           });
       }
     },
+
+    {
+      desc: "#getItemURL rejects with not-implemented error",
+      run: function (env, test) {
+        env.connectedClient.getItemURL('/foo/bar.txt').then(function () {
+          test.result(false, 'getItemURL should not resolve');
+        }).catch(function (err) {
+          test.assertAnd(err.message, 'getItemURL is not implemented for Google Drive yet');
+        }).then(function () {
+          test.done();
+        });
+      }
+    },
   ];
 
   var xhrTests = tests.concat([

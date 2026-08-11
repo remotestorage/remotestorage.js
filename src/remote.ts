@@ -161,4 +161,14 @@ export interface Remote {
   put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string }): Promise<RemoteResponse>
 
   delete (path: string, options: { ifMatch?: string }): Promise<RemoteResponse>;
+
+  /**
+   * Retrieve full URL of a document. Required for cloud backends (Dropbox,
+   * Google Drive) where the URL cannot be derived from the path alone.
+   * For standard remoteStorage backends this can be omitted; BaseClient
+   * will fall back to concatenating `href + path`.
+   *
+   * @param path - Absolute storage path (not module-relative)
+   */
+  getItemURL? (path: string): Promise<string | undefined>;
 }
