@@ -29,7 +29,7 @@
 # Continuous Integration
 
 - GitHub Actions workflow: `.github/workflows/test-and-lint.yml`.
-- Matrix Node versions: `18`, `20`.
+- Matrix Node versions: `22`, `24`, `26`.
 - Steps: `npm ci`, `npm test` (Jaribu), `npm run test:mocha -- --exit`, lint tasks, `npm run build:release`.
 
 # Project Overview
