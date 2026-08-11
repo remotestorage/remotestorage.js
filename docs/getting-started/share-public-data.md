@@ -35,6 +35,13 @@ In order to get the full public URL of a document, e.g. to offer it to the user
 to share with others, you can use the
 [getItemURL()](../api/baseclient/classes/BaseClient.html#getitemurl) function.
 
+::: tip
+For the Dropbox backend, the returned URL is an HTML preview page by default;
+see
+[Dropbox and Google Drive → Sharing public files via Dropbox](../dropbox-and-google-drive#sharing-public-files-via-dropbox)
+for how to convert it to a raw file URL, depending on your use case.
+:::
+
 ## Additional considerations
 
 Public documents can only be accessed by people or machines who know the URL.
