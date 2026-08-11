@@ -31,14 +31,11 @@
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.7",
-    "@babel/preset-env": "^7.29.7",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.2.0",
     "@types/tv4": "^1.2.33",
     "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.67.0",
-    "babel-loader": "^10.1.1",
     "chai": "^6.2.2",
     "chai-as-promised": "^8.0.2",
     "eslint": "^10.8.1",
