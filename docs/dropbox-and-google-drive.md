@@ -127,4 +127,4 @@ backends should check the URL host before applying the substitution, as shown
 above.
 :::
 
-[1]: ../api/baseclient/classes/BaseClient#getitemurl
+[1]: ./api/baseclient/classes/BaseClient#getitemurl
