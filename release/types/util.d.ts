@@ -33,6 +33,21 @@ export declare const getJSONFromLocalStorage: (key: string) => {
  */
 export declare const shouldBeTreatedAsBinary: (content: string | ArrayBuffer, mimeType: string) => boolean;
 /**
+ * Strip the legacy `; charset=binary` parameter from a Content-Type.
+ *
+ * Releases <=2.0.0-beta.9 appended this non-standard parameter to all binary
+ * PUTs, so files written back then still carry it in their stored Content-Type
+ * forever. We sanitize on read so callers never see it: some browsers refuse
+ * to render an `<img>` whose Blob type carries the suffix.
+ *
+ * Only the `charset=binary` parameter is removed; legitimate parameters like
+ * `charset=UTF-8` on `text/html` are preserved.
+ *
+ * @param {string} mimeType - The raw Content-Type as returned by the server.
+ * @returns {string} The Content-Type with any `; charset=binary` removed.
+ */
+export declare const stripLegacyCharsetBinary: (mimeType: string | null) => string | null;
+/**
  * Read data from an ArrayBuffer and return it as a string
  * @param {ArrayBuffer} arrayBuffer
  * @param {string} encoding

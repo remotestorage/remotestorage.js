@@ -61,7 +61,7 @@ declare enum ApiKeyType {
     DROPBOX = "dropbox"
 }
 /**
- * Create a `remoteStorage` class instance so:
+ * Create a `remoteStorage` class instance:
  *
  * ```js
  * const remoteStorage = new RemoteStorage();
@@ -80,6 +80,10 @@ declare enum ApiKeyType {
  *     conflict: true
  *   },
  *   cordovaRedirectUri: undefined,
+ *   discovery: {
+ *     allowPrivateAddresses: true,
+ *     timeout: 5000
+ *   },
  *   logging: false,
  *   modules: []
  * });

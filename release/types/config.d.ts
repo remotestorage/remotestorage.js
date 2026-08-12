@@ -11,11 +11,14 @@ declare const config: {
         conflict: boolean;
     };
     cordovaRedirectUri: any;
+    discovery: {
+        allowPrivateAddresses: boolean;
+        timeout: number;
+    };
     logging: boolean;
     modules: any[];
     backgroundSyncInterval: number;
     disableFeatures: any[];
-    discoveryTimeout: number;
     isBackground: boolean;
     requestTimeout: number;
     syncInterval: number;

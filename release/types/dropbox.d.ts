@@ -144,6 +144,17 @@ declare class Dropbox extends RemoteBase implements Remote {
      */
     _shareIfNeeded(path: string): Promise<any>;
     /**
+     * Retrieve the publicly-accessible URL for a path.
+     *
+     * For files under ``/public/``, returns a Dropbox shared link — fetching
+     * one from the API if not yet cached. For all other paths returns
+     * ``undefined`` because Dropbox has no concept of unauthenticated access
+     * outside the public folder.
+     *
+     * Implements {@link Remote.getItemURL}.
+     */
+    getItemURL(path: string): Promise<string | undefined>;
+    /**
      * Gets a publicly-accessible URL for the path from Dropbox and stores it
      * in ``_itemRefs``.
      *
@@ -220,6 +231,7 @@ declare class Dropbox extends RemoteBase implements Remote {
      *
      * @returns {Promise} A promise for an object with the following structure:
      *          statusCode - HTTP status code
+     *          revision - revision of the deleted file, if any
      *
      * @private
      */

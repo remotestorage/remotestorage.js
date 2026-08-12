@@ -264,12 +264,12 @@ export declare class BaseClient {
      *     "screenshot-20170902-1913.png": {
      *       "ETag": "6749fcb9eef3f9e46bb537ed020aeece",
      *       "Content-Length": 53698,
-     *       "Content-Type": "image/png;charset=binary"
+     *       "Content-Type": "image/png"
      *     },
      *     "screenshot-20170823-0142.png": {
      *       "ETag": "92ab84792ef3f9e46bb537edac9bc3a1",
      *       "Content-Length": 412401,
-     *       "Content-Type": "image/png;charset=binary"
+     *       "Content-Type": "image/png"
      *     }
      *   }
      * }
@@ -463,15 +463,17 @@ export declare class BaseClient {
      *
      * @param path - Path relative to the module root.
      *
-     * @returns The full URL of the item, including the storage origin, or `undefined`
-     *          if no remote storage is connected
+     * @returns A promise resolving to the full URL of the item, or `undefined`
+     *          if no remote storage is connected. For standard remoteStorage
+     *          backends the URL is derived from the server's base href. For
+     *          Dropbox, a share link is fetched or created via the provider's API.
      *
      * > [!WARNING]
-     * > This method currently only works for remoteStorage
-     * > backends. The GitHub issues for implementing it for Dropbox and Google
-     * > are 1052 and 1054.
+     * > This method currently only works for remoteStorage and Dropbox
+     * > backends. The GitHub issue for implementing it for Google Drive
+     * > is #1054.
      */
-    getItemURL(path: string): string | undefined;
+    getItemURL(path: string): Promise<string | undefined>;
     /**
      * Set caching strategy for a given path and its children.
      *

@@ -202,6 +202,7 @@ declare class GoogleDrive extends RemoteBase implements Remote {
      * @private
      */
     _request(method: string, url: string, options: RequestOptions): Promise<XMLHttpRequest>;
+    getItemURL(_path: string): Promise<never>;
     /**
      * Initialize the Google Drive backend.
      *

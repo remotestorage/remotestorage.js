@@ -1,6 +1,6 @@
 # Interface: RSModule
 
-Defined in: [remotestorage.ts:123](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L123)
+Defined in: [remotestorage.ts:123](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/remotestorage.ts#L123)
 
 Represents a data module
 
@@ -31,7 +31,7 @@ Represents a data module
 
 > **builder**: (`privateClient`, `publicClient`) => `object`
 
-Defined in: [remotestorage.ts:131](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L131)
+Defined in: [remotestorage.ts:131](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/remotestorage.ts#L131)
 
 A module builder function, which defines the actual module
 
@@ -63,6 +63,6 @@ A module builder function, which defines the actual module
 
 > **name**: `string`
 
-Defined in: [remotestorage.ts:127](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remotestorage.ts#L127)
+Defined in: [remotestorage.ts:127](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/remotestorage.ts#L127)
 
 The module's name, which is also the category (i.e. base folder) for document URLs on the remote storage

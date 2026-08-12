@@ -1,6 +1,6 @@
 # Class: BaseClient
 
-Defined in: [baseclient.ts:220](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L220)
+Defined in: [baseclient.ts:220](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L220)
 
 A `BaseClient` instance is the main endpoint you will use for interacting
 with a connected storage: listing, reading, creating, updating and deleting
@@ -209,7 +209,7 @@ which version to keep.
 
 > **base**: `string`
 
-Defined in: [baseclient.ts:234](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L234)
+Defined in: [baseclient.ts:234](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L234)
 
 Base path, which this BaseClient operates on.
 
@@ -222,7 +222,7 @@ corresponding `publicClient` it is `/public/<moduleName>/`.
 
 > **addEventListener**(`eventName`, `handler`): `void`
 
-Defined in: [eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L29)
+Defined in: [eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/eventhandling.ts#L29)
 
 Install an event handler for the given event name
 
@@ -248,7 +248,7 @@ Usually called via [`on()`](#on)
 
 > **cache**(`path`, `strategy?`): `BaseClient`
 
-Defined in: [baseclient.ts:679](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L679)
+Defined in: [baseclient.ts:682](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L682)
 
 Set caching strategy for a given path and its children.
 
@@ -289,7 +289,7 @@ client.cache('lists/', 'SEEN');
 
 > **declareType**(`alias`, `uriOrSchema`, `schema?`): `void`
 
-Defined in: [baseclient.ts:729](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L729)
+Defined in: [baseclient.ts:732](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L732)
 
 Declare a remoteStorage object type using a JSON Schema. Visit
 [json-schema.org](http://json-schema.org) for details.
@@ -351,7 +351,7 @@ client.declareType('todo-item', {
 
 > **getAll**(`path?`, `maxAge?`): `Promise`\<`unknown`\>
 
-Defined in: [baseclient.ts:390](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L390)
+Defined in: [baseclient.ts:390](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L390)
 
 Get all objects directly below a given path.
 
@@ -429,7 +429,7 @@ Example response:
 
 > **getFile**(`path`, `maxAge?`): `Promise`\<`unknown`\>
 
-Defined in: [baseclient.ts:452](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L452)
+Defined in: [baseclient.ts:452](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L452)
 
 Get the file at the given path. A file is raw data, as opposed to
 a JSON object (use [getObject](#getobject) for that).
@@ -479,9 +479,9 @@ client.getFile('path/to/some/image').then(file => {
 
 ### getItemURL()
 
-> **getItemURL**(`path`): `string`
+> **getItemURL**(`path`): `Promise`\<`string`\>
 
-Defined in: [baseclient.ts:651](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L651)
+Defined in: [baseclient.ts:652](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L652)
 
 Retrieve full URL of a document. Useful for example for sharing the public
 URL of an item in the ``/public`` folder.
@@ -496,15 +496,17 @@ Path relative to the module root.
 
 #### Returns
 
-`string`
+`Promise`\<`string`\>
 
-The full URL of the item, including the storage origin, or `undefined`
-         if no remote storage is connected
+A promise resolving to the full URL of the item, or `undefined`
+         if no remote storage is connected. For standard remoteStorage
+         backends the URL is derived from the server's base href. For
+         Dropbox, a share link is fetched or created via the provider's API.
 
 > [!WARNING]
-> This method currently only works for remoteStorage
-> backends. The GitHub issues for implementing it for Dropbox and Google
-> are 1052 and 1054.
+> This method currently only works for remoteStorage and Dropbox
+> backends. The GitHub issue for implementing it for Google Drive
+> is #1054.
 
 ***
 
@@ -512,7 +514,7 @@ The full URL of the item, including the storage origin, or `undefined`
 
 > **getListing**(`path?`, `maxAge?`): `Promise`\<`unknown`\>
 
-Defined in: [baseclient.ts:321](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L321)
+Defined in: [baseclient.ts:321](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L321)
 
 Get a list of child nodes below a given path.
 
@@ -561,12 +563,12 @@ Example of a listing object:
     "screenshot-20170902-1913.png": {
       "ETag": "6749fcb9eef3f9e46bb537ed020aeece",
       "Content-Length": 53698,
-      "Content-Type": "image/png;charset=binary"
+      "Content-Type": "image/png"
     },
     "screenshot-20170823-0142.png": {
       "ETag": "92ab84792ef3f9e46bb537edac9bc3a1",
       "Content-Length": 412401,
-      "Content-Type": "image/png;charset=binary"
+      "Content-Type": "image/png"
     }
   }
 }
@@ -584,7 +586,7 @@ Example of a listing object:
 
 > **getObject**(`path`, `maxAge?`): `Promise`\<`unknown`\>
 
-Defined in: [baseclient.ts:537](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L537)
+Defined in: [baseclient.ts:537](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L537)
 
 Get a JSON object from the given path.
 
@@ -622,7 +624,7 @@ client.getObject('/path/to/object').then(obj => console.log(obj));
 
 > **on**(`eventName`, `handler`): `void`
 
-Defined in: [eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L55)
+Defined in: [eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/eventhandling.ts#L55)
 
 Register an event handler for the given event name
 
@@ -660,7 +662,7 @@ remoteStorage.on('connected', function() {
 
 > **remove**(`path`): `Promise`\<`QueuedRequestResponse`\>
 
-Defined in: [baseclient.ts:625](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L625)
+Defined in: [baseclient.ts:625](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L625)
 
 Remove node at given path from storage. Triggers synchronization.
 
@@ -688,7 +690,7 @@ client.remove('path/to/object').then(() => console.log('item deleted'));
 
 > **removeEventListener**(`eventName`, `handler`): `void`
 
-Defined in: [eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L62)
+Defined in: [eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/eventhandling.ts#L62)
 
 Remove a previously installed event handler
 
@@ -712,7 +714,7 @@ Remove a previously installed event handler
 
 > **scope**(`path`): `BaseClient`
 
-Defined in: [baseclient.ts:267](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L267)
+Defined in: [baseclient.ts:267](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L267)
 
 Instantiate a new client, scoped to a subpath of the current client's
 path.
@@ -737,7 +739,7 @@ A new `BaseClient` operating on a subpath of the current base path
 
 > **storeFile**(`contentType`, `path`, `body`): `Promise`\<`string`\>
 
-Defined in: [baseclient.ts:499](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L499)
+Defined in: [baseclient.ts:499](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L499)
 
 Store raw data at a given path.
 
@@ -798,7 +800,7 @@ fileReader.readAsArrayBuffer(file);
 
 > **storeObject**(`typeAlias`, `path`, `object`): `Promise`\<`string`\>
 
-Defined in: [baseclient.ts:585](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L585)
+Defined in: [baseclient.ts:585](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L585)
 
 Store an object at given path. Triggers synchronization. See [declareType](#declaretype) and
 [Defining data types](../../../data-modules/defining-data-types)
@@ -855,7 +857,7 @@ client.storeObject('bookmark', path, bookmark)
 
 > **validate**(`object`): `object`
 
-Defined in: [baseclient.ts:761](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/baseclient.ts#L761)
+Defined in: [baseclient.ts:764](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/baseclient.ts#L764)
 
 Validate an object against the associated schema.
 

@@ -1,6 +1,6 @@
 # Class: RemoteBase
 
-Defined in: [remote.ts:8](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/remote.ts#L8)
+Defined in: [remote.ts:8](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/remote.ts#L8)
 
 The ancestor for WireClient, GoogleDrive & Dropbox
 
@@ -10,7 +10,7 @@ The ancestor for WireClient, GoogleDrive & Dropbox
 
 > **addEventListener**(`eventName`, `handler`): `void`
 
-Defined in: [eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L29)
+Defined in: [eventhandling.ts:29](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/eventhandling.ts#L29)
 
 Install an event handler for the given event name
 
@@ -40,7 +40,7 @@ Usually called via [`on()`](#on)
 
 > **on**(`eventName`, `handler`): `void`
 
-Defined in: [eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L55)
+Defined in: [eventhandling.ts:55](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/eventhandling.ts#L55)
 
 Register an event handler for the given event name
 
@@ -82,7 +82,7 @@ remoteStorage.on('connected', function() {
 
 > **removeEventListener**(`eventName`, `handler`): `void`
 
-Defined in: [eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/eventhandling.ts#L62)
+Defined in: [eventhandling.ts:62](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/eventhandling.ts#L62)
 
 Remove a previously installed event handler
 

@@ -1,6 +1,6 @@
 # Class: Access
 
-Defined in: [access.ts:20](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/access.ts#L20)
+Defined in: [access.ts:20](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/access.ts#L20)
 
 This class is for requesting and managing access to modules/folders on the
 remote. It gets initialized as `remoteStorage.access`.
@@ -11,7 +11,7 @@ remote. It gets initialized as `remoteStorage.access`.
 
 > **claim**(`scope`, `mode`): `void`
 
-Defined in: [access.ts:71](https://github.com/remotestorage/remotestorage.js/blob/ecf411704035df8269e5e37a88972943096bb455/src/access.ts#L71)
+Defined in: [access.ts:71](https://github.com/remotestorage/remotestorage.js/blob/99feed53fb7138821307670428659d0d1b82ee1c/src/access.ts#L71)
 
 Claim access on a given scope with given mode.
 
