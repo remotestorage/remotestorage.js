@@ -369,6 +369,11 @@ export class Authorize {
         log("[Authorize] Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
         return;
       }
+      // The token endpoint and client id were stored before the redirect (the
+      // generic backend does not re-discover before this runs); fall back to the
+      // remote for backends that set them directly, like Dropbox.
+      const tokenURL = sessionStorage.getItem('remotestorage:tokenURL') || remoteStorage.remote.TOKEN_URL;
+      const clientId = sessionStorage.getItem('remotestorage:clientId') || remoteStorage.remote.clientId;
       location = Authorize.getLocation();
       let redirectUri = location.origin;
       if (location.pathname !== '/') {
@@ -377,13 +382,13 @@ export class Authorize {
       const formValues = new URLSearchParams({
         code: code,
         grant_type: 'authorization_code',
-        client_id: remoteStorage.remote.clientId,
+        client_id: clientId,
         redirect_uri: redirectUri,
         code_verifier: codeVerifier
       });
       const xhr = await requestWithTimeout(
           'POST',
-          remoteStorage.remote.TOKEN_URL,
+          tokenURL,
           {
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: formValues.toString(),
@@ -408,6 +413,9 @@ export class Authorize {
             remoteStorage._emit('error', new Error(`no access_token in "successful" response: ${xhr.response}`));
           }
           sessionStorage.removeItem('remotestorage:codeVerifier');
+          sessionStorage.removeItem('remotestorage:state');
+          sessionStorage.removeItem('remotestorage:tokenURL');
+          sessionStorage.removeItem('remotestorage:clientId');
           break;
         }
         default:

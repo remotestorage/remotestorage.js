@@ -584,7 +584,47 @@ export class RemoteStorage {
       options.clientId = options.redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
     }
 
+    // The token request (PKCE) reads these back after the redirect; the
+    // generic backend has no other place to set them.
+    this.remote.clientId = options.clientId;
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('remotestorage:clientId', options.clientId);
+    }
+
     Authorize.authorize(this, options);
+  }
+
+  /**
+   * Start the authorization flow: the PKCE code flow when the server advertises
+   * it (spec §10.1), the implicit flow otherwise.
+   *
+   * @internal
+   */
+  _authorize (info: StorageInfo): void {
+    const tokenURL = util.pkceTokenURL(info);
+    if (!tokenURL || typeof sessionStorage === 'undefined') {
+      this.authorize({ authURL: info.authURL });
+      return;
+    }
+
+    util.generateCodeVerifier().then(({ codeVerifier, codeChallenge, state }) => {
+      // The redirect is a full page load, so the values the token request needs
+      // afterwards live in sessionStorage (as the verifier already does for the
+      // Dropbox backend).
+      sessionStorage.setItem('remotestorage:codeVerifier', codeVerifier);
+      sessionStorage.setItem('remotestorage:state', state);
+      sessionStorage.setItem('remotestorage:tokenURL', tokenURL);
+      this.remote.TOKEN_URL = tokenURL;
+      this.authorize({
+        authURL: info.authorizationURL || info.authURL,
+        response_type: 'code',
+        state,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256'
+      });
+    }).catch((err) => {
+      this._emit('error', err);
+    });
   }
 
   /**
@@ -669,7 +709,7 @@ export class RemoteStorage {
         if (info.authURL) {
           if (typeof token === 'undefined') {
             // Normal authorization step; the default way to connect
-            this.authorize({ authURL: info.authURL });
+            this._authorize(info);
           } else if (typeof token === 'string') {
             // Token supplied directly by app/developer/user
             log('Skipping authorization sequence and connecting with known token');

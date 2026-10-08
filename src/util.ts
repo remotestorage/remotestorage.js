@@ -1,5 +1,7 @@
 // Reusable utility functions
 
+import type { StorageInfo } from './interfaces/storage_info';
+
 export const logError = (error: string | Error): void => {
   if (typeof (error) === 'string') {
     console.error(error);
@@ -295,6 +297,17 @@ export const toBase64 = (str: string): string => {
     return Buffer.from(str).toString('base64');
   }
 };
+
+/**
+ * The PKCE token endpoint advertised by the server (spec §10.1), or null when
+ * it does not advertise the S256 authorization code flow.
+ */
+export function pkceTokenURL (info: StorageInfo): string | null {
+  const methods = typeof info.pkceMethods === 'string'
+    ? info.pkceMethods.split(/[\s,]+/).filter(Boolean)
+    : [];
+  return (info.tokenURL && methods.includes('S256')) ? info.tokenURL : null;
+}
 
 /**
  * Generates values required for OAuth2 PKCE in a cryptographically secure manner.
