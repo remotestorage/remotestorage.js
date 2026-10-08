@@ -66,11 +66,20 @@ const Discover = function Discover(userAddress: string): Promise<StorageInfo> {
                        properties['auth-endpoint'];
     const storageApi = properties['http://remotestorage.io/spec/version'] ||
                        rs.type;
+    // Spec §10.1 (optional PKCE): the authorization and token endpoints and the
+    // supported code_challenge methods, used by the generic backend to choose
+    // the authorization code flow when the server supports it.
+    const authorizationURL = properties['http://tools.ietf.org/html/rfc6749#section-3.1'];
+    const tokenURL   = properties['http://tools.ietf.org/html/rfc6749#section-3.2'];
+    const pkceMethods = properties['http://tools.ietf.org/html/rfc7636'];
 
     cachedInfo[userAddress] = {
       href: rs.href,
       storageApi,
       authURL,
+      authorizationURL,
+      tokenURL,
+      pkceMethods,
       properties
     };
 

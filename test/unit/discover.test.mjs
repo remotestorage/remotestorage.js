@@ -149,4 +149,42 @@ describe('Webfinger discovery', () => {
 
     after(() => fetchMock.reset());
   });
+
+  describe('record advertising PKCE (spec §10.1)', () => {
+    const jrdPkce = {
+      "subject": "acct:pkce@kosmos.org",
+      "links": [
+        {
+          "rel": "http://tools.ietf.org/id/draft-dejong-remotestorage",
+          "href": "https://storage.kosmos.org/pkce",
+          "properties": {
+            "http://remotestorage.io/spec/version": "draft-dejong-remotestorage-27",
+            "http://tools.ietf.org/html/rfc6749#section-4.2": "https://accounts.kosmos.org/rs/oauth/pkce",
+            "http://tools.ietf.org/html/rfc6749#section-3.1": "https://accounts.kosmos.org/rs/oauth/pkce",
+            "http://tools.ietf.org/html/rfc6749#section-3.2": "https://accounts.kosmos.org/rs/token/pkce",
+            "http://tools.ietf.org/html/rfc7636": "S256"
+          }
+        }
+      ]
+    };
+
+    before(() => {
+      fetchMock.mock(
+        'https://kosmos.org/.well-known/webfinger?resource=acct:pkce@kosmos.org',
+        { status: 200, body: jrdPkce, headers: {
+          'Content-Type': 'application/jrd+json; charset=utf-8'
+        }},
+      );
+    });
+
+    it("exposes the authorization endpoint, token endpoint and code_challenge methods", async () => {
+      const info = await Discover('pkce@kosmos.org');
+      expect(info.authURL).to.equal('https://accounts.kosmos.org/rs/oauth/pkce');
+      expect(info.authorizationURL).to.equal('https://accounts.kosmos.org/rs/oauth/pkce');
+      expect(info.tokenURL).to.equal('https://accounts.kosmos.org/rs/token/pkce');
+      expect(info.pkceMethods).to.equal('S256');
+    });
+
+    after(() => fetchMock.reset());
+  });
 });
