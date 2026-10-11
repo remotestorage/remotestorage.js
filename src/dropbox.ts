@@ -189,8 +189,7 @@ class Dropbox extends RemoteBase implements Remote {
         hookIt(this.rs);
       } else {   // OAuth2 PKCE
         const {codeVerifier, codeChallenge, state} = await generateCodeVerifier();
-        sessionStorage.setItem('remotestorage:codeVerifier', codeVerifier);
-        sessionStorage.setItem('remotestorage:state', state);
+        Authorize.savePkceTransaction({ codeVerifier, state });
         this.rs.authorize({
           authURL: AUTH_URL,
           scope: OAUTH_SCOPE,

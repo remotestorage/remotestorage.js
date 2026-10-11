@@ -549,6 +549,16 @@ export class RemoteStorage {
    * @internal
    */
   authorize (options: AuthorizeOptions): void {
+    this._prepareAuthorizeOptions(options);
+    Authorize.authorize(this, options);
+  }
+
+  /**
+   * Fill in the scope, redirect URI and client id of an authorization request.
+   *
+   * @internal
+   */
+  _prepareAuthorizeOptions (options: AuthorizeOptions): void {
     this.access.setStorageType(this.remote.storageApi);
     if (typeof options.scope === 'undefined') {
       options.scope = this.access.scopeParameter;
@@ -569,15 +579,6 @@ export class RemoteStorage {
     if (typeof options.clientId === 'undefined') {
       options.clientId = options.redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
     }
-
-    // The token request (PKCE) reads these back after the redirect; the
-    // generic backend has no other place to set them.
-    this.remote.clientId = options.clientId;
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem('remotestorage:clientId', options.clientId);
-    }
-
-    Authorize.authorize(this, options);
   }
 
   /**
@@ -587,27 +588,49 @@ export class RemoteStorage {
    * @internal
    */
   _authorize (info: StorageInfo): void {
+    const implicit = (reason: string): void => {
+      if (info.authURL) {
+        this.authorize({ authURL: info.authURL });
+      } else {
+        this._emit('error', new Error(`Cannot authorize: the server only offers the PKCE flow, but ${reason}`));
+      }
+    };
+
     const tokenURL = util.pkceTokenURL(info);
-    if (!tokenURL || typeof sessionStorage === 'undefined') {
-      this.authorize({ authURL: info.authURL });
+    if (!tokenURL) {
+      implicit('it is not fully advertised');
+      return;
+    }
+    // Cordova's InAppBrowser path only handles access tokens, not codes.
+    if (globalContext.cordova) {
+      implicit('it is not supported in Cordova');
+      return;
+    }
+    // The verifier crosses the redirect in sessionStorage. Without
+    // localStorage the discovery data would have to travel in the state
+    // parameter, which PKCE uses for its own random value.
+    if (!util.sessionStorageAvailable() || !util.localStorageAvailable()) {
+      implicit('browser storage is unavailable');
       return;
     }
 
     util.generateCodeVerifier().then(({ codeVerifier, codeChallenge, state }) => {
-      // The redirect is a full page load, so the values the token request needs
-      // afterwards live in sessionStorage (as the verifier already does for the
-      // Dropbox backend).
-      sessionStorage.setItem('remotestorage:codeVerifier', codeVerifier);
-      sessionStorage.setItem('remotestorage:state', state);
-      sessionStorage.setItem('remotestorage:tokenURL', tokenURL);
-      this.remote.TOKEN_URL = tokenURL;
-      this.authorize({
-        authURL: info.authorizationURL || info.authURL,
+      const options: AuthorizeOptions = {
+        authURL: info.authorizationURL,
         response_type: 'code',
         state,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256'
-      });
+      };
+      this._prepareAuthorizeOptions(options);
+      try {
+        Authorize.savePkceTransaction({ codeVerifier, state, tokenURL, clientId: options.clientId });
+      } catch (err) {
+        log('[RemoteStorage] Could not store the PKCE transaction', err);
+        implicit('it could not be stored in sessionStorage');
+        return;
+      }
+      Authorize.authorize(this, options);
     }).catch((err) => {
       this._emit('error', err);
     });
@@ -692,7 +715,7 @@ export class RemoteStorage {
       info.userAddress = userAddress;
       this.remote.configure(info);
       if (! this.remote.connected) {
-        if (info.authURL) {
+        if (info.authURL || util.pkceTokenURL(info)) {
           if (typeof token === 'undefined') {
             // Normal authorization step; the default way to connect
             this._authorize(info);
