@@ -34,6 +34,26 @@ import type { Sync } from './sync';
 import * as util from './util';
 
 const globalContext = getGlobalContext();
+
+/**
+ * Why the PKCE code flow can't be used for this storage, or null when it can.
+ */
+function pkceUnavailableReason (info: StorageInfo): string | null {
+  if (!util.pkceTokenURL(info)) {
+    return 'it is not fully advertised';
+  }
+  // Cordova's InAppBrowser path only handles access tokens, not codes.
+  if (globalContext.cordova) {
+    return 'it is not supported in Cordova';
+  }
+  // The verifier crosses the redirect in sessionStorage. Without
+  // localStorage the discovery data would have to travel in the state
+  // parameter, which PKCE uses for its own random value.
+  if (!util.sessionStorageAvailable() || !util.localStorageAvailable()) {
+    return 'browser storage is unavailable';
+  }
+  return null;
+}
 // declare global {
 //   interface Window { cordova: any };
 // }
@@ -597,38 +617,20 @@ export class RemoteStorage {
 
   /**
    * Start the authorization flow: the PKCE code flow when the server advertises
-   * it (spec §10.1), the implicit flow otherwise.
+   * it (spec §10.1), the implicit flow otherwise. Errors are emitted as
+   * `error` events; the promise resolves once the redirect has been started.
    *
    * @internal
    */
-  _authorize (info: StorageInfo): void {
-    const implicit = (reason: string): void => {
-      if (info.authURL) {
-        this.authorize({ authURL: info.authURL });
-      } else {
-        this._emit('error', new Error(`Cannot authorize: the server only offers the PKCE flow, but ${reason}`));
-      }
-    };
-
-    const tokenURL = util.pkceTokenURL(info);
-    if (!tokenURL) {
-      implicit('it is not fully advertised');
-      return;
-    }
-    // Cordova's InAppBrowser path only handles access tokens, not codes.
-    if (globalContext.cordova) {
-      implicit('it is not supported in Cordova');
-      return;
-    }
-    // The verifier crosses the redirect in sessionStorage. Without
-    // localStorage the discovery data would have to travel in the state
-    // parameter, which PKCE uses for its own random value.
-    if (!util.sessionStorageAvailable() || !util.localStorageAvailable()) {
-      implicit('browser storage is unavailable');
+  async _authorize (info: StorageInfo): Promise<void> {
+    const unavailable = pkceUnavailableReason(info);
+    if (unavailable) {
+      this._authorizeImplicitly(info, unavailable);
       return;
     }
 
-    util.generateCodeVerifier().then(({ codeVerifier, codeChallenge, state }) => {
+    try {
+      const { codeVerifier, codeChallenge, state } = await util.generateCodeVerifier();
       const options: AuthorizeOptions = {
         authURL: info.authorizationURL,
         response_type: 'code',
@@ -638,16 +640,30 @@ export class RemoteStorage {
       };
       this._prepareAuthorizeOptions(options);
       try {
-        Authorize.savePkceTransaction({ codeVerifier, state, tokenURL, clientId: options.clientId });
+        Authorize.savePkceTransaction({ codeVerifier, state, tokenURL: info.tokenURL, clientId: options.clientId });
       } catch (err) {
         log('[RemoteStorage] Could not store the PKCE transaction', err);
-        implicit('it could not be stored in sessionStorage');
+        this._authorizeImplicitly(info, 'it could not be stored in sessionStorage');
         return;
       }
       Authorize.authorize(this, options);
-    }).catch((err) => {
+    } catch (err) {
       this._emit('error', err);
-    });
+    }
+  }
+
+  /**
+   * Fall back to the implicit flow, or emit an error when the server only
+   * offers PKCE (`reason` says why that can't be used).
+   *
+   * @internal
+   */
+  _authorizeImplicitly (info: StorageInfo, reason: string): void {
+    if (info.authURL) {
+      this.authorize({ authURL: info.authURL });
+    } else {
+      this._emit('error', new Error(`Cannot authorize: the server only offers the PKCE flow, but ${reason}`));
+    }
   }
 
   /**

@@ -172,37 +172,27 @@ export const pathsFromRoot = (path: string): string[] => {
   return paths;
 };
 
-export const localStorageAvailable = (): boolean => {
+const storageAvailable = (name: 'localStorage' | 'sessionStorage'): boolean => {
   const context = getGlobalContext();
 
-  if (!('localStorage' in context)) {
+  if (!(name in context)) {
     return false;
   }
 
   try {
-    context.localStorage.setItem('rs-check', '1');
-    context.localStorage.removeItem('rs-check');
+    context[name].setItem('rs-check', '1');
+    context[name].removeItem('rs-check');
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
 
-export const sessionStorageAvailable = (): boolean => {
-  const context = getGlobalContext();
+/** Whether localStorage exists and accepts writes (it can be blocked or full). */
+export const localStorageAvailable = (): boolean => storageAvailable('localStorage');
 
-  if (!('sessionStorage' in context)) {
-    return false;
-  }
-
-  try {
-    context.sessionStorage.setItem('rs-check', '1');
-    context.sessionStorage.removeItem('rs-check');
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
+/** Whether sessionStorage exists and accepts writes (it can be blocked or full). */
+export const sessionStorageAvailable = (): boolean => storageAvailable('sessionStorage');
 
 /**
  * Extract and parse JSON data from localStorage.

@@ -447,8 +447,7 @@ describe("Authorize", () => {
       document.location.href = 'https://example.org/app/#/notes';
       const rs = createRs();
 
-      rs._authorize(pkceInfo);
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await rs._authorize(pkceInfo);
 
       const url = new URL(document.location.href);
       expect(url.origin + url.pathname).to.equal(pkceInfo.authorizationURL);
@@ -466,8 +465,7 @@ describe("Authorize", () => {
       document.location.href = 'https://example.org/app/';
       const rs = createRs();
 
-      rs._authorize({ ...pkceInfo, pkceMethods: undefined });
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await rs._authorize({ ...pkceInfo, pkceMethods: undefined });
 
       const url = new URL(document.location.href);
       expect(url.origin + url.pathname).to.equal(pkceInfo.authURL);
@@ -483,8 +481,7 @@ describe("Authorize", () => {
       const authorizeStub = sinon.stub(Authorize, 'authorize');
 
       try {
-        rs._authorize(pkceInfo);
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await rs._authorize(pkceInfo);
       } finally {
         authorizeStub.restore();
       }
@@ -495,14 +492,50 @@ describe("Authorize", () => {
       expect(sessionStorage.getItem('remotestorage:codeVerifier')).to.be.null;
     });
 
+    it("falls back to the implicit flow when browser storage rejects writes", async () => {
+      document.location.href = 'https://example.org/app/';
+      const rs = createRs();
+      const authorizeStub = sinon.stub(Authorize, 'authorize');
+      // On the prototype, as in the rollback test above (Node 26's built-in Storage)
+      const setItem = sinon.stub(Object.getPrototypeOf(localStorage), 'setItem').throws(new Error('SecurityError'));
+
+      try {
+        await rs._authorize(pkceInfo);
+      } finally {
+        setItem.restore();
+        authorizeStub.restore();
+      }
+
+      expect(authorizeStub.calledOnce).to.equal(true);
+      expect(authorizeStub.getCall(0).args[1].authURL).to.equal(pkceInfo.authURL);
+      expect(authorizeStub.getCall(0).args[1].response_type).to.be.undefined;
+    });
+
+    it("emits an error instead of redirecting when a PKCE-only server can't use PKCE", async () => {
+      globalThis.cordova = {};
+      const rs = createRs();
+      const authorizeStub = sinon.stub(Authorize, 'authorize');
+      const errorSpy = sinon.spy();
+      rs.on('error', errorSpy);
+
+      try {
+        await rs._authorize({ ...pkceInfo, authURL: undefined });
+      } finally {
+        authorizeStub.restore();
+      }
+
+      expect(authorizeStub.called).to.equal(false);
+      expect(errorSpy.calledOnce).to.equal(true);
+      expect(errorSpy.getCall(0).args[0].message).to.match(/only offers the PKCE flow.*Cordova/);
+    });
+
     it("falls back to the implicit flow when sessionStorage rejects the transaction", async () => {
       document.location.href = 'https://example.org/app/';
       const rs = createRs();
       const saveStub = sinon.stub(Authorize, 'savePkceTransaction').throws(new Error('QuotaExceededError'));
 
       try {
-        rs._authorize(pkceInfo);
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await rs._authorize(pkceInfo);
       } finally {
         saveStub.restore();
       }
