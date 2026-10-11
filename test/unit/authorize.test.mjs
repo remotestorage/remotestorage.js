@@ -389,7 +389,9 @@ describe("Authorize", () => {
     });
 
     it("leaves nothing behind when sessionStorage rejects a write", () => {
-      const setItem = sinon.stub(sessionStorage, 'setItem');
+      // On the prototype: Node 26's built-in Storage would store an own
+      // property as an item rather than use it as a method.
+      const setItem = sinon.stub(Object.getPrototypeOf(sessionStorage), 'setItem');
       setItem.callThrough();
       setItem.withArgs('remotestorage:tokenURL').throws(new Error('QuotaExceededError'));
 
