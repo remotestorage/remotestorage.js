@@ -355,6 +355,17 @@ describe("Authorize", () => {
         expectNoTransaction();
       });
 
+      it("restores the app's hash and clears the transaction when authorization is denied", () => {
+        storeTransaction('#/notes/42');
+        document.location.href = `https://example.org/app/?error=access_denied&state=${STATE}`;
+        const { rs } = setUp();
+
+        expect(() => rs._handlers['features-loaded'][0]()).to.throw('access denied');
+
+        expect(document.location.hash).to.equal('#/notes/42');
+        expectNoTransaction();
+      });
+
       it("clears the transaction when the token request fails", async () => {
         storeTransaction();
         document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
