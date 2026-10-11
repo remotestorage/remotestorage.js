@@ -240,6 +240,7 @@ export class Authorize {
     return transaction.codeVerifier ? transaction : null;
   }
 
+  /** Remove any stored PKCE transaction. */
   static clearPkceTransaction (): void {
     if (typeof sessionStorage === 'undefined') { return; }
     for (const key of PKCE_KEYS) {
@@ -351,6 +352,26 @@ export class Authorize {
       location.hash = '';
     }
 
+    function handleCode(code: string, state: string | undefined): void {
+      const transaction = Authorize.takePkceTransaction();
+      if (!transaction) {
+        log("[Authorize] Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
+        return;
+      }
+      if (state !== transaction.state) {
+        if (typeof remoteStorage._forgetPendingScope === 'function') {
+          remoteStorage._forgetPendingScope();
+        }
+        remoteStorage._emit('error', new UnauthorizedError('Authorization failed: state mismatch'));
+        return;
+      }
+      if (transaction.appState) {
+        location = Authorize.getLocation();
+        Authorize.setLocation(location.href.split('#')[0]+'#'+transaction.appState);
+      }
+      fetchTokens(code, transaction);   // remote.configure() called asynchronously
+    }
+
     // eslint-disable-next-line
     onFeaturesLoaded = function(): void {
       let authParamsUsed = false;
@@ -409,26 +430,6 @@ export class Authorize {
         remoteStorage.remote.stopWaitingForToken();
       }
     };
-
-    function handleCode(code: string, state: string | undefined): void {
-      const transaction = Authorize.takePkceTransaction();
-      if (!transaction) {
-        log("[Authorize] Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
-        return;
-      }
-      if (state !== transaction.state) {
-        if (typeof remoteStorage._forgetPendingScope === 'function') {
-          remoteStorage._forgetPendingScope();
-        }
-        remoteStorage._emit('error', new UnauthorizedError('Authorization failed: state mismatch'));
-        return;
-      }
-      if (transaction.appState) {
-        location = Authorize.getLocation();
-        Authorize.setLocation(location.href.split('#')[0]+'#'+transaction.appState);
-      }
-      fetchTokens(code, transaction);   // remote.configure() called asynchronously
-    }
 
     // OAuth2 PKCE flow
     async function fetchTokens(code: string, transaction: PkceTransaction) {

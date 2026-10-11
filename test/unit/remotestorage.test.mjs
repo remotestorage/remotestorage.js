@@ -137,6 +137,40 @@ describe("RemoteStorage", function() {
       expect(configuredAddress).to.equal('https://personal.ho.st');
     });
 
+    it("authorizes a record that only advertises PKCE (no implicit authURL)", async function() {
+      this.discoverStub.withArgs('pkce@ho.st').returns(Promise.resolve({
+        href: 'https://ho.st/storage/pkce',
+        storageApi: 'draft-dejong-remotestorage-27',
+        authorizationURL: 'https://ho.st/oauth/authorize',
+        tokenURL: 'https://ho.st/oauth/token',
+        pkceMethods: 'S256',
+        properties: {}
+      }));
+      this.rs.remote = new FakeRemote(false);
+      const authorized = new Promise(resolve => {
+        sinon.stub(this.rs, '_authorize').callsFake(resolve);
+      });
+
+      this.rs.connect('pkce@ho.st');
+
+      const info = await authorized;
+      expect(info.tokenURL).to.equal('https://ho.st/oauth/token');
+      expect(this.rs.impliedauth.called).to.equal(false);
+    });
+
+    it("uses implied auth for a record without an authURL or PKCE", async function() {
+      this.rs.remote = new FakeRemote(false);
+      const implied = new Promise(resolve => {
+        this.rs.impliedauth.callsFake(resolve);
+      });
+      sinon.stub(this.rs, '_authorize');
+
+      this.rs.connect('user@ho.st');
+
+      await implied;
+      expect(this.rs._authorize.called).to.equal(false);
+    });
+
     it("sets the backend to remotestorage", function() {
       this.rs.remote = new FakeRemote(false);
       this.rs.backend = undefined;
