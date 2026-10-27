@@ -277,6 +277,9 @@ export class Authorize {
   }
 
   static _rs_init = function (remoteStorage: RemoteStorage): void {
+    // Solid's SDK owns its OIDC callback, including the code and state query
+    // parameters. The remoteStorage OAuth handler must not consume them.
+    if (remoteStorage.backend === 'solid') { return; }
     const params = extractParams();
     const hasCallbackParams = hasAuthCallbackParams(params);
     let location: Location;
