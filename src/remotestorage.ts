@@ -29,6 +29,7 @@ import { Remote } from "./remote";
 import type { AuthorizeOptions } from './authorize';
 import type { StorageInfo } from './interfaces/storage_info';
 import type { Sync } from './sync';
+import type { SolidBackend, SolidFeature } from './interfaces/solid-backend';
 
 // TODO this is assigned to RemoteStorage.util later; check if still needed
 import * as util from './util';
@@ -43,7 +44,7 @@ const AUTHORIZED_SCOPE_KEY = 'remotestorage:authorized-scope';
 const PENDING_SCOPE_KEY = 'remotestorage:pending-scope';
 
 interface StoredScopeSettings {
-  backend?: 'remotestorage' | 'dropbox' | 'googledrive';
+  backend?: 'remotestorage' | 'dropbox' | 'googledrive' | 'solid';
   scope?: string;
 }
 
@@ -323,8 +324,18 @@ enum ApiKeyType {
  * ### `sync-interval-change`
  *
  * Emitted when the sync interval changes
+ *
+ * ### `pod-not-selected`
+ *
+ * In the optional Solid build, authentication completed but a pod has not
+ * been selected. Read `solid.getPodURLs()` and select a pod with
+ * `solid.setPodURL()`. An empty list means the account advertises no pods.
+ * This pending condition is replayed to listeners registered after startup.
  */
 export class RemoteStorage {
+  /** Optional backend supplied by the Solid entry point. @internal */
+  static Solid?: SolidFeature;
+
   /**
    * Pending get/put/delete calls
    * @internal
@@ -387,7 +398,7 @@ export class RemoteStorage {
 
   /**
    */
-  backend?: 'remotestorage' | 'dropbox' | 'googledrive';
+  backend?: 'remotestorage' | 'dropbox' | 'googledrive' | 'solid';
 
   /**
    * Depending on the chosen backend, this is either an instance of `WireClient`,
@@ -419,6 +430,8 @@ export class RemoteStorage {
    * @internal
    */
   googledrive: GoogleDrive;
+  /** Solid backend, available with the optional Solid entry point. */
+  solid?: SolidBackend;
 
   /**
    * @internal
@@ -445,7 +458,7 @@ export class RemoteStorage {
     }
 
     this.addEvents([
-      'ready', 'authing', 'connecting', 'connected', 'disconnected',
+      'ready', 'authing', 'connecting', 'pod-not-selected', 'connected', 'disconnected',
       'not-connected', 'conflict', 'error', 'features-loaded',
       'scope-change-required', 'sync-interval-change', 'sync-started', 'sync-req-done', 'sync-done',
       'wire-busy', 'wire-done', 'network-offline', 'network-online'
@@ -464,7 +477,8 @@ export class RemoteStorage {
 
       const backendType = localStorage.getItem('remotestorage:backend');
 
-      if (backendType === 'dropbox' || backendType === 'googledrive') {
+      if (backendType === 'dropbox' || backendType === 'googledrive' ||
+          (backendType === 'solid' && (this.constructor as typeof RemoteStorage).Solid)) {
         this.setBackend(backendType);
       } else {
         this.setBackend('remotestorage');
@@ -507,6 +521,12 @@ export class RemoteStorage {
             break;
           case 'not-connected':
             if (this.remote && !this.remote.connected) {
+              setTimeout(handler, 0);
+            }
+            break;
+          case 'pod-not-selected':
+            if (this.backend === 'solid' && this.solid?.getPodURLs() !== null &&
+                this.solid?.getPodURL() === null) {
               setTimeout(handler, 0);
             }
             break;
@@ -768,7 +788,7 @@ export class RemoteStorage {
   /**
    * @internal
    */
-  setBackend (backendType?: 'remotestorage' | 'dropbox' | 'googledrive'): void {
+  setBackend (backendType?: 'remotestorage' | 'dropbox' | 'googledrive' | 'solid'): void {
     this.backend = backendType;
 
     if (hasLocalStorage) {

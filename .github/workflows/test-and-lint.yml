@@ -38,3 +38,5 @@ jobs:
         run: npm run lint:specs:quiet
       - name: Run webpack
         run: npm run build:release
+      - name: Build optional Solid bundle
+        run: npm run build:solid

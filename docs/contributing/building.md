@@ -39,3 +39,14 @@ This creates the minified production build in `release/`.
 It also creates a separate source maps file, which you can link to in
 case you want to (e.g. to improve exception tracking/debugging in
 production).
+
+## Optional Solid bundle
+
+```sh
+$ npm run build:solid
+```
+
+This builds `release/remotestorage-solid.js`, which includes Solid login and
+RDF dependencies. Applications offering Solid use this bundle instead of the
+default bundle. The default build does not include these dependencies. See
+[Solid storage](../solid) for connection requirements and validation steps.

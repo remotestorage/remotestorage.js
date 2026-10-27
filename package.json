@@ -21,11 +21,12 @@
     "lint:specs:quiet": "eslint --quiet 'test/unit/**/*.mjs'",
     "build:js": "tsc -d --declarationDir release/types --declarationMap",
     "build:release": "NODE_ENV=production webpack --mode=production",
+    "build:solid": "NODE_ENV=production webpack --mode=production --env solid",
     "build:dev": "webpack --mode=development",
     "dev": "webpack --mode=development -w",
     "postshrinkwrap": "if [ \"`uname`\" = \"Darwin\" ]; then sed -i '' -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; else sed -i -e 's/http:\\/\\//https:\\/\\//g' package-lock.json; fi",
     "preversion": "npm run test:mocha && npm test && npm run lint:quiet && npm run build:js",
-    "version": "npm run build:release && git add release/ && typedoc && git add docs/api/",
+    "version": "npm run build:release && npm run build:solid && git add release/ && typedoc && git add docs/api/",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
@@ -56,12 +57,19 @@
     "webpack-cli": "^7.2.2"
   },
   "dependencies": {
+    "@inrupt/solid-client": "^4.0.0",
+    "@inrupt/solid-client-authn-browser": "^5.0.2",
     "esm": "^3.2.25",
     "tv4": "^1.3.0",
     "webfinger.js": "^3.0.6",
     "xhr2": "^0.2.1"
   },
   "types": "./release/types/remotestorage.d.ts",
+  "typesVersions": {
+    "*": {
+      "release/remotestorage-solid.js": ["release/types/remotestorage-solid.d.ts"]
+    }
+  },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
   },
