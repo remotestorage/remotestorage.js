@@ -32,7 +32,7 @@ before editing or deleting to establish the current cached revision. Writes
 are verified against the pod after queued synchronization, rather than treating
 the `startSync()` promise as proof that transfers finished.
 
-The [recorded browser run](../../docs/images/solid-demo.mp4) exercised all seven
+The [recorded browser run](https://github.com/user-attachments/assets/201c12bc-5e4a-431e-b9ef-54f0a9325dfe) exercised all seven
 checks against a real local provider. Other hosted providers and the separate
 connect widget have not been tested by this demo.
 

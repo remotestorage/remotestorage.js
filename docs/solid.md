@@ -120,7 +120,7 @@ state is kept separately in namespaced browser storage, not in app data.
 
 The [runnable adapter lab](https://github.com/remotestorage/remotestorage.js/tree/master/examples/solid) provides a local
 Community Solid Server and a browser UI for these checks. The
-[recorded Chromium run](./images/solid-demo.mp4) passed login/pod selection,
+[recorded Chromium run](https://github.com/user-attachments/assets/201c12bc-5e4a-431e-b9ef-54f0a9325dfe) passed login/pod selection,
 JSON save/read, binary integrity, stale-write/delete protection, listing, and
 deletion with cache and sync enabled against Community Solid Server 7.2.0.
 
