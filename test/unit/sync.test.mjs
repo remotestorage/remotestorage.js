@@ -88,6 +88,22 @@ describe("Sync", function() {
       this.rs.sync = new Sync(this.rs);
       expect(this.rs.sync._tasks).to.have.property("/foo/");
     });
+
+    it("settles queued requests immediately, even if no response arrives", async function() {
+      this.rs.remote.connected = true;
+      this.rs.remote.online = true;
+      this.rs.sync.doTasks = this.original.doTasks;
+      // A request that never settles.
+      this.rs.remote.get = sinon.stub().returns(new Promise(() => {}));
+
+      const pending = this.rs.sync.queueGetRequest("/notes/private.txt");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      Sync._rs_cleanup(this.rs);
+
+      await expect(pending).to.be.rejectedWith(/session ended/);
+      expect(this.rs.sync).to.be.undefined;
+    });
   });
 
   describe("#getParentPath", function() {

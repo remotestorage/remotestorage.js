@@ -40,6 +40,8 @@ function taskFor (action: SyncTask["action"], path: SyncTask["path"], promise: S
   return { action, path, promise };
 }
 
+const SESSION_ENDED_MESSAGE = 'Sync session ended before the request could be fulfilled.';
+
 function nodeChanged (node: RSNode, etag: string): boolean {
   return node.common.revision !== etag &&
          (!node.remote || node.remote.revision !== etag);
@@ -998,10 +1000,7 @@ export class Sync {
    */
   discardStaleTask (task: SyncTask): void {
     log('[Sync] discarding stale task after session change:', task.path);
-    const err = new Error('Sync session ended before the request could be fulfilled.');
-    for (const path of Object.keys(this._tasks)) {
-      this.failQueuedTasks(path, err);
-    }
+    this.failAllQueuedTasks(new Error(SESSION_ENDED_MESSAGE));
     this._running = {};
     this._timeStarted = {};
     this._finishedTasks = [];
@@ -1215,6 +1214,17 @@ export class Sync {
   }
 
   /**
+   * Fail every queued callback for this sync instance. Used when the session
+   * is torn down, so `queueGetRequest` promises settle immediately instead of
+   * waiting for a response that may never arrive.
+   */
+  failAllQueuedTasks (err: Error): void {
+    for (const path of Object.keys(this._tasks)) {
+      this.failQueuedTasks(path, err);
+    }
+  }
+
+  /**
    * Start a sync procedure
    */
   public async sync (): Promise<void> {
@@ -1263,6 +1273,13 @@ export class Sync {
 
   static _rs_cleanup (remoteStorage: RemoteStorage): void {
     remoteStorage.stopSync();
+
+    if (remoteStorage.sync) {
+      // Settle pending requests now, rather than waiting for a response that
+      // may never arrive after the session has been torn down.
+      remoteStorage.sync.failAllQueuedTasks(new Error(SESSION_ENDED_MESSAGE));
+    }
+
     remoteStorage.removeEventListener('ready', setupSync);
     remoteStorage.removeEventListener('connected', syncOnConnect);
     remoteStorage.caching.resetActivationHandler();
