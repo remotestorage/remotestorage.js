@@ -604,15 +604,16 @@ export class Sync {
   }
 
   async updateCommonTimestamp (path: string, revision: string): Promise<void> {
-    return this.rs.local.getNodes([path]).then(async (nodes: RSNodes) => {
-      if (nodes[path] &&
-          nodes[path].common &&
-          nodes[path].common.revision === revision) {
-        nodes[path].common.timestamp = this.now();
-      }
-      await this.updateParentListings(path, nodes[path]);
-      return this.rs.local.setNodes(this.flush(nodes));
-    });
+    const nodes = await this.rs.local.getNodes([path]);
+
+    if (nodes[path] &&
+        nodes[path].common &&
+        nodes[path].common.revision === revision) {
+      nodes[path].common.timestamp = this.now();
+    }
+
+    await this.updateParentListings(path, nodes[path]);
+    await this.rs.local.setNodes(this.flush(nodes));
   }
 
   /**
@@ -636,16 +637,26 @@ export class Sync {
       const childPath = paths[i - 1];
       const itemName = childPath.substring(paths[i].length);
       if (parentNode.local?.itemsMap) {
+        let changed = false;
+
         if (childVisible) {
-          parentNode.local.itemsMap[itemName] = true;
+          if (parentNode.local.itemsMap[itemName] !== true) {
+            parentNode.local.itemsMap[itemName] = true;
+            changed = true;
+          }
         } else if (isDocument(childPath) && parentNode.local.itemsMap[itemName]) {
           delete parentNode.local.itemsMap[itemName];
+          changed = true;
         }
 
         if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
           delete parentNode.local;
+          changed = true;
         }
-        changedNodes[paths[i]] = parentNode;
+
+        if (changed) {
+          changedNodes[paths[i]] = parentNode;
+        }
       }
       childVisible = isLocallyVisible(parentNode);
     }
