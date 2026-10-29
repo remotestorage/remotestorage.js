@@ -72,6 +72,15 @@ function mergeMutualDeletion (node: RSNode): RSNode {
   return node;
 }
 
+function isLocallyVisible (node: RSNode): boolean {
+  const latest = node && (node.local || node.common);
+  if (!latest) { return false; }
+
+  return isFolder(node.path) ?
+    Object.values(latest.itemsMap || {}).some(item => item === true) :
+    latest.body !== undefined && latest.body !== false;
+}
+
 function handleVisibility (env, rs): void {
   function handleChange (isForeground): void {
     const oldValue = rs.getCurrentSyncInterval();
@@ -595,14 +604,64 @@ export class Sync {
   }
 
   async updateCommonTimestamp (path: string, revision: string): Promise<void> {
-    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
-      if (nodes[path] &&
-          nodes[path].common &&
-          nodes[path].common.revision === revision) {
-        nodes[path].common.timestamp = this.now();
+    const nodes = await this.rs.local.getNodes([path]);
+
+    if (nodes[path] &&
+        nodes[path].common &&
+        nodes[path].common.revision === revision) {
+      nodes[path].common.timestamp = this.now();
+    }
+
+    await this.updateParentListings(path, nodes[path]);
+    await this.rs.local.setNodes(this.flush(nodes));
+  }
+
+  /**
+   * Make merged children visible through every cached ancestor listing.
+   * Folder entries must reflect visible descendants, not just a remote GET:
+   * their local map may still contain deletions or unfetched children.
+   */
+  private async updateParentListings (path: string, node: RSNode): Promise<void> {
+    const paths = pathsFromRoot(path);
+    if (paths.length === 1) { return; }
+
+    const nodes = await this.rs.local.getNodes(paths.slice(1));
+    const changedNodes: RSNodes = {};
+    let childVisible = isLocallyVisible(node);
+
+    for (let i = 1; i < paths.length; i++) {
+      const parentNode = nodes[paths[i]];
+      // Uncached intermediate folders do not hide a known visible descendant.
+      if (!parentNode) { continue; }
+
+      const childPath = paths[i - 1];
+      const itemName = childPath.substring(paths[i].length);
+      if (parentNode.local?.itemsMap) {
+        let changed = false;
+
+        if (childVisible) {
+          if (parentNode.local.itemsMap[itemName] !== true) {
+            parentNode.local.itemsMap[itemName] = true;
+            changed = true;
+          }
+        } else if (isDocument(childPath) && parentNode.local.itemsMap[itemName]) {
+          delete parentNode.local.itemsMap[itemName];
+          changed = true;
+        }
+
+        if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+          delete parentNode.local;
+          changed = true;
+        }
+
+        if (changed) {
+          changedNodes[paths[i]] = parentNode;
+        }
       }
-      return this.rs.local.setNodes(this.flush(nodes));
-    });
+      childVisible = isLocallyVisible(parentNode);
+    }
+
+    await this.rs.local.setNodes(this.flush(changedNodes));
   }
 
   /**
@@ -751,19 +810,7 @@ export class Sync {
    * Complete a successful GET request
    */
   async completeFetch (path: string, bodyOrItemsMap: RSItem["body"], contentType: string, revision: string): Promise<any> {
-    let paths: string[];
-    let parentPath: string;
-    const pathsFromRootArr = pathsFromRoot(path);
-
-    if (isFolder(path)) {
-      paths = [path];
-    } else {
-      parentPath = pathsFromRootArr[1];
-      paths = [path, parentPath];
-    }
-
-    const nodes = await this.rs.local.getNodes(paths);
-    const parentNode: RSNode = nodes[parentPath];
+    const nodes = await this.rs.local.getNodes([path]);
     const missingChildren = {};
     let node: RSNode = nodes[path];
     let itemName: string;
@@ -801,24 +848,6 @@ export class Sync {
     } else {
       node.remote.body = bodyOrItemsMap;
       node.remote.contentType = contentType;
-
-      if (parentNode && parentNode.local && parentNode.local.itemsMap) {
-        itemName = path.substring(parentPath.length);
-
-        if (bodyOrItemsMap !== false) {
-          parentNode.local.itemsMap[itemName] = true;
-        } else {
-          if (parentNode.local.itemsMap[itemName]) {
-            // node is 404 on remote, can safely be removed from
-            // parent's local itemsMap now
-            delete parentNode.local.itemsMap[itemName];
-          }
-        }
-
-        if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
-          delete parentNode.local;
-        }
-      }
     }
 
     nodes[path] = this.autoMerge(node);
@@ -934,6 +963,8 @@ export class Sync {
 
     if (status.changed) {
       const data = await this.completeFetch(path, bodyOrItemsMap, contentType, revision);
+      // Keep the merged node even if the cache's FLUSH strategy removes it.
+      const node: RSNode = data.toBeSaved[path];
 
       if (isFolder(path)) {
         if (this.corruptServerItemsMap(bodyOrItemsMap)) {
@@ -944,6 +975,7 @@ export class Sync {
       } else {
         await this.rs.local.setNodes(this.flush(data.toBeSaved));
       }
+      await this.updateParentListings(path, node);
     } else {
       await this.updateCommonTimestamp(path, revision);
     }
