@@ -988,6 +988,18 @@ export class Sync {
    * Execute/finish running tasks, one at a time
    */
   async finishTask (task: SyncTask, queueTask: boolean = true): Promise<void> {
+    // Discard tasks belonging to a sync instance that is no longer the active
+    // one. `disconnect()` tears down this instance and assigns a replacement
+    // adapter/session, so a held GET/PUT/DELETE response must not be applied to
+    // the new cache (or emitted as change events) once that has happened.
+    // `stopSync()` leaves `rs.sync` in place, so in-flight tasks still complete
+    // normally in that case.
+    if (this.rs.sync !== this) {
+      log('[Sync] discarding stale task after session change:', task.path);
+      delete this._running[task.path];
+      return;
+    }
+
     if (task.action === undefined) {
       delete this._running[task.path];
       return;

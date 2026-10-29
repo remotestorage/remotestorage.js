@@ -1604,6 +1604,42 @@ describe("Sync", function() {
     });
   });
 
+  describe("stale responses after session replacement", function() {
+    it("does not write a held GET response into a replacement adapter", async function() {
+      let releaseGet;
+      this.rs.remote.get = sinon.stub().returns(
+        new Promise((resolve) => { releaseGet = resolve; })
+      );
+
+      const staleSync = this.rs.sync;
+      const task = await staleSync.doTask("/notes/private.txt");
+      expect(task.action).to.equal("get");
+
+      // Simulate disconnect(): tear down the old session and install a fresh
+      // adapter + Sync instance.
+      const replacement = new InMemoryStorage();
+      const emitChange = sinon.spy(replacement, "emitChange");
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      // Release the old account's response.
+      releaseGet({
+        statusCode: 200,
+        body: "A_ONLY",
+        contentType: "text/plain",
+        revision: "rev-a"
+      });
+      await staleSync.finishTask(task, false);
+
+      // The replacement cache and event stream must not see A's body.
+      const nodes = await replacement.getNodes(["/notes/private.txt"]);
+      expect(nodes["/notes/private.txt"]).to.be.undefined;
+      const res = await replacement.get("/notes/private.txt");
+      expect(res.statusCode).to.equal(404);
+      expect(emitChange.called).to.be.false;
+    });
+  });
+
   describe("Edge cases", function() {
     describe("Syncing multiple new documents in the same folder while there are local changes", function() {
       beforeEach(function(done) {
