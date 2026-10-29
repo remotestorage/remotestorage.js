@@ -51,3 +51,10 @@ remote already has a token, unless the same callback also delivers a fresh
 no-localStorage fallback is unaffected, because no token can be stored in
 that case.
 
+When a fresh `access_token` is present, the endpoint metadata and the token
+are applied in a single `configure()` call. Applying them separately would
+switch the endpoint while the previously stored token is still in place,
+and the synchronous `connected` event could leak that token to the new
+endpoint before the token is replaced.
+
+

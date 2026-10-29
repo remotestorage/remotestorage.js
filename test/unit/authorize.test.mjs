@@ -304,7 +304,7 @@ describe("Authorize", () => {
       expect(configureSpy.getCall(0).args[0]).to.have.property('href', 'https://storage.host.com/');
     });
 
-    it("applies rsDiscovery when the same callback delivers a fresh access_token", () => {
+    it("applies rsDiscovery and the fresh token in a single configure() call", () => {
       const mockRemote = new MockRemote({});
       mockRemote.token = 'DUMMY_VICTIM_TOKEN';
       const configureSpy = sinon.spy(mockRemote, 'configure');
@@ -316,8 +316,11 @@ describe("Authorize", () => {
       Authorize._rs_init(rs);
       rs._handlers['features-loaded'][0]();
 
-      expect(configureSpy.calledWith(sinon.match({ href: 'https://collector.test/' }))).to.equal(true);
-      expect(configureSpy.calledWith(sinon.match({ token: 'NEW_TOKEN' }))).to.equal(true);
+      expect(configureSpy.calledOnce).to.equal(true);
+      expect(configureSpy.getCall(0).args[0]).to.include({
+        href: 'https://collector.test/',
+        token: 'NEW_TOKEN'
+      });
     });
 
     it("does not send a stored token to an rsDiscovery-supplied endpoint (regression #1404)", async () => {
@@ -354,6 +357,59 @@ describe("Authorize", () => {
       const [url, options] = fetchMock.lastCall();
       expect(url).to.equal(`${VICTIM_HREF}/notes/private.txt`);
       expect(options.headers).to.have.property('Authorization', 'Bearer DUMMY_VICTIM_TOKEN');
+    });
+
+    it("replaces the endpoint and token atomically, so a 'connected' handler can't leak the stored token (regression #1404)", async () => {
+      const VICTIM_HREF = 'https://real-storage.example.com/users/victim';
+      localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        userAddress: 'victim@example.com',
+        href: VICTIM_HREF,
+        storageApi: 'draft-dejong-remotestorage-12',
+        token: 'DUMMY_VICTIM_TOKEN'
+      }));
+      localStorage.setItem('remotestorage:backend', 'remotestorage');
+
+      fetchMock.mock(`${VICTIM_HREF}/notes/private.txt`, {
+        status: 200, body: 'secret',
+        headers: { 'Content-Type': 'text/plain; charset=UTF-8' }
+      });
+      fetchMock.mock('https://collector.test/storage/victim/notes/private.txt', {
+        status: 200, body: 'stolen',
+        headers: { 'Content-Type': 'text/plain; charset=UTF-8' }
+      });
+
+      document.location.href = `https://app.example.com/#access_token=ATTACKER_TOKEN&` +
+        encodeDiscovery({ href: 'https://collector.test/storage/victim' });
+
+      const rs = new RemoteStorage();
+
+      // An app that reads immediately whenever it (re)connects.
+      rs.on('connected', () => {
+        rs.remote.get('/notes/private.txt').catch(() => {});
+      });
+
+      await new Promise((resolve) => rs.on('features-loaded', resolve));
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      const calls = fetchMock.calls();
+      const toCollector = calls.filter(([reqUrl]) => reqUrl.indexOf('collector.test') !== -1);
+
+      // The substituted endpoint may be contacted, but only with the token
+      // supplied in the same callback, never the previously stored one.
+      expect(toCollector.length).to.be.greaterThan(0);
+      for (const [, reqOptions] of toCollector) {
+        expect(reqOptions.headers.Authorization).to.equal('Bearer ATTACKER_TOKEN');
+      }
+      expect(calls.some(([reqUrl, reqOptions]) =>
+        reqUrl.indexOf('collector.test') !== -1 &&
+        reqOptions.headers.Authorization === 'Bearer DUMMY_VICTIM_TOKEN'
+      )).to.equal(false);
+
+      // The stored token was still usable against the real endpoint.
+      expect(calls.some(([reqUrl, reqOptions]) =>
+        reqUrl === `${VICTIM_HREF}/notes/private.txt` &&
+        reqOptions.headers.Authorization === 'Bearer DUMMY_VICTIM_TOKEN'
+      )).to.equal(true);
     });
   });
 });

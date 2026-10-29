@@ -241,6 +241,35 @@ define([ 'require', './build/authorize', './build/unauthorized-error', 'test/hel
         }
       },
       {
+        desc: "_rs_init applies rsDiscovery and a fresh token in a single configure() call",
+        run: function(env, test) {
+          var storage = new RemoteStorage();
+          var calls = [];
+
+          // mock the atob function, as it's not available in node
+          global.atob = function(param) {
+            return JSON.stringify({ href: 'https://collector.test/' });
+          };
+
+          storage.remote = {
+            token: 'DUMMY_VICTIM_TOKEN',
+            stopWaitingForToken: function() {},
+            configure: function(settings) {
+              calls.push(settings);
+            }
+          };
+
+          document.location.href = 'http://foo/bar#access_token=NEW_TOKEN&state=rsDiscovery%3Dencodeddata';
+          env.Authorize._rs_init(storage);
+
+          storage._handlers['features-loaded'][0]();
+
+          test.assertAnd(calls.length, 1);
+          test.assertAnd(calls[0].href, 'https://collector.test/');
+          test.assert(calls[0].token, 'NEW_TOKEN');
+        }
+      },
+      {
         desc: "the 'features-loaded' handler configures the WireClient if it sees an access token",
         run: function(env, test) {
           var storage = new RemoteStorage();
