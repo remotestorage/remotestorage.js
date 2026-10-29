@@ -33,3 +33,21 @@ If the OAuth flow is PKCE, the window location will contain a `code`
 parameter instead of `access_token`. RS then makes a fetch to
 remote.TOKEN_URL with the code, to retrieve the access token, and
 possibly a refresh token as well.
+
+## The `rsDiscovery` fallback
+
+When `localStorage` is unavailable, the discovery data (storage base URL,
+API version, properties) cannot be persisted across the OAuth redirect. In
+that case `Authorize.authorize()` embeds it in the redirect fragment as an
+`rsDiscovery` value inside the `state` parameter, and it is restored from
+the callback on the way back.
+
+Because `rsDiscovery` carries endpoint metadata but never a credential, it
+must not be able to retarget a remote that already holds a stored access
+token: doing so would send the (still valid) token to a substituted
+endpoint. The callback handler therefore ignores `rsDiscovery` when the
+remote already has a token, unless the same callback also delivers a fresh
+`access_token` (as in server-initiated, pre-authenticated links). The
+no-localStorage fallback is unaffected, because no token can be stored in
+that case.
+
