@@ -44,6 +44,7 @@ describe('BaseClient document path validation', () => {
         await expect(client.storeFile('text/plain', path, 'x'))
           .to.eventually.equal('r1');
         expect(storage.put.calledOnce).to.equal(true);
+        expect(storage.put.firstCall.args[0]).to.equal('/foo/' + path);
       }
     });
   });
@@ -55,8 +56,10 @@ describe('BaseClient document path validation', () => {
 
     it('rejects folder and empty paths', async () => {
       for (const path of folderPaths) {
-        await expect(client.storeObject('test', path, { test: 1 }))
+        const object = { test: 1 };
+        await expect(client.storeObject('test', path, object))
           .to.be.rejectedWith('Not a document: ' + path);
+        expect(object).to.not.have.property('@context');
       }
       expect(storage.put.called).to.equal(false);
     });
@@ -68,6 +71,7 @@ describe('BaseClient document path validation', () => {
         await expect(client.storeObject('test', path, { test: 1 }))
           .to.eventually.equal('r1');
         expect(storage.put.calledOnce).to.equal(true);
+        expect(storage.put.firstCall.args[0]).to.equal('/foo/' + path);
       }
     });
   });
@@ -87,6 +91,7 @@ describe('BaseClient document path validation', () => {
         storage.delete.resetHistory();
         await client.remove(path);
         expect(storage.delete.calledOnce).to.equal(true);
+        expect(storage.delete.firstCall.args[0]).to.equal('/foo/' + path);
       }
     });
   });
@@ -106,6 +111,7 @@ describe('BaseClient document path validation', () => {
         storage.get.resetHistory();
         await client.getFile(path);
         expect(storage.get.calledOnce).to.equal(true);
+        expect(storage.get.firstCall.args[0]).to.equal('/foo/' + path);
       }
     });
   });
@@ -125,6 +131,7 @@ describe('BaseClient document path validation', () => {
         storage.get.resetHistory();
         await expect(client.getObject(path)).to.eventually.deep.equal({ test: 1 });
         expect(storage.get.calledOnce).to.equal(true);
+        expect(storage.get.firstCall.args[0]).to.equal('/foo/' + path);
       }
     });
   });
