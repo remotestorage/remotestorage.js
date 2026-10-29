@@ -623,13 +623,14 @@ export class RemoteStorage {
    * @internal
    */
   async _authorize (info: StorageInfo): Promise<void> {
-    const unavailable = pkceUnavailableReason(info);
-    if (unavailable) {
-      this._authorizeImplicitly(info, unavailable);
-      return;
-    }
-
+    // connect() doesn't await this, so nothing may escape as a rejection
     try {
+      const unavailable = pkceUnavailableReason(info);
+      if (unavailable) {
+        this._authorizeImplicitly(info, unavailable);
+        return;
+      }
+
       const { codeVerifier, codeChallenge, state } = await util.generateCodeVerifier();
       const options: AuthorizeOptions = {
         authURL: info.authorizationURL,

@@ -325,7 +325,7 @@ describe("Authorize", () => {
       });
 
       it("rejects a mismatched state without exchanging the code", async () => {
-        storeTransaction();
+        storeTransaction('#/notes/42');
         document.location.href = 'https://example.org/app/?code=c0de&state=forged';
         fetchMock.mock({ name: 'postToken', method: 'POST', url: STORED_TOKEN_URL }, 200);
         const { rs, configureSpy, errorSpy } = setUp();
@@ -337,7 +337,8 @@ describe("Authorize", () => {
         expect(configureSpy.called).to.equal(false);
         expect(errorSpy.calledOnce).to.equal(true);
         expect(errorSpy.getCall(0).args[0].message).to.match(/state mismatch/);
-        expect(document.location.hash).to.equal('');
+        // The app gets its hash back, as on a denied or successful flow
+        expect(document.location.hash).to.equal('#/notes/42');
         expectNoTransaction();
       });
 
@@ -527,6 +528,18 @@ describe("Authorize", () => {
       expect(authorizeStub.called).to.equal(false);
       expect(errorSpy.calledOnce).to.equal(true);
       expect(errorSpy.getCall(0).args[0].message).to.match(/only offers the PKCE flow.*Cordova/);
+    });
+
+    it("emits implicit-flow errors instead of rejecting, since connect() doesn't await it", async () => {
+      document.location.href = 'https://example.org/app/';
+      rs = new RemoteStorage();   // no access claimed, so the scope is empty
+      const errorSpy = sinon.spy();
+      rs.on('error', errorSpy);
+
+      await rs._authorize({ ...pkceInfo, pkceMethods: undefined });
+
+      expect(errorSpy.calledOnce).to.equal(true);
+      expect(errorSpy.getCall(0).args[0].message).to.match(/empty scope/);
     });
 
     it("falls back to the implicit flow when sessionStorage rejects the transaction", async () => {

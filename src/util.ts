@@ -310,9 +310,11 @@ export const toBase64 = (str: string): string => {
  * endpoint, a token endpoint and the S256 method, all three).
  */
 export function pkceTokenURL (info: StorageInfo): string | null {
-  const methods = typeof info.pkceMethods === 'string'
-    ? info.pkceMethods.split(/[\s,]+/).filter(Boolean)
-    : [];
+  const methods = Array.isArray(info.pkceMethods)
+    ? info.pkceMethods
+    : typeof info.pkceMethods === 'string'
+      ? info.pkceMethods.split(/[\s,]+/).filter(Boolean)
+      : [];
   return (info.authorizationURL && info.tokenURL && methods.includes('S256')) ? info.tokenURL : null;
 }
 

@@ -352,22 +352,27 @@ export class Authorize {
       location.hash = '';
     }
 
+    // Give the app back the hash it had before the redirect
+    function restoreAppState(transaction: PkceTransaction | null): void {
+      if (transaction?.appState) {
+        location = Authorize.getLocation();
+        Authorize.setLocation(location.href.split('#')[0]+'#'+transaction.appState);
+      }
+    }
+
     function handleCode(code: string, state: string | undefined): void {
       const transaction = Authorize.takePkceTransaction();
       if (!transaction) {
         log("[Authorize] Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
         return;
       }
+      restoreAppState(transaction);
       if (state !== transaction.state) {
         if (typeof remoteStorage._forgetPendingScope === 'function') {
           remoteStorage._forgetPendingScope();
         }
         remoteStorage._emit('error', new UnauthorizedError('Authorization failed: state mismatch'));
         return;
-      }
-      if (transaction.appState) {
-        location = Authorize.getLocation();
-        Authorize.setLocation(location.href.split('#')[0]+'#'+transaction.appState);
       }
       fetchTokens(code, transaction);   // remote.configure() called asynchronously
     }
@@ -384,11 +389,7 @@ export class Authorize {
       if (params.error) {
         // A denied or failed code flow: drop its transaction, and give the app
         // its hash back as a successful one would.
-        const transaction = Authorize.takePkceTransaction();
-        if (transaction?.appState) {
-          location = Authorize.getLocation();
-          Authorize.setLocation(location.href.split('#')[0]+'#'+transaction.appState);
-        }
+        restoreAppState(Authorize.takePkceTransaction());
         if (typeof remoteStorage._forgetPendingScope === 'function') {
           remoteStorage._forgetPendingScope();
         }

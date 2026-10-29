@@ -169,6 +169,11 @@ describe('util', () => {
       expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: 'plain S256' }))).to.equal('https://t');
     });
 
+    it('accepts the methods as an array too, though the spec says a string', () => {
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: ['plain', 'S256'] }))).to.equal('https://t');
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: ['plain'] }))).to.equal(null);
+    });
+
     it('returns null without S256, a token endpoint or an authorization endpoint', () => {
       expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: 'plain' }))).to.equal(null);
       expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t' }))).to.equal(null);

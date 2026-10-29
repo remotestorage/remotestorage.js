@@ -44,6 +44,11 @@ then makes a fetch to the saved token endpoint (or `remote.TOKEN_URL`
 for Dropbox) with the code, to retrieve the access token, and possibly a
 refresh token as well.
 
+Only Dropbox uses that refresh token so far. The generic backend does
+not keep the token endpoint or client id once the code is exchanged, so
+when its access token expires the app gets an `Unauthorized` event and
+the user has to connect again, as with the implicit flow.
+
 ## The `rsDiscovery` fallback
 
 When `localStorage` is unavailable, the discovery data (storage base URL,
