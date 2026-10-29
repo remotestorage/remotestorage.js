@@ -254,4 +254,106 @@ describe("Authorize", () => {
       expect(sessionStorage.getItem('remotestorage:codeVerifier')).to.be.null;
     });
   });
+
+  describe("rsDiscovery callback hardening", () => {
+    // extractParams() splits the state value on '=', so base64 padding would
+    // truncate the payload. Grow a filler key until the encoding is padding-free.
+    function encodeDiscovery(discovery) {
+      let json = JSON.stringify(discovery);
+      let encoded = Buffer.from(json).toString('base64');
+      let filler = 0;
+      while (encoded.includes('=')) {
+        filler += 1;
+        json = JSON.stringify({ ...discovery, _filler: 'x'.repeat(filler) });
+        encoded = Buffer.from(json).toString('base64');
+      }
+      // The whole rsDiscovery assignment is URL-encoded, mirroring a real
+      // OAuth state param (so `=` and `&` inside it stay escaped).
+      return `state=${encodeURIComponent('rsDiscovery=' + encoded)}`;
+    }
+
+    it("ignores unsolicited rsDiscovery when a token is already configured", () => {
+      const mockRemote = new MockRemote({});
+      mockRemote.token = 'DUMMY_VICTIM_TOKEN';
+      mockRemote.stopWaitingForToken = () => {};
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const rs = createStorage(mockRemote);
+
+      document.location.href =
+        `https://example.com/#${encodeDiscovery({ href: 'https://collector.test/' })}`;
+
+      Authorize._rs_init(rs);
+      rs._handlers['features-loaded'][0]();
+
+      expect(configureSpy.called).to.equal(false);
+    });
+
+    it("applies rsDiscovery when the remote has no stored token (no-localStorage fallback)", () => {
+      const mockRemote = new MockRemote({});
+      mockRemote.stopWaitingForToken = () => {};
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const rs = createStorage(mockRemote);
+
+      document.location.href =
+        `https://example.com/#${encodeDiscovery({ href: 'https://storage.host.com/' })}`;
+
+      Authorize._rs_init(rs);
+      rs._handlers['features-loaded'][0]();
+
+      expect(configureSpy.calledOnce).to.equal(true);
+      expect(configureSpy.getCall(0).args[0]).to.have.property('href', 'https://storage.host.com/');
+    });
+
+    it("applies rsDiscovery when the same callback delivers a fresh access_token", () => {
+      const mockRemote = new MockRemote({});
+      mockRemote.token = 'DUMMY_VICTIM_TOKEN';
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const rs = createStorage(mockRemote);
+
+      document.location.href = `https://example.com/#access_token=NEW_TOKEN&` +
+        encodeDiscovery({ href: 'https://collector.test/' });
+
+      Authorize._rs_init(rs);
+      rs._handlers['features-loaded'][0]();
+
+      expect(configureSpy.calledWith(sinon.match({ href: 'https://collector.test/' }))).to.equal(true);
+      expect(configureSpy.calledWith(sinon.match({ token: 'NEW_TOKEN' }))).to.equal(true);
+    });
+
+    it("does not send a stored token to an rsDiscovery-supplied endpoint (regression #1404)", async () => {
+      const VICTIM_HREF = 'https://real-storage.example.com/users/victim';
+      localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        userAddress: 'victim@example.com',
+        href: VICTIM_HREF,
+        storageApi: 'draft-dejong-remotestorage-12',
+        token: 'DUMMY_VICTIM_TOKEN'
+      }));
+      localStorage.setItem('remotestorage:backend', 'remotestorage');
+
+      fetchMock.mock(`${VICTIM_HREF}/notes/private.txt`, {
+        status: 200, body: 'secret',
+        headers: { 'Content-Type': 'text/plain; charset=UTF-8' }
+      });
+      fetchMock.mock('https://collector.test/storage/victim/notes/private.txt', {
+        status: 200, body: 'stolen',
+        headers: { 'Content-Type': 'text/plain; charset=UTF-8' }
+      });
+
+      document.location.href = `https://app.example.com/#` +
+        encodeDiscovery({ href: 'https://collector.test/storage/victim' });
+
+      const rs = new RemoteStorage();
+      await new Promise((resolve) => rs.on('features-loaded', resolve));
+
+      expect(rs.remote.href).to.equal(VICTIM_HREF);
+
+      const res = await rs.remote.get('/notes/private.txt');
+      expect(res.body).to.equal('secret');
+
+      expect(fetchMock.calls().some(([url]) => url.indexOf('collector.test') !== -1)).to.equal(false);
+      const [url, options] = fetchMock.lastCall();
+      expect(url).to.equal(`${VICTIM_HREF}/notes/private.txt`);
+      expect(options.headers).to.have.property('Authorization', 'Bearer DUMMY_VICTIM_TOKEN');
+    });
+  });
 });
