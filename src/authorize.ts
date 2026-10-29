@@ -306,14 +306,36 @@ export class Authorize {
         }
       }
 
-      // rsDiscovery came with the redirect, because it couldn't be
-      // saved in localStorage
+      // rsDiscovery is only ever emitted by us when localStorage is
+      // unavailable (see Authorize.authorize), and it carries endpoint
+      // metadata, never a credential. Applying it over a remote that already
+      // holds a stored token would retarget the endpoint while retaining the
+      // token, leaking it to the substituted server. So only apply it when
+      // there is no stored token to protect, or when the same callback also
+      // hands us a fresh token (the server-initiated pre-authed flow).
+      const hasFreshToken = !!params.access_token;
+
       if (params.rsDiscovery) {
-        remoteStorage.remote.configure(params.rsDiscovery);
+        const hasStoredToken = !!(remoteStorage.remote && remoteStorage.remote.token);
+
+        if (hasFreshToken) {
+          // Apply the endpoint metadata and the fresh token in a single
+          // configure() call. Otherwise the endpoint would be switched while
+          // the previously stored token is still in place, and the
+          // synchronous 'connected' event could leak that token to the new
+          // endpoint before the next call installs the fresh one.
+          remoteStorage.remote.configure({ ...params.rsDiscovery, token: params.access_token });
+        } else if (!hasStoredToken) {
+          remoteStorage.remote.configure(params.rsDiscovery);
+        } else {
+          log('[Authorize] Ignoring rsDiscovery metadata for an already-authenticated remote');
+        }
       }
 
       if (params.access_token) {
-        remoteStorage.remote.configure({ token: params.access_token });
+        if (!params.rsDiscovery) {
+          remoteStorage.remote.configure({ token: params.access_token });
+        }
         if (typeof remoteStorage._completeAuthorization === 'function') {
           remoteStorage._completeAuthorization(params.scope);
         }
