@@ -407,14 +407,14 @@ define(['./build/config', './build/baseclient', 'test/helpers/mocks', 'tv4'],
         desc: "#storeFile doesn't encode the filename",
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
-            test.assertAnd(path, '/foo/A%2FB /C/%bla//');
+            test.assertAnd(path, '/foo/A%2FB /C/%bla/D');
             test.assertAnd(body, 'abc');
             test.assertAnd(contentType, 'def');
             test.assertType(incoming, 'undefined');
             test.result(true);
             return Promise.resolve({ statusCode: 200 });
           };
-          env.client.storeFile('def', 'A%2FB /C/%bla//', 'abc');
+          env.client.storeFile('def', 'A%2FB /C/%bla/D', 'abc');
         }
       },
 
