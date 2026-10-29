@@ -5,7 +5,7 @@ import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
 import { EventHandler } from './eventhandling';
 import { requestWithTimeout } from "./requests";
-import { Remote } from "./remote";
+import { Remote, RemoteSettings } from "./remote";
 
 interface AuthResult {
   access_token?: string;
@@ -266,6 +266,8 @@ export class Authorize {
       const settings = {
         token: xhr?.response?.access_token,
         tokenType: xhr?.response?.token_type,
+        // Set only when the server rotates it; undefined keeps the current one
+        refreshToken: xhr?.response?.refresh_token,
       };
       if (settings.token) {
         await remote.configure(settings);
@@ -487,11 +489,17 @@ export class Authorize {
       switch (xhr.status) {
         case 200: {
           log(`[Authorize] access token good for ${xhr?.response?.expires_in} seconds`);
-          const settings = {
+          const settings: RemoteSettings = {
             token: xhr?.response?.access_token,
             refreshToken: xhr?.response?.refresh_token,
             tokenType: xhr?.response?.token_type,
           };
+          // The generic backend keeps these to refresh the token later;
+          // Dropbox sets its own
+          if (transaction.tokenURL) {
+            settings.tokenURL = tokenURL;
+            settings.clientId = clientId;
+          }
           if (settings.token) {
             remoteStorage.remote.configure(settings);
             if (typeof remoteStorage._completeAuthorization === 'function') {

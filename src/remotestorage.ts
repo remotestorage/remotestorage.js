@@ -737,7 +737,11 @@ export class RemoteStorage {
     }
 
     this.remote.configure({
-      userAddress: userAddress
+      userAddress: userAddress,
+      // An earlier session's, which a new token must not be refreshed with
+      refreshToken: null,
+      tokenURL: null,
+      clientId: null
     });
     this._emit('connecting');
 
@@ -809,6 +813,8 @@ export class RemoteStorage {
         storageApi: null,
         token: null,
         refreshToken: null,
+        tokenURL: null,
+        clientId: null,
         properties: null
       });
     }

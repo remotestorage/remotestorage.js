@@ -124,6 +124,12 @@ describe('util', () => {
   });
 
   describe('localStorage utilities', () => {
+    let originalLocalStorage;
+
+    // Put the real one back, so later specs can still use it
+    beforeEach(() => { originalLocalStorage = global.localStorage; });
+    afterEach(() => { global.localStorage = originalLocalStorage; });
+
     it('detects when localStorage is unavailable', () => {
       const QuotaExceededError = function(message) {
         this.name = 'QuotaExceededError';

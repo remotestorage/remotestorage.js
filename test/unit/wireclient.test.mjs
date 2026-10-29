@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import fetchMock from 'fetch-mock';
 
+import { localStorage } from '../helpers/memoryStorage.mjs';
 import config from '../../build/config.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
 import WireClient from '../../build/wireclient.js';
@@ -13,6 +14,7 @@ chai.use(chaiAsPromised);
 
 const BASE_URI = 'https://example.com/storage/test';
 const TOKEN = 'foobarbaz';
+const WIRECLIENT_SETTINGS_KEY = 'remotestorage:wireclient';
 
 describe('WireClient', () => {
   let rs;
@@ -669,6 +671,112 @@ describe('WireClient', () => {
       expect(res.body).to.be.undefined;
       expect(res.contentType).to.be.undefined;
       expect(res.revision).to.equal('ohai');
+    });
+  });
+
+  describe('Token refresh', () => {
+    const TOKEN_URL = 'https://example.com/oauth/token';
+    const CLIENT_ID = 'https://app.example';
+    const NEW_TOKEN = 'n3wt0k3n';
+    let errors;
+
+    function mockGet (token, status) {
+      fetchMock.mock(
+        { name: `get-${token}`, url: `${BASE_URI}/foo/bar`, headers: { Authorization: `Bearer ${token}` } },
+        { status, headers: { 'Content-Type': 'text/plain' }, body: 'OK' }
+      );
+    }
+
+    function mockRefresh (response) {
+      fetchMock.mock({ name: 'refresh', method: 'POST', url: TOKEN_URL }, response);
+    }
+
+    beforeEach(() => {
+      connectedClient.configure({ refreshToken: 'r3fr3sh', tokenURL: TOKEN_URL, clientId: CLIENT_ID });
+      errors = [];
+      rs.on('error', err => errors.push(err));
+    });
+
+    it('stores the refresh settings with the rest, so they survive a reload', () => {
+      const stored = JSON.parse(localStorage.getItem(WIRECLIENT_SETTINGS_KEY));
+      expect(stored).to.include({ refreshToken: 'r3fr3sh', tokenURL: TOKEN_URL, clientId: CLIENT_ID });
+    });
+
+    it('refreshes the access token on a 401 and retries the request with it', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(200);
+      const body = new URLSearchParams(fetchMock.calls('refresh')[0][1].body);
+      expect(body.get('grant_type')).to.equal('refresh_token');
+      expect(body.get('refresh_token')).to.equal('r3fr3sh');
+      expect(body.get('client_id')).to.equal(CLIENT_ID);
+      expect(connectedClient.token).to.equal(NEW_TOKEN);
+      expect(errors).to.be.empty;
+    });
+
+    it('refreshes once for concurrent 401s', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+      const results = await Promise.all([connectedClient.get('/foo/bar'), connectedClient.get('/foo/bar')]);
+
+      expect(results.map(r => r.statusCode)).to.deep.equal([200, 200]);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(1);
+    });
+
+    it('emits Unauthorized and forgets the refresh token when it is rejected', async () => {
+      mockGet(TOKEN, 401);
+      mockRefresh({ status: 400, body: JSON.stringify({ error: 'invalid_grant' }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
+      expect(connectedClient.refreshToken).to.equal(null);
+      expect(connectedClient.connected).to.equal(false);
+    });
+
+    it('keeps the session when the token endpoint can not be reached', async () => {
+      mockGet(TOKEN, 401);
+      mockRefresh({ throws: new TypeError('Failed to fetch') });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
+      // A later 401 can try again
+      expect(connectedClient.token).to.equal(TOKEN);
+      expect(connectedClient.refreshToken).to.equal('r3fr3sh');
+      expect(connectedClient.connected).to.equal(true);
+    });
+
+    it('retries only once', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 401);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(1);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
+    });
+
+    it('emits Unauthorized without refreshing when there is no refresh token', async () => {
+      connectedClient.configure({ refreshToken: null });
+      mockGet(TOKEN, 401);
+      mockRefresh(200);
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(0);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
     });
   });
 

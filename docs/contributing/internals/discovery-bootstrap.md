@@ -44,10 +44,15 @@ then makes a fetch to the saved token endpoint (or `remote.TOKEN_URL`
 for Dropbox) with the code, to retrieve the access token, and possibly a
 refresh token as well.
 
-Only Dropbox uses that refresh token so far. The generic backend does
-not keep the token endpoint or client id once the code is exchanged, so
-when its access token expires the app gets an `Unauthorized` event and
-the user has to connect again, as with the implicit flow.
+The generic backend stores the refresh token, the token endpoint and the
+client id with the rest of its settings (`remotestorage:wireclient` in
+localStorage). When a request gets a 401, it asks the token endpoint for
+a new access token and retries the request once with it; concurrent
+401s share one refresh, and a rotated refresh token replaces the old one.
+If the server rejects the refresh token, it is forgotten and the app gets
+an `Unauthorized` event, so the user has to connect again. If the token
+endpoint can't be reached, the session is kept for a later attempt.
+Connecting again or disconnecting forgets the refresh settings.
 
 ## The `rsDiscovery` fallback
 

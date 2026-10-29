@@ -161,6 +161,16 @@ describe("RemoteStorage", function() {
       expect(configuredAddress).to.equal('https://personal.ho.st');
     });
 
+    it("forgets an earlier session's refresh token and token endpoint", function() {
+      this.rs.remote = new FakeRemote(false);
+      const configured = [];
+      this.rs.remote.configure = function (options) { configured.push(options); };
+
+      this.rs.connect('user@ho.st');
+
+      expect(configured[0]).to.include({ refreshToken: null, tokenURL: null, clientId: null });
+    });
+
     it("authorizes a record that only advertises PKCE (no implicit authURL)", async function() {
       this.discoverStub.withArgs('pkce@ho.st').returns(Promise.resolve({
         href: 'https://ho.st/storage/pkce',
