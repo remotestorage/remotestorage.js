@@ -1676,6 +1676,72 @@ describe("Sync", function() {
       expect(nodes["/notes/private.txt"]).to.be.undefined;
       expect(emitChange.called).to.be.false;
     });
+
+    it("settles every queued request when a parked successor is discarded", async function() {
+      this.rs.remote.connected = true;
+      this.rs.remote.online = true;
+      this.rs.sync.doTasks = this.original.doTasks;
+
+      const releases = {};
+      this.rs.remote.get = sinon.stub().callsFake((path) => {
+        return new Promise((resolve) => { releases[path] = resolve; });
+      });
+
+      const staleSync = this.rs.sync;
+      const pendingA = staleSync.queueGetRequest("/notes/a.txt");
+      const pendingB = staleSync.queueGetRequest("/notes/b.txt");
+      // Let both tasks be dispatched; the second is parked in _finishedTasks
+      // while the first awaits its response.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const replacement = new InMemoryStorage();
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      releases["/notes/a.txt"]({
+        statusCode: 200, body: "A_ONLY", contentType: "text/plain", revision: "a"
+      });
+      releases["/notes/b.txt"]({
+        statusCode: 200, body: "B_ONLY", contentType: "text/plain", revision: "b"
+      });
+
+      await expect(pendingA).to.be.rejectedWith(/session ended/);
+      await expect(pendingB).to.be.rejectedWith(/session ended/);
+      const nodes = await replacement.getNodes(["/notes/a.txt", "/notes/b.txt"]);
+      expect(nodes["/notes/a.txt"]).to.be.undefined;
+      expect(nodes["/notes/b.txt"]).to.be.undefined;
+    });
+
+    it("settles a request whose task was never started", async function() {
+      this.rs.remote.connected = true;
+      this.rs.remote.online = true;
+      this.rs.sync.doTasks = this.original.doTasks;
+
+      const releases = {};
+      this.rs.remote.get = sinon.stub().callsFake((path) => {
+        return new Promise((resolve) => { releases[path] = resolve; });
+      });
+
+      const staleSync = this.rs.sync;
+      staleSync.numThreads = 1; // keep the second request queued but not started
+      const pendingA = staleSync.queueGetRequest("/notes/a.txt");
+      const pendingB = staleSync.queueGetRequest("/notes/b.txt");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const replacement = new InMemoryStorage();
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      releases["/notes/a.txt"]({
+        statusCode: 200, body: "A_ONLY", contentType: "text/plain", revision: "a"
+      });
+
+      await expect(pendingA).to.be.rejectedWith(/session ended/);
+      await expect(pendingB).to.be.rejectedWith(/session ended/);
+      const nodes = await replacement.getNodes(["/notes/a.txt", "/notes/b.txt"]);
+      expect(nodes["/notes/a.txt"]).to.be.undefined;
+      expect(nodes["/notes/b.txt"]).to.be.undefined;
+    });
   });
 
   describe("Edge cases", function() {

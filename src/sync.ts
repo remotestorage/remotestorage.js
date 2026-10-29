@@ -991,21 +991,20 @@ export class Sync {
   }
 
   /**
-   * Drop a task belonging to a sync instance that is no longer the active
-   * one, so a stale response cannot be written into the replacement session.
-   * Also settles queued callbacks waiting on the path.
+   * Abandon this sync instance after its session has been replaced, so no
+   * stale response can be written into the replacement session. Settles all
+   * queued callbacks (including parked successors and tasks that were never
+   * started) and drops all bookkeeping.
    */
   discardStaleTask (task: SyncTask): void {
     log('[Sync] discarding stale task after session change:', task.path);
-    this.failQueuedTasks(
-      task.path,
-      new Error('Sync session ended before the request could be fulfilled.')
-    );
-    delete this._running[task.path];
-    delete this._timeStarted[task.path];
-    if (this._finishedTasks[0] === task) {
-      this._finishedTasks.shift();
+    const err = new Error('Sync session ended before the request could be fulfilled.');
+    for (const path of Object.keys(this._tasks)) {
+      this.failQueuedTasks(path, err);
     }
+    this._running = {};
+    this._timeStarted = {};
+    this._finishedTasks = [];
   }
 
   /**
