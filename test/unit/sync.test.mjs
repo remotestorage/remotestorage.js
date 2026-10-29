@@ -1638,6 +1638,44 @@ describe("Sync", function() {
       expect(res.statusCode).to.equal(404);
       expect(emitChange.called).to.be.false;
     });
+
+    it("does not apply an in-flight response and settles a waiting queueGetRequest", async function() {
+      // Exercise the real dispatch flow, where finishTask() is already
+      // awaiting the response when the session is replaced.
+      this.rs.remote.connected = true;
+      this.rs.remote.online = true;
+      this.rs.sync.doTasks = this.original.doTasks;
+
+      let releaseGet;
+      this.rs.remote.get = sinon.stub().returns(
+        new Promise((resolve) => { releaseGet = resolve; })
+      );
+
+      const staleSync = this.rs.sync;
+      const pending = staleSync.queueGetRequest("/notes/private.txt");
+      // Let the queued task start and issue its remote GET.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Replace the session while the request is still in flight.
+      const replacement = new InMemoryStorage();
+      const emitChange = sinon.spy(replacement, "emitChange");
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      releaseGet({
+        statusCode: 200,
+        body: "A_ONLY",
+        contentType: "text/plain",
+        revision: "rev-a"
+      });
+
+      // The stale response is discarded and the waiting request settles
+      // instead of resolving with the previous account's data or hanging.
+      await expect(pending).to.be.rejectedWith(/session ended/);
+      const nodes = await replacement.getNodes(["/notes/private.txt"]);
+      expect(nodes["/notes/private.txt"]).to.be.undefined;
+      expect(emitChange.called).to.be.false;
+    });
   });
 
   describe("Edge cases", function() {

@@ -120,9 +120,11 @@ export class Sync {
   stopped: boolean;
 
   /**
-   * Paths queued for sync, sometimes with callbacks
+   * Paths queued for sync, sometimes with callbacks. A callback may be
+   * invoked with an error to settle a request that can no longer be
+   * fulfilled (e.g. after the session has ended).
    */
-  _tasks: { [key: string]: Array<() => void>; } = {};
+  _tasks: { [key: string]: Array<(err?: Error) => void>; } = {};
 
   /**
    * Promises of currently running sync tasks per path
@@ -174,8 +176,12 @@ export class Sync {
       } else if (!this.rs.remote.online) {
         reject('cannot fulfill maxAge requirement - remote is not online');
       } else {
-        this.addTask(path, function (): void {
-          this.rs.local.get(path).then(r => resolve(r));
+        this.addTask(path, function (err?: Error): void {
+          if (err) {
+            reject(err);
+          } else {
+            this.rs.local.get(path).then(r => resolve(r));
+          }
         }.bind(this));
 
         this.doTasks();
@@ -985,18 +991,36 @@ export class Sync {
   }
 
   /**
+   * Drop a task belonging to a sync instance that is no longer the active
+   * one, so a stale response cannot be written into the replacement session.
+   * Also settles queued callbacks waiting on the path.
+   */
+  discardStaleTask (task: SyncTask): void {
+    log('[Sync] discarding stale task after session change:', task.path);
+    this.failQueuedTasks(
+      task.path,
+      new Error('Sync session ended before the request could be fulfilled.')
+    );
+    delete this._running[task.path];
+    delete this._timeStarted[task.path];
+    if (this._finishedTasks[0] === task) {
+      this._finishedTasks.shift();
+    }
+  }
+
+  /**
    * Execute/finish running tasks, one at a time
    */
   async finishTask (task: SyncTask, queueTask: boolean = true): Promise<void> {
-    // Discard tasks belonging to a sync instance that is no longer the active
-    // one. `disconnect()` tears down this instance and assigns a replacement
-    // adapter/session, so a held GET/PUT/DELETE response must not be applied to
-    // the new cache (or emitted as change events) once that has happened.
+    // A task's response is awaited below, so the session may change (e.g. via
+    // `disconnect()`) while this method is already in flight. Discard the task
+    // both when it is picked up and again after its response arrives, so a
+    // held GET/PUT/DELETE from a torn-down session is never applied to the
+    // replacement adapter or emitted as change events.
     // `stopSync()` leaves `rs.sync` in place, so in-flight tasks still complete
     // normally in that case.
     if (this.rs.sync !== this) {
-      log('[Sync] discarding stale task after session change:', task.path);
-      delete this._running[task.path];
+      this.discardStaleTask(task);
       return;
     }
 
@@ -1022,6 +1046,13 @@ export class Sync {
     } catch (err) {
       log('[Sync] wire client rejects its promise', task.path, task.action, err);
       res = { statusCode: 'offline' };
+    }
+
+    // Re-check after awaiting the response: the session may have been replaced
+    // while the request was in flight.
+    if (this.rs.sync !== this) {
+      this.discardStaleTask(task);
+      return;
     }
 
     try {
@@ -1160,12 +1191,27 @@ export class Sync {
    * Add a sync task for the given path
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addTask (path: string, cb?: () => void): void {
+  addTask (path: string, cb?: (err?: Error) => void): void {
     if (!this._tasks[path]) {
       this._tasks[path] = [];
     }
     if (typeof(cb) === 'function') {
       this._tasks[path].push(cb);
+    }
+  }
+
+  /**
+   * Fail queued callbacks for a path, e.g. when the session ended before
+   * their task could complete. Settles `queueGetRequest` promises that
+   * would otherwise stay pending forever after `disconnect()`.
+   */
+  failQueuedTasks (path: string, err: Error): void {
+    const callbacks = this._tasks[path];
+    if (callbacks) {
+      for (let i = 0; i < callbacks.length; i++) {
+        callbacks[i](err);
+      }
+      delete this._tasks[path];
     }
   }
 
