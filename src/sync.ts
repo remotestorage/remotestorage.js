@@ -1292,9 +1292,9 @@ export class Sync {
       this.rs._emit('sync-started');
     }
 
-    let numAdded: number = 0, path: string;
+    let numAdded: number = 0;
 
-    for (path in this._tasks) {
+    for (const path in this._tasks) {
       if (!this._running[path]) {
         this._timeStarted[path] = this.now();
         this._running[path] = this.doTask(path)

@@ -459,6 +459,36 @@ describe("Sync", function() {
         ]);
       });
     });
+
+    describe("when a task fails before its response is processed", function() {
+      it("settles only the queued callbacks for the failing path", async function() {
+        this.rs.remote.connected = true;
+        this.rs.remote.online = true;
+        this.rs.sync.numThreads = 5;
+
+        const failure = new Error("cache read failed");
+        this.rs.sync.doTask = sinon.stub().callsFake((path) => {
+          if (path === "/notes/a.txt") { return Promise.reject(failure); }
+          // Never settles, so it stays in _running.
+          return new Promise(() => { /* keep pending */ });
+        });
+        const callbackA = sinon.spy();
+        const callbackB = sinon.spy();
+        this.rs.sync._tasks = {
+          "/notes/a.txt": [callbackA],
+          "/notes/b.txt": [callbackB]
+        };
+
+        this.rs.sync.doTasks();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        // Each rejection handler must settle its own path, not the last one
+        // iterated by doTasks().
+        expect(callbackA.calledWith(failure)).to.be.true;
+        expect(callbackB.called).to.be.false;
+        expect(Object.keys(this.rs.sync._running)).to.deep.equal(["/notes/b.txt"]);
+      });
+    });
   });
 
   describe("#doTask with ArrayBuffer body", function() {
