@@ -37,10 +37,30 @@ interface SyncTask {
 }
 
 function taskFor (action: SyncTask["action"], path: SyncTask["path"], promise: SyncTask["promise"]): SyncTask {
+  // Observe the response promise at creation time, so a task that is abandoned
+  // before `finishTask()` awaits it (e.g. after `disconnect()`) cannot produce
+  // an unhandled rejection. `finishTask()` still surfaces the failure to
+  // queued callers through its own `try`/`catch`.
+  promise.catch(() => {
+    // Intentionally empty: only here to mark the rejection as observed.
+  });
   return { action, path, promise };
 }
 
 const SESSION_ENDED_MESSAGE = 'Sync session ended before the request could be fulfilled.';
+
+/**
+ * Thrown when a task belonging to a `Sync` instance that is no longer the
+ * active one (e.g. after `disconnect()`) would otherwise continue processing
+ * its response. Callers abort before any cache write or change event can reach
+ * the replacement session.
+ */
+class SessionEndedError extends Error {
+  constructor () {
+    super(SESSION_ENDED_MESSAGE);
+    this.name = 'SessionEndedError';
+  }
+}
 
 function nodeChanged (node: RSNode, etag: string): boolean {
   return node.common.revision !== etag &&
@@ -107,6 +127,14 @@ export class Sync {
   rs: RemoteStorage;
 
   /**
+   * The local storage adapter this sync instance was created for. Storage
+   * operations and change events are bound to it, so a response that arrives
+   * after the session has been replaced cannot write into (or emit changes
+   * through) the replacement session's adapter.
+   */
+  _sessionLocal: RemoteStorage["local"];
+
+  /**
    * Maximum number of parallel requests to execute
    */
   numThreads: number = 10;
@@ -131,7 +159,7 @@ export class Sync {
   /**
    * Promises of currently running sync tasks per path
    */
-  _running: { [key: string]: Promise<SyncTask>; } = {};
+  _running: { [key: string]: Promise<SyncTask | void>; } = {};
 
   /**
    * Start times of current sync per path
@@ -145,8 +173,9 @@ export class Sync {
 
   constructor (remoteStorage: RemoteStorage) {
     this.rs = remoteStorage;
+    this._sessionLocal = remoteStorage.local;
 
-    this.rs.local.onDiff(path => {
+    this._sessionLocal.onDiff(path => {
       this.addTask(path);
       this.doTasks();
     });
@@ -167,6 +196,26 @@ export class Sync {
   }
 
   /**
+   * Whether this `Sync` instance is still the active one for its
+   * `RemoteStorage` session, i.e. responses it processes may still be applied.
+   */
+  isCurrentSession (): boolean {
+    return this.rs.sync === this;
+  }
+
+  /**
+   * Throw if this `Sync` instance is no longer the active one. Called after
+   * asynchronous boundaries and before cache writes or change events, so a
+   * response from a torn-down session is discarded instead of being applied to
+   * the replacement session.
+   */
+  assertCurrentSession (): void {
+    if (!this.isCurrentSession()) {
+      throw new SessionEndedError();
+    }
+  }
+
+  /**
    * When getting a path from the caching layer, this function might be handed
    * in to first check if it was updated on the remote, in order to fulfill a
    * maxAge requirement
@@ -182,7 +231,7 @@ export class Sync {
           if (err) {
             reject(err);
           } else {
-            this.rs.local.get(path).then(r => resolve(r));
+            this._sessionLocal.get(path).then(r => resolve(r));
           }
         }.bind(this));
 
@@ -264,7 +313,7 @@ export class Sync {
   async collectDiffTasks (): Promise<number> {
     let num = 0;
 
-    return this.rs.local.forAllNodes((node: RSNode) => {
+    return this._sessionLocal.forAllNodes((node: RSNode) => {
       if (num > 100) { return; }
 
       if (this.isCorrupt(node)) {
@@ -368,7 +417,7 @@ export class Sync {
    * Collect tasks to refresh highest outdated folder in tree
    */
   async collectRefreshTasks (): Promise<void> {
-    await this.rs.local.forAllNodes((node: RSNode) => {
+    await this._sessionLocal.forAllNodes((node: RSNode) => {
       let parentPath: string;
       if (this.needsRefresh(node)) {
         try {
@@ -406,7 +455,11 @@ export class Sync {
    * Sync one path
    */
   async doTask (path: string): Promise<SyncTask> {
-    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
+    return this._sessionLocal.getNodes([path]).then((nodes: RSNodes) => {
+      // The session may have been replaced while the cache lookup was in
+      // flight; do not act on it against the replacement session.
+      this.assertCurrentSession();
+
       const node = nodes[path];
       // First fetch:
       if (typeof(node) === 'undefined') {
@@ -421,7 +474,9 @@ export class Sync {
         node.push = deepClone(node.local);
         node.push.timestamp = this.now();
 
-        return this.rs.local.setNodes(this.flush(nodes)).then(() => {
+        return this._sessionLocal.setNodes(this.flush(nodes)).then(() => {
+          this.assertCurrentSession();
+
           let options;
           if (hasCommonRevision(node)) {
             options = { ifMatch: node.common.revision };
@@ -444,7 +499,9 @@ export class Sync {
       else if (this.needsRemoteDelete(node)) {
         node.push = { body: false, timestamp: this.now() };
 
-        return this.rs.local.setNodes(this.flush(nodes)).then(() => {
+        return this._sessionLocal.setNodes(this.flush(nodes)).then(() => {
+          this.assertCurrentSession();
+
           if (hasCommonRevision(node)) {
             return taskFor('delete', path,
               this.rs.remote.delete(path, { ifMatch: node.common.revision })
@@ -519,7 +576,9 @@ export class Sync {
         // Deleted on both sides, nothing to do
       } else {
         log('[Sync] Emitting conflict event');
-        setTimeout(this.rs.local.emitChange.bind(this.rs.local), 10, {
+        // Capture the values now, before `node.local`/`node.remote` are
+        // deleted below.
+        const change = {
           origin:          'conflict',
           path:            node.path,
           oldValue:        node.local.body,
@@ -528,7 +587,16 @@ export class Sync {
           oldContentType:  node.local.contentType,
           newContentType:  node.remote.contentType,
           lastCommonContentType: node.common.contentType
-        });
+        };
+        const sessionLocal = this._sessionLocal;
+        setTimeout(() => {
+          // The session may have been replaced during the delay. The conflict
+          // belongs to the old session and must not be emitted through the
+          // replacement session's adapter.
+          if (this.isCurrentSession()) {
+            sessionLocal.emitChange(change);
+          }
+        }, 10);
       }
 
       if (node.remote.body === false) {
@@ -547,9 +615,13 @@ export class Sync {
    * Merge/process node items after various updates from remote
    */
   autoMerge (node: RSNode): RSNode {
+    // Guard all change events emitted below: if the session has been replaced,
+    // the merge result belongs to the old session and must be dropped.
+    this.assertCurrentSession();
+
     if (!node.remote) {
       if (node.common.body) {
-        this.rs.local.emitChange({
+        this._sessionLocal.emitChange({
           origin:   'remote',
           path:     node.path,
           oldValue: node.common.body,
@@ -587,7 +659,7 @@ export class Sync {
         };
 
         if (change.oldValue !== undefined || change.newValue !== undefined) {
-          this.rs.local.emitChange(change);
+          this._sessionLocal.emitChange(change);
         }
 
         if (node.remote.body === false) {
@@ -603,13 +675,15 @@ export class Sync {
   }
 
   async updateCommonTimestamp (path: string, revision: string): Promise<void> {
-    return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
+    return this._sessionLocal.getNodes([path]).then((nodes: RSNodes) => {
+      this.assertCurrentSession();
+
       if (nodes[path] &&
           nodes[path].common &&
           nodes[path].common.revision === revision) {
         nodes[path].common.timestamp = this.now();
       }
-      return this.rs.local.setNodes(this.flush(nodes));
+      return this._sessionLocal.setNodes(this.flush(nodes));
     });
   }
 
@@ -630,7 +704,8 @@ export class Sync {
       paths.push(path+childName);
     }
 
-    const nodes = await this.rs.local.getNodes(paths);
+    const nodes = await this._sessionLocal.getNodes(paths);
+    this.assertCurrentSession();
 
     let cachingStrategy;
     let node;
@@ -707,7 +782,8 @@ export class Sync {
 
     const changedNodes2 = await this.markRemoteDeletions(Object.keys(recurse), changedNodes);
     if (changedNodes2) {
-      await this.rs.local.setNodes(this.flush(changedNodes2));
+      this.assertCurrentSession();
+      await this._sessionLocal.setNodes(this.flush(changedNodes2));
     }
   }
 
@@ -718,7 +794,9 @@ export class Sync {
   async markRemoteDeletions (paths: string[], changedNodes: RSNodes): Promise<RSNodes | void> {
     if (paths.length === 0) { return changedNodes; }
 
-    const nodes = await this.rs.local.getNodes(paths);
+    const nodes = await this._sessionLocal.getNodes(paths);
+    this.assertCurrentSession();
+
     const subPaths = {};
 
     function collectSubPaths (folder: RSItem, path: string): void {
@@ -751,7 +829,8 @@ export class Sync {
     // Recurse whole tree depth levels at once:
     const changedNodes2 = await this.markRemoteDeletions(Object.keys(subPaths), changedNodes);
     if (changedNodes2) {
-      await this.rs.local.setNodes(this.flush(changedNodes2));
+      this.assertCurrentSession();
+      await this._sessionLocal.setNodes(this.flush(changedNodes2));
     }
   }
 
@@ -770,7 +849,9 @@ export class Sync {
       paths = [path, parentPath];
     }
 
-    const nodes = await this.rs.local.getNodes(paths);
+    const nodes = await this._sessionLocal.getNodes(paths);
+    this.assertCurrentSession();
+
     const parentNode: RSNode = nodes[parentPath];
     const missingChildren = {};
     let node: RSNode = nodes[path];
@@ -838,7 +919,9 @@ export class Sync {
    * Handle successful PUT or DELETE request
    */
   async completePush (path: string, action: "put" | "delete", conflict: boolean, revision: string): Promise<void> {
-    const nodes = await this.rs.local.getNodes([path]);
+    const nodes = await this._sessionLocal.getNodes([path]);
+    this.assertCurrentSession();
+
     const node = nodes[path];
 
     if (!node.push) {
@@ -883,18 +966,20 @@ export class Sync {
       }
     }
 
-    await this.rs.local.setNodes(this.flush(nodes));
+    this.assertCurrentSession();
+    await this._sessionLocal.setNodes(this.flush(nodes));
   }
 
   /**
    * Remove push item from cached nodes that failed to sync
    */
   async dealWithFailure (path: string): Promise<void> {
-    const nodes = await this.rs.local.getNodes([path]);
+    const nodes = await this._sessionLocal.getNodes([path]);
+    this.assertCurrentSession();
 
     if (nodes[path]) {
       delete nodes[path].push;
-      return this.rs.local.setNodes(this.flush(nodes));
+      return this._sessionLocal.setNodes(this.flush(nodes));
     }
   }
 
@@ -950,7 +1035,8 @@ export class Sync {
         }
         await this.markChildren(path, bodyOrItemsMap as RSItem["itemsMap"], data.toBeSaved, data.missingChildren);
       } else {
-        await this.rs.local.setNodes(this.flush(data.toBeSaved));
+        this.assertCurrentSession();
+        await this._sessionLocal.setNodes(this.flush(data.toBeSaved));
       }
     } else {
       await this.updateCommonTimestamp(path, revision);
@@ -962,6 +1048,8 @@ export class Sync {
    * Handle response of executed request
    */
   async handleResponse (path: string, action: SyncTask["action"], r: RemoteResponse): Promise<boolean> {
+    this.assertCurrentSession();
+
     const status = this.interpretStatus(r.statusCode);
 
     if (status.successful) {
@@ -993,6 +1081,18 @@ export class Sync {
   }
 
   /**
+   * Mark a request promise as observed, so an abandoned task cannot surface as
+   * an unhandled rejection. `finishTask()` normally surfaces failures to
+   * queued callers, but tasks discarded after a session change are never
+   * awaited.
+   */
+  observeAbandonedTask (promise: Promise<unknown>): void {
+    promise.catch(() => {
+      // Intentionally empty: only here to mark the rejection as observed.
+    });
+  }
+
+  /**
    * Abandon this sync instance after its session has been replaced, so no
    * stale response can be written into the replacement session. Settles all
    * queued callbacks (including parked successors and tasks that were never
@@ -1000,6 +1100,18 @@ export class Sync {
    */
   discardStaleTask (task: SyncTask): void {
     log('[Sync] discarding stale task after session change:', task.path);
+
+    // Observe every outstanding request before dropping it, including the head
+    // task and any successors parked in `_finishedTasks`, so a later rejection
+    // cannot become an unhandled rejection.
+    this.observeAbandonedTask(task.promise);
+    for (const parked of this._finishedTasks) {
+      this.observeAbandonedTask(parked.promise);
+    }
+    for (const path of Object.keys(this._running)) {
+      this.observeAbandonedTask(this._running[path]);
+    }
+
     this.failAllQueuedTasks(new Error(SESSION_ENDED_MESSAGE));
     this._running = {};
     this._timeStarted = {};
@@ -1017,7 +1129,7 @@ export class Sync {
     // replacement adapter or emitted as change events.
     // `stopSync()` leaves `rs.sync` in place, so in-flight tasks still complete
     // normally in that case.
-    if (this.rs.sync !== this) {
+    if (!this.isCurrentSession()) {
       this.discardStaleTask(task);
       return;
     }
@@ -1048,7 +1160,7 @@ export class Sync {
 
     // Re-check after awaiting the response: the session may have been replaced
     // while the request was in flight.
-    if (this.rs.sync !== this) {
+    if (!this.isCurrentSession()) {
       this.discardStaleTask(task);
       return;
     }
@@ -1057,6 +1169,13 @@ export class Sync {
       const completed = await this.handleResponse(task.path, task.action, res);
       this.finishSuccessfulTask(task, completed);
     } catch (err) {
+      // A `SessionEndedError` means the session changed after the check above
+      // (e.g. while `handleResponse` awaited a cache read). The response was
+      // not applied, so discard the task instead of reporting a failure.
+      if (err instanceof SessionEndedError) {
+        this.discardStaleTask(task);
+        return;
+      }
       this.finishUnsuccessfulTask(task, err);
     }
   }
@@ -1146,6 +1265,22 @@ export class Sync {
    *                    there's nothing to do, `false` if we could
    *                    or want to run more
    */
+  /**
+   * Handle a task that failed before its response could be processed, e.g.
+   * because a cache read rejected or the session ended while the task was
+   * starting. Settles any queued callers and clears bookkeeping.
+   */
+  taskFailed (path: string, err: Error): void {
+    if (err instanceof SessionEndedError) {
+      this.failQueuedTasks(path, new Error(SESSION_ENDED_MESSAGE));
+    } else {
+      log('[Sync] task failed to start', path, err);
+      this.failQueuedTasks(path, err);
+    }
+    delete this._running[path];
+    delete this._timeStarted[path];
+  }
+
   doTasks (): boolean {
     const numToHave = this.tasksWanted();
     const numToAdd = numToHave - Object.keys(this._running).length;
@@ -1162,7 +1297,9 @@ export class Sync {
     for (path in this._tasks) {
       if (!this._running[path]) {
         this._timeStarted[path] = this.now();
-        this._running[path] = this.doTask(path).then(this.finishTask.bind(this));
+        this._running[path] = this.doTask(path)
+          .then(this.finishTask.bind(this))
+          .catch((err: Error) => { this.taskFailed(path, err); });
         numAdded++;
         if (numAdded >= numToAdd) { break; }
       }

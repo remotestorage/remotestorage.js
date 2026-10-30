@@ -1758,6 +1758,79 @@ describe("Sync", function() {
       expect(nodes["/notes/a.txt"]).to.be.undefined;
       expect(nodes["/notes/b.txt"]).to.be.undefined;
     });
+
+    it("does not write when the session is replaced while handleResponse awaits the cache", async function() {
+      const originalLocal = this.rs.local;
+      const staleSync = this.rs.sync;
+
+      // Hold the cache read that completeFetch() performs after the response
+      // has already been deemed current.
+      let releaseGetNodes;
+      const getNodesStub = sinon.stub(originalLocal, "getNodes").returns(
+        new Promise((resolve) => { releaseGetNodes = resolve; })
+      );
+      const setNodesSpy = sinon.spy(originalLocal, "setNodes");
+
+      const task = {
+        action: "get",
+        path: "/notes/private.txt",
+        promise: Promise.resolve({
+          statusCode: 200,
+          body: "A_ONLY",
+          contentType: "text/plain",
+          revision: "rev-a"
+        })
+      };
+
+      const finished = staleSync.finishTask(task, false);
+      // Let finishTask() await the response and enter handleResponse().
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Replace the session while completeFetch() is awaiting the cache read.
+      const replacement = new InMemoryStorage();
+      const emitChange = sinon.spy(replacement, "emitChange");
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      releaseGetNodes({});
+      await finished;
+
+      expect(getNodesStub.called).to.be.true;
+      // The stale cache read must not lead to a write on either adapter.
+      expect(setNodesSpy.called).to.be.false;
+      const nodes = await replacement.getNodes(["/notes/private.txt"]);
+      expect(nodes["/notes/private.txt"]).to.be.undefined;
+      expect(emitChange.called).to.be.false;
+    });
+
+    it("observes a discarded task's rejection to avoid an unhandled rejection", async function() {
+      const unhandled = [];
+      const onUnhandled = (reason) => { unhandled.push(reason); };
+      process.on("unhandledRejection", onUnhandled);
+      try {
+        const staleSync = this.rs.sync;
+        let rejectGet;
+        const promise = new Promise((resolve, reject) => { rejectGet = reject; });
+        const task = { action: "get", path: "/notes/private.txt", promise };
+
+        this.rs.local = new InMemoryStorage();
+        this.rs.sync = new Sync(this.rs);
+
+        // finishTask() hits the stale-session guard and discards the task
+        // without ever awaiting its promise.
+        await staleSync.finishTask(task, false);
+
+        rejectGet(new Error("held request failed"));
+
+        // Give the runtime a couple of turns to surface a rejection.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(unhandled).to.be.empty;
+      } finally {
+        process.off("unhandledRejection", onUnhandled);
+      }
+    });
   });
 
   describe("Edge cases", function() {
