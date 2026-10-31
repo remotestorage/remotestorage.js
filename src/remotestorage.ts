@@ -34,6 +34,46 @@ import type { Sync } from './sync';
 import * as util from './util';
 
 const globalContext = getGlobalContext();
+
+/**
+ * Why the PKCE code flow can't be used for this storage, or null when it can.
+ */
+function pkceUnavailableReason (info: StorageInfo): string | null {
+  if (!util.pkceTokenURL(info)) {
+    return 'it is not fully advertised';
+  }
+  // The code and its verifier are posted to the token endpoint
+  if (!util.isSecureEndpoint(info.tokenURL)) {
+    return 'its token endpoint does not use https';
+  }
+  // crypto.subtle, needed for the code challenge, only exists in secure contexts
+  if (!globalContext.crypto?.subtle) {
+    return 'Web Crypto is unavailable (it needs https)';
+  }
+  // Cordova's InAppBrowser path only handles access tokens, not codes.
+  if (globalContext.cordova) {
+    return 'it is not supported in Cordova';
+  }
+  // The verifier crosses the redirect in sessionStorage. Without
+  // localStorage the discovery data would have to travel in the state
+  // parameter, which PKCE uses for its own random value.
+  if (!util.sessionStorageAvailable() || !util.localStorageAvailable()) {
+    return 'browser storage is unavailable';
+  }
+  return null;
+}
+
+/**
+ * Clear any stored PKCE transaction, where nothing else may fail because of
+ * it: browser storage can be blocked to the point that reading it throws.
+ */
+function forgetPkceTransaction (): void {
+  try {
+    Authorize.clearPkceTransaction();
+  } catch (err) {
+    log('[RemoteStorage] Could not clear the PKCE transaction', err);
+  }
+}
 // declare global {
 //   interface Window { cordova: any };
 // }
@@ -563,6 +603,16 @@ export class RemoteStorage {
    * @internal
    */
   authorize (options: AuthorizeOptions): void {
+    this._prepareAuthorizeOptions(options);
+    Authorize.authorize(this, options);
+  }
+
+  /**
+   * Fill in the scope, redirect URI and client id of an authorization request.
+   *
+   * @internal
+   */
+  _prepareAuthorizeOptions (options: AuthorizeOptions): void {
     this.access.setStorageType(this.remote.storageApi);
     if (typeof options.scope === 'undefined') {
       options.scope = this.access.scopeParameter;
@@ -583,8 +633,69 @@ export class RemoteStorage {
     if (typeof options.clientId === 'undefined') {
       options.clientId = options.redirectUri.match(/^(https?:\/\/[^/]+)/)[0];
     }
+  }
 
+  /**
+   * Start the authorization flow: the PKCE code flow when the server advertises
+   * it (spec §10.1), the implicit flow otherwise. Errors are emitted as
+   * `error` events; the promise resolves once the redirect has been started.
+   *
+   * @internal
+   */
+  async _authorize (info: StorageInfo): Promise<void> {
+    // connect() doesn't await this, so nothing may escape as a rejection
+    try {
+      const unavailable = pkceUnavailableReason(info);
+      if (unavailable) {
+        this._authorizeImplicitly(info, unavailable);
+      } else {
+        await this._authorizeWithPkce(info);
+      }
+    } catch (err) {
+      // e.g. an empty scope, found after the transaction was stored
+      forgetPkceTransaction();
+      this._emit('error', err);
+    }
+  }
+
+  /**
+   * Store a PKCE transaction and redirect to the authorization endpoint, or
+   * fall back to the implicit flow when the transaction can't be stored.
+   *
+   * @internal
+   */
+  async _authorizeWithPkce (info: StorageInfo): Promise<void> {
+    const { codeVerifier, codeChallenge, state } = await util.generateCodeVerifier();
+    const options: AuthorizeOptions = {
+      authURL: info.authorizationURL,
+      response_type: 'code',
+      state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256'
+    };
+    this._prepareAuthorizeOptions(options);
+    try {
+      Authorize.savePkceTransaction({ codeVerifier, state, tokenURL: info.tokenURL, clientId: options.clientId });
+    } catch (err) {
+      log('[RemoteStorage] Could not store the PKCE transaction', err);
+      this._authorizeImplicitly(info, 'it could not be stored in sessionStorage');
+      return;
+    }
     Authorize.authorize(this, options);
+  }
+
+  /**
+   * Fall back to the implicit flow, or emit an error when the server only
+   * offers PKCE (`reason` says why that can't be used).
+   *
+   * @internal
+   */
+  _authorizeImplicitly (info: StorageInfo, reason: string): void {
+    if (info.authURL) {
+      this.authorize({ authURL: info.authURL });
+    } else {
+      this._emit('error', new Error(`Cannot authorize: the server only offers the PKCE flow, but ${reason}`));
+    }
   }
 
   /**
@@ -666,10 +777,10 @@ export class RemoteStorage {
       info.userAddress = userAddress;
       this.remote.configure(info);
       if (! this.remote.connected) {
-        if (info.authURL) {
+        if (info.authURL || util.pkceTokenURL(info)) {
           if (typeof token === 'undefined') {
             // Normal authorization step; the default way to connect
-            this.authorize({ authURL: info.authURL });
+            this._authorize(info);
           } else if (typeof token === 'string') {
             // Token supplied directly by app/developer/user
             log('Skipping authorization sequence and connecting with known token');
@@ -734,6 +845,7 @@ export class RemoteStorage {
     }
     this._forgetPendingScope();
     this._rememberAuthorizedScope(null);
+    forgetPkceTransaction();
     this._setGPD({
       get: this._pendingGPD('get'),
       put: this._pendingGPD('put'),

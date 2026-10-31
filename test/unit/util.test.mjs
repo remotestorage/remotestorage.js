@@ -160,4 +160,43 @@ describe('util', () => {
       expect(util.getJSONFromLocalStorage('somekey')).to.equal(null);
     });
   });
+
+  describe('isSecureEndpoint', () => {
+    it('accepts https, and plain http on localhost only', () => {
+      expect(util.isSecureEndpoint('https://storage.example/token')).to.equal(true);
+      expect(util.isSecureEndpoint('http://localhost:8000/token')).to.equal(true);
+      expect(util.isSecureEndpoint('http://127.0.0.1/token')).to.equal(true);
+      expect(util.isSecureEndpoint('http://[::1]:8000/token')).to.equal(true);
+      expect(util.isSecureEndpoint('http://storage.example/token')).to.equal(false);
+      expect(util.isSecureEndpoint('http://localhost.evil.example/token')).to.equal(false);
+    });
+
+    it('rejects anything that is not an absolute http(s) URL', () => {
+      expect(util.isSecureEndpoint('/token')).to.equal(false);
+      expect(util.isSecureEndpoint('javascript:alert(1)')).to.equal(false);
+      expect(util.isSecureEndpoint(undefined)).to.equal(false);
+    });
+  });
+
+  describe('pkceTokenURL', () => {
+    const info = (over) => Object.assign({ href: 'h', storageApi: 'v', authURL: 'a', properties: {} }, over);
+
+    it('returns the token endpoint when S256 is advertised', () => {
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: 'S256' }))).to.equal('https://t');
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: 'plain S256' }))).to.equal('https://t');
+    });
+
+    it('accepts the methods as an array too, though the spec says a string', () => {
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: ['plain', 'S256'] }))).to.equal('https://t');
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: ['plain'] }))).to.equal(null);
+    });
+
+    it('returns null without S256, a token endpoint or an authorization endpoint', () => {
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: 'plain' }))).to.equal(null);
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t' }))).to.equal(null);
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', pkceMethods: 'S256' }))).to.equal(null);
+      expect(util.pkceTokenURL(info({ tokenURL: 'https://t', pkceMethods: 'S256' }))).to.equal(null);
+      expect(util.pkceTokenURL(info({}))).to.equal(null);
+    });
+  });
 });

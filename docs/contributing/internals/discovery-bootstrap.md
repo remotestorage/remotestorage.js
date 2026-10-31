@@ -29,10 +29,29 @@ user to that URL. When the dance comes back, the library will detect the
 `access_token` from the window location during the page load, and from
 that point onwards, the remote is connected.
 
-If the OAuth flow is PKCE, the window location will contain a `code`
-parameter instead of `access_token`. RS then makes a fetch to
-remote.TOKEN_URL with the code, to retrieve the access token, and
-possibly a refresh token as well.
+If the WebFinger record advertises the PKCE code flow (spec §10.1: an
+authorization endpoint, a token endpoint and the `S256` method), the
+generic remoteStorage backend uses it instead of the implicit flow. It
+falls back to the implicit flow (or emits an error, when the server only
+offers PKCE) if it runs in Cordova, browser storage is unusable, Web
+Crypto is unavailable (it needs a secure context), or the token endpoint
+doesn't use https (plain http is allowed on localhost). Those fallbacks
+don't apply to Dropbox, which always uses the code flow. Before the
+redirect, the code verifier, a random `state`, the token endpoint, the
+client id and the app's current location hash are saved together in
+sessionStorage, replacing any earlier ones.
+
+The window location then comes back with a `code` parameter instead of
+`access_token`. The saved values are read and removed, the returned
+`state` must match the saved one, and the app's hash is restored. RS
+then makes a fetch to the saved token endpoint (or `remote.TOKEN_URL`
+for Dropbox) with the code, to retrieve the access token, and possibly a
+refresh token as well.
+
+Only Dropbox uses that refresh token so far. The generic backend does
+not keep the token endpoint or client id once the code is exchanged, so
+when its access token expires the app gets an `Unauthorized` event and
+the user has to connect again, as with the implicit flow.
 
 ## The `rsDiscovery` fallback
 
@@ -56,5 +75,4 @@ are applied in a single `configure()` call. Applying them separately would
 switch the endpoint while the previously stored token is still in place,
 and the synchronous `connected` event could leak that token to the new
 endpoint before the token is replaced.
-
 
