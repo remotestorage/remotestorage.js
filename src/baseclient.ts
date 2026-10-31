@@ -425,6 +425,7 @@ export class BaseClient {
    *
    *
    * @param path   - Relative path from the module root (without leading slash).
+   *                 Must not end with `/`, which denotes a folder.
    * @param maxAge - (optional) Either ``false`` or the maximum age of
    *                 the cached file in milliseconds. See [caching logic for read
    *                 operations](#caching-logic-for-read-operations).
@@ -453,6 +454,7 @@ export class BaseClient {
     if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getFile must be a string');
     }
+    this._assertDocumentPath(path);
 
     return this.storage.get(this.makePath(path), maxAge).then((r: QueuedRequestResponse) => {
       return {
@@ -467,7 +469,8 @@ export class BaseClient {
    * Store raw data at a given path.
    *
    * @param contentType - Content type (MIME media type) of the data being stored
-   * @param path        - Path relative to the module root
+   * @param path        - Path relative to the module root. Must not end with
+   *                      `/`, which denotes a folder.
    * @param body        - Raw data to store. For binary data, use an `ArrayBuffer`
    *                      or `ArrayBufferView` (e.g. `Uint8Array`), not a binary string.
    *
@@ -503,6 +506,7 @@ export class BaseClient {
     if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.storeFile must be a string');
     }
+    this._assertDocumentPath(path);
     if ((typeof body !== 'string') && (typeof body !== 'object')) {
       return Promise.reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
     }
@@ -523,6 +527,7 @@ export class BaseClient {
    * Get a JSON object from the given path.
    *
    * @param path - Relative path from the module root (without leading slash).
+   *               Must not end with `/`, which denotes a folder.
    * @param maxAge - (optional) Either `false` or the maximum age of
    *                 cached object in milliseconds. See [caching logic for read
    *                 operations](#caching-logic-for-read-operations).
@@ -538,6 +543,7 @@ export class BaseClient {
     if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.getObject must be a string');
     }
+    this._assertDocumentPath(path);
 
     return this.storage.get(this.makePath(path), maxAge).then((r: QueuedRequestResponse) => {
       if (typeof r.body === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
@@ -563,7 +569,8 @@ export class BaseClient {
    * Must not be called more than once per second for any given `path`.
    *
    * @param typeAlias - Unique type of this object within this module.
-   * @param path      - Path relative to the module root.
+   * @param path      - Path relative to the module root. Must not end with
+   *                    `/`, which denotes a folder.
    * @param object    - A JavaScript object to be stored at the given path.
    *                    Must be serializable as JSON.
    *
@@ -592,6 +599,7 @@ export class BaseClient {
     if (typeof object !== 'object') {
       return Promise.reject('Argument \'object\' of baseClient.storeObject must be an object');
     }
+    this._assertDocumentPath(path);
 
     this._attachType(object, typeAlias);
 
@@ -616,7 +624,8 @@ export class BaseClient {
   /**
    * Remove node at given path from storage. Triggers synchronization.
    *
-   * @param path - Path relative to the module root.
+   * @param path - Path relative to the module root. Must not end with `/`,
+   *               which denotes a folder.
    *
    * @example
    * client.remove('path/to/object').then(() => console.log('item deleted'));
@@ -626,6 +635,7 @@ export class BaseClient {
     if (typeof path !== 'string') {
       return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
     }
+    this._assertDocumentPath(path);
     if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
       console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
     }
@@ -808,6 +818,21 @@ export class BaseClient {
    */
   makePath (path: string): string {
     return this.base + (path || '');
+  }
+
+  /**
+   * Assert that a path refers to a document, not a folder.
+   *
+   * Per the remoteStorage spec, PUT and DELETE requests are only ever made to
+   * documents; a path ending in "/" (or an empty path) denotes a folder.
+   *
+   * @private
+   * @throws {string} If the path refers to a folder.
+   */
+  _assertDocumentPath (path: string): void {
+    if (path === '' || isFolder(path)) {
+      throw "Not a document: " + path;
+    }
   }
 
   /**
