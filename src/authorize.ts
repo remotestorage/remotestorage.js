@@ -206,22 +206,27 @@ export class Authorize {
    * current location hash is kept so it can be restored afterwards, since the
    * state parameter carries the random value instead.
    *
-   * Throws when sessionStorage rejects the writes, leaving nothing behind.
+   * Throws when sessionStorage rejects the writes, after removing what it
+   * can; nothing is written when the earlier transaction can't be removed.
    */
   static savePkceTransaction (transaction: PkceTransaction): void {
-    Authorize.clearPkceTransaction();
     const values: PkceTransaction = {
       appState: Authorize.getLocation().hash.substring(1),
       ...transaction
     };
     try {
+      Authorize.clearPkceTransaction();
       for (const key of PKCE_KEYS) {
         if (values[key]) {
           sessionStorage.setItem(`remotestorage:${key}`, values[key]);
         }
       }
     } catch (err) {
-      Authorize.clearPkceTransaction();
+      try {
+        Authorize.clearPkceTransaction();
+      } catch (cleanupErr) {
+        log('[Authorize] Could not remove a partial PKCE transaction', cleanupErr);
+      }
       throw err;
     }
   }
@@ -237,7 +242,8 @@ export class Authorize {
       transaction[key] = sessionStorage.getItem(`remotestorage:${key}`) || undefined;
     }
     Authorize.clearPkceTransaction();
-    return transaction.codeVerifier ? transaction : null;
+    // Without a state, a callback without one would match it
+    return (transaction.codeVerifier && transaction.state) ? transaction : null;
   }
 
   /** Remove any stored PKCE transaction. */
@@ -360,6 +366,15 @@ export class Authorize {
       }
     }
 
+    // The code couldn't be exchanged: report it, and stop waiting for a token
+    function failTokenRequest (error: Error): void {
+      if (typeof remoteStorage._forgetPendingScope === 'function') {
+        remoteStorage._forgetPendingScope();
+      }
+      remoteStorage._emit('error', error);
+      remoteStorage.remote.stopWaitingForToken();
+    }
+
     function handleCode(code: string, state: string | undefined): void {
       const transaction = Authorize.takePkceTransaction();
       if (!transaction) {
@@ -374,7 +389,9 @@ export class Authorize {
         remoteStorage._emit('error', new UnauthorizedError('Authorization failed: state mismatch'));
         return;
       }
-      fetchTokens(code, transaction);   // remote.configure() called asynchronously
+      // remote.configure() is called asynchronously. Network errors, timeouts
+      // and non-JSON bodies reject before fetchTokens() sees a status.
+      fetchTokens(code, transaction).catch(failTokenRequest);
     }
 
     // eslint-disable-next-line
@@ -388,8 +405,12 @@ export class Authorize {
 
       if (params.error) {
         // A denied or failed code flow: drop its transaction, and give the app
-        // its hash back as a successful one would.
-        restoreAppState(Authorize.takePkceTransaction());
+        // its hash back as a successful one would. A transaction with another
+        // state is left from an abandoned attempt; drop it, but not its hash.
+        const transaction = Authorize.takePkceTransaction();
+        if (transaction?.state === params.state) {
+          restoreAppState(transaction);
+        }
         if (typeof remoteStorage._forgetPendingScope === 'function') {
           remoteStorage._forgetPendingScope();
         }
@@ -498,15 +519,12 @@ export class Authorize {
               remoteStorage._completeAuthorization(xhr?.response?.scope);
             }
           } else {
-            remoteStorage._emit('error', new Error(`no access_token in "successful" response: ${xhr.response}`));
+            failTokenRequest(new Error(`no access_token in "successful" response: ${xhr.response}`));
           }
           break;
         }
         default:
-          if (typeof remoteStorage._forgetPendingScope === 'function') {
-            remoteStorage._forgetPendingScope();
-          }
-          remoteStorage._emit('error', new Error(`${xhr.statusText}: ${xhr.response}`));
+          failTokenRequest(new Error(`${xhr.statusText}: ${xhr.response}`));
       }
     }
 

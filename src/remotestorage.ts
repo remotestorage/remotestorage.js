@@ -42,6 +42,14 @@ function pkceUnavailableReason (info: StorageInfo): string | null {
   if (!util.pkceTokenURL(info)) {
     return 'it is not fully advertised';
   }
+  // The code and its verifier are posted to the token endpoint
+  if (!util.isSecureEndpoint(info.tokenURL)) {
+    return 'its token endpoint does not use https';
+  }
+  // crypto.subtle, needed for the code challenge, only exists in secure contexts
+  if (!globalContext.crypto?.subtle) {
+    return 'Web Crypto is unavailable (it needs https)';
+  }
   // Cordova's InAppBrowser path only handles access tokens, not codes.
   if (globalContext.cordova) {
     return 'it is not supported in Cordova';
@@ -53,6 +61,18 @@ function pkceUnavailableReason (info: StorageInfo): string | null {
     return 'browser storage is unavailable';
   }
   return null;
+}
+
+/**
+ * Clear any stored PKCE transaction, where nothing else may fail because of
+ * it: browser storage can be blocked to the point that reading it throws.
+ */
+function forgetPkceTransaction (): void {
+  try {
+    Authorize.clearPkceTransaction();
+  } catch (err) {
+    log('[RemoteStorage] Could not clear the PKCE transaction', err);
+  }
 }
 // declare global {
 //   interface Window { cordova: any };
@@ -628,29 +648,40 @@ export class RemoteStorage {
       const unavailable = pkceUnavailableReason(info);
       if (unavailable) {
         this._authorizeImplicitly(info, unavailable);
-        return;
+      } else {
+        await this._authorizeWithPkce(info);
       }
-
-      const { codeVerifier, codeChallenge, state } = await util.generateCodeVerifier();
-      const options: AuthorizeOptions = {
-        authURL: info.authorizationURL,
-        response_type: 'code',
-        state,
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256'
-      };
-      this._prepareAuthorizeOptions(options);
-      try {
-        Authorize.savePkceTransaction({ codeVerifier, state, tokenURL: info.tokenURL, clientId: options.clientId });
-      } catch (err) {
-        log('[RemoteStorage] Could not store the PKCE transaction', err);
-        this._authorizeImplicitly(info, 'it could not be stored in sessionStorage');
-        return;
-      }
-      Authorize.authorize(this, options);
     } catch (err) {
+      // e.g. an empty scope, found after the transaction was stored
+      forgetPkceTransaction();
       this._emit('error', err);
     }
+  }
+
+  /**
+   * Store a PKCE transaction and redirect to the authorization endpoint, or
+   * fall back to the implicit flow when the transaction can't be stored.
+   *
+   * @internal
+   */
+  async _authorizeWithPkce (info: StorageInfo): Promise<void> {
+    const { codeVerifier, codeChallenge, state } = await util.generateCodeVerifier();
+    const options: AuthorizeOptions = {
+      authURL: info.authorizationURL,
+      response_type: 'code',
+      state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256'
+    };
+    this._prepareAuthorizeOptions(options);
+    try {
+      Authorize.savePkceTransaction({ codeVerifier, state, tokenURL: info.tokenURL, clientId: options.clientId });
+    } catch (err) {
+      log('[RemoteStorage] Could not store the PKCE transaction', err);
+      this._authorizeImplicitly(info, 'it could not be stored in sessionStorage');
+      return;
+    }
+    Authorize.authorize(this, options);
   }
 
   /**
@@ -814,6 +845,7 @@ export class RemoteStorage {
     }
     this._forgetPendingScope();
     this._rememberAuthorizedScope(null);
+    forgetPkceTransaction();
     this._setGPD({
       get: this._pendingGPD('get'),
       put: this._pendingGPD('put'),

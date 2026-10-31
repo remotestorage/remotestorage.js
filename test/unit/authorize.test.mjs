@@ -217,6 +217,10 @@ describe("Authorize", () => {
       mockRemote.clientId = 'lk4508vj40';
       mockRemote.on = () => {};
       mockRemote._emit = () => {};
+      const configured = new Promise(resolve => {
+        const configure = mockRemote.configure.bind(mockRemote);
+        mockRemote.configure = (settings) => { resolve(); return configure(settings); };
+      });
       const configureSpy = sinon.spy(mockRemote, 'configure');
       rs.remote = mockRemote;
       rs.setBackend('remotestorage');
@@ -227,7 +231,7 @@ describe("Authorize", () => {
 
       rs._handlers['features-loaded'][0]();
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await configured;
       const calls = fetchMock.calls('postToken');
       expect(calls).to.have.lengthOf(1);
       expect(calls[0][1].headers).not.to.have.property('Authorization');
@@ -266,12 +270,20 @@ describe("Authorize", () => {
         mockRemote.clientId = 'remote-client-id';
         mockRemote.on = () => {};
         mockRemote._emit = () => {};
-        const configureSpy = sinon.spy(mockRemote, 'configure');
         const errorSpy = sinon.spy();
         rs.on('error', errorSpy);
+        // The token exchange ends in configure() or an error; wait for that
+        // rather than a fixed sleep
+        const settled = new Promise(resolve => {
+          const configure = mockRemote.configure.bind(mockRemote);
+          mockRemote.configure = (settings) => { resolve(); return configure(settings); };
+          rs.on('error', () => resolve());
+        });
+        const configureSpy = sinon.spy(mockRemote, 'configure');
+        const stopWaitingSpy = sinon.spy(mockRemote, 'stopWaitingForToken');
         rs.remote = mockRemote;
         rs.setBackend('remotestorage');
-        return { rs, configureSpy, errorSpy };
+        return { rs, configureSpy, stopWaitingSpy, errorSpy, settled };
       }
 
       function storeTransaction (appHash) {
@@ -295,10 +307,10 @@ describe("Authorize", () => {
           { name: 'postToken', method: 'POST', url: STORED_TOKEN_URL },
           { status: 200, body: JSON.stringify({ access_token: 'tok', token_type: 'bearer' }) }
         );
-        const { rs, configureSpy } = setUp();
+        const { rs, configureSpy, settled } = setUp();
 
         rs._handlers['features-loaded'][0]();
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await settled;
 
         const calls = fetchMock.calls('postToken');
         expect(calls).to.have.lengthOf(1);
@@ -316,22 +328,22 @@ describe("Authorize", () => {
           { method: 'POST', url: STORED_TOKEN_URL },
           { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
         );
-        const { rs } = setUp();
+        const { rs, settled } = setUp();
 
         rs._handlers['features-loaded'][0]();
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await settled;
 
         expect(document.location.hash).to.equal('#/notes/42');
       });
 
-      it("rejects a mismatched state without exchanging the code", async () => {
+      // The state checks run before any request, so these need no waiting
+      it("rejects a mismatched state without exchanging the code", () => {
         storeTransaction('#/notes/42');
         document.location.href = 'https://example.org/app/?code=c0de&state=forged';
         fetchMock.mock({ name: 'postToken', method: 'POST', url: STORED_TOKEN_URL }, 200);
         const { rs, configureSpy, errorSpy } = setUp();
 
         rs._handlers['features-loaded'][0]();
-        await new Promise(resolve => setTimeout(resolve, 10));
 
         expect(fetchMock.calls('postToken')).to.have.lengthOf(0);
         expect(configureSpy.called).to.equal(false);
@@ -342,14 +354,13 @@ describe("Authorize", () => {
         expectNoTransaction();
       });
 
-      it("rejects a missing state without exchanging the code", async () => {
+      it("rejects a missing state without exchanging the code", () => {
         storeTransaction();
         document.location.href = 'https://example.org/app/?code=c0de';
         fetchMock.mock({ name: 'postToken', method: 'POST', url: STORED_TOKEN_URL }, 200);
         const { rs, errorSpy } = setUp();
 
         rs._handlers['features-loaded'][0]();
-        await new Promise(resolve => setTimeout(resolve, 10));
 
         expect(fetchMock.calls('postToken')).to.have.lengthOf(0);
         expect(errorSpy.calledOnce).to.equal(true);
@@ -367,6 +378,18 @@ describe("Authorize", () => {
         expectNoTransaction();
       });
 
+      it("clears an unrelated transaction on a denied callback without restoring its hash", () => {
+        // e.g. left by an abandoned code flow, then an implicit flow was denied
+        storeTransaction('#/notes/42');
+        document.location.href = 'https://example.org/app/?error=access_denied&state=%2Fother';
+        const { rs } = setUp();
+
+        expect(() => rs._handlers['features-loaded'][0]()).to.throw('access denied');
+
+        expect(document.location.hash).to.equal('');
+        expectNoTransaction();
+      });
+
       it("clears the transaction when the token request fails", async () => {
         storeTransaction();
         document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
@@ -374,14 +397,35 @@ describe("Authorize", () => {
           { method: 'POST', url: STORED_TOKEN_URL },
           { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) }
         );
-        const { rs, errorSpy } = setUp();
+        const { rs, errorSpy, settled } = setUp();
 
         rs._handlers['features-loaded'][0]();
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await settled;
 
         expect(errorSpy.calledOnce).to.equal(true);
         expectNoTransaction();
       });
+
+      for (const [failure, response] of [
+        ['cannot be reached', { throws: new TypeError('Failed to fetch') }],
+        ['answers with a body that is not JSON', { status: 502, body: '<h1>Bad Gateway</h1>' }]
+      ]) {
+        it(`emits an error and stops waiting when the token endpoint ${failure}`, async () => {
+          storeTransaction();
+          document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+          fetchMock.mock({ method: 'POST', url: STORED_TOKEN_URL }, response);
+          const { rs, configureSpy, stopWaitingSpy, errorSpy, settled } = setUp();
+          localStorage.setItem(PENDING_SCOPE_KEY, JSON.stringify({ backend: 'remotestorage', scope: 'notes:rw' }));
+
+          rs._handlers['features-loaded'][0]();
+          await settled;
+
+          expect(errorSpy.calledOnce).to.equal(true);
+          expect(configureSpy.called).to.equal(false);
+          expect(stopWaitingSpy.calledOnce).to.equal(true);
+          expect(localStorage.getItem(PENDING_SCOPE_KEY)).to.be.null;
+        });
+      }
     });
   });
 
@@ -417,6 +461,38 @@ describe("Authorize", () => {
 
       expect(sessionStorage.getItem('remotestorage:codeVerifier')).to.be.null;
       expect(sessionStorage.getItem('remotestorage:state')).to.be.null;
+    });
+
+    it("throws without storing anything when the earlier transaction can't be cleared", () => {
+      // Otherwise its values could mix with the new ones
+      const removeItem = sinon.stub(Object.getPrototypeOf(sessionStorage), 'removeItem').throws(new Error('SecurityError'));
+      const setItem = sinon.spy(Object.getPrototypeOf(sessionStorage), 'setItem');
+
+      try {
+        expect(() => Authorize.savePkceTransaction({ codeVerifier: 'v', state: 's' })).to.throw('SecurityError');
+        expect(setItem.called).to.equal(false);
+      } finally {
+        removeItem.restore();
+        setItem.restore();
+      }
+    });
+
+    it("isn't valid without a state, so a callback without one can't match it", () => {
+      sessionStorage.setItem('remotestorage:codeVerifier', 'v');
+
+      expect(Authorize.takePkceTransaction()).to.be.null;
+      expect(sessionStorage.getItem('remotestorage:codeVerifier')).to.be.null;
+    });
+
+    it("is cleared on disconnect", () => {
+      const rs = new RemoteStorage();
+      Authorize.savePkceTransaction({ codeVerifier: 'v', state: 's', tokenURL: 'https://storage.example/token' });
+
+      rs.disconnect();
+
+      for (const key of ['codeVerifier', 'state', 'tokenURL']) {
+        expect(sessionStorage.getItem(`remotestorage:${key}`), key).to.be.null;
+      }
     });
   });
 
@@ -540,6 +616,67 @@ describe("Authorize", () => {
 
       expect(errorSpy.calledOnce).to.equal(true);
       expect(errorSpy.getCall(0).args[0].message).to.match(/empty scope/);
+    });
+
+    it("uses the implicit flow without Web Crypto, e.g. on a plain http:// page", async () => {
+      document.location.href = 'https://example.org/app/';
+      const rs = createRs();
+      const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+      // crypto.subtle only exists in secure contexts
+      Object.defineProperty(globalThis, 'crypto', {
+        value: { getRandomValues: array => cryptoDescriptor.get.call(globalThis).getRandomValues(array) },
+        configurable: true
+      });
+
+      try {
+        await rs._authorize(pkceInfo);
+      } finally {
+        Object.defineProperty(globalThis, 'crypto', cryptoDescriptor);
+      }
+
+      const url = new URL(document.location.href);
+      expect(url.origin + url.pathname).to.equal(pkceInfo.authURL);
+      expect(url.searchParams.get('response_type')).to.equal('token');
+    });
+
+    it("uses the implicit flow when the token endpoint isn't https, which would expose the code", async () => {
+      document.location.href = 'https://example.org/app/';
+      const rs = createRs();
+
+      await rs._authorize({ ...pkceInfo, tokenURL: 'http://storage.example/oauth/token' });
+
+      const url = new URL(document.location.href);
+      expect(url.origin + url.pathname).to.equal(pkceInfo.authURL);
+      expect(sessionStorage.getItem('remotestorage:codeVerifier')).to.be.null;
+    });
+
+    it("allows a plain http:// token endpoint on localhost, for development", async () => {
+      document.location.href = 'http://localhost/app/';
+      const rs = createRs();
+      const localInfo = {
+        ...pkceInfo,
+        authorizationURL: 'http://localhost/oauth/authorize',
+        tokenURL: 'http://localhost/oauth/token'
+      };
+
+      await rs._authorize(localInfo);
+
+      const url = new URL(document.location.href);
+      expect(url.origin + url.pathname).to.equal(localInfo.authorizationURL);
+      expect(url.searchParams.get('response_type')).to.equal('code');
+    });
+
+    it("clears the transaction when the redirect can't be started", async () => {
+      document.location.href = 'https://example.org/app/';
+      rs = new RemoteStorage();   // no access claimed, so authorize() throws
+      const errorSpy = sinon.spy();
+      rs.on('error', errorSpy);
+
+      await rs._authorize(pkceInfo);
+
+      expect(errorSpy.getCall(0).args[0].message).to.match(/empty scope/);
+      expect(sessionStorage.getItem('remotestorage:codeVerifier')).to.be.null;
+      expect(sessionStorage.getItem('remotestorage:tokenURL')).to.be.null;
     });
 
     it("falls back to the implicit flow when sessionStorage rejects the transaction", async () => {

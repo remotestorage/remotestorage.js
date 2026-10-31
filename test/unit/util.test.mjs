@@ -161,6 +161,23 @@ describe('util', () => {
     });
   });
 
+  describe('isSecureEndpoint', () => {
+    it('accepts https, and plain http on localhost only', () => {
+      expect(util.isSecureEndpoint('https://storage.example/token')).to.equal(true);
+      expect(util.isSecureEndpoint('http://localhost:8000/token')).to.equal(true);
+      expect(util.isSecureEndpoint('http://127.0.0.1/token')).to.equal(true);
+      expect(util.isSecureEndpoint('http://[::1]:8000/token')).to.equal(true);
+      expect(util.isSecureEndpoint('http://storage.example/token')).to.equal(false);
+      expect(util.isSecureEndpoint('http://localhost.evil.example/token')).to.equal(false);
+    });
+
+    it('rejects anything that is not an absolute http(s) URL', () => {
+      expect(util.isSecureEndpoint('/token')).to.equal(false);
+      expect(util.isSecureEndpoint('javascript:alert(1)')).to.equal(false);
+      expect(util.isSecureEndpoint(undefined)).to.equal(false);
+    });
+  });
+
   describe('pkceTokenURL', () => {
     const info = (over) => Object.assign({ href: 'h', storageApi: 'v', authURL: 'a', properties: {} }, over);
 

@@ -305,6 +305,24 @@ export const toBase64 = (str: string): string => {
 };
 
 /**
+ * Whether credentials may be sent to this endpoint: https, or plain http on
+ * localhost for development.
+ */
+export function isSecureEndpoint (url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol === 'https:') {
+    return true;
+  }
+  return parsed.protocol === 'http:' &&
+    ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
+}
+
+/**
  * The PKCE token endpoint advertised by the server (spec §10.1), or null when
  * it does not advertise the S256 authorization code flow (an authorization
  * endpoint, a token endpoint and the S256 method, all three).

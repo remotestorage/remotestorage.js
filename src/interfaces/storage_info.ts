@@ -1,7 +1,8 @@
 export type StorageInfo = {
   href: string;
   storageApi: string; // TODO define allowed strings,
-  authURL: string;
+  /** Implicit-flow authorization endpoint; absent from PKCE-only records. */
+  authURL?: string;
   properties: object; // TODO define Webfinger link properties
   userAddress?: string;
   /** PKCE token endpoint (spec §10.1, rfc6749#section-3.2), when advertised. */

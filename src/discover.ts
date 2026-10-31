@@ -25,7 +25,10 @@ let cachedInfo = {};
  * @returns A promise for an object with the following properties.
  *          href - Storage base URL,
  *          storageApi - RS protocol version,
- *          authUrl - OAuth URL,
+ *          authURL - implicit-flow OAuth URL, if advertised,
+ *          authorizationURL - PKCE authorization endpoint, if advertised,
+ *          tokenURL - PKCE token endpoint, if advertised,
+ *          pkceMethods - supported PKCE code_challenge methods, if advertised,
  *          properties - Webfinger link properties
  **/
 

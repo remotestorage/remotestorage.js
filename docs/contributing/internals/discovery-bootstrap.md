@@ -31,8 +31,12 @@ that point onwards, the remote is connected.
 
 If the WebFinger record advertises the PKCE code flow (spec §10.1: an
 authorization endpoint, a token endpoint and the `S256` method), the
-library uses it instead of the implicit flow, unless it runs in Cordova
-or browser storage is unusable. Dropbox always uses it. Before the
+generic remoteStorage backend uses it instead of the implicit flow. It
+falls back to the implicit flow (or emits an error, when the server only
+offers PKCE) if it runs in Cordova, browser storage is unusable, Web
+Crypto is unavailable (it needs a secure context), or the token endpoint
+doesn't use https (plain http is allowed on localhost). Those fallbacks
+don't apply to Dropbox, which always uses the code flow. Before the
 redirect, the code verifier, a random `state`, the token endpoint, the
 client id and the app's current location hash are saved together in
 sessionStorage, replacing any earlier ones.
