@@ -62,6 +62,8 @@ export interface RemoteSettings {
   token?: string | false; // OAuth2 access token
   refreshToken?: string;  // OAuth2 refresh token
   tokenType?: string;     // type of access token; usually 'bearer'
+  tokenURL?: string;      // OAuth2 token endpoint, for refreshing
+  clientId?: string;      // OAuth2 client id, for refreshing
   properties?: object;
 }
 

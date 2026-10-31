@@ -66,9 +66,9 @@ const STORAGE_APIS = {
 
 function readSettings () {
   const settings = getJSONFromLocalStorage(SETTINGS_KEY) || {};
-  const { userAddress, href, storageApi, token, properties } = settings;
+  const { userAddress, href, storageApi, token, refreshToken, tokenURL, clientId, properties } = settings;
 
-  return { userAddress, href, storageApi, token, properties };
+  return { userAddress, href, storageApi, token, refreshToken, tokenURL, clientId, properties };
 }
 
 function determineCharset (mimeType: string): string {
@@ -110,6 +110,18 @@ class WireClient extends RemoteBase implements Remote {
   token: string | false;
 
   /**
+   * OAuth2 refresh token, from the PKCE code flow when the server issues one.
+   * Used with `TOKEN_URL` and `clientId` to get a new access token on a 401.
+   */
+  refreshToken?: string;
+
+  /** OAuth2 token endpoint advertised by the server, for refreshing */
+  TOKEN_URL?: string;
+
+  /** OAuth2 client id the token was issued to, for refreshing */
+  clientId?: string;
+
+  /**
    * Holds the server's base URL, as obtained in the Webfinger discovery
    *
    * Example:
@@ -123,6 +135,9 @@ class WireClient extends RemoteBase implements Remote {
   supportsRevs: boolean;
 
   _revisionCache: { [key: string]: any } = {};
+
+  /** The refresh in progress, shared by concurrent 401s */
+  _refreshing: Promise<void> | null = null;
 
   properties: object;
 
@@ -151,7 +166,54 @@ class WireClient extends RemoteBase implements Remote {
     }
   }
 
+  /**
+   * Make a request; on a 401, refresh the access token when possible and
+   * retry once with the new one. Emits `Unauthorized` when the final
+   * response is still a 401.
+   */
   async _request (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
+    let response = await this._requestOnce(method, uri, token, headers, body, getEtag, fakeRevision);
+    if (response.statusCode === 401 && await this._refreshAfter401(token)) {
+      response = await this._requestOnce(method, uri, this.token, headers, body, getEtag, fakeRevision);
+    }
+    if (response.statusCode === 401) {
+      this.rs._emit('error', new UnauthorizedError());
+    }
+    return response;
+  }
+
+  /**
+   * Refresh the access token after a request made with `usedToken` got a 401.
+   * Concurrent callers share one refresh. Resolves to whether the request can
+   * be retried with `this.token`.
+   */
+  async _refreshAfter401 (usedToken: string | false): Promise<boolean> {
+    if (!this.refreshToken || !this.TOKEN_URL || usedToken === Authorize.IMPLIED_FAKE_TOKEN) {
+      return false;
+    }
+    if (this.token && this.token !== usedToken) {
+      return true;   // another request has refreshed it meanwhile
+    }
+    if (!this._refreshing) {
+      this._refreshing = Authorize.refreshAccessToken(this.rs, this, this.refreshToken)
+        .finally(() => { this._refreshing = null; });
+    }
+    try {
+      await this._refreshing;
+      return true;
+    } catch (err) {
+      log('[WireClient] Could not refresh the access token', err);
+      // refreshAccessToken clears the token first. When the refresh token
+      // itself wasn't rejected (e.g. offline), restore it, so that a later
+      // 401 can try again.
+      if (err?.name !== 'Unauthorized' && !this.token) {
+        this.configure({ token: usedToken });
+      }
+      return false;
+    }
+  }
+
+  async _requestOnce (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
     if (this.isForbiddenRequestMethod(method, uri)) {
       return Promise.reject(`Don't use ${method} on directories!`);
     }
@@ -188,10 +250,6 @@ class WireClient extends RemoteBase implements Remote {
           revision = this.stripQuotes(response.getResponseHeader('ETag'));
         } else {
           revision = undefined;
-        }
-
-        if (response.status === 401) {
-          this.rs._emit('error', new UnauthorizedError());
         }
 
         return Promise.resolve({statusCode: response.status, revision: revision});
@@ -280,6 +338,15 @@ class WireClient extends RemoteBase implements Remote {
     if (typeof settings.token !== 'undefined') {
       this.token = settings.token;
     }
+    if (typeof settings.refreshToken !== 'undefined') {
+      this.refreshToken = settings.refreshToken;
+    }
+    if (typeof settings.tokenURL !== 'undefined') {
+      this.TOKEN_URL = settings.tokenURL;
+    }
+    if (typeof settings.clientId !== 'undefined') {
+      this.clientId = settings.clientId;
+    }
     if (typeof settings.properties !== 'undefined') {
       this.properties = settings.properties;
     }
@@ -301,6 +368,9 @@ class WireClient extends RemoteBase implements Remote {
         href: this.href,
         storageApi: this.storageApi,
         token: this.token,
+        refreshToken: this.refreshToken,
+        tokenURL: this.TOKEN_URL,
+        clientId: this.clientId,
         properties: this.properties
       }));
     }

@@ -5,7 +5,7 @@ import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
 import { EventHandler } from './eventhandling';
 import { requestWithTimeout } from "./requests";
-import { Remote } from "./remote";
+import { Remote, RemoteSettings } from "./remote";
 
 interface AuthResult {
   access_token?: string;
@@ -43,6 +43,24 @@ export interface AuthorizeOptions {
   code_challenge_method?: 'S256' | 'plain';
   token_access_type?: 'online' | 'offline'; // Dropbox only
 }
+
+/**
+ * What the token request needs after the redirect back from the authorization
+ * server (a full page load), kept in sessionStorage.
+ */
+export interface PkceTransaction {
+  codeVerifier: string;
+  /** The random state sent to the authorization server */
+  state: string;
+  /** Token endpoint; the remote's TOKEN_URL when not set (Dropbox) */
+  tokenURL?: string;
+  /** Client id; the remote's clientId when not set (Dropbox) */
+  clientId?: string;
+  /** The app's location hash before the redirect, restored afterwards */
+  appState?: string;
+}
+
+const PKCE_KEYS: Array<keyof PkceTransaction> = ['codeVerifier', 'state', 'tokenURL', 'clientId', 'appState'];
 
 // This is set in _rs_init and needed for removal in _rs_cleanup
 let onFeaturesLoaded: EventHandler;
@@ -182,6 +200,54 @@ export class Authorize {
     Authorize.setLocation(url);
   }
 
+  /**
+   * Store a PKCE transaction before redirecting to the authorization server,
+   * replacing any earlier one (e.g. from an abandoned authorization). The
+   * current location hash is kept so it can be restored afterwards, since the
+   * state parameter carries the random value instead.
+   *
+   * Throws when sessionStorage rejects the writes, leaving nothing behind.
+   */
+  static savePkceTransaction (transaction: PkceTransaction): void {
+    Authorize.clearPkceTransaction();
+    const values: PkceTransaction = {
+      appState: Authorize.getLocation().hash.substring(1),
+      ...transaction
+    };
+    try {
+      for (const key of PKCE_KEYS) {
+        if (values[key]) {
+          sessionStorage.setItem(`remotestorage:${key}`, values[key]);
+        }
+      }
+    } catch (err) {
+      Authorize.clearPkceTransaction();
+      throw err;
+    }
+  }
+
+  /**
+   * Read and remove the stored PKCE transaction, so a code is exchanged at
+   * most once and nothing outlives it. Returns null when there is none.
+   */
+  static takePkceTransaction (): PkceTransaction | null {
+    if (typeof sessionStorage === 'undefined') { return null; }
+    const transaction = {} as PkceTransaction;
+    for (const key of PKCE_KEYS) {
+      transaction[key] = sessionStorage.getItem(`remotestorage:${key}`) || undefined;
+    }
+    Authorize.clearPkceTransaction();
+    return transaction.codeVerifier ? transaction : null;
+  }
+
+  /** Remove any stored PKCE transaction. */
+  static clearPkceTransaction (): void {
+    if (typeof sessionStorage === 'undefined') { return; }
+    for (const key of PKCE_KEYS) {
+      sessionStorage.removeItem(`remotestorage:${key}`);
+    }
+  }
+
   /** On success, calls remote.configure() with new access token */
   static async refreshAccessToken (rs: RemoteStorage, remote: Remote, refreshToken: string): Promise<void> {
     await remote.configure({token: null, tokenType: null});
@@ -200,6 +266,8 @@ export class Authorize {
       const settings = {
         token: xhr?.response?.access_token,
         tokenType: xhr?.response?.token_type,
+        // Set only when the server rotates it; undefined keeps the current one
+        refreshToken: xhr?.response?.refresh_token,
       };
       if (settings.token) {
         await remote.configure(settings);
@@ -286,6 +354,31 @@ export class Authorize {
       location.hash = '';
     }
 
+    // Give the app back the hash it had before the redirect
+    function restoreAppState(transaction: PkceTransaction | null): void {
+      if (transaction?.appState) {
+        location = Authorize.getLocation();
+        Authorize.setLocation(location.href.split('#')[0]+'#'+transaction.appState);
+      }
+    }
+
+    function handleCode(code: string, state: string | undefined): void {
+      const transaction = Authorize.takePkceTransaction();
+      if (!transaction) {
+        log("[Authorize] Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
+        return;
+      }
+      restoreAppState(transaction);
+      if (state !== transaction.state) {
+        if (typeof remoteStorage._forgetPendingScope === 'function') {
+          remoteStorage._forgetPendingScope();
+        }
+        remoteStorage._emit('error', new UnauthorizedError('Authorization failed: state mismatch'));
+        return;
+      }
+      fetchTokens(code, transaction);   // remote.configure() called asynchronously
+    }
+
     // eslint-disable-next-line
     onFeaturesLoaded = function(): void {
       let authParamsUsed = false;
@@ -296,6 +389,9 @@ export class Authorize {
       }
 
       if (params.error) {
+        // A denied or failed code flow: drop its transaction, and give the app
+        // its hash back as a successful one would.
+        restoreAppState(Authorize.takePkceTransaction());
         if (typeof remoteStorage._forgetPendingScope === 'function') {
           remoteStorage._forgetPendingScope();
         }
@@ -347,14 +443,12 @@ export class Authorize {
         authParamsUsed = true;
       }
 
-      if (params.state) {
+      if (params.code) {   // OAuth2 code or PKCE flow
+        handleCode(params.code, params.state);
+        authParamsUsed = true;
+      } else if (params.state) {
         location = Authorize.getLocation();
         Authorize.setLocation(location.href.split('#')[0]+'#'+params.state);
-      }
-
-      if (params.code) {   // OAuth2 code or PKCE flow
-        fetchTokens(params.code);   // remote.configure() called asynchronously
-        authParamsUsed = true;
       }
 
       if (!authParamsUsed) {
@@ -363,12 +457,13 @@ export class Authorize {
     };
 
     // OAuth2 PKCE flow
-    async function fetchTokens(code: string) {
-      const codeVerifier = sessionStorage.getItem('remotestorage:codeVerifier');
-      if (!codeVerifier) {
-        log("[Authorize] Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
-        return;
-      }
+    async function fetchTokens(code: string, transaction: PkceTransaction) {
+      const codeVerifier = transaction.codeVerifier;
+      // The token endpoint and client id were stored before the redirect (the
+      // generic backend does not re-discover before this runs); fall back to the
+      // remote for backends that set them directly, like Dropbox.
+      const tokenURL = transaction.tokenURL || remoteStorage.remote.TOKEN_URL;
+      const clientId = transaction.clientId || remoteStorage.remote.clientId;
       location = Authorize.getLocation();
       let redirectUri = location.origin;
       if (location.pathname !== '/') {
@@ -377,13 +472,13 @@ export class Authorize {
       const formValues = new URLSearchParams({
         code: code,
         grant_type: 'authorization_code',
-        client_id: remoteStorage.remote.clientId,
+        client_id: clientId,
         redirect_uri: redirectUri,
         code_verifier: codeVerifier
       });
       const xhr = await requestWithTimeout(
           'POST',
-          remoteStorage.remote.TOKEN_URL,
+          tokenURL,
           {
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: formValues.toString(),
@@ -394,11 +489,17 @@ export class Authorize {
       switch (xhr.status) {
         case 200: {
           log(`[Authorize] access token good for ${xhr?.response?.expires_in} seconds`);
-          const settings = {
+          const settings: RemoteSettings = {
             token: xhr?.response?.access_token,
             refreshToken: xhr?.response?.refresh_token,
             tokenType: xhr?.response?.token_type,
           };
+          // The generic backend keeps these to refresh the token later;
+          // Dropbox sets its own
+          if (transaction.tokenURL) {
+            settings.tokenURL = tokenURL;
+            settings.clientId = clientId;
+          }
           if (settings.token) {
             remoteStorage.remote.configure(settings);
             if (typeof remoteStorage._completeAuthorization === 'function') {
@@ -407,7 +508,6 @@ export class Authorize {
           } else {
             remoteStorage._emit('error', new Error(`no access_token in "successful" response: ${xhr.response}`));
           }
-          sessionStorage.removeItem('remotestorage:codeVerifier');
           break;
         }
         default:

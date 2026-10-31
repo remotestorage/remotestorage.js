@@ -124,6 +124,12 @@ describe('util', () => {
   });
 
   describe('localStorage utilities', () => {
+    let originalLocalStorage;
+
+    // Put the real one back, so later specs can still use it
+    beforeEach(() => { originalLocalStorage = global.localStorage; });
+    afterEach(() => { global.localStorage = originalLocalStorage; });
+
     it('detects when localStorage is unavailable', () => {
       const QuotaExceededError = function(message) {
         this.name = 'QuotaExceededError';
@@ -158,6 +164,28 @@ describe('util', () => {
       };
 
       expect(util.getJSONFromLocalStorage('somekey')).to.equal(null);
+    });
+  });
+
+  describe('pkceTokenURL', () => {
+    const info = (over) => Object.assign({ href: 'h', storageApi: 'v', authURL: 'a', properties: {} }, over);
+
+    it('returns the token endpoint when S256 is advertised', () => {
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: 'S256' }))).to.equal('https://t');
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: 'plain S256' }))).to.equal('https://t');
+    });
+
+    it('accepts the methods as an array too, though the spec says a string', () => {
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: ['plain', 'S256'] }))).to.equal('https://t');
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: ['plain'] }))).to.equal(null);
+    });
+
+    it('returns null without S256, a token endpoint or an authorization endpoint', () => {
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t', pkceMethods: 'plain' }))).to.equal(null);
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', tokenURL: 'https://t' }))).to.equal(null);
+      expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', pkceMethods: 'S256' }))).to.equal(null);
+      expect(util.pkceTokenURL(info({ tokenURL: 'https://t', pkceMethods: 'S256' }))).to.equal(null);
+      expect(util.pkceTokenURL(info({}))).to.equal(null);
     });
   });
 });
