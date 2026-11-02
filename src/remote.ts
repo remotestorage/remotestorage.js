@@ -67,6 +67,12 @@ export interface RemoteSettings {
   properties?: object;
 }
 
+/**
+ * Settings that forget a refresh token and the endpoint it is for, so that
+ * a new session or endpoint can't be paired with an earlier one's.
+ */
+export const noRefreshSettings: RemoteSettings = { refreshToken: null, tokenURL: null, clientId: null };
+
 export interface RemoteResponse {
   statusCode: number;
   body?: string | { [key: string]: any; };

@@ -46,7 +46,7 @@ import {
   stripLegacyCharsetBinary
 } from './util';
 import {requestWithTimeout} from "./requests";
-import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings, noRefreshSettings} from "./remote";
 
 let hasLocalStorage;
 const SETTINGS_KEY = 'remotestorage:wireclient';
@@ -137,7 +137,7 @@ class WireClient extends RemoteBase implements Remote {
   _revisionCache: { [key: string]: any } = {};
 
   /** The refresh in progress, shared by concurrent 401s */
-  _refreshing: Promise<void> | null = null;
+  _refreshing: Promise<boolean> | null = null;
 
   properties: object;
 
@@ -195,20 +195,33 @@ class WireClient extends RemoteBase implements Remote {
       return true;   // another request has refreshed it meanwhile
     }
     if (!this._refreshing) {
-      this._refreshing = Authorize.refreshAccessToken(this.rs, this, this.refreshToken)
-        .finally(() => { this._refreshing = null; });
+      this._refreshing = this._refresh().finally(() => { this._refreshing = null; });
     }
+    return this._refreshing;
+  }
+
+  /**
+   * Get a new access token with the refresh token. The current token stays
+   * in place meanwhile, so other requests aren't refused as not connected;
+   * they get a 401 and wait for this refresh. The result is dropped when the
+   * session changed meanwhile (connect() or disconnect() replace or forget
+   * the refresh token). Resolves to whether a new token was stored.
+   */
+  async _refresh (): Promise<boolean> {
+    const refreshToken = this.refreshToken;
     try {
-      await this._refreshing;
+      const refreshed = await Authorize.requestRefreshedToken(this.TOKEN_URL, this.clientId, refreshToken);
+      if (this.refreshToken !== refreshToken) { return false; }
+      this.configure(refreshed);
       return true;
     } catch (err) {
       log('[WireClient] Could not refresh the access token', err);
-      // refreshAccessToken clears the token first. When the refresh token
-      // itself wasn't rejected (e.g. offline), restore it, so that a later
-      // 401 can try again.
-      if (err?.name !== 'Unauthorized' && !this.token) {
-        this.configure({ token: usedToken });
+      if (err?.name === 'Unauthorized' && this.refreshToken === refreshToken) {
+        // Rejected: carry on as without a refresh token, so 401s emit
+        // Unauthorized until the app reconnects
+        this.configure(noRefreshSettings);
       }
+      // Otherwise (e.g. offline) keep it, so that a later 401 can try again
       return false;
     }
   }

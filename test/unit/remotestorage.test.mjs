@@ -161,14 +161,51 @@ describe("RemoteStorage", function() {
       expect(configuredAddress).to.equal('https://personal.ho.st');
     });
 
-    it("forgets an earlier session's refresh token and token endpoint", function() {
+    // Resolves with the settings connect() applies from discovery
+    function discoveredSettings (remote) {
+      return new Promise(resolve => {
+        remote.configure = function (settings) {
+          if ('href' in settings) { resolve(settings); }
+        };
+      });
+    }
+
+    it("forgets an earlier session's refresh settings when it authorizes again", async function() {
       this.rs.remote = new FakeRemote(false);
-      const configured = [];
-      this.rs.remote.configure = function (options) { configured.push(options); };
+      const settings = discoveredSettings(this.rs.remote);
+      sinon.stub(this.rs, '_authorize');
 
       this.rs.connect('user@ho.st');
 
-      expect(configured[0]).to.include({ refreshToken: null, tokenURL: null, clientId: null });
+      expect(await settings).to.include({ refreshToken: null, tokenURL: null, clientId: null });
+    });
+
+    it("keeps the refresh settings while the discovered endpoint is the connected one", async function() {
+      // e.g. an app that calls connect() on every page load
+      this.discoverStub.withArgs('same@ho.st').returns(Promise.resolve({
+        href: 'http://foo.bar', tokenURL: 'https://ho.st/oauth/token'
+      }));
+      this.rs.remote = new FakeRemote(true);
+      this.rs.remote.href = 'http://foo.bar';
+      const settings = discoveredSettings(this.rs.remote);
+
+      this.rs.connect('same@ho.st');
+
+      const applied = await settings;
+      expect(applied).not.to.have.property('refreshToken');
+      expect(applied).not.to.have.property('clientId');
+      // The token endpoint is only kept from a code exchange, which checked it
+      expect(applied.tokenURL).to.be.undefined;
+    });
+
+    it("forgets the refresh settings when discovery points somewhere else", async function() {
+      this.rs.remote = new FakeRemote(true);
+      this.rs.remote.href = 'https://elsewhere.example/storage';
+      const settings = discoveredSettings(this.rs.remote);
+
+      this.rs.connect('user@ho.st');
+
+      expect(await settings).to.include({ refreshToken: null, tokenURL: null, clientId: null });
     });
 
     it("authorizes a record that only advertises PKCE (no implicit authURL)", async function() {

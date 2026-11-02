@@ -5,7 +5,7 @@ import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
 import { EventHandler } from './eventhandling';
 import { requestWithTimeout } from "./requests";
-import { Remote, RemoteSettings } from "./remote";
+import { Remote, RemoteSettings, noRefreshSettings } from "./remote";
 
 interface AuthResult {
   access_token?: string;
@@ -61,6 +61,28 @@ export interface PkceTransaction {
 }
 
 const PKCE_KEYS: Array<keyof PkceTransaction> = ['codeVerifier', 'state', 'tokenURL', 'clientId', 'appState'];
+
+/** What a token endpoint returns for a refresh token */
+export interface RefreshedToken {
+  token: string;
+  tokenType?: string;
+  /** A rotated refresh token, when the server issues one */
+  refreshToken?: string;
+}
+
+/** POST a refresh_token grant to the token endpoint */
+function postRefreshGrant (tokenURL: string, clientId: string, refreshToken: string): Promise<XMLHttpRequest> {
+  const formValues = new URLSearchParams({
+    grant_type: 'refresh_token',
+    client_id: clientId,
+    refresh_token: refreshToken,
+  });
+  return requestWithTimeout('POST', tokenURL, {
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: formValues.toString(),
+    responseType: 'json'
+  });
+}
 
 // This is set in _rs_init and needed for removal in _rs_cleanup
 let onFeaturesLoaded: EventHandler;
@@ -257,16 +279,7 @@ export class Authorize {
   /** On success, calls remote.configure() with new access token */
   static async refreshAccessToken (rs: RemoteStorage, remote: Remote, refreshToken: string): Promise<void> {
     await remote.configure({token: null, tokenType: null});
-    const formValues = new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: remote.clientId,
-      refresh_token: refreshToken,
-    });
-    const xhr = await requestWithTimeout('POST', remote.TOKEN_URL, {
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: formValues.toString(),
-      responseType: 'json'
-    });
+    const xhr = await postRefreshGrant(remote.TOKEN_URL, remote.clientId, refreshToken);
     if (xhr?.status === 200) {
       log(`[Authorize] access token good for ${xhr?.response?.expires_in} seconds`);
       const settings = {
@@ -284,6 +297,33 @@ export class Authorize {
       await remote.configure({refreshToken: null});
       throw new UnauthorizedError("refresh token rejected:" + JSON.stringify(xhr.response));
     }
+  }
+
+  /**
+   * Exchange a refresh token for a new access token, without touching any
+   * remote, so the caller decides whether the result still applies.
+   *
+   * Throws `Unauthorized` only when the server rejects the refresh token
+   * (`invalid_grant`, RFC 6749 §5.2). Any other failure, such as a server
+   * error, rate limiting or a network error, says nothing about the refresh
+   * token, and throws a plain error.
+   */
+  static async requestRefreshedToken (tokenURL: string, clientId: string, refreshToken: string): Promise<RefreshedToken> {
+    const xhr = await postRefreshGrant(tokenURL, clientId, refreshToken);
+    const response = xhr?.response;
+    if (xhr?.status === 200 && response?.access_token) {
+      log(`[Authorize] access token good for ${response.expires_in} seconds`);
+      return {
+        token: response.access_token,
+        tokenType: response.token_type,
+        // Set only when the server rotates it
+        refreshToken: response.refresh_token
+      };
+    }
+    if (response?.error === 'invalid_grant') {
+      throw new UnauthorizedError('refresh token rejected: ' + JSON.stringify(response));
+    }
+    throw new Error(`could not refresh the access token (${xhr?.status}): ${JSON.stringify(response)}`);
   }
 
   /**
@@ -441,7 +481,7 @@ export class Authorize {
           // the previously stored token is still in place, and the
           // synchronous 'connected' event could leak that token to the new
           // endpoint before the next call installs the fresh one.
-          remoteStorage.remote.configure({ ...params.rsDiscovery, token: params.access_token });
+          remoteStorage.remote.configure({ ...params.rsDiscovery, token: params.access_token, ...noRefreshSettings });
         } else if (!hasStoredToken) {
           remoteStorage.remote.configure(params.rsDiscovery);
         } else {
@@ -451,7 +491,8 @@ export class Authorize {
 
       if (params.access_token) {
         if (!params.rsDiscovery) {
-          remoteStorage.remote.configure({ token: params.access_token });
+          // A new token, here and above, replaces any earlier refresh settings
+          remoteStorage.remote.configure({ token: params.access_token, ...noRefreshSettings });
         }
         if (typeof remoteStorage._completeAuthorization === 'function') {
           remoteStorage._completeAuthorization(params.scope);

@@ -154,6 +154,49 @@ describe("Authorize", () => {
     });
   });
 
+  describe("#requestRefreshedToken", () => {
+    it("returns the new tokens without touching a remote", async () => {
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer', refresh_token: 'r0tated' }) }
+      );
+
+      const refreshed = await Authorize.requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN);
+
+      expect(refreshed).to.deep.equal({ token: 'new', tokenType: 'bearer', refreshToken: 'r0tated' });
+      const body = new URLSearchParams(fetchMock.calls('postToken')[0][1].body);
+      expect(body.get('grant_type')).to.equal('refresh_token');
+      expect(body.get('client_id')).to.equal('client');
+      expect(body.get('refresh_token')).to.equal(REFRESH_TOKEN);
+    });
+
+    it("throws Unauthorized only when the refresh token is rejected (invalid_grant)", async () => {
+      fetchMock.mock(
+        { method: 'POST', url: TOKEN_URL },
+        { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) }
+      );
+
+      await expect(Authorize.requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN))
+        .to.be.rejected.and.eventually.have.property('name', 'Unauthorized');
+    });
+
+    for (const [failure, response] of [
+      ['a server error', { status: 500, body: JSON.stringify({ error: 'server_error' }) }],
+      ['rate limiting', { status: 429, body: JSON.stringify({ error: 'slow_down' }) }],
+      ['a success without an access token', { status: 200, body: JSON.stringify({}) }]
+    ]) {
+      it(`throws a plain error on ${failure}, which says nothing about the refresh token`, async () => {
+        fetchMock.mock({ method: 'POST', url: TOKEN_URL }, response);
+
+        const err = await Authorize.requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN)
+          .then(() => null, e => e);
+
+        expect(err).to.be.an('error');
+        expect(err.name).not.to.equal('Unauthorized');
+      });
+    }
+  });
+
   describe("'features-loaded' handler", () => {
     it("preserves hash routes that are not OAuth callbacks", () => {
       const mockRemote = new MockRemote({});
@@ -830,6 +873,26 @@ describe("Authorize", () => {
         token: 'NEW_TOKEN'
       });
     });
+
+    for (const [callback, hash] of [
+      ['retargets the endpoint', () => `access_token=NEW_TOKEN&${encodeDiscovery({ href: 'https://collector.test/' })}`],
+      ['brings a new access token', () => 'access_token=NEW_TOKEN']
+    ]) {
+      it(`forgets the refresh settings when a callback ${callback}`, () => {
+        const mockRemote = new MockRemote({});
+        const configureSpy = sinon.spy(mockRemote, 'configure');
+        const rs = createStorage(mockRemote);
+        document.location.href = `https://example.com/#${hash()}`;
+
+        Authorize._rs_init(rs);
+        rs._handlers['features-loaded'][0]();
+
+        // In the same call, so the new token is never paired with them
+        expect(configureSpy.getCall(0).args[0]).to.include({
+          token: 'NEW_TOKEN', refreshToken: null, tokenURL: null, clientId: null
+        });
+      });
+    }
 
     it("does not send a stored token to an rsDiscovery-supplied endpoint (regression #1404)", async () => {
       const VICTIM_HREF = 'https://real-storage.example.com/users/victim';

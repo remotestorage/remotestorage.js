@@ -697,9 +697,32 @@ describe('WireClient', () => {
       rs.on('error', err => errors.push(err));
     });
 
-    it('stores the refresh settings with the rest, so they survive a reload', () => {
+    it('stores the refresh settings with the rest, so they survive a reload', async () => {
       const stored = JSON.parse(localStorage.getItem(WIRECLIENT_SETTINGS_KEY));
       expect(stored).to.include({ refreshToken: 'r3fr3sh', tokenURL: TOKEN_URL, clientId: CLIENT_ID });
+
+      const reloaded = new WireClient(rs);
+      // The constructor applies the stored settings in a setTimeout(…, 0);
+      // timers run in order, so this one runs after it
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(reloaded.refreshToken).to.equal('r3fr3sh');
+      expect(reloaded.TOKEN_URL).to.equal(TOKEN_URL);
+      expect(reloaded.clientId).to.equal(CLIENT_ID);
+    });
+
+    it('keeps the old token while refreshing, so concurrent requests are not refused as "not connected"', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      let duringRefresh;
+      mockRefresh(() => {
+        duringRefresh = { connected: connectedClient.connected, token: connectedClient.token };
+        return { status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) };
+      });
+
+      await connectedClient.get('/foo/bar');
+
+      expect(duringRefresh).to.deep.equal({ connected: true, token: TOKEN });
     });
 
     it('refreshes the access token on a 401 and retries the request with it', async () => {
@@ -729,7 +752,7 @@ describe('WireClient', () => {
       expect(fetchMock.calls('refresh')).to.have.lengthOf(1);
     });
 
-    it('emits Unauthorized and forgets the refresh token when it is rejected', async () => {
+    it('emits Unauthorized and forgets the refresh settings when the refresh token is rejected', async () => {
       mockGet(TOKEN, 401);
       mockRefresh({ status: 400, body: JSON.stringify({ error: 'invalid_grant' }) });
 
@@ -738,8 +761,58 @@ describe('WireClient', () => {
       expect(res.statusCode).to.equal(401);
       expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
       expect(connectedClient.refreshToken).to.equal(null);
-      expect(connectedClient.connected).to.equal(false);
+      expect(connectedClient.TOKEN_URL).to.equal(null);
+      expect(connectedClient.clientId).to.equal(null);
+      // As without a refresh token: the expired token stays, and every 401
+      // emits Unauthorized until the app reconnects
+      expect(connectedClient.token).to.equal(TOKEN);
     });
+
+    it('keeps the refresh token when the token endpoint fails for another reason', async () => {
+      mockGet(TOKEN, 401);
+      mockRefresh({ status: 500, body: JSON.stringify({ error: 'server_error' }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
+      expect(connectedClient.refreshToken).to.equal('r3fr3sh');
+      expect(connectedClient.token).to.equal(TOKEN);
+    });
+
+    for (const [outcome, response] of [
+      ['succeeds', { status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) }],
+      ['fails', { status: 500, body: JSON.stringify({ error: 'server_error' }) }]
+    ]) {
+      it(`leaves the session alone when a refresh ${outcome} after it changed`, async () => {
+        mockGet(TOKEN, 401);
+        mockRefresh(() => {
+          // e.g. disconnect() while the refresh is in flight
+          connectedClient.configure({ href: null, token: null, refreshToken: null, tokenURL: null, clientId: null });
+          return response;
+        });
+
+        await connectedClient.get('/foo/bar');
+
+        expect(connectedClient.token).to.equal(null);
+        expect(connectedClient.refreshToken).to.equal(null);
+        expect(localStorage.getItem(WIRECLIENT_SETTINGS_KEY)).not.to.include(NEW_TOKEN);
+        expect(localStorage.getItem(WIRECLIENT_SETTINGS_KEY)).not.to.include(TOKEN);
+      });
+    }
+
+    for (const status of [403, 429]) {
+      it(`does not refresh on a ${status}`, async () => {
+        mockGet(TOKEN, status);
+        mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+        const res = await connectedClient.get('/foo/bar');
+
+        expect(res.statusCode).to.equal(status);
+        expect(fetchMock.calls('refresh')).to.have.lengthOf(0);
+        expect(connectedClient.token).to.equal(TOKEN);
+      });
+    }
 
     it('keeps the session when the token endpoint can not be reached', async () => {
       mockGet(TOKEN, 401);
