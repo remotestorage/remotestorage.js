@@ -354,6 +354,24 @@ describe("Authorize", () => {
         expect(document.location.search).to.equal('');
       });
 
+      it("doesn't remove same-named parameters the app set during initialization", async () => {
+        storeTransaction();
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
+        );
+        const { rs, settled } = setUp();
+
+        // The app rewrote the URL during asynchronous feature initialization
+        document.location.href = 'https://example.org/app/?state=app-state';
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(document.location.search).to.equal('?state=app-state');
+      });
+
       it("removes the OAuth code and state from the URL once handled", async () => {
         storeTransaction();
         document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;

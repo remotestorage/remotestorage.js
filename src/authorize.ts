@@ -81,12 +81,14 @@ const AUTH_QUERY_PARAMS = [
 
 /**
  * Remove the OAuth callback parameters from the query string, keeping any
- * unrelated ones. `replaceState` is used so no history entry is added and the
- * page is not reloaded (assigning to `location.search` would do both). When the
- * History API is unavailable the URL is left as is, rather than navigating and
- * losing the code before it can be exchanged.
+ * unrelated ones. Only parameters whose value still matches the callback's are
+ * removed, so values the app set under the same name during feature
+ * initialization are left alone. `replaceState` is used so no history entry is
+ * added and the page is not reloaded (assigning to `location.search` would do
+ * both). When the History API is unavailable the URL is left as is, rather than
+ * navigating and losing the code before it can be exchanged.
  */
-function stripAuthQueryParams (): void {
+function stripAuthQueryParams (callbackQuery: URLSearchParams): void {
   if (typeof history === 'undefined' || typeof history.replaceState !== 'function') {
     return;
   }
@@ -100,7 +102,7 @@ function stripAuthQueryParams (): void {
 
   let changed = false;
   for (const key of AUTH_QUERY_PARAMS) {
-    if (url.searchParams.has(key)) {
+    if (url.searchParams.has(key) && url.searchParams.get(key) === callbackQuery.get(key)) {
       url.searchParams.delete(key);
       changed = true;
     }
@@ -403,6 +405,11 @@ export class Authorize {
   static _rs_init = function (remoteStorage: RemoteStorage): void {
     const params = extractParams();
     const hasCallbackParams = hasAuthCallbackParams(params);
+    // The callback's own query values, so cleanup only removes them if the URL
+    // still holds them (the app may rewrite it during feature initialization)
+    const callbackQuery = hasCallbackParams
+      ? new URLSearchParams(Authorize.getLocation().search)
+      : new URLSearchParams();
     let location: Location;
 
     if (hasCallbackParams) {
@@ -459,7 +466,7 @@ export class Authorize {
       // not at init: `features-loaded` can be delayed by asynchronous feature
       // initialization, and a reload in that window must still find the code so
       // the stored PKCE transaction can complete the exchange on the next load.
-      stripAuthQueryParams();
+      stripAuthQueryParams(callbackQuery);
 
       if (params.error) {
         // A denied or failed code flow: drop its transaction, and give the app
