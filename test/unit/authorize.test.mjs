@@ -336,6 +336,38 @@ describe("Authorize", () => {
         expect(document.location.hash).to.equal('#/notes/42');
       });
 
+      it("removes the OAuth code and state from the URL once handled", async () => {
+        storeTransaction();
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
+        );
+        const { rs, settled } = setUp();
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(document.location.search).to.equal('');
+        expect(document.location.href).to.equal('https://example.org/app/');
+      });
+
+      it("keeps unrelated query parameters when removing the OAuth ones", async () => {
+        storeTransaction('#/notes/42');
+        document.location.href = `https://example.org/app/?foo=bar&code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
+        );
+        const { rs, settled } = setUp();
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(document.location.search).to.equal('?foo=bar');
+        expect(document.location.hash).to.equal('#/notes/42');
+      });
+
       // The state checks run before any request, so these need no waiting
       it("rejects a mismatched state without exchanging the code", () => {
         storeTransaction('#/notes/42');

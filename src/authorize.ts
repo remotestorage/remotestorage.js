@@ -62,6 +62,57 @@ export interface PkceTransaction {
 
 const PKCE_KEYS: Array<keyof PkceTransaction> = ['codeVerifier', 'state', 'tokenURL', 'clientId', 'appState'];
 
+/**
+ * OAuth callback parameters that must not linger in the address bar, browser
+ * history or `Referer` headers once they have been handled. Unlike the implicit
+ * flow's access token, the code flow returns its `code` in the query string
+ * (RFC 6749 §4.1.2), where it would otherwise stay visible after the redirect.
+ */
+const AUTH_QUERY_PARAMS = [
+  'access_token',
+  'code',
+  'state',
+  'error',
+  'error_description',
+  'error_uri',
+  'remotestorage',
+  'refresh_token'
+];
+
+/**
+ * Remove the OAuth callback parameters from the query string, keeping any
+ * unrelated ones. `replaceState` is used so no history entry is added and the
+ * page is not reloaded (assigning to `location.search` would do both).
+ */
+function stripAuthQueryParams (): void {
+  let url: URL;
+  try {
+    url = new URL(Authorize.getLocation().href);
+  } catch {
+    return;
+  }
+
+  let changed = false;
+  for (const key of AUTH_QUERY_PARAMS) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (!changed) { return; }
+
+  try {
+    if (typeof history !== 'undefined' && typeof history.replaceState === 'function') {
+      history.replaceState(history.state, '', url.href);
+    } else {
+      // No History API (e.g. the test mock): update the location in place
+      Authorize.setLocation(url.href);
+    }
+  } catch (err) {
+    log('[Authorize] Could not remove OAuth parameters from the URL', err);
+  }
+}
+
 // This is set in _rs_init and needed for removal in _rs_cleanup
 let onFeaturesLoaded: EventHandler;
 
@@ -354,6 +405,9 @@ export class Authorize {
     let location: Location;
 
     if (hasCallbackParams) {
+      // Drop the query parameters first, so a `code` in the address bar (unlike
+      // the implicit flow's fragment token) can't survive the callback.
+      stripAuthQueryParams();
       location = Authorize.getLocation();
       location.hash = '';
     }
