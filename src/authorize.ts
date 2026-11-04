@@ -406,9 +406,6 @@ export class Authorize {
     let location: Location;
 
     if (hasCallbackParams) {
-      // Drop the query parameters first, so a `code` in the address bar (unlike
-      // the implicit flow's fragment token) can't survive the callback.
-      stripAuthQueryParams();
       location = Authorize.getLocation();
       location.hash = '';
     }
@@ -457,6 +454,12 @@ export class Authorize {
         remoteStorage.remote.stopWaitingForToken();
         return;
       }
+
+      // Clean the callback URL now, when the code is about to be handled, and
+      // not at init: `features-loaded` can be delayed by asynchronous feature
+      // initialization, and a reload in that window must still find the code so
+      // the stored PKCE transaction can complete the exchange on the next load.
+      stripAuthQueryParams();
 
       if (params.error) {
         // A denied or failed code flow: drop its transaction, and give the app

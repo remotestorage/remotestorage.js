@@ -336,6 +336,24 @@ describe("Authorize", () => {
         expect(document.location.hash).to.equal('#/notes/42');
       });
 
+      it("keeps the code in the URL until the callback is handled, so a reload can retry", async () => {
+        storeTransaction();
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
+        );
+        const { rs, settled } = setUp();
+
+        // _rs_init has run, but features-loaded (which exchanges the code) has not
+        expect(document.location.search).to.equal(`?code=c0de&state=${STATE}`);
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(document.location.search).to.equal('');
+      });
+
       it("removes the OAuth code and state from the URL once handled", async () => {
         storeTransaction();
         document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
