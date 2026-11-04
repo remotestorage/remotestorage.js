@@ -82,9 +82,15 @@ const AUTH_QUERY_PARAMS = [
 /**
  * Remove the OAuth callback parameters from the query string, keeping any
  * unrelated ones. `replaceState` is used so no history entry is added and the
- * page is not reloaded (assigning to `location.search` would do both).
+ * page is not reloaded (assigning to `location.search` would do both). When the
+ * History API is unavailable the URL is left as is, rather than navigating and
+ * losing the code before it can be exchanged.
  */
 function stripAuthQueryParams (): void {
+  if (typeof history === 'undefined' || typeof history.replaceState !== 'function') {
+    return;
+  }
+
   let url: URL;
   try {
     url = new URL(Authorize.getLocation().href);
@@ -102,12 +108,7 @@ function stripAuthQueryParams (): void {
   if (!changed) { return; }
 
   try {
-    if (typeof history !== 'undefined' && typeof history.replaceState === 'function') {
-      history.replaceState(history.state, '', url.href);
-    } else {
-      // No History API (e.g. the test mock): update the location in place
-      Authorize.setLocation(url.href);
-    }
+    history.replaceState(history.state, '', url.href);
   } catch (err) {
     log('[Authorize] Could not remove OAuth parameters from the URL', err);
   }
