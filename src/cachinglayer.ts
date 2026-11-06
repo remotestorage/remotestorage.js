@@ -216,7 +216,9 @@ abstract class CachingLayer {
       if (!Object.prototype.hasOwnProperty.call(itemsMap, itemName)) { continue; }
       if (itemsMap[itemName] === false) { continue; }
 
-      const meta = itemsMeta[itemName];
+      const meta = Object.prototype.hasOwnProperty.call(itemsMeta, itemName)
+        ? itemsMeta[itemName]
+        : undefined;
       listing[itemName] = meta ? deepClone(meta) : true;
     }
 
