@@ -239,7 +239,7 @@ export class Authorize {
       Authorize
         .openWindow(url, options.redirectUri, 'location=yes,clearsessioncache=yes,clearcache=yes')
         .then((authResult: AuthResult) => {
-          remoteStorage.remote.configure({ token: authResult.access_token });
+          remoteStorage.remote.configure({ token: authResult.access_token, ...noRefreshSettings });
           if (typeof remoteStorage._completeAuthorization === 'function') {
             remoteStorage._completeAuthorization(authResult.scope || options.scope);
           }

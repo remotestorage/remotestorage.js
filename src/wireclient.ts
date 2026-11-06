@@ -136,8 +136,11 @@ class WireClient extends RemoteBase implements Remote {
 
   _revisionCache: { [key: string]: any } = {};
 
-  /** The refresh in progress, shared by concurrent 401s */
-  _refreshing: Promise<string | null> | null = null;
+  /**
+   * The refresh in progress, shared by concurrent 401s, with the tokens it
+   * started from: only requests of that same session may wait for it
+   */
+  _refreshing: { token: string | false; refreshToken: string; promise: Promise<string | null> } | null = null;
 
   /** The last successful refresh: which token it replaced, with which */
   _lastRefresh: { from: string | false; to: string } | null = null;
@@ -206,10 +209,15 @@ class WireClient extends RemoteBase implements Remote {
     if (!this.refreshToken || !this.TOKEN_URL || this.token !== usedToken) {
       return null;
     }
-    if (!this._refreshing) {
-      this._refreshing = this._refresh().finally(() => { this._refreshing = null; });
+    if (this._refreshing?.token !== this.token || this._refreshing.refreshToken !== this.refreshToken) {
+      // None, or one the previous session started, whose result is dropped
+      const refreshing = { token: this.token, refreshToken: this.refreshToken, promise: null };
+      refreshing.promise = this._refresh().finally(() => {
+        if (this._refreshing === refreshing) { this._refreshing = null; }
+      });
+      this._refreshing = refreshing;
     }
-    return this._refreshing;
+    return this._refreshing.promise;
   }
 
   /**
@@ -221,6 +229,13 @@ class WireClient extends RemoteBase implements Remote {
    * the new token, or null when none was stored.
    */
   async _refresh (): Promise<string | null> {
+    // Another tab may have refreshed already, rotating the refresh token;
+    // sending the old one could make the server revoke the whole session
+    return this._adoptTokensFromOtherTab() || this._requestRefresh();
+  }
+
+  /** Refresh with this tab's own refresh token; see `_refresh` */
+  async _requestRefresh (): Promise<string | null> {
     const refreshToken = this.refreshToken;
     const tokenAtStart = this.token;
     const sessionUnchanged = (): boolean => this.refreshToken === refreshToken && this.token === tokenAtStart;
@@ -233,13 +248,40 @@ class WireClient extends RemoteBase implements Remote {
     } catch (err) {
       log('[WireClient] Could not refresh the access token', err);
       if (err?.name === 'Unauthorized' && sessionUnchanged()) {
-        // Rejected: carry on as without a refresh token, so 401s emit
-        // Unauthorized until the app reconnects
-        this.configure(noRefreshSettings);
+        // Rejected, perhaps because another tab rotated it meanwhile; then
+        // use its tokens, rather than overwrite them in storage
+        return this._adoptTokensFromOtherTab() || this._forgetRejectedRefreshToken();
       }
       // Otherwise (e.g. offline) keep it, so that a later 401 can try again
       return null;
     }
+  }
+
+  /**
+   * Take over the tokens that another tab stored for this session (same
+   * account and endpoint) after refreshing them. Resolves to the adopted
+   * access token, or null when storage holds nothing newer.
+   */
+  _adoptTokensFromOtherTab (): string | null {
+    if (!hasLocalStorage) { return null; }
+    const stored = readSettings();
+    if (stored.userAddress !== this.userAddress || stored.href !== this.href ||
+        !stored.token || stored.token === this.token ||
+        !stored.refreshToken || stored.refreshToken === this.refreshToken) {
+      return null;
+    }
+    this._lastRefresh = { from: this.token, to: stored.token };
+    this.configure({ token: stored.token, refreshToken: stored.refreshToken });
+    return stored.token;
+  }
+
+  /**
+   * Carry on as without a refresh token, so that 401s emit Unauthorized
+   * until the app reconnects. Returns null: there is no token to retry with.
+   */
+  _forgetRejectedRefreshToken (): null {
+    this.configure(noRefreshSettings);
+    return null;
   }
 
   async _requestOnce (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {

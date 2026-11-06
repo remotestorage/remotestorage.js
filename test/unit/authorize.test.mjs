@@ -9,6 +9,7 @@ import { localStorage, sessionStorage } from '../helpers/memoryStorage.mjs';
 import locationFactory from "../helpers/location.mjs";
 
 import { Authorize } from '../../build/authorize.js';
+import config from '../../build/config.js';
 import { localStorageAvailable } from "../../build/util.js";
 import { RemoteBase } from "../../build/remote.js";
 import { RemoteStorage } from '../../build/remotestorage.js';
@@ -151,6 +152,39 @@ describe("Authorize", () => {
 
       // undefined leaves the remote's refresh token as it is
       expect(configureSpy.getCall(1).args[0].refreshToken).to.be.undefined;
+    });
+  });
+
+  describe("#authorize in Cordova", () => {
+    const REDIRECT_URI = 'https://app.example/callback';
+
+    afterEach(() => {
+      delete globalThis.cordova;
+      delete config.cordovaRedirectUri;
+    });
+
+    it("forgets the refresh settings when the InAppBrowser brings a new token", async () => {
+      globalThis.cordova = {};
+      config.cordovaRedirectUri = REDIRECT_URI;
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.on = () => {};
+      mockRemote._emit = () => {};
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      rs.remote = mockRemote;
+      const openWindow = sinon.stub(Authorize, 'openWindow').resolves({ access_token: 'tok' });
+
+      try {
+        Authorize.authorize(rs, { authURL: AUTH_URL, scope: 'notes:rw', redirectUri: REDIRECT_URI, clientId: 'https://app.example' });
+        // authorize() attached its .then() first, so that has run after this
+        await openWindow.returnValues[0];
+      } finally {
+        openWindow.restore();
+      }
+
+      expect(configureSpy.getCall(0).args[0]).to.include({
+        token: 'tok', refreshToken: null, tokenURL: null, clientId: null
+      });
     });
   });
 

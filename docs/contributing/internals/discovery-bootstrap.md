@@ -61,6 +61,16 @@ forgotten, and the backend carries on as without one, so every 401 emits
 an `Unauthorized` event until the user connects again. Any other failure
 (a server error, rate limiting, being offline) keeps it for a later 401.
 
+Tabs of the same app share these settings in localStorage, but each
+keeps its own copy in memory. Before refreshing, and again when its
+refresh token is rejected, a tab checks whether another tab has stored
+newer tokens for the same account and endpoint (e.g. after rotating the
+refresh token), and uses those instead. So once another tab has stored
+rotated tokens, a tab doesn't send the refresh token they replaced
+(servers may revoke the whole session when one is reused), nor
+overwrite them in storage. Two tabs refreshing at the very same moment
+can still race; a cross-tab lock would close that gap.
+
 Disconnecting forgets the refresh settings, and so does any new access
 token: connecting with a new authorization, to a different endpoint, or
 a callback that brings a token. Calling `connect()` again for the same
