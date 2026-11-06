@@ -67,6 +67,37 @@ describe("Cached folder listings", function() {
       }
     }
 
+    it("keeps sibling metadata when a locally created file has no metadata", async function() {
+      await this.rs.local.put("/foo/constructor", "new data", "text/plain");
+
+      const res = await this.rs.local.get("/foo/", false, this.rs.sync.queueGetRequest.bind(this.rs.sync));
+
+      expect(res.body["constructor"]).to.equal(true);
+      expect(res.body["one"]).to.deep.equal({
+        ETag: "etag-one", "Content-Type": "text/plain", "Content-Length": 5
+      });
+    });
+
+    it("lists a child named constructor that has its own metadata", async function() {
+      await this.rs.local.setNodes({
+        "/foo/": {
+          path: "/foo/",
+          common: {
+            itemsMap: { "constructor": true },
+            itemsMeta: { "constructor": { ETag: "etag-constructor", "Content-Type": "text/plain" } },
+            revision: "folder-revision",
+            timestamp: now()
+          }
+        }
+      });
+
+      const res = await this.rs.local.get("/foo/", false, this.rs.sync.queueGetRequest.bind(this.rs.sync));
+
+      expect(res.body["constructor"]).to.deep.equal({
+        ETag: "etag-constructor", "Content-Type": "text/plain"
+      });
+    });
+
     it("includes metadata for children (maxAge branch)", async function() {
       const res = await this.rs.local.get("/foo/", 60000, this.rs.sync.queueGetRequest.bind(this.rs.sync));
       expect(res.statusCode).to.equal(200);
