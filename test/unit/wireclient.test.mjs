@@ -22,6 +22,10 @@ describe('WireClient', () => {
   let connectedClient;
 
   beforeEach(() => {
+    // A WireClient applies the stored settings in a setTimeout(…, 0), so the
+    // previous test's connected settings could connect `client` before the
+    // test runs, depending on timing
+    localStorage.removeItem(WIRECLIENT_SETTINGS_KEY);
     rs = new RemoteStorage();
     client = new WireClient(rs);
     // Defensive reset to avoid leakage across tests
