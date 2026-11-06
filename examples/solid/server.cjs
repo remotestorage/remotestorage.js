@@ -36,15 +36,15 @@ const seedIndex = process.argv.indexOf('--seed-file');
 if (seedIndex !== -1) { args.push('--seedConfig', process.argv[seedIndex + 1]); }
 const pod = spawn(process.execPath, args, { cwd: __dirname, stdio: 'inherit' });
 let stopping = false;
-function stop() {
+function stop(status = 0) {
   if (stopping) { return; }
   stopping = true;
   pod.kill('SIGTERM');
-  server.close(() => process.exit(0));
+  server.close(() => process.exit(status));
 }
-process.on('SIGINT', stop);
-process.on('SIGTERM', stop);
-pod.on('exit', code => { if (!stopping) { console.error('Pod server exited:', code); stop(); } });
+process.on('SIGINT', () => stop());
+process.on('SIGTERM', () => stop());
+pod.on('exit', code => { if (!stopping) { console.error('Pod server exited:', code); stop(code || 1); } });
 function waitForPod() {
   if (stopping) { return; }
   const request = http.get('http://localhost:3000/.well-known/openid-configuration', response => {

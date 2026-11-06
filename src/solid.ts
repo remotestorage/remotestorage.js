@@ -125,6 +125,7 @@ export class Solid extends RemoteBase implements Remote {
       this.rs._emit('error', new Error('No authURL is configured.'));
       return;
     }
+    const previousBackend = this.rs.backend;
     this.rs.setBackend('solid');
     try {
       const redirect = new URL(window.location.href);
@@ -135,6 +136,7 @@ export class Solid extends RemoteBase implements Remote {
         oidcIssuer: this.authURL, redirectUrl: redirect.href, clientName: 'remoteStorage'
       });
     } catch (error) {
+      this.rs.setBackend(previousBackend);
       this.rs._emit('error', error);
     }
   }
@@ -317,7 +319,18 @@ export class Solid extends RemoteBase implements Remote {
       this.saveSettings();
     }
     this.userAddress = this.session.info.webId;
-    const podURLs = await getPodUrlAll(this.userAddress, { fetch: this.session.fetch });
+    let timer: ReturnType<typeof setTimeout>;
+    let podURLs: string[];
+    try {
+      podURLs = await Promise.race([
+        getPodUrlAll(this.userAddress, { fetch: this.session.fetch }),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Solid pod discovery timed out.')), config.requestTimeout);
+        })
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
     if (!this.active) { return; }
     this.podURLs = podURLs;
     if (this.selectedPodURL && this.podURLs.includes(this.selectedPodURL)) {

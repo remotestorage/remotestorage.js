@@ -105,6 +105,9 @@ state is kept separately in namespaced browser storage, not in app data.
   not required. Each listing retrieves child HTTP metadata, with at most four
   HEAD requests in flight, to obtain actual resource validators. Large
   containers therefore cost more requests than a remoteStorage listing.
+  ETags are opaque server values: some providers include a media type in the
+  validator. The adapter preserves that whole value for conditional requests;
+  it does not combine the Content-Type header with the ETag.
 - Conditional PUT and DELETE failures return HTTP 412 to the normal sync
   conflict handling. Creation uses `If-None-Match: *` on the PUT itself.
 - Binary files remain binary. JSON and other text formats are returned as

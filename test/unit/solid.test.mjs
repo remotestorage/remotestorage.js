@@ -220,6 +220,17 @@ describe('Solid backend', () => {
       });
     }
 
+    it('preserves an opaque ETag containing a media type verbatim', async () => {
+      const tag = 'hash-application/json';
+      fetchStub.callsFake(async (url, init) => init?.method === 'HEAD'
+        ? response(null, 200, { ETag: '"' + tag + '"', 'Content-Type': 'application/json' }, url)
+        : response(turtle, 200, { 'Content-Type': 'text/turtle', ETag: '"folder"' }, url));
+      const listing = await solid.get('/folder/');
+      expect(listing.body.file.ETag).to.equal(tag);
+      await solid.put('/folder/file', '{}', 'application/json', { ifMatch: listing.body.file.ETag });
+      expect(fetchStub.lastCall.args[1].headers.get('If-Match')).to.equal('"' + tag + '"');
+    });
+
     it('parses real Turtle without stat:mtime or modified and uses HTTP ETags', async () => {
       serveContainer();
       const result = await solid.get('/folder/');
@@ -322,6 +333,23 @@ describe('Solid backend', () => {
       expect(rs._emit.lastCall.args[1].message).to.equal('login failed');
     });
 
+    for (const backend of [undefined, 'remotestorage', 'dropbox', 'googledrive', 'solid']) {
+      it(`restores backend ${backend} after failed Solid login`, async () => {
+        rs.backend = backend;
+        const remote = {};
+        rs.remote = remote;
+        sinon.stub(solid.session, 'login').callsFake(async () => {
+          expect(rs.backend).to.equal('solid');
+          throw new Error('issuer unavailable');
+        });
+        solid.setAuthURL('https://issuer.example/');
+        await solid.connect();
+        expect(rs.backend).to.equal(backend);
+        expect(rs.remote).to.equal(remote);
+        expect(rs._emit.lastCall.args[1].message).to.equal('issuer unavailable');
+      });
+    }
+
     it('validates pod selection and reports pending selection even with zero pods', () => {
       solid.session.info.isLoggedIn = true;
       solid.podURLs = [];
@@ -408,6 +436,43 @@ describe('Solid backend', () => {
           localStorage.setItem('remotestorage:backend', previousBackend);
         }
       }
+    });
+
+    it('bounds public WebID discovery and ignores results arriving after timeout', async () => {
+      const previousTimeout = config.requestTimeout;
+      const clock = sinon.useFakeTimers();
+      config.requestTimeout = 20;
+      solid.connected = false;
+      solid.session.info.isLoggedIn = true;
+      solid.session.info.webId = 'https://id.example/profile#me';
+      sinon.stub(solid.session, 'handleIncomingRedirect').resolves();
+      let finishProfile;
+      publicFetch.returns(new Promise(resolve => { finishProfile = resolve; }));
+      try {
+        const check = expect(solid.restore()).to.be.rejectedWith('pod discovery timed out');
+        await clock.tickAsync(21);
+        await check;
+        expect(clock.countTimers()).to.equal(0);
+        finishProfile(response('<https://id.example/profile#me> <http://www.w3.org/ns/pim/space#storage> <' + POD + '> .',
+          200, { 'Content-Type': 'text/turtle' }, 'https://id.example/profile'));
+        await clock.tickAsync(0);
+        expect(solid.podURLs).to.equal(null);
+        expect(solid.connected).to.equal(false);
+        expect(rs._emit.calledWith('pod-not-selected')).to.equal(false);
+      } finally {
+        config.requestTimeout = previousTimeout;
+      }
+    });
+
+    it('clears the discovery deadline when public discovery succeeds', async () => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      solid.session.info.isLoggedIn = true;
+      solid.session.info.webId = 'https://id.example/profile#me';
+      sinon.stub(solid.session, 'handleIncomingRedirect').resolves();
+      publicFetch.callsFake(async url => response('', 200, { 'Content-Type': 'text/turtle' }, String(url)));
+      await solid.restore();
+      expect(solid.podURLs).to.deep.equal([]);
+      expect(clock.countTimers()).to.equal(0);
     });
 
     it('does not reactivate an adapter disconnected during pod discovery', async () => {
