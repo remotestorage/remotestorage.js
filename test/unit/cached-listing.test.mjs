@@ -35,8 +35,6 @@ describe("Cached folder listings", function() {
     beforeEach(async function() {
       this.rs.remote.connected = true;
       this.rs.remote.online = true;
-      this.rs.caching.enable("/foo/");
-
       await this.rs.local.setNodes({
         "/foo/": {
           path: "/foo/",
@@ -156,8 +154,6 @@ describe("Cached folder listings", function() {
   describe("CachingLayer#delete", function() {
     it("removes the deleted item from the parent's metadata", async function() {
       this.rs.remote.connected = true;
-      this.rs.caching.enable("/foo/");
-
       await this.rs.local.setNodes({
         "/foo/": {
           path: "/foo/",
@@ -185,8 +181,6 @@ describe("Cached folder listings", function() {
     it("stores child metadata when fetching a folder", async function() {
       this.rs.remote.connected = true;
       this.rs.remote.online = true;
-      this.rs.caching.enable("/foo/");
-
       await this.rs.sync.handleResponse("/foo/", "get", {
         statusCode: 200,
         body: {
@@ -218,8 +212,6 @@ describe("Cached folder listings", function() {
     });
 
     it("returns an empty listing for a 404 folder", async function() {
-      this.rs.caching.enable("/foo/");
-
       await this.rs.sync.handleResponse("/foo/", "get", { statusCode: 404 });
 
       const res = await this.rs.local.get("/foo/", false, this.rs.sync.queueGetRequest.bind(this.rs.sync));
@@ -231,7 +223,6 @@ describe("Cached folder listings", function() {
     beforeEach(function() {
       this.rs.remote.connected = true;
       this.rs.remote.online = true;
-      this.rs.caching.enable("/foo/");
     });
 
     it("fetches a legacy folder without a revision condition", async function() {
@@ -312,8 +303,6 @@ describe("Cached folder listings", function() {
     it("returns cached metadata", async function() {
       this.rs.remote.connected = true;
       this.rs.remote.online = true;
-      this.rs.caching.enable("/foo/");
-
       await this.rs.local.setNodes({
         "/foo/": {
           path: "/foo/",
