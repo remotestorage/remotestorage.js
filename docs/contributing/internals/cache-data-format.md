@@ -65,7 +65,7 @@ properties:
     -   timestamp
 
 NB: The timestamp represents the last sync time, not the last modified
-time. It is used by the `isOutdated` function in `src/cachinglayer.js`
+time. It is used by the `isOutdated` function in `src/cachinglayer.ts`
 to determine if the data needs to be fetched from remote again, or can
 be served from cache.
 
@@ -105,7 +105,8 @@ stores are in agreement. If the document exists in only one of the
 stores, or the document\'s body or its content-type differs between the
 two stores, then the document is in conflict.
 
-The library is always aware of the latest local version, but it may or
+The cache tracks local changes, subject to the concurrency and persistence
+limits described in [sync invariants](./sync-invariants). It may or
 may not be aware of the latest remote version, and therefore of whether
 a conflict or agreement exists for the document. Likewise, the server is
 not necessarily aware of the latest local version, if there are changes
@@ -165,8 +166,10 @@ unchanged, updated, or deleted locally. When updated, it might be that
 different items were changed locally and remotely, or that the same item
 was changed on both sides, either in the same way, or in different ways.
 
-The library handles all these cases so the module developer does not
-need to worry about them.
+This is the intended conflict-resolution model. It does not imply atomic
+cache updates or complete ancestor listings under every schedule. See
+[sync invariants and current limits](./sync-invariants) for tested behavior
+and known gaps.
 
 ## Implications for module design
 

@@ -80,6 +80,7 @@ export default defineConfig({
               { text: 'Code overview', link: '/contributing/internals/code-overview' },
               { text: 'Discovery bootstrap', link: '/contributing/internals/discovery-bootstrap' },
               { text: 'Caching', link: '/contributing/internals/caching' },
+              { text: 'Sync invariants and limits', link: '/contributing/internals/sync-invariants' },
               { text: 'Data format of the local cache', link: '/contributing/internals/cache-data-format' },
             ]
           },

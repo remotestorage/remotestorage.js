@@ -12,3 +12,6 @@ tags
 docs/api/index.md
 docs/.vitepress/dist/
 skills-lock.json
+
+/coverage/
+/.c8_output/
