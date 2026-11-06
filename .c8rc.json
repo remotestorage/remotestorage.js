@@ -1,0 +1,27 @@
+{
+  "all": true,
+  "src": [
+    "build"
+  ],
+  "include": [
+    "build/**/*.js"
+  ],
+  "exclude-after-remap": false,
+  "reporter": [
+    "text",
+    "html",
+    "lcov",
+    "json-summary",
+    "json"
+  ],
+  "reports-dir": "coverage",
+  "temp-directory": ".c8_output",
+  "exclude": [
+    "build/interfaces/**"
+  ],
+  "check-coverage": true,
+  "lines": 90,
+  "statements": 90,
+  "functions": 86,
+  "branches": 85
+}
