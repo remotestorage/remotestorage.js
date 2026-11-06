@@ -53,6 +53,20 @@ describe("Cached folder listings", function() {
       });
     });
 
+    for (const itemName of ["constructor", "toString"]) {
+      for (const maxAge of [false, 60000]) {
+        it(`lists a locally created ${itemName} without metadata (maxAge=${maxAge})`, async function() {
+          await this.rs.local.put(`/foo/${itemName}`, "new data", "text/plain");
+
+          const res = await this.rs.local.get("/foo/", maxAge, this.rs.sync.queueGetRequest.bind(this.rs.sync));
+
+          expect(res.statusCode).to.equal(200);
+          expect(Object.prototype.hasOwnProperty.call(res.body, itemName)).to.equal(true);
+          expect(res.body[itemName]).to.equal(true);
+        });
+      }
+    }
+
     it("includes metadata for children (maxAge branch)", async function() {
       const res = await this.rs.local.get("/foo/", 60000, this.rs.sync.queueGetRequest.bind(this.rs.sync));
       expect(res.statusCode).to.equal(200);
