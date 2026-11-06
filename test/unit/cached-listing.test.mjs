@@ -227,6 +227,87 @@ describe("Cached folder listings", function() {
     });
   });
 
+  describe("Sync#doTask refresh strategy", function() {
+    beforeEach(function() {
+      this.rs.remote.connected = true;
+      this.rs.remote.online = true;
+      this.rs.caching.enable("/foo/");
+    });
+
+    it("fetches a legacy folder without a revision condition", async function() {
+      // A folder cached before `itemsMeta` existed: revision and itemsMap, but
+      // no metadata. A conditional GET would return 304 and never populate it.
+      await this.rs.local.setNodes({
+        "/foo/": {
+          path: "/foo/",
+          common: {
+            itemsMap: { "one": true },
+            revision: "legacy-revision",
+            timestamp: now()
+          }
+        }
+      });
+
+      let getArgs;
+      this.rs.remote.get = function (...args) {
+        getArgs = args;
+        return Promise.resolve({ statusCode: 304, revision: "legacy-revision" });
+      };
+
+      await this.rs.sync.doTask("/foo/");
+
+      expect(getArgs).to.deep.equal(["/foo/"]);
+    });
+
+    it("fetches a folder with metadata conditionally", async function() {
+      await this.rs.local.setNodes({
+        "/foo/": {
+          path: "/foo/",
+          common: {
+            itemsMap: { "one": true },
+            itemsMeta: { "one": { ETag: "etag-one" } },
+            revision: "folder-revision",
+            timestamp: now()
+          }
+        }
+      });
+
+      let getArgs;
+      this.rs.remote.get = function (...args) {
+        getArgs = args;
+        return Promise.resolve({ statusCode: 304, revision: "folder-revision" });
+      };
+
+      await this.rs.sync.doTask("/foo/");
+
+      expect(getArgs).to.deep.equal(["/foo/", { ifNoneMatch: "folder-revision" }]);
+    });
+
+    it("still fetches documents conditionally", async function() {
+      await this.rs.local.setNodes({
+        "/foo/one": {
+          path: "/foo/one",
+          common: {
+            body: "data",
+            contentType: "text/plain",
+            revision: "doc-revision",
+            timestamp: now()
+          }
+        }
+      });
+
+      let getArgs;
+      this.rs.remote.get = function (...args) {
+        getArgs = args;
+        return Promise.resolve({ statusCode: 304, revision: "doc-revision" });
+      };
+
+      await this.rs.sync.doTask("/foo/one");
+
+      expect(getArgs).to.deep.equal(["/foo/one", { ifNoneMatch: "doc-revision" }]);
+    });
+  });
+
   describe("BaseClient#getListing", function() {
     it("returns cached metadata", async function() {
       this.rs.remote.connected = true;

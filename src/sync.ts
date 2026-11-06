@@ -532,7 +532,13 @@ export class Sync {
         });
       }
       // Conditional refresh:
-      else if (hasCommonRevision(node)) {
+      // A folder cached before `itemsMeta` existed has a common revision but no
+      // metadata yet; a conditional GET would return 304 and never populate it.
+      // Fetch such folders unconditionally once, so legacy caches regain child
+      // metadata. After the 200, `itemsMeta` is set and refreshes are
+      // conditional again.
+      else if (hasCommonRevision(node) &&
+               (node.common.itemsMeta !== undefined || !isFolder(path))) {
         return taskFor('get', path,
           this.rs.remote.get(path, { ifNoneMatch: node.common.revision })
         );
