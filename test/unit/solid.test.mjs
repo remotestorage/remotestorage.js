@@ -440,7 +440,8 @@ describe('Solid backend', () => {
 
     it('bounds public WebID discovery and ignores results arriving after timeout', async () => {
       const previousTimeout = config.requestTimeout;
-      const clock = sinon.useFakeTimers();
+      // Keep SDK/stream scheduling real; only the discovery deadline is fake.
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       config.requestTimeout = 20;
       solid.connected = false;
       solid.session.info.isLoggedIn = true;
