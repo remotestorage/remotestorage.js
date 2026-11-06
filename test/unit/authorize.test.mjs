@@ -186,6 +186,28 @@ describe("Authorize", () => {
         token: 'tok', refreshToken: null, tokenURL: null, clientId: null
       });
     });
+
+    it("keeps the refresh settings when the InAppBrowser brings no access token", async () => {
+      // e.g. Dropbox's code callback, which this path can't exchange
+      globalThis.cordova = {};
+      config.cordovaRedirectUri = REDIRECT_URI;
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.on = () => {};
+      mockRemote._emit = () => {};
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      rs.remote = mockRemote;
+      const openWindow = sinon.stub(Authorize, 'openWindow').resolves({ code: 'c0de' });
+
+      try {
+        Authorize.authorize(rs, { authURL: AUTH_URL, scope: 'notes:rw', redirectUri: REDIRECT_URI, clientId: 'https://app.example' });
+        await openWindow.returnValues[0];
+      } finally {
+        openWindow.restore();
+      }
+
+      expect(configureSpy.getCall(0).args[0]).not.to.have.property('refreshToken');
+    });
   });
 
   describe("#requestRefreshedToken", () => {
