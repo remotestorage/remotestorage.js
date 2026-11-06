@@ -151,4 +151,175 @@ describe('Sync nested folder listings', function() {
     expect(nodes['/foo/'].local.itemsMap).to.deep.equal({ incoming: true, pending: true });
     expect(nodes['/foo/incoming']).to.be.undefined;
   });
+  for (const status of [200, 304]) {
+    for (const operation of ['put', 'delete']) {
+      for (const first of ['sync', 'local']) {
+        it(`preserves ${operation} with ${first} reading first during ${status} ancestor reconciliation (#1413)`, async function() {
+          await this.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/', common: { itemsMap: { 'remote/': true, existing: true } },
+              local: { itemsMap: { 'remote/': false, existing: true } }
+            },
+            '/foo/remote/': { path: '/foo/remote/', common: { itemsMap: { doc: true }, revision: 'folder' } },
+            '/foo/remote/doc': { path: '/foo/remote/doc', common: { body: 'remote', contentType: 'text/plain', revision: 'doc' } },
+            '/foo/existing': { path: '/foo/existing', common: { body: 'old', contentType: 'text/plain', revision: 'old' } }
+          });
+          const local = this.rs.local;
+          const getNodes = local.getNodes.bind(local);
+          let paused, resume;
+          const reached = new Promise(resolve => { paused = resolve; });
+          const gate = new Promise(resolve => { resume = resolve; });
+          let intercepted = false;
+          local.getNodes = async paths => {
+            const snapshot = await getNodes(paths);
+            if (!intercepted && paths.includes('/foo/')) {
+              intercepted = true;
+              paused();
+              await gate;
+            }
+            return snapshot;
+          };
+          const sync = () => receive(this.rs.sync, '/foo/remote/doc', 'remote', 'doc', status);
+          const write = () => operation === 'put'
+            ? local.put('/foo/new', 'pending', 'text/plain')
+            : local.delete('/foo/existing', true);
+          try {
+            const one = first === 'sync' ? sync() : write();
+            await reached;
+            const two = first === 'sync' ? write() : sync();
+            // Let the competing operation attempt its read before releasing the snapshot.
+            await new Promise(resolve => setImmediate(resolve));
+            resume();
+            await Promise.all([one, two]);
+          } finally {
+            resume();
+            local.getNodes = getNodes;
+          }
+          const listing = await this.client.getListing('', false);
+          expect(listing).to.deep.equal(operation === 'put'
+            ? { 'remote/': true, existing: true, new: true }
+            : { 'remote/': true });
+          const nodes = await local.getNodes([operation === 'put' ? '/foo/new' : '/foo/existing']);
+          expect(nodes[operation === 'put' ? '/foo/new' : '/foo/existing'].local.body)
+            .to.equal(operation === 'put' ? 'pending' : false);
+        });
+      }
+    }
+  }
+
+  for (const phase of ['prepare push', 'fetch', 'complete put', 'complete delete', 'failure']) {
+    for (const operation of ['put', 'delete']) {
+      it(`preserves concurrent ${operation} of the same document during ${phase}`, async function() {
+        const local = this.rs.local;
+        const path = '/foo/doc';
+        const deleted = phase === 'complete delete';
+        const node = {
+          path, common: { body: 'base', contentType: 'text/plain', revision: 'base' },
+          local: { body: deleted ? false : 'old', contentType: 'text/plain' },
+          push: { body: deleted ? false : 'old', contentType: 'text/plain' }
+        };
+        if (phase === 'fetch') { delete node.local; delete node.push; }
+        await local.setNodes({ [path]: node });
+        this.rs.remote.put = () => Promise.resolve({ statusCode: 201 });
+        const getNodes = local.getNodes.bind(local);
+        let paused, resume;
+        const reached = new Promise(resolve => { paused = resolve; });
+        const gate = new Promise(resolve => { resume = resolve; });
+        let intercepted = false;
+        local.getNodes = async paths => {
+          const snapshot = await getNodes(paths);
+          if (!intercepted && paths.includes(path)) {
+            intercepted = true;
+            paused();
+            await gate;
+          }
+          return snapshot;
+        };
+        let sync;
+        try {
+          if (phase === 'prepare push') { sync = this.rs.sync.doTask(path); }
+          else if (phase === 'fetch') { sync = receive(this.rs.sync, path, 'remote'); }
+          else {
+            sync = this.rs.sync.handleResponse(path, deleted ? 'delete' : 'put', {
+              statusCode: phase === 'failure' ? 500 : 201, revision: 'next'
+            });
+          }
+          // Attach a rejection handler before the injected failure settles.
+          if (phase === 'failure') { sync = sync.catch(error => expect(error.message).to.include('500')); }
+          await reached;
+          const write = operation === 'put'
+            ? local.put(path, 'new', 'text/plain') : local.delete(path, true);
+          await new Promise(resolve => setImmediate(resolve));
+          resume();
+          await Promise.all([sync, write]);
+        } finally {
+          resume();
+          local.getNodes = getNodes;
+        }
+        const nodes = await local.getNodes([path]);
+        if (deleted && operation === 'delete') {
+          expect(nodes[path]).to.be.undefined; // Both deletes completed; no tombstone is needed.
+        } else {
+          expect(nodes[path].local.body).to.equal(operation === 'put' ? 'new' : false);
+        }
+      });
+    }
+  }
+
+  it('does not hold the local update queue while a network request is pending', async function() {
+    await this.rs.local.put('/foo/doc', 'old', 'text/plain');
+    this.rs.remote.put = () => new Promise(() => {});
+    const task = await this.rs.sync.doTask('/foo/doc');
+    expect(task.action).to.equal('put');
+    await this.rs.local.put('/foo/doc', 'new', 'text/plain');
+    expect((await this.rs.local.getNodes(['/foo/doc']))['/foo/doc'].local.body).to.equal('new');
+  });
+
+  it('does not resurrect flushed nodes from an earlier sync snapshot', async function() {
+    const local = this.rs.local;
+    await local.put('/foo/doc', 'old', 'text/plain');
+    const getNodes = local.getNodes.bind(local);
+    let paused, resume;
+    const reached = new Promise(resolve => { paused = resolve; });
+    const gate = new Promise(resolve => { resume = resolve; });
+    let intercepted = false;
+    local.getNodes = async paths => {
+      const snapshot = await getNodes(paths);
+      if (!intercepted && paths.includes('/foo/doc')) {
+        intercepted = true;
+        paused();
+        await gate;
+      }
+      return snapshot;
+    };
+    try {
+      const sync = receive(this.rs.sync, '/foo/doc', 'remote');
+      await reached;
+      const flush = local.flush('/foo/');
+      await new Promise(resolve => setImmediate(resolve));
+      resume();
+      await Promise.all([sync, flush]);
+    } finally {
+      resume();
+      local.getNodes = getNodes;
+    }
+    expect((await local.getNodes(['/foo/doc']))['/foo/doc']).to.be.undefined;
+  });
+
+  it('continues local writes after sync reconciliation fails', async function() {
+    const local = this.rs.local;
+    const getNodes = local.getNodes.bind(local);
+    local.getNodes = () => Promise.reject(new Error('storage failed'));
+    try {
+      await receive(this.rs.sync, '/foo/doc', 'body').then(
+        () => { throw new Error('Expected storage failure'); },
+        error => expect(error.message).to.equal('storage failed')
+      );
+    } finally {
+      local.getNodes = getNodes;
+    }
+    await local.put('/foo/new', 'pending', 'text/plain');
+    expect(await this.client.getListing('', false)).to.deep.equal({ new: true });
+  });
+
 });

@@ -464,6 +464,10 @@ export class Sync {
    * Sync one path
    */
   async doTask (path: string): Promise<SyncTask> {
+    return this._sessionLocal.withLocalUpdate(() => this.doTaskLocked(path));
+  }
+
+  private async doTaskLocked (path: string): Promise<SyncTask> {
     return this._sessionLocal.getNodes([path]).then((nodes: RSNodes) => {
       // The session may have been replaced while the cache lookup was in
       // flight; do not act on it against the replacement session.
@@ -1083,7 +1087,10 @@ export class Sync {
    */
   async handleResponse (path: string, action: SyncTask["action"], r: RemoteResponse): Promise<boolean> {
     this.assertCurrentSession();
+    return this._sessionLocal.withLocalUpdate(() => this.handleResponseLocked(path, action, r));
+  }
 
+  private async handleResponseLocked (path: string, action: SyncTask["action"], r: RemoteResponse): Promise<boolean> {
     const status = this.interpretStatus(r.statusCode);
 
     if (status.successful) {
