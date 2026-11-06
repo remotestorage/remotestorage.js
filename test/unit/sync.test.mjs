@@ -666,9 +666,9 @@ describe("Sync", function() {
           ]);
         });
 
-        it("only updates local index for the latest change", function() {
+        it("preserves every concurrent response in the local index", function() {
           expect(this.nodes["/foo/"].local.itemsMap).to.deep.equal({
-            "1": true, "3": true // does not include "2"
+            "1": true, "2": true, "3": true
           });
         });
 

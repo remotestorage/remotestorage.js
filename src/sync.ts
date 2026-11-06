@@ -407,6 +407,10 @@ export class Sync {
    * Sync one path
    */
   async doTask (path: string): Promise<SyncTask> {
+    return this.rs.local.withLocalUpdate(() => this.doTaskLocked(path));
+  }
+
+  private async doTaskLocked (path: string): Promise<SyncTask> {
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
       // First fetch:
@@ -986,6 +990,10 @@ export class Sync {
    * Handle response of executed request
    */
   async handleResponse (path: string, action: SyncTask["action"], r: RemoteResponse): Promise<boolean> {
+    return this.rs.local.withLocalUpdate(() => this.handleResponseLocked(path, action, r));
+  }
+
+  private async handleResponseLocked (path: string, action: SyncTask["action"], r: RemoteResponse): Promise<boolean> {
     const status = this.interpretStatus(r.statusCode);
 
     if (status.successful) {

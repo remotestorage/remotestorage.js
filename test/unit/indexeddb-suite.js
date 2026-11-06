@@ -87,8 +87,11 @@ define(['./build/indexeddb', './build/config'], function (IndexedDB, config) {
           }, function(e) {
             test.result(false, e);
           });
-          env._gets[0].onsuccess({ target: {}});
-          env._transactions[0].oncomplete();
+          // Local writes enter the shared update queue before reading storage.
+          Promise.resolve().then(function() {
+            env._gets[0].onsuccess({ target: {}});
+            env._transactions[0].oncomplete();
+          });
         }
       },
 
