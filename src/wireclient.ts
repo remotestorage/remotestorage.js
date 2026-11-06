@@ -113,13 +113,13 @@ class WireClient extends RemoteBase implements Remote {
    * OAuth2 refresh token, from the PKCE code flow when the server issues one.
    * Used with `TOKEN_URL` and `clientId` to get a new access token on a 401.
    */
-  refreshToken?: string;
+  refreshToken?: string | null;
 
   /** OAuth2 token endpoint advertised by the server, for refreshing */
-  TOKEN_URL?: string;
+  TOKEN_URL?: string | null;
 
   /** OAuth2 client id the token was issued to, for refreshing */
-  clientId?: string;
+  clientId?: string | null;
 
   /**
    * Holds the server's base URL, as obtained in the Webfinger discovery
@@ -178,6 +178,24 @@ class WireClient extends RemoteBase implements Remote {
    * response is still a 401.
    */
   async _request (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
+    if (this.isForbiddenRequestMethod(method, uri)) {
+      return Promise.reject(`Don't use ${method} on directories!`);
+    }
+    // One wire-busy/wire-done pair per operation, including a refresh and retry
+    const wireEvent = { method: method, isFolder: isFolder(uri) };
+    this.rs._emit('wire-busy', wireEvent);
+    try {
+      const response = await this._requestWithRefresh(method, uri, token, headers, body, getEtag, fakeRevision);
+      this.rs._emit('wire-done', { ...wireEvent, success: true });
+      return response;
+    } catch (err) {
+      this.rs._emit('wire-done', { ...wireEvent, success: false });
+      throw err;
+    }
+  }
+
+  /** The request, and the retry after a refresh; see `_request` */
+  async _requestWithRefresh (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
     let response = await this._requestOnce(method, uri, token, headers, body, getEtag, fakeRevision);
     if (response.statusCode === 401) {
       const refreshedToken = await this._refreshAfter401(token);
@@ -243,7 +261,7 @@ class WireClient extends RemoteBase implements Remote {
       const refreshed = await Authorize.requestRefreshedToken(this.TOKEN_URL, this.clientId, refreshToken);
       if (!sessionUnchanged()) { return null; }
       this._lastRefresh = { from: tokenAtStart, to: refreshed.token };
-      this.configure(refreshed);
+      this._storeTokens(refreshed.token, refreshed.refreshToken);
       return refreshed.token;
     } catch (err) {
       log('[WireClient] Could not refresh the access token', err);
@@ -271,7 +289,7 @@ class WireClient extends RemoteBase implements Remote {
       return null;
     }
     this._lastRefresh = { from: this.token, to: stored.token };
-    this.configure({ token: stored.token, refreshToken: stored.refreshToken });
+    this._storeTokens(stored.token, stored.refreshToken);
     return stored.token;
   }
 
@@ -285,20 +303,11 @@ class WireClient extends RemoteBase implements Remote {
   }
 
   async _requestOnce (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
-    if (this.isForbiddenRequestMethod(method, uri)) {
-      return Promise.reject(`Don't use ${method} on directories!`);
-    }
-
     let revision: string | undefined;
 
     if (token !== Authorize.IMPLIED_FAKE_TOKEN) {
       headers['Authorization'] = 'Bearer ' + token;
     }
-
-    this.rs._emit('wire-busy', {
-      method: method,
-      isFolder: isFolder(uri)
-    });
 
     return requestWithTimeout(method, uri, {
       body: body,
@@ -309,11 +318,6 @@ class WireClient extends RemoteBase implements Remote {
         this.online = true;
         this.rs._emit('network-online');
       }
-      this.rs._emit('wire-done', {
-        method: method,
-        isFolder: isFolder(uri),
-        success: true
-      });
 
       if (isErrorStatus(response.status)) {
         log('[WireClient] Error response status', response.status);
@@ -365,11 +369,6 @@ class WireClient extends RemoteBase implements Remote {
         this.online = false;
         this.rs._emit('network-offline');
       }
-      this.rs._emit('wire-done', {
-        method: method,
-        isFolder: isFolder(uri),
-        success: false
-      });
 
       return Promise.reject(error);
     });
@@ -433,6 +432,23 @@ class WireClient extends RemoteBase implements Remote {
     } else {
       this.connected = false;
     }
+    this._persistSettings();
+  }
+
+  /**
+   * Replace the tokens of the current session, e.g. after a refresh. Unlike
+   * configure(), this doesn't emit `connected`, since the session continues.
+   */
+  _storeTokens (token: string, refreshToken?: string): void {
+    this.token = token;
+    if (typeof refreshToken !== 'undefined') {
+      this.refreshToken = refreshToken;
+    }
+    this._persistSettings();
+  }
+
+  /** Store the settings in localStorage, for the next page load */
+  _persistSettings (): void {
     if (hasLocalStorage) {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         userAddress: this.userAddress,

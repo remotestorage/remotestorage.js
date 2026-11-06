@@ -3,11 +3,13 @@ import * as chai from "chai";
 import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import fetchMock from 'fetch-mock';
+import sinon from 'sinon';
 
 import { localStorage } from '../helpers/memoryStorage.mjs';
 import config from '../../build/config.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
 import WireClient from '../../build/wireclient.js';
+import { noRefreshSettings } from '../../build/remote.js';
 import SyncError from '../../build/sync-error.js';
 
 chai.use(chaiAsPromised);
@@ -933,6 +935,48 @@ describe('WireClient', () => {
       expect(newResponse.statusCode).to.equal(200);
       expect(oldResponse.statusCode).to.equal(401);
       expect(connectedClient.token).to.equal('session2-new');
+    });
+
+    for (const [source, setUp] of [
+      ['a refresh', () => mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) })],
+      ['tokens from another tab', () => localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        href: BASE_URI, token: NEW_TOKEN, refreshToken: 'r0tated', tokenURL: TOKEN_URL, clientId: CLIENT_ID
+      }))]
+    ]) {
+      it(`doesn't fire "connected" again for ${source}, since the session continues`, async () => {
+        mockGet(TOKEN, 401);
+        mockGet(NEW_TOKEN, 200);
+        setUp();
+        const connected = sinon.spy();
+        connectedClient.on('connected', connected);
+
+        const res = await connectedClient.get('/foo/bar');
+
+        expect(res.statusCode).to.equal(200);
+        expect(connected.called).to.equal(false);
+        // Still stored, as configure() would
+        expect(JSON.parse(localStorage.getItem(WIRECLIENT_SETTINGS_KEY))).to.include({ token: NEW_TOKEN });
+      });
+    }
+
+    it('emits one wire-busy/wire-done pair for a refresh and retry', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+      const busy = sinon.spy();
+      const done = sinon.spy();
+      rs.on('wire-busy', busy);
+      rs.on('wire-done', done);
+
+      await connectedClient.get('/foo/bar');
+
+      expect(busy.callCount).to.equal(1);
+      expect(done.callCount).to.equal(1);
+      expect(done.getCall(0).args[0]).to.include({ method: 'GET', success: true });
+    });
+
+    it('shares a frozen noRefreshSettings, so no caller can change what it clears', () => {
+      expect(Object.isFrozen(noRefreshSettings)).to.equal(true);
     });
 
     for (const status of [403, 429]) {
