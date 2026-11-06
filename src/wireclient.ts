@@ -137,7 +137,10 @@ class WireClient extends RemoteBase implements Remote {
   _revisionCache: { [key: string]: any } = {};
 
   /** The refresh in progress, shared by concurrent 401s */
-  _refreshing: Promise<boolean> | null = null;
+  _refreshing: Promise<string | null> | null = null;
+
+  /** The last successful refresh: which token it replaced, with which */
+  _lastRefresh: { from: string | false; to: string } | null = null;
 
   properties: object;
 
@@ -173,8 +176,11 @@ class WireClient extends RemoteBase implements Remote {
    */
   async _request (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
     let response = await this._requestOnce(method, uri, token, headers, body, getEtag, fakeRevision);
-    if (response.statusCode === 401 && await this._refreshAfter401(token)) {
-      response = await this._requestOnce(method, uri, this.token, headers, body, getEtag, fakeRevision);
+    if (response.statusCode === 401) {
+      const refreshedToken = await this._refreshAfter401(token);
+      if (refreshedToken) {
+        response = await this._requestOnce(method, uri, refreshedToken, headers, body, getEtag, fakeRevision);
+      }
     }
     if (response.statusCode === 401) {
       this.rs._emit('error', new UnauthorizedError());
@@ -184,15 +190,21 @@ class WireClient extends RemoteBase implements Remote {
 
   /**
    * Refresh the access token after a request made with `usedToken` got a 401.
-   * Concurrent callers share one refresh. Resolves to whether the request can
-   * be retried with `this.token`.
+   * Concurrent callers share one refresh. Resolves to the token to retry the
+   * request with: only ever one refreshed from `usedToken`, so a request is
+   * never retried with the token of a session that replaced its own.
    */
-  async _refreshAfter401 (usedToken: string | false): Promise<boolean> {
-    if (!this.refreshToken || !this.TOKEN_URL || usedToken === Authorize.IMPLIED_FAKE_TOKEN) {
-      return false;
+  async _refreshAfter401 (usedToken: string | false): Promise<string | null> {
+    if (usedToken === Authorize.IMPLIED_FAKE_TOKEN) {
+      return null;
     }
-    if (this.token && this.token !== usedToken) {
-      return true;   // another request has refreshed it meanwhile
+    if (this._lastRefresh?.from === usedToken && this._lastRefresh.to === this.token) {
+      return this.token;   // another request has refreshed it meanwhile
+    }
+    // Otherwise the token changed for another reason (e.g. connect() or
+    // disconnect()), and the request belongs to a session that is gone
+    if (!this.refreshToken || !this.TOKEN_URL || this.token !== usedToken) {
+      return null;
     }
     if (!this._refreshing) {
       this._refreshing = this._refresh().finally(() => { this._refreshing = null; });
@@ -204,25 +216,29 @@ class WireClient extends RemoteBase implements Remote {
    * Get a new access token with the refresh token. The current token stays
    * in place meanwhile, so other requests aren't refused as not connected;
    * they get a 401 and wait for this refresh. The result is dropped when the
-   * session changed meanwhile (connect() or disconnect() replace or forget
-   * the refresh token). Resolves to whether a new token was stored.
+   * session changed meanwhile: connect() or disconnect() replace or forget
+   * the refresh token, and reconnect() clears the access token. Resolves to
+   * the new token, or null when none was stored.
    */
-  async _refresh (): Promise<boolean> {
+  async _refresh (): Promise<string | null> {
     const refreshToken = this.refreshToken;
+    const tokenAtStart = this.token;
+    const sessionUnchanged = (): boolean => this.refreshToken === refreshToken && this.token === tokenAtStart;
     try {
       const refreshed = await Authorize.requestRefreshedToken(this.TOKEN_URL, this.clientId, refreshToken);
-      if (this.refreshToken !== refreshToken) { return false; }
+      if (!sessionUnchanged()) { return null; }
+      this._lastRefresh = { from: tokenAtStart, to: refreshed.token };
       this.configure(refreshed);
-      return true;
+      return refreshed.token;
     } catch (err) {
       log('[WireClient] Could not refresh the access token', err);
-      if (err?.name === 'Unauthorized' && this.refreshToken === refreshToken) {
+      if (err?.name === 'Unauthorized' && sessionUnchanged()) {
         // Rejected: carry on as without a refresh token, so 401s emit
         // Unauthorized until the app reconnects
         this.configure(noRefreshSettings);
       }
       // Otherwise (e.g. offline) keep it, so that a later 401 can try again
-      return false;
+      return null;
     }
   }
 

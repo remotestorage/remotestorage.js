@@ -183,7 +183,8 @@ describe("Authorize", () => {
     for (const [failure, response] of [
       ['a server error', { status: 500, body: JSON.stringify({ error: 'server_error' }) }],
       ['rate limiting', { status: 429, body: JSON.stringify({ error: 'slow_down' }) }],
-      ['a success without an access token', { status: 200, body: JSON.stringify({}) }]
+      ['a success without an access token', { status: 200, body: JSON.stringify({}) }],
+      ['a success with an access token that is not a string', { status: 200, body: JSON.stringify({ access_token: 123 }) }]
     ]) {
       it(`throws a plain error on ${failure}, which says nothing about the refresh token`, async () => {
         fetchMock.mock({ method: 'POST', url: TOKEN_URL }, response);
@@ -409,6 +410,22 @@ describe("Authorize", () => {
           token: 'tok', refreshToken: 'r3fr3sh',
           tokenURL: STORED_TOKEN_URL, clientId: 'https://example.org'
         });
+      });
+
+      it("clears a stored refresh token when the code exchange returns none", async () => {
+        // e.g. one stored in shared localStorage by a refresh in another tab
+        storeTransaction();
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
+        );
+        const { rs, configureSpy, settled } = setUp();
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(configureSpy.getCall(0).args[0]).to.include({ token: 'tok', refreshToken: null });
       });
 
       it("leaves the token endpoint and client id alone for Dropbox, which sets its own", async () => {

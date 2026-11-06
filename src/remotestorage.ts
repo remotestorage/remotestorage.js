@@ -767,6 +767,7 @@ export class RemoteStorage {
       }
     }
 
+    const previousUserAddress = this.remote.userAddress;
     this.remote.configure({
       userAddress: userAddress
     });
@@ -775,10 +776,12 @@ export class RemoteStorage {
     RemoteStorage.Discover(userAddress).then((info: StorageInfo): void => {
       this._emit('authing');
       info.userAddress = userAddress;
-      // The refresh settings still apply while the session continues on the
-      // same endpoint (e.g. an app calling connect() on every load). A new
-      // authorization or endpoint must not be paired with them.
-      const keepsSession = this.remote.connected && this.remote.href === info.href;
+      // The refresh settings still apply while the session continues for the
+      // same account and endpoint (e.g. an app calling connect() on every
+      // load). A new authorization, account or endpoint must not be paired
+      // with them.
+      const keepsSession = this.remote.connected && this.remote.href === info.href &&
+        previousUserAddress === userAddress;
       this.remote.configure({
         ...info,
         // Only kept from a code exchange, whose endpoint was checked

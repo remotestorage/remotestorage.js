@@ -84,6 +84,34 @@ function postRefreshGrant (tokenURL: string, clientId: string, refreshToken: str
   });
 }
 
+/** The parts of a token endpoint's response that are kept */
+interface TokenResponse {
+  access_token?: string;
+  refresh_token?: string;
+  token_type?: string;
+}
+
+/**
+ * The remote settings from a code exchange's token response. The generic
+ * backend also keeps the token endpoint and client id, to refresh the token
+ * later; Dropbox sets its own.
+ */
+function codeExchangeSettings (response: TokenResponse | undefined, transaction: PkceTransaction, tokenURL: string, clientId: string): RemoteSettings {
+  const settings: RemoteSettings = {
+    token: response?.access_token,
+    refreshToken: response?.refresh_token,
+    tokenType: response?.token_type,
+  };
+  if (transaction.tokenURL) {
+    settings.tokenURL = tokenURL;
+    settings.clientId = clientId;
+    // A new authorization replaces any stored refresh token, even with none
+    // (e.g. one stored by a refresh in another tab)
+    settings.refreshToken = response?.refresh_token ?? null;
+  }
+  return settings;
+}
+
 // This is set in _rs_init and needed for removal in _rs_cleanup
 let onFeaturesLoaded: EventHandler;
 
@@ -311,7 +339,7 @@ export class Authorize {
   static async requestRefreshedToken (tokenURL: string, clientId: string, refreshToken: string): Promise<RefreshedToken> {
     const xhr = await postRefreshGrant(tokenURL, clientId, refreshToken);
     const response = xhr?.response;
-    if (xhr?.status === 200 && response?.access_token) {
+    if (xhr?.status === 200 && typeof response?.access_token === 'string' && response.access_token) {
       log(`[Authorize] access token good for ${response.expires_in} seconds`);
       return {
         token: response.access_token,
@@ -551,17 +579,7 @@ export class Authorize {
       switch (xhr.status) {
         case 200: {
           log(`[Authorize] access token good for ${xhr?.response?.expires_in} seconds`);
-          const settings: RemoteSettings = {
-            token: xhr?.response?.access_token,
-            refreshToken: xhr?.response?.refresh_token,
-            tokenType: xhr?.response?.token_type,
-          };
-          // The generic backend keeps these to refresh the token later;
-          // Dropbox sets its own
-          if (transaction.tokenURL) {
-            settings.tokenURL = tokenURL;
-            settings.clientId = clientId;
-          }
+          const settings = codeExchangeSettings(xhr?.response, transaction, tokenURL, clientId);
           if (settings.token) {
             remoteStorage.remote.configure(settings);
             if (typeof remoteStorage._completeAuthorization === 'function') {

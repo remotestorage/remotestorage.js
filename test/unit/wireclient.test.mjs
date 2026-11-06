@@ -805,6 +805,54 @@ describe('WireClient', () => {
       });
     }
 
+    it("doesn't retry a request with the token of a session that replaced its own", async () => {
+      // The answer arrives after another account connected, keeping the
+      // refresh settings; its token must not go to this request's endpoint
+      fetchMock.mock(
+        { url: `${BASE_URI}/foo/bar`, headers: { Authorization: `Bearer ${TOKEN}` } },
+        () => {
+          connectedClient.configure({ token: 'other-account' });
+          return { status: 401 };
+        }
+      );
+      mockGet('other-account', 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(fetchMock.calls('get-other-account')).to.have.lengthOf(0);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(0);
+    });
+
+    it("drops a refresh that finishes after reconnect() cleared the token", async () => {
+      // reconnect() clears the token but not the refresh token; the refresh
+      // must not quietly restore the session the user is reauthorizing
+      mockGet(TOKEN, 401);
+      mockRefresh(() => {
+        connectedClient.configure({ token: null });
+        return { status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) };
+      });
+
+      await connectedClient.get('/foo/bar');
+
+      expect(connectedClient.token).to.equal(null);
+      expect(connectedClient.connected).to.equal(false);
+    });
+
+    it('retries a request whose token another request already refreshed', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+      await connectedClient.get('/foo/bar');
+
+      // A request that was sent with the old token before the refresh
+      const res = await connectedClient._request('GET', `${BASE_URI}/foo/bar`, TOKEN, {}, undefined, false);
+
+      expect(res.statusCode).to.equal(200);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(1);
+    });
+
     for (const status of [403, 429]) {
       it(`does not refresh on a ${status}`, async () => {
         mockGet(TOKEN, status);
