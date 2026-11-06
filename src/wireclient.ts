@@ -161,8 +161,29 @@ class WireClient extends RemoteBase implements Remote {
     if (hasLocalStorage) {
       const settings = readSettings();
       if (settings) {
+        // The stored settings are applied on a later tick. If the session was
+        // configured in the meantime (another account, or the token cleared),
+        // restoring the stored one would replace it and persist the wrong
+        // access and refresh tokens. Only restore while the session fields are
+        // still the untouched ones we started with.
+        const session = {
+          href: this.href,
+          token: this.token,
+          refreshToken: this.refreshToken,
+          tokenURL: this.TOKEN_URL,
+          clientId: this.clientId
+        };
         setTimeout(() => {
-          this.configure(settings);
+          // connect() sets the user address synchronously before discovery, so
+          // it is not part of the snapshot: the stored session must still
+          // resume for the same account. A connect() for another account must
+          // not be overwritten by (or paired with) the stored one, though.
+          const accountChanged = !!this.userAddress && this.userAddress !== settings.userAddress;
+          if (!accountChanged && this.href === session.href && this.token === session.token &&
+              this.refreshToken === session.refreshToken &&
+              this.TOKEN_URL === session.tokenURL && this.clientId === session.clientId) {
+            this.configure(settings);
+          }
         }, 0);
       }
     }
