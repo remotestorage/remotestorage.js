@@ -160,15 +160,23 @@ function hasAuthCallbackParams (params: AuthResult): boolean {
     typeof params.rsDiscovery === 'object';
 }
 
+/** The query string parameters of a URL, without the fragment. */
+function extractQueryParams (url?: string): AuthResult {
+  // eslint-disable-next-line
+  const location = url || Authorize.getLocation().href;
+  const params = {};
+  for (const [key, value] of new URL(location).searchParams) {
+    params[key] = value;
+  }
+  return params;
+}
+
 function extractParams (url?: string): AuthResult {
   // FF already decodes the URL fragment in document.location.hash, so use this instead:
   // eslint-disable-next-line
   const location = url || Authorize.getLocation().href;
 
-  const queryParam = {};
-  for (const [key, value] of new URL(location).searchParams) {
-    queryParam[key] = value;
-  }
+  const queryParam = extractQueryParams(location);
 
   const hashPos  = location.indexOf('#');
   if (hashPos === -1) { return queryParam; }
@@ -438,6 +446,9 @@ export class Authorize {
   static _rs_init = function (remoteStorage: RemoteStorage): void {
     const params = extractParams();
     const hasCallbackParams = hasAuthCallbackParams(params);
+    // Whether the OAuth response itself came back in the query (code flow),
+    // rather than the fragment (implicit flow), where the query is the app's
+    const hasQueryCallbackParams = hasAuthCallbackParams(extractQueryParams());
     // The callback's own query values, so cleanup only removes them if the URL
     // still holds them (the app may rewrite it during feature initialization)
     const callbackQuery = hasCallbackParams
@@ -499,7 +510,11 @@ export class Authorize {
       // not at init: `features-loaded` can be delayed by asynchronous feature
       // initialization, and a reload in that window must still find the code so
       // the stored PKCE transaction can complete the exchange on the next load.
-      stripAuthQueryParams(callbackQuery);
+      // Only when the response came back in the query: for the implicit flow it
+      // is in the fragment and the query belongs to the app.
+      if (hasQueryCallbackParams) {
+        stripAuthQueryParams(callbackQuery);
+      }
 
       if (params.error) {
         // A denied or failed code flow: drop its transaction, and give the app
