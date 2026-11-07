@@ -60,10 +60,20 @@ export interface RemoteSettings {
   href?: string;          // remoteStorage server's base URL
   storageApi?: string;    // spec version
   token?: string | false; // OAuth2 access token
-  refreshToken?: string;  // OAuth2 refresh token
+  // null clears these three
+  refreshToken?: string | null; // OAuth2 refresh token
   tokenType?: string;     // type of access token; usually 'bearer'
+  tokenURL?: string | null;     // OAuth2 token endpoint, for refreshing
+  clientId?: string | null;     // OAuth2 client id, for refreshing
   properties?: object;
 }
+
+/**
+ * Settings that forget a refresh token and the endpoint it is for, so that
+ * a new session or endpoint can't be paired with an earlier one's. Frozen,
+ * since every caller shares it.
+ */
+export const noRefreshSettings: Readonly<RemoteSettings> = Object.freeze({ refreshToken: null, tokenURL: null, clientId: null });
 
 export interface RemoteResponse {
   statusCode: number;
@@ -135,6 +145,14 @@ export interface Remote {
    * @internal
    */
   token?: string | false;
+
+  /**
+   * OAuth2 refresh token, from the PKCE code flow when the server issues one
+   * (Dropbox and the generic backend)
+   *
+   * @internal
+   */
+  refreshToken?: string | null;
 
   /**
    * OAuth2 PKCE

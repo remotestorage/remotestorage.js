@@ -9,6 +9,7 @@ import { localStorage, sessionStorage } from '../helpers/memoryStorage.mjs';
 import locationFactory from "../helpers/location.mjs";
 
 import { Authorize } from '../../build/authorize.js';
+import config from '../../build/config.js';
 import { localStorageAvailable } from "../../build/util.js";
 import { RemoteBase } from "../../build/remote.js";
 import { RemoteStorage } from '../../build/remotestorage.js';
@@ -123,6 +124,134 @@ describe("Authorize", () => {
       expect(configureSpy.getCall(0).args[0]).to.have.property('token', null);
       expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken);
     });
+
+    it("stores a rotated refresh token", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      fetchMock.mock(
+        { method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({ access_token: 'new', refresh_token: 'r0tated' }) }
+      );
+
+      await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
+
+      expect(configureSpy.getCall(1).args[0]).to.have.property('refreshToken', 'r0tated');
+    });
+
+    it("keeps the refresh token when the server doesn't rotate it", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      fetchMock.mock(
+        { method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({ access_token: 'new' }) }
+      );
+
+      await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
+
+      // undefined leaves the remote's refresh token as it is
+      expect(configureSpy.getCall(1).args[0].refreshToken).to.be.undefined;
+    });
+  });
+
+  describe("#authorize in Cordova", () => {
+    const REDIRECT_URI = 'https://app.example/callback';
+
+    afterEach(() => {
+      delete globalThis.cordova;
+      delete config.cordovaRedirectUri;
+    });
+
+    it("forgets the refresh settings when the InAppBrowser brings a new token", async () => {
+      globalThis.cordova = {};
+      config.cordovaRedirectUri = REDIRECT_URI;
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.on = () => {};
+      mockRemote._emit = () => {};
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      rs.remote = mockRemote;
+      const openWindow = sinon.stub(Authorize, 'openWindow').resolves({ access_token: 'tok' });
+
+      try {
+        Authorize.authorize(rs, { authURL: AUTH_URL, scope: 'notes:rw', redirectUri: REDIRECT_URI, clientId: 'https://app.example' });
+        // authorize() attached its .then() first, so that has run after this
+        await openWindow.returnValues[0];
+      } finally {
+        openWindow.restore();
+      }
+
+      expect(configureSpy.getCall(0).args[0]).to.include({
+        token: 'tok', refreshToken: null, tokenURL: null, clientId: null
+      });
+    });
+
+    it("keeps the refresh settings when the InAppBrowser brings no access token", async () => {
+      // e.g. Dropbox's code callback, which this path can't exchange
+      globalThis.cordova = {};
+      config.cordovaRedirectUri = REDIRECT_URI;
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.on = () => {};
+      mockRemote._emit = () => {};
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      rs.remote = mockRemote;
+      const openWindow = sinon.stub(Authorize, 'openWindow').resolves({ code: 'c0de' });
+
+      try {
+        Authorize.authorize(rs, { authURL: AUTH_URL, scope: 'notes:rw', redirectUri: REDIRECT_URI, clientId: 'https://app.example' });
+        await openWindow.returnValues[0];
+      } finally {
+        openWindow.restore();
+      }
+
+      expect(configureSpy.getCall(0).args[0]).not.to.have.property('refreshToken');
+    });
+  });
+
+  describe("#requestRefreshedToken", () => {
+    it("returns the new tokens without touching a remote", async () => {
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer', refresh_token: 'r0tated' }) }
+      );
+
+      const refreshed = await Authorize.requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN);
+
+      expect(refreshed).to.deep.equal({ token: 'new', tokenType: 'bearer', refreshToken: 'r0tated' });
+      const body = new URLSearchParams(fetchMock.calls('postToken')[0][1].body);
+      expect(body.get('grant_type')).to.equal('refresh_token');
+      expect(body.get('client_id')).to.equal('client');
+      expect(body.get('refresh_token')).to.equal(REFRESH_TOKEN);
+    });
+
+    it("throws Unauthorized only when the refresh token is rejected (invalid_grant)", async () => {
+      fetchMock.mock(
+        { method: 'POST', url: TOKEN_URL },
+        { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) }
+      );
+
+      await expect(Authorize.requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN))
+        .to.be.rejected.and.eventually.have.property('name', 'Unauthorized');
+    });
+
+    for (const [failure, response] of [
+      ['a server error', { status: 500, body: JSON.stringify({ error: 'server_error' }) }],
+      ['rate limiting', { status: 429, body: JSON.stringify({ error: 'slow_down' }) }],
+      ['a success without an access token', { status: 200, body: JSON.stringify({}) }],
+      ['a success with an access token that is not a string', { status: 200, body: JSON.stringify({ access_token: 123 }) }]
+    ]) {
+      it(`throws a plain error on ${failure}, which says nothing about the refresh token`, async () => {
+        fetchMock.mock({ method: 'POST', url: TOKEN_URL }, response);
+
+        const err = await Authorize.requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN)
+          .then(() => null, e => e);
+
+        expect(err).to.be.an('error');
+        expect(err.name).not.to.equal('Unauthorized');
+      });
+    }
   });
 
   describe("'features-loaded' handler", () => {
@@ -331,6 +460,60 @@ describe("Authorize", () => {
         expect(body.get('code_verifier')).to.equal('v3r1f13r');
         expect(configureSpy.getCall(0).args[0]).to.have.property('token', 'tok');
         expectNoTransaction();
+      });
+
+      it("keeps the token endpoint and client id on the remote, so it can refresh", async () => {
+        storeTransaction();
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok', refresh_token: 'r3fr3sh' }) }
+        );
+        const { rs, configureSpy, settled } = setUp();
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(configureSpy.getCall(0).args[0]).to.include({
+          token: 'tok', refreshToken: 'r3fr3sh',
+          tokenURL: STORED_TOKEN_URL, clientId: 'https://example.org'
+        });
+      });
+
+      it("clears a stored refresh token when the code exchange returns none", async () => {
+        // e.g. one stored in shared localStorage by a refresh in another tab
+        storeTransaction();
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
+        );
+        const { rs, configureSpy, settled } = setUp();
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(configureSpy.getCall(0).args[0]).to.include({ token: 'tok', refreshToken: null });
+      });
+
+      it("leaves the token endpoint and client id alone for Dropbox, which sets its own", async () => {
+        document.location.href = 'https://example.org/app/';
+        Authorize.savePkceTransaction({ codeVerifier: 'v3r1f13r', state: STATE });
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { name: 'postToken', method: 'POST', url: TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok', refresh_token: 'r3fr3sh' }) }
+        );
+        const { rs, configureSpy, settled } = setUp();
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+        const settings = configureSpy.getCall(0).args[0];
+        expect(settings).to.have.property('refreshToken', 'r3fr3sh');
+        expect(settings.tokenURL).to.be.undefined;
+        expect(settings.clientId).to.be.undefined;
       });
 
       it("restores the app's hash instead of putting the random state in it", async () => {
@@ -861,6 +1044,26 @@ describe("Authorize", () => {
         token: 'NEW_TOKEN'
       });
     });
+
+    for (const [callback, hash] of [
+      ['retargets the endpoint', () => `access_token=NEW_TOKEN&${encodeDiscovery({ href: 'https://collector.test/' })}`],
+      ['brings a new access token', () => 'access_token=NEW_TOKEN']
+    ]) {
+      it(`forgets the refresh settings when a callback ${callback}`, () => {
+        const mockRemote = new MockRemote({});
+        const configureSpy = sinon.spy(mockRemote, 'configure');
+        const rs = createStorage(mockRemote);
+        document.location.href = `https://example.com/#${hash()}`;
+
+        Authorize._rs_init(rs);
+        rs._handlers['features-loaded'][0]();
+
+        // In the same call, so the new token is never paired with them
+        expect(configureSpy.getCall(0).args[0]).to.include({
+          token: 'NEW_TOKEN', refreshToken: null, tokenURL: null, clientId: null
+        });
+      });
+    }
 
     it("does not send a stored token to an rsDiscovery-supplied endpoint (regression #1404)", async () => {
       const VICTIM_HREF = 'https://real-storage.example.com/users/victim';

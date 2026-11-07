@@ -50,10 +50,38 @@ browser history after the redirect. RS then makes a fetch to the saved token
 endpoint (or `remote.TOKEN_URL` for Dropbox) with the code, to retrieve the
 access token, and possibly a refresh token as well.
 
-Only Dropbox uses that refresh token so far. The generic backend does
-not keep the token endpoint or client id once the code is exchanged, so
-when its access token expires the app gets an `Unauthorized` event and
-the user has to connect again, as with the implicit flow.
+The generic backend stores the refresh token, the token endpoint and the
+client id with the rest of its settings (`remotestorage:wireclient` in
+localStorage). When a request gets a 401, it asks the token endpoint for
+a new access token and retries the request once with it. The old token
+stays in place meanwhile, so concurrent requests aren't refused as not
+connected; their 401s wait for the same refresh. A rotated refresh token
+replaces the old one.
+
+Only an `invalid_grant` answer means the refresh token is dead: it is then
+forgotten, and the backend carries on as without one, so every 401 emits
+an `Unauthorized` event until the user connects again. Any other failure
+(a server error, rate limiting, being offline) keeps it for a later 401.
+
+Tabs of the same app share these settings in localStorage, but each
+keeps its own copy in memory. Before refreshing, and again when its
+refresh token is rejected, a tab checks whether another tab has stored
+newer tokens for the same account and endpoint (e.g. after rotating the
+refresh token), and uses those instead. So once another tab has stored
+rotated tokens, a tab doesn't send the refresh token they replaced
+(servers may revoke the whole session when one is reused), nor
+overwrite them in storage. Two tabs refreshing at the very same moment
+can still race; a cross-tab lock would close that gap.
+
+Disconnecting forgets the refresh settings, and so does any new access
+token: connecting with a new authorization, to a different endpoint, or
+a callback that brings a token. Calling `connect()` again for the same
+account and endpoint the session is already on keeps them. A refresh
+only applies to the session it started in: its result is dropped when
+the access or refresh token changed meanwhile, and a request is only
+retried with a token refreshed from its own. The token endpoint is
+only taken from a code exchange, never from discovery alone, so it has
+always passed the https check.
 
 ## The `rsDiscovery` fallback
 

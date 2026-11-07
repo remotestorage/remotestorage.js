@@ -46,7 +46,7 @@ import {
   stripLegacyCharsetBinary
 } from './util';
 import {requestWithTimeout} from "./requests";
-import {Remote, RemoteBase, RemoteResponse, RemoteSettings} from "./remote";
+import {Remote, RemoteBase, RemoteResponse, RemoteSettings, noRefreshSettings} from "./remote";
 
 let hasLocalStorage;
 const SETTINGS_KEY = 'remotestorage:wireclient';
@@ -66,9 +66,9 @@ const STORAGE_APIS = {
 
 function readSettings () {
   const settings = getJSONFromLocalStorage(SETTINGS_KEY) || {};
-  const { userAddress, href, storageApi, token, properties } = settings;
+  const { userAddress, href, storageApi, token, refreshToken, tokenURL, clientId, properties } = settings;
 
-  return { userAddress, href, storageApi, token, properties };
+  return { userAddress, href, storageApi, token, refreshToken, tokenURL, clientId, properties };
 }
 
 function determineCharset (mimeType: string): string {
@@ -110,6 +110,18 @@ class WireClient extends RemoteBase implements Remote {
   token: string | false;
 
   /**
+   * OAuth2 refresh token, from the PKCE code flow when the server issues one.
+   * Used with `TOKEN_URL` and `clientId` to get a new access token on a 401.
+   */
+  refreshToken?: string | null;
+
+  /** OAuth2 token endpoint advertised by the server, for refreshing */
+  TOKEN_URL?: string | null;
+
+  /** OAuth2 client id the token was issued to, for refreshing */
+  clientId?: string | null;
+
+  /**
    * Holds the server's base URL, as obtained in the Webfinger discovery
    *
    * Example:
@@ -123,6 +135,15 @@ class WireClient extends RemoteBase implements Remote {
   supportsRevs: boolean;
 
   _revisionCache: { [key: string]: any } = {};
+
+  /**
+   * The refresh in progress, shared by concurrent 401s, with the tokens it
+   * started from: only requests of that same session may wait for it
+   */
+  _refreshing: { token: string | false; refreshToken: string; promise: Promise<string | null> } | null = null;
+
+  /** The last successful refresh: which token it replaced, with which */
+  _lastRefresh: { from: string | false; to: string } | null = null;
 
   properties: object;
 
@@ -151,21 +172,142 @@ class WireClient extends RemoteBase implements Remote {
     }
   }
 
+  /**
+   * Make a request; on a 401, refresh the access token when possible and
+   * retry once with the new one. Emits `Unauthorized` when the final
+   * response is still a 401.
+   */
   async _request (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
     if (this.isForbiddenRequestMethod(method, uri)) {
       return Promise.reject(`Don't use ${method} on directories!`);
     }
+    // One wire-busy/wire-done pair per operation, including a refresh and retry
+    const wireEvent = { method: method, isFolder: isFolder(uri) };
+    this.rs._emit('wire-busy', wireEvent);
+    try {
+      const response = await this._requestWithRefresh(method, uri, token, headers, body, getEtag, fakeRevision);
+      this.rs._emit('wire-done', { ...wireEvent, success: true });
+      return response;
+    } catch (err) {
+      this.rs._emit('wire-done', { ...wireEvent, success: false });
+      throw err;
+    }
+  }
 
+  /** The request, and the retry after a refresh; see `_request` */
+  async _requestWithRefresh (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
+    let response = await this._requestOnce(method, uri, token, headers, body, getEtag, fakeRevision);
+    if (response.statusCode === 401) {
+      const refreshedToken = await this._refreshAfter401(token);
+      if (refreshedToken) {
+        response = await this._requestOnce(method, uri, refreshedToken, headers, body, getEtag, fakeRevision);
+      }
+    }
+    if (response.statusCode === 401) {
+      this.rs._emit('error', new UnauthorizedError());
+    }
+    return response;
+  }
+
+  /**
+   * Refresh the access token after a request made with `usedToken` got a 401.
+   * Concurrent callers share one refresh. Resolves to the token to retry the
+   * request with: only ever one refreshed from `usedToken`, so a request is
+   * never retried with the token of a session that replaced its own.
+   */
+  async _refreshAfter401 (usedToken: string | false): Promise<string | null> {
+    if (usedToken === Authorize.IMPLIED_FAKE_TOKEN) {
+      return null;
+    }
+    if (this._lastRefresh?.from === usedToken && this._lastRefresh.to === this.token) {
+      return this.token;   // another request has refreshed it meanwhile
+    }
+    // Otherwise the token changed for another reason (e.g. connect() or
+    // disconnect()), and the request belongs to a session that is gone
+    if (!this.refreshToken || !this.TOKEN_URL || this.token !== usedToken) {
+      return null;
+    }
+    if (this._refreshing?.token !== this.token || this._refreshing.refreshToken !== this.refreshToken) {
+      // None, or one the previous session started, whose result is dropped
+      const refreshing = { token: this.token, refreshToken: this.refreshToken, promise: null };
+      refreshing.promise = this._refresh().finally(() => {
+        if (this._refreshing === refreshing) { this._refreshing = null; }
+      });
+      this._refreshing = refreshing;
+    }
+    return this._refreshing.promise;
+  }
+
+  /**
+   * Get a new access token with the refresh token. The current token stays
+   * in place meanwhile, so other requests aren't refused as not connected;
+   * they get a 401 and wait for this refresh. The result is dropped when the
+   * session changed meanwhile: connect() or disconnect() replace or forget
+   * the refresh token, and reconnect() clears the access token. Resolves to
+   * the new token, or null when none was stored.
+   */
+  async _refresh (): Promise<string | null> {
+    // Another tab may have refreshed already, rotating the refresh token;
+    // sending the old one could make the server revoke the whole session
+    return this._adoptTokensFromOtherTab() || this._requestRefresh();
+  }
+
+  /** Refresh with this tab's own refresh token; see `_refresh` */
+  async _requestRefresh (): Promise<string | null> {
+    const refreshToken = this.refreshToken;
+    const tokenAtStart = this.token;
+    const sessionUnchanged = (): boolean => this.refreshToken === refreshToken && this.token === tokenAtStart;
+    try {
+      const refreshed = await Authorize.requestRefreshedToken(this.TOKEN_URL, this.clientId, refreshToken);
+      if (!sessionUnchanged()) { return null; }
+      this._lastRefresh = { from: tokenAtStart, to: refreshed.token };
+      this._storeTokens(refreshed.token, refreshed.refreshToken);
+      return refreshed.token;
+    } catch (err) {
+      log('[WireClient] Could not refresh the access token', err);
+      if (err?.name === 'Unauthorized' && sessionUnchanged()) {
+        // Rejected, perhaps because another tab rotated it meanwhile; then
+        // use its tokens, rather than overwrite them in storage
+        return this._adoptTokensFromOtherTab() || this._forgetRejectedRefreshToken();
+      }
+      // Otherwise (e.g. offline) keep it, so that a later 401 can try again
+      return null;
+    }
+  }
+
+  /**
+   * Take over the tokens that another tab stored for this session (same
+   * account and endpoint) after refreshing them. Resolves to the adopted
+   * access token, or null when storage holds nothing newer.
+   */
+  _adoptTokensFromOtherTab (): string | null {
+    if (!hasLocalStorage) { return null; }
+    const stored = readSettings();
+    if (stored.userAddress !== this.userAddress || stored.href !== this.href ||
+        !stored.token || stored.token === this.token ||
+        !stored.refreshToken || stored.refreshToken === this.refreshToken) {
+      return null;
+    }
+    this._lastRefresh = { from: this.token, to: stored.token };
+    this._storeTokens(stored.token, stored.refreshToken);
+    return stored.token;
+  }
+
+  /**
+   * Carry on as without a refresh token, so that 401s emit Unauthorized
+   * until the app reconnects. Returns null: there is no token to retry with.
+   */
+  _forgetRejectedRefreshToken (): null {
+    this.configure(noRefreshSettings);
+    return null;
+  }
+
+  async _requestOnce (method: string, uri: string, token: string | false, headers: HeadersInit, body: XMLHttpRequestBodyInit, getEtag: boolean, fakeRevision?: string): Promise<RemoteResponse> {
     let revision: string | undefined;
 
     if (token !== Authorize.IMPLIED_FAKE_TOKEN) {
       headers['Authorization'] = 'Bearer ' + token;
     }
-
-    this.rs._emit('wire-busy', {
-      method: method,
-      isFolder: isFolder(uri)
-    });
 
     return requestWithTimeout(method, uri, {
       body: body,
@@ -176,11 +318,6 @@ class WireClient extends RemoteBase implements Remote {
         this.online = true;
         this.rs._emit('network-online');
       }
-      this.rs._emit('wire-done', {
-        method: method,
-        isFolder: isFolder(uri),
-        success: true
-      });
 
       if (isErrorStatus(response.status)) {
         log('[WireClient] Error response status', response.status);
@@ -188,10 +325,6 @@ class WireClient extends RemoteBase implements Remote {
           revision = this.stripQuotes(response.getResponseHeader('ETag'));
         } else {
           revision = undefined;
-        }
-
-        if (response.status === 401) {
-          this.rs._emit('error', new UnauthorizedError());
         }
 
         return Promise.resolve({statusCode: response.status, revision: revision});
@@ -236,11 +369,6 @@ class WireClient extends RemoteBase implements Remote {
         this.online = false;
         this.rs._emit('network-offline');
       }
-      this.rs._emit('wire-done', {
-        method: method,
-        isFolder: isFolder(uri),
-        success: false
-      });
 
       return Promise.reject(error);
     });
@@ -280,6 +408,15 @@ class WireClient extends RemoteBase implements Remote {
     if (typeof settings.token !== 'undefined') {
       this.token = settings.token;
     }
+    if (typeof settings.refreshToken !== 'undefined') {
+      this.refreshToken = settings.refreshToken;
+    }
+    if (typeof settings.tokenURL !== 'undefined') {
+      this.TOKEN_URL = settings.tokenURL;
+    }
+    if (typeof settings.clientId !== 'undefined') {
+      this.clientId = settings.clientId;
+    }
     if (typeof settings.properties !== 'undefined') {
       this.properties = settings.properties;
     }
@@ -295,12 +432,32 @@ class WireClient extends RemoteBase implements Remote {
     } else {
       this.connected = false;
     }
+    this._persistSettings();
+  }
+
+  /**
+   * Replace the tokens of the current session, e.g. after a refresh. Unlike
+   * configure(), this doesn't emit `connected`, since the session continues.
+   */
+  _storeTokens (token: string, refreshToken?: string): void {
+    this.token = token;
+    if (typeof refreshToken !== 'undefined') {
+      this.refreshToken = refreshToken;
+    }
+    this._persistSettings();
+  }
+
+  /** Store the settings in localStorage, for the next page load */
+  _persistSettings (): void {
     if (hasLocalStorage) {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         userAddress: this.userAddress,
         href: this.href,
         storageApi: this.storageApi,
         token: this.token,
+        refreshToken: this.refreshToken,
+        tokenURL: this.TOKEN_URL,
+        clientId: this.clientId,
         properties: this.properties
       }));
     }

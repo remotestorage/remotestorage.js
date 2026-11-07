@@ -9,6 +9,7 @@ import config from '../../build/config.js';
 import Dropbox from '../../build/dropbox.js';
 import { EventHandling } from '../../build/eventhandling.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
+import WireClient from '../../build/wireclient.js';
 import { applyMixins } from '../../build/util.js';
 import { localStorage } from '../helpers/memoryStorage.mjs';
 
@@ -159,6 +160,92 @@ describe("RemoteStorage", function() {
 
       this.rs.connect('personal.ho.st');
       expect(configuredAddress).to.equal('https://personal.ho.st');
+    });
+
+    // Resolves with the settings connect() applies from discovery
+    function discoveredSettings (remote) {
+      return new Promise(resolve => {
+        remote.configure = function (settings) {
+          if ('href' in settings) { resolve(settings); }
+        };
+      });
+    }
+
+    it("forgets an earlier session's refresh settings when it authorizes again", async function() {
+      this.rs.remote = new FakeRemote(false);
+      const settings = discoveredSettings(this.rs.remote);
+      sinon.stub(this.rs, '_authorize');
+
+      this.rs.connect('user@ho.st');
+
+      expect(await settings).to.include({ refreshToken: null, tokenURL: null, clientId: null });
+    });
+
+    it("keeps the refresh settings while the discovered endpoint is the connected one", async function() {
+      // e.g. an app that calls connect() on every page load
+      this.discoverStub.withArgs('same@ho.st').returns(Promise.resolve({
+        href: 'http://foo.bar', tokenURL: 'https://ho.st/oauth/token'
+      }));
+      this.rs.remote = new FakeRemote(true);
+      this.rs.remote.href = 'http://foo.bar';
+      this.rs.remote.userAddress = 'same@ho.st';
+      const settings = discoveredSettings(this.rs.remote);
+
+      this.rs.connect('same@ho.st');
+
+      const applied = await settings;
+      expect(applied).not.to.have.property('refreshToken');
+      expect(applied).not.to.have.property('clientId');
+      // The token endpoint is only kept from a code exchange, which checked it
+      expect(applied.tokenURL).to.be.undefined;
+    });
+
+    it("keeps a real WireClient's refresh settings when connecting to the same endpoint again", async function() {
+      this.discoverStub.withArgs('same@ho.st').returns(Promise.resolve({
+        href: 'https://ho.st/storage/same', storageApi: 'draft-dejong-remotestorage-27',
+        tokenURL: 'https://elsewhere.example/token'
+      }));
+      const remote = new WireClient(this.rs);
+      remote.configure({
+        userAddress: 'same@ho.st', href: 'https://ho.st/storage/same', token: 'tok',
+        refreshToken: 'r3fr3sh', tokenURL: 'https://ho.st/oauth/token', clientId: 'https://app.example'
+      });
+      this.rs.remote = remote;
+      const discovered = new Promise(resolve => {
+        const configure = remote.configure.bind(remote);
+        remote.configure = (settings) => {
+          configure(settings);
+          if ('href' in settings) { resolve(); }
+        };
+      });
+
+      this.rs.connect('same@ho.st');
+      await discovered;
+
+      expect(remote.refreshToken).to.equal('r3fr3sh');
+      expect(remote.TOKEN_URL).to.equal('https://ho.st/oauth/token');
+      expect(remote.clientId).to.equal('https://app.example');
+    });
+
+    it("forgets the refresh settings when another account discovers the same endpoint", async function() {
+      this.rs.remote = new FakeRemote(true);
+      this.rs.remote.href = 'http://foo.bar';
+      this.rs.remote.userAddress = 'other@ho.st';
+      const settings = discoveredSettings(this.rs.remote);
+
+      this.rs.connect('user@ho.st');
+
+      expect(await settings).to.include({ refreshToken: null, tokenURL: null, clientId: null });
+    });
+
+    it("forgets the refresh settings when discovery points somewhere else", async function() {
+      this.rs.remote = new FakeRemote(true);
+      this.rs.remote.href = 'https://elsewhere.example/storage';
+      const settings = discoveredSettings(this.rs.remote);
+
+      this.rs.connect('user@ho.st');
+
+      expect(await settings).to.include({ refreshToken: null, tokenURL: null, clientId: null });
     });
 
     it("authorizes a record that only advertises PKCE (no implicit authURL)", async function() {
