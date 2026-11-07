@@ -109,10 +109,10 @@ class LocalStorage extends CachingLayer {
       }
     }
 
-    for (const key in keys) {
+    for (const key of keys) {
       log('[LocalStorage] Removing', key);
       localStorage.removeItem(key);
-    };
+    }
   }
 }
 
