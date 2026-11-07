@@ -494,6 +494,61 @@ describe('Dropbox backend', () => {
       expect(result).to.have.property('statusCode', 200);
       expect(seenAuthorization).to.deep.equal(['Bearer ' + ACCESS_TOKEN, 'Bearer ' + NEW_TOKEN]);
     });
+
+    it("shares one refresh between concurrent 401s", async () => {
+      const refreshResolvers = [];
+      fetchMock.mock({name: 'postToken', method: 'POST', url: TOKEN_URL}, () => {
+        return new Promise(resolve => { refreshResolvers.push(resolve); });
+      });
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        if (getFileCalls === 2) {
+          // Both operations have received a 401; release the shared refresh
+          setTimeout(() => {
+            for (const resolve of refreshResolvers) {
+              resolve({status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})});
+            }
+          }, 0);
+        }
+        if (getFileCalls <= 2) {
+          return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+        }
+        return {status: 200, body: 'abc', headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}};
+      });
+
+      const [first, second] = await Promise.all([dropbox.get('/a'), dropbox.get('/b')]);
+
+      expect(first).to.have.property('statusCode', 200);
+      expect(second).to.have.property('statusCode', 200);
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      const getCalls = fetchMock.calls('getFile');
+      expect(getCalls).to.have.lengthOf(4);
+      expect(getCalls[2][1].headers.Authorization).to.equal('Bearer ' + NEW_TOKEN);
+      expect(getCalls[3][1].headers.Authorization).to.equal('Bearer ' + NEW_TOKEN);
+    });
+
+    it("does not retry when the session is replaced during the refresh", async () => {
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+      });
+      fetchMock.mock({name: 'postToken', method: 'POST', url: TOKEN_URL}, () => {
+        // Another path replaces the session while the refresh is in flight
+        dropbox.token = 'account2-token';
+        dropbox.refreshToken = 'account2-refresh';
+        return {status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})};
+      });
+
+      const result = await dropbox.get('/foo');
+
+      // The original 401 is returned rather than replayed against account2
+      expect(result).to.have.property('statusCode', 401);
+      expect(getFileCalls).to.equal(1);
+      expect(dropbox.token).to.equal('account2-token');
+      expect(dropbox.refreshToken).to.equal('account2-refresh');
+    });
   });
 
   describe("disconnect", () => {

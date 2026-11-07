@@ -120,13 +120,14 @@ describe("Authorize", () => {
         { status: 200, body:JSON.stringify(tokenResponse) }
       );
 
-      await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
+      const result = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
 
       // No up-front configure({token: null}), only the successful update
       expect(configureSpy.callCount).to.equal(1);
       expect(configureSpy.getCall(0).args[0]).to.include({
         token: newAccessToken, tokenType: 'bearer', refreshToken: REFRESH_TOKEN
       });
+      expect(result).to.equal(newAccessToken);
     });
 
     it("stores a rotated refresh token", async () => {
@@ -341,12 +342,123 @@ describe("Authorize", () => {
         }
       );
 
-      await expect(Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)).to.be.fulfilled;
+      const result = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
 
+      // A replaced session is reported as null so the caller does not retry
+      expect(result).to.be.null;
       expect(configureSpy.called).to.equal(false);
       expect(storeTokensSpy.called).to.equal(false);
       expect(mockRemote.token).to.equal('session2-token');
       expect(mockRemote.refreshToken).to.equal('session2-refresh');
+    });
+
+    it("shares one in-flight refresh between concurrent callers of a session", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer' }) }
+      );
+
+      const [first, second] = await Promise.all([
+        Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN),
+        Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)
+      ]);
+
+      expect(first).to.equal('new');
+      expect(second).to.equal('new');
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      // The whole operation is shared, so the token is stored exactly once
+      expect(storeTokensSpy.callCount).to.equal(1);
+      expect(configureSpy.called).to.equal(false);
+    });
+
+    it("forgets a shared rejected refresh token exactly once", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) }
+      );
+
+      const results = await Promise.all([
+        Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN).then(() => null, e => e),
+        Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN).then(() => null, e => e)
+      ]);
+
+      for (const err of results) {
+        expect(err).to.be.an('error');
+        expect(err.name).to.equal('Unauthorized');
+      }
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      // Only the session's rejected refresh token is forgotten, once
+      expect(storeTokensSpy.callCount).to.equal(1);
+      expect(storeTokensSpy.getCall(0).args).to.deep.equal(['old-token', null]);
+      expect(configureSpy.called).to.equal(false);
+    });
+
+    it("starts a fresh grant for a caller that arrives after the refresh completed", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      mockRemote._storeTokens = sinon.spy();
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer' }) }
+      );
+
+      expect(await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)).to.equal('new');
+      expect(await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)).to.equal('new');
+
+      // No _lastRefresh for Dropbox: a late arrival posts its own grant
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(2);
+    });
+
+    it("keeps a newer session's in-flight refresh after an older one settles", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 't1';
+      mockRemote.refreshToken = 'r1';
+      mockRemote._storeTokens = sinon.spy();
+      let releaseFirst, releaseSecond;
+      const requestRefreshedToken = sinon.stub(Authorize, 'requestRefreshedToken');
+      requestRefreshedToken.onFirstCall().returns(new Promise(resolve => { releaseFirst = resolve; }));
+      requestRefreshedToken.onSecondCall().returns(new Promise(resolve => { releaseSecond = resolve; }));
+
+      try {
+        const first = Authorize.refreshAccessToken(rs, mockRemote, 'r1');
+        // A replacement session starts its own refresh before the first settles
+        mockRemote.token = 't2';
+        mockRemote.refreshToken = 'r2';
+        const second = Authorize.refreshAccessToken(rs, mockRemote, 'r2');
+        const third = Authorize.refreshAccessToken(rs, mockRemote, 'r2');
+
+        releaseFirst({ token: 't1-new' });
+        expect(await first).to.be.null;
+
+        // The older refresh's cleanup must not clear the newer session's entry:
+        // a fourth caller still joins it without a new grant
+        const fourth = Authorize.refreshAccessToken(rs, mockRemote, 'r2');
+        expect(requestRefreshedToken.callCount).to.equal(2);
+
+        releaseSecond({ token: 't2-new' });
+        expect(await second).to.equal('t2-new');
+        expect(await third).to.equal('t2-new');
+        expect(await fourth).to.equal('t2-new');
+      } finally {
+        requestRefreshedToken.restore();
+      }
     });
   });
 

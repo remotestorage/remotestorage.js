@@ -742,7 +742,12 @@ class Dropbox extends RemoteBase implements Remote {
             method: method,
             isFolder: isFolder(url)
           });
-          await Authorize.refreshAccessToken(this.rs, this, this.refreshToken);
+          const newToken = await Authorize.refreshAccessToken(this.rs, this, this.refreshToken);
+          if (!newToken) {
+            // The session was replaced while refreshing; don't retry the
+            // original request with the replacement account's token.
+            return xhr;
+          }
           this.rs._emit('wire-done', {
             method: method,
             isFolder: isFolder(url),

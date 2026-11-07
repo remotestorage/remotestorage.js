@@ -139,6 +139,20 @@ async function forgetRefreshToken (remote: Remote): Promise<void> {
   }
 }
 
+/** A refresh in flight for one remote session, shared by concurrent callers. */
+interface InflightRefresh {
+  /** The access token the refresh was started for */
+  token: string | false | undefined;
+  /** The refresh token the refresh was started for */
+  refreshToken: string;
+  /** Resolves the new token, or null when the session was replaced */
+  promise: Promise<string | null>;
+}
+
+// Keyed by the remote instance: at most one refresh per session is in flight;
+// concurrent 401s share it instead of each posting their own grant.
+const inflightRefreshes = new WeakMap<Remote, InflightRefresh>();
+
 // This is set in _rs_init and needed for removal in _rs_cleanup
 let onFeaturesLoaded: EventHandler;
 
@@ -337,36 +351,60 @@ export class Authorize {
   }
 
   /**
-   * Refresh the access token for a remote. On success, updates the remote's
-   * tokens without emitting `connected`, since the session continues.
+   * Refresh the access token for a remote, sharing one in-flight grant per
+   * session. On success, updates the remote's tokens without emitting
+   * `connected`, since the session continues.
    *
-   * Throws `Unauthorized` only when the server rejects the refresh token
-   * (`invalid_grant`); transient failures keep the tokens so a later 401 can
-   * retry.
+   * Resolves the new access token when it was refreshed for the session that
+   * asked, or null when the session was replaced meanwhile (the caller must
+   * not retry). Throws `Unauthorized` only when the server rejects the refresh
+   * token (`invalid_grant`); transient failures keep the tokens so a later 401
+   * can retry.
    */
-  static async refreshAccessToken (rs: RemoteStorage, remote: Remote, refreshToken: string): Promise<void> {
+  static async refreshAccessToken (rs: RemoteStorage, remote: Remote, refreshToken: string): Promise<string | null> {
     const tokenAtStart = remote.token;
-    const sessionUnchanged = (): boolean =>
-      (typeof remote.refreshToken === 'undefined' || remote.refreshToken === refreshToken) &&
-      remote.token === tokenAtStart;
-
-    try {
-      const refreshed = await Authorize.requestRefreshedToken(remote.TOKEN_URL, remote.clientId, refreshToken);
-      if (!sessionUnchanged()) {
-        // Another path replaced the session while the request was in flight;
-        // its tokens win. Don't overwrite them with this refresh's result.
-        return;
-      }
-      await storeRefreshedToken(remote, refreshed);
-    } catch (err) {
-      // Only a real invalid_grant means the refresh token is dead. Transient
-      // failures (5xx, 429, network, a 200 without access_token) say nothing
-      // about it, so keep it and let a later 401 retry.
-      if (err instanceof UnauthorizedError && sessionUnchanged()) {
-        await forgetRefreshToken(remote);
-      }
-      throw err;
+    const existing = inflightRefreshes.get(remote);
+    if (existing && existing.token === tokenAtStart && existing.refreshToken === refreshToken) {
+      return existing.promise;
     }
+
+    const entry: InflightRefresh = {
+      token: tokenAtStart,
+      refreshToken,
+      promise: (async (): Promise<string | null> => {
+        const sessionUnchanged = (): boolean =>
+          (typeof remote.refreshToken === 'undefined' || remote.refreshToken === refreshToken) &&
+          remote.token === tokenAtStart;
+
+        try {
+          const refreshed = await Authorize.requestRefreshedToken(remote.TOKEN_URL, remote.clientId, refreshToken);
+          if (!sessionUnchanged()) {
+            // Another path replaced the session while the request was in flight;
+            // its tokens win. Don't overwrite them with this refresh's result.
+            return null;
+          }
+          await storeRefreshedToken(remote, refreshed);
+          return refreshed.token;
+        } catch (err) {
+          // Only a real invalid_grant means the refresh token is dead. Transient
+          // failures (5xx, 429, network, a 200 without access_token) say nothing
+          // about it, so keep it and let a later 401 retry.
+          if (err instanceof UnauthorizedError && sessionUnchanged()) {
+            await forgetRefreshToken(remote);
+          }
+          throw err;
+        }
+      })()
+    };
+    inflightRefreshes.set(remote, entry);
+    const cleanup = (): void => {
+      // A newer session's refresh may have replaced this entry; leave it alone
+      if (inflightRefreshes.get(remote) === entry) {
+        inflightRefreshes.delete(remote);
+      }
+    };
+    entry.promise.then(cleanup, cleanup);
+    return entry.promise;
   }
 
   /**
