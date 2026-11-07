@@ -3,16 +3,20 @@ import * as chai from "chai";
 import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import fetchMock from 'fetch-mock';
+import sinon from 'sinon';
 
+import { localStorage } from '../helpers/memoryStorage.mjs';
 import config from '../../build/config.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
 import WireClient from '../../build/wireclient.js';
+import { noRefreshSettings } from '../../build/remote.js';
 import SyncError from '../../build/sync-error.js';
 
 chai.use(chaiAsPromised);
 
 const BASE_URI = 'https://example.com/storage/test';
 const TOKEN = 'foobarbaz';
+const WIRECLIENT_SETTINGS_KEY = 'remotestorage:wireclient';
 
 describe('WireClient', () => {
   let rs;
@@ -20,6 +24,10 @@ describe('WireClient', () => {
   let connectedClient;
 
   beforeEach(() => {
+    // A WireClient applies the stored settings in a setTimeout(…, 0), so the
+    // previous test's connected settings could connect `client` before the
+    // test runs, depending on timing
+    localStorage.removeItem(WIRECLIENT_SETTINGS_KEY);
     rs = new RemoteStorage();
     client = new WireClient(rs);
     // Defensive reset to avoid leakage across tests
@@ -669,6 +677,357 @@ describe('WireClient', () => {
       expect(res.body).to.be.undefined;
       expect(res.contentType).to.be.undefined;
       expect(res.revision).to.equal('ohai');
+    });
+  });
+
+  describe('Token refresh', () => {
+    const TOKEN_URL = 'https://example.com/oauth/token';
+    const CLIENT_ID = 'https://app.example';
+    const NEW_TOKEN = 'n3wt0k3n';
+    let errors;
+
+    function mockGet (token, status) {
+      fetchMock.mock(
+        { name: `get-${token}`, url: `${BASE_URI}/foo/bar`, headers: { Authorization: `Bearer ${token}` } },
+        { status, headers: { 'Content-Type': 'text/plain' }, body: 'OK' }
+      );
+    }
+
+    function mockRefresh (response) {
+      fetchMock.mock({ name: 'refresh', method: 'POST', url: TOKEN_URL }, response);
+    }
+
+    beforeEach(() => {
+      connectedClient.configure({ refreshToken: 'r3fr3sh', tokenURL: TOKEN_URL, clientId: CLIENT_ID });
+      errors = [];
+      rs.on('error', err => errors.push(err));
+    });
+
+    it('stores the refresh settings with the rest, so they survive a reload', async () => {
+      const stored = JSON.parse(localStorage.getItem(WIRECLIENT_SETTINGS_KEY));
+      expect(stored).to.include({ refreshToken: 'r3fr3sh', tokenURL: TOKEN_URL, clientId: CLIENT_ID });
+
+      const reloaded = new WireClient(rs);
+      // The constructor applies the stored settings in a setTimeout(…, 0);
+      // timers run in order, so this one runs after it
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(reloaded.refreshToken).to.equal('r3fr3sh');
+      expect(reloaded.TOKEN_URL).to.equal(TOKEN_URL);
+      expect(reloaded.clientId).to.equal(CLIENT_ID);
+    });
+
+    it('keeps the old token while refreshing, so concurrent requests are not refused as "not connected"', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      let duringRefresh;
+      mockRefresh(() => {
+        duringRefresh = { connected: connectedClient.connected, token: connectedClient.token };
+        return { status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) };
+      });
+
+      await connectedClient.get('/foo/bar');
+
+      expect(duringRefresh).to.deep.equal({ connected: true, token: TOKEN });
+    });
+
+    it('refreshes the access token on a 401 and retries the request with it', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(200);
+      const body = new URLSearchParams(fetchMock.calls('refresh')[0][1].body);
+      expect(body.get('grant_type')).to.equal('refresh_token');
+      expect(body.get('refresh_token')).to.equal('r3fr3sh');
+      expect(body.get('client_id')).to.equal(CLIENT_ID);
+      expect(connectedClient.token).to.equal(NEW_TOKEN);
+      expect(errors).to.be.empty;
+    });
+
+    it('refreshes once for concurrent 401s', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+      const results = await Promise.all([connectedClient.get('/foo/bar'), connectedClient.get('/foo/bar')]);
+
+      expect(results.map(r => r.statusCode)).to.deep.equal([200, 200]);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(1);
+    });
+
+    it('emits Unauthorized and forgets the refresh settings when the refresh token is rejected', async () => {
+      mockGet(TOKEN, 401);
+      mockRefresh({ status: 400, body: JSON.stringify({ error: 'invalid_grant' }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
+      expect(connectedClient.refreshToken).to.equal(null);
+      expect(connectedClient.TOKEN_URL).to.equal(null);
+      expect(connectedClient.clientId).to.equal(null);
+      // As without a refresh token: the expired token stays, and every 401
+      // emits Unauthorized until the app reconnects
+      expect(connectedClient.token).to.equal(TOKEN);
+    });
+
+    it('keeps the refresh token when the token endpoint fails for another reason', async () => {
+      mockGet(TOKEN, 401);
+      mockRefresh({ status: 500, body: JSON.stringify({ error: 'server_error' }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
+      expect(connectedClient.refreshToken).to.equal('r3fr3sh');
+      expect(connectedClient.token).to.equal(TOKEN);
+    });
+
+    for (const [outcome, response] of [
+      ['succeeds', { status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) }],
+      ['fails', { status: 500, body: JSON.stringify({ error: 'server_error' }) }]
+    ]) {
+      it(`leaves the session alone when a refresh ${outcome} after it changed`, async () => {
+        mockGet(TOKEN, 401);
+        mockRefresh(() => {
+          // e.g. disconnect() while the refresh is in flight
+          connectedClient.configure({ href: null, token: null, refreshToken: null, tokenURL: null, clientId: null });
+          return response;
+        });
+
+        await connectedClient.get('/foo/bar');
+
+        expect(connectedClient.token).to.equal(null);
+        expect(connectedClient.refreshToken).to.equal(null);
+        expect(localStorage.getItem(WIRECLIENT_SETTINGS_KEY)).not.to.include(NEW_TOKEN);
+        expect(localStorage.getItem(WIRECLIENT_SETTINGS_KEY)).not.to.include(TOKEN);
+      });
+    }
+
+    it("doesn't retry a request with the token of a session that replaced its own", async () => {
+      // The answer arrives after another account connected, keeping the
+      // refresh settings; its token must not go to this request's endpoint
+      fetchMock.mock(
+        { url: `${BASE_URI}/foo/bar`, headers: { Authorization: `Bearer ${TOKEN}` } },
+        () => {
+          connectedClient.configure({ token: 'other-account' });
+          return { status: 401 };
+        }
+      );
+      mockGet('other-account', 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(fetchMock.calls('get-other-account')).to.have.lengthOf(0);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(0);
+    });
+
+    it("drops a refresh that finishes after reconnect() cleared the token", async () => {
+      // reconnect() clears the token but not the refresh token; the refresh
+      // must not quietly restore the session the user is reauthorizing
+      mockGet(TOKEN, 401);
+      mockRefresh(() => {
+        connectedClient.configure({ token: null });
+        return { status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) };
+      });
+
+      await connectedClient.get('/foo/bar');
+
+      expect(connectedClient.token).to.equal(null);
+      expect(connectedClient.connected).to.equal(false);
+    });
+
+    it('retries a request whose token another request already refreshed', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+      await connectedClient.get('/foo/bar');
+
+      // A request that was sent with the old token before the refresh
+      const res = await connectedClient._request('GET', `${BASE_URI}/foo/bar`, TOKEN, {}, undefined, false);
+
+      expect(res.statusCode).to.equal(200);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(1);
+    });
+
+    describe('with another tab sharing the session', () => {
+      // What another tab stores after refreshing (and rotating) the tokens
+      function storeFromOtherTab (overrides = {}) {
+        localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+          href: BASE_URI, token: 'other-tab-token', refreshToken: 'r0tated',
+          tokenURL: TOKEN_URL, clientId: CLIENT_ID, ...overrides
+        }));
+      }
+
+      it("uses the tokens it stored, rather than refresh with a refresh token it rotated", async () => {
+        storeFromOtherTab();
+        mockGet(TOKEN, 401);
+        mockGet('other-tab-token', 200);
+        mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+        const res = await connectedClient.get('/foo/bar');
+
+        expect(res.statusCode).to.equal(200);
+        // A rotated-out refresh token is never sent: servers may revoke the session on reuse
+        expect(fetchMock.calls('refresh')).to.have.lengthOf(0);
+        expect(connectedClient.refreshToken).to.equal('r0tated');
+      });
+
+      it("uses the tokens it stored when they rotated while this tab's refresh was rejected", async () => {
+        mockGet(TOKEN, 401);
+        mockGet('other-tab-token', 200);
+        mockRefresh(() => {
+          storeFromOtherTab();
+          return { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) };
+        });
+
+        const res = await connectedClient.get('/foo/bar');
+
+        expect(res.statusCode).to.equal(200);
+        expect(errors).to.be.empty;
+        // Not overwritten by forgetting this tab's rejected refresh token
+        expect(JSON.parse(localStorage.getItem(WIRECLIENT_SETTINGS_KEY)))
+          .to.include({ token: 'other-tab-token', refreshToken: 'r0tated' });
+      });
+
+      it("ignores tokens stored for another endpoint", async () => {
+        storeFromOtherTab({ href: 'https://elsewhere.example/storage' });
+        mockGet(TOKEN, 401);
+        mockGet(NEW_TOKEN, 200);
+        mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+        const res = await connectedClient.get('/foo/bar');
+
+        expect(res.statusCode).to.equal(200);
+        expect(fetchMock.calls('refresh')).to.have.lengthOf(1);
+        expect(connectedClient.token).to.equal(NEW_TOKEN);
+      });
+    });
+
+    it("doesn't make a new session's request wait for a refresh the old session started", async () => {
+      let refreshStarted;
+      const oldRefreshStarted = new Promise(resolve => { refreshStarted = resolve; });
+      let releaseOldRefresh;
+      fetchMock.mock({ name: 'refresh', method: 'POST', url: TOKEN_URL }, (url, opts) => {
+        if (new URLSearchParams(opts.body).get('refresh_token') === 'r3fr3sh') {
+          refreshStarted();
+          return new Promise(resolve => { releaseOldRefresh = resolve; });
+        }
+        return { status: 200, body: JSON.stringify({ access_token: 'session2-new' }) };
+      });
+      mockGet(TOKEN, 401);
+      mockGet('session2', 401);
+      mockGet('session2-new', 200);
+
+      const oldRequest = connectedClient.get('/foo/bar');
+      await oldRefreshStarted;
+      // Another session takes over while the old one's refresh is in flight
+      connectedClient.configure({ token: 'session2', refreshToken: 'r2' });
+      const newResponse = await connectedClient.get('/foo/bar');
+      releaseOldRefresh({ status: 200, body: JSON.stringify({ access_token: 'stale' }) });
+      const oldResponse = await oldRequest;
+
+      expect(newResponse.statusCode).to.equal(200);
+      expect(oldResponse.statusCode).to.equal(401);
+      expect(connectedClient.token).to.equal('session2-new');
+    });
+
+    for (const [source, setUp] of [
+      ['a refresh', () => mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) })],
+      ['tokens from another tab', () => localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        href: BASE_URI, token: NEW_TOKEN, refreshToken: 'r0tated', tokenURL: TOKEN_URL, clientId: CLIENT_ID
+      }))]
+    ]) {
+      it(`doesn't fire "connected" again for ${source}, since the session continues`, async () => {
+        mockGet(TOKEN, 401);
+        mockGet(NEW_TOKEN, 200);
+        setUp();
+        const connected = sinon.spy();
+        connectedClient.on('connected', connected);
+
+        const res = await connectedClient.get('/foo/bar');
+
+        expect(res.statusCode).to.equal(200);
+        expect(connected.called).to.equal(false);
+        // Still stored, as configure() would
+        expect(JSON.parse(localStorage.getItem(WIRECLIENT_SETTINGS_KEY))).to.include({ token: NEW_TOKEN });
+      });
+    }
+
+    it('emits one wire-busy/wire-done pair for a refresh and retry', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 200);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+      const busy = sinon.spy();
+      const done = sinon.spy();
+      rs.on('wire-busy', busy);
+      rs.on('wire-done', done);
+
+      await connectedClient.get('/foo/bar');
+
+      expect(busy.callCount).to.equal(1);
+      expect(done.callCount).to.equal(1);
+      expect(done.getCall(0).args[0]).to.include({ method: 'GET', success: true });
+    });
+
+    it('shares a frozen noRefreshSettings, so no caller can change what it clears', () => {
+      expect(Object.isFrozen(noRefreshSettings)).to.equal(true);
+    });
+
+    for (const status of [403, 429]) {
+      it(`does not refresh on a ${status}`, async () => {
+        mockGet(TOKEN, status);
+        mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+        const res = await connectedClient.get('/foo/bar');
+
+        expect(res.statusCode).to.equal(status);
+        expect(fetchMock.calls('refresh')).to.have.lengthOf(0);
+        expect(connectedClient.token).to.equal(TOKEN);
+      });
+    }
+
+    it('keeps the session when the token endpoint can not be reached', async () => {
+      mockGet(TOKEN, 401);
+      mockRefresh({ throws: new TypeError('Failed to fetch') });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
+      // A later 401 can try again
+      expect(connectedClient.token).to.equal(TOKEN);
+      expect(connectedClient.refreshToken).to.equal('r3fr3sh');
+      expect(connectedClient.connected).to.equal(true);
+    });
+
+    it('retries only once', async () => {
+      mockGet(TOKEN, 401);
+      mockGet(NEW_TOKEN, 401);
+      mockRefresh({ status: 200, body: JSON.stringify({ access_token: NEW_TOKEN }) });
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(1);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
+    });
+
+    it('emits Unauthorized without refreshing when there is no refresh token', async () => {
+      connectedClient.configure({ refreshToken: null });
+      mockGet(TOKEN, 401);
+      mockRefresh(200);
+
+      const res = await connectedClient.get('/foo/bar');
+
+      expect(res.statusCode).to.equal(401);
+      expect(fetchMock.calls('refresh')).to.have.lengthOf(0);
+      expect(errors.map(e => e.name)).to.deep.equal(['Unauthorized']);
     });
   });
 

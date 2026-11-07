@@ -24,7 +24,7 @@ import DiscoverModule from './discover';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
 import Features from './features';
-import { Remote } from "./remote";
+import { Remote, noRefreshSettings } from "./remote";
 
 import type { AuthorizeOptions } from './authorize';
 import type { StorageInfo } from './interfaces/storage_info';
@@ -767,6 +767,7 @@ export class RemoteStorage {
       }
     }
 
+    const previousUserAddress = this.remote.userAddress;
     this.remote.configure({
       userAddress: userAddress
     });
@@ -775,7 +776,18 @@ export class RemoteStorage {
     RemoteStorage.Discover(userAddress).then((info: StorageInfo): void => {
       this._emit('authing');
       info.userAddress = userAddress;
-      this.remote.configure(info);
+      // The refresh settings still apply while the session continues for the
+      // same account and endpoint (e.g. an app calling connect() on every
+      // load). A new authorization, account or endpoint must not be paired
+      // with them.
+      const keepsSession = this.remote.connected && this.remote.href === info.href &&
+        previousUserAddress === userAddress;
+      this.remote.configure({
+        ...info,
+        // Only kept from a code exchange, whose endpoint was checked
+        tokenURL: undefined,
+        ...(keepsSession ? {} : noRefreshSettings)
+      });
       if (! this.remote.connected) {
         if (info.authURL || util.pkceTokenURL(info)) {
           if (typeof token === 'undefined') {
@@ -840,6 +852,8 @@ export class RemoteStorage {
         storageApi: null,
         token: null,
         refreshToken: null,
+        tokenURL: null,
+        clientId: null,
         properties: null
       });
     }
