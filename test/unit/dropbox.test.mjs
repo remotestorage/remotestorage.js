@@ -540,6 +540,10 @@ describe('Dropbox backend', () => {
         dropbox.refreshToken = 'account2-refresh';
         return {status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})};
       });
+      const busy = sinon.spy();
+      const done = sinon.spy();
+      rs.on('wire-busy', busy);
+      rs.on('wire-done', done);
 
       const result = await dropbox.get('/foo');
 
@@ -548,6 +552,9 @@ describe('Dropbox backend', () => {
       expect(getFileCalls).to.equal(1);
       expect(dropbox.token).to.equal('account2-token');
       expect(dropbox.refreshToken).to.equal('account2-refresh');
+      // The refresh's wire-busy is paired, so listeners don't stay busy
+      expect(busy.callCount).to.equal(done.callCount);
+      expect(done.lastCall.args[0]).to.include({ success: false });
     });
   });
 
