@@ -717,6 +717,80 @@ describe('WireClient', () => {
       expect(reloaded.clientId).to.equal(CLIENT_ID);
     });
 
+    it('does not restore the stored session over one configured before the restore runs', async () => {
+      localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        userAddress: 'a@ho.st', href: 'https://a.example/storage', token: 'a-token',
+        refreshToken: 'a-refresh', tokenURL: 'https://a.example/token', clientId: CLIENT_ID
+      }));
+      const other = new WireClient(rs);
+      // Configured synchronously, before the constructor's deferred restore
+      other.configure({
+        userAddress: 'b@ho.st', href: 'https://b.example/storage', token: 'b-token',
+        refreshToken: 'b-refresh', tokenURL: 'https://b.example/token', clientId: CLIENT_ID
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(other.href).to.equal('https://b.example/storage');
+      expect(other.token).to.equal('b-token');
+      expect(other.refreshToken).to.equal('b-refresh');
+      expect(other.TOKEN_URL).to.equal('https://b.example/token');
+      // The unfixed code restored the stored session and flipped this back to 'a@ho.st'
+      expect(other.userAddress).to.equal('b@ho.st');
+    });
+
+    it('still restores the stored session when only the user address was configured meanwhile', async () => {
+      localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        userAddress: 'a@ho.st', href: 'https://a.example/storage', token: 'a-token',
+        refreshToken: 'a-refresh', tokenURL: 'https://a.example/token', clientId: CLIENT_ID
+      }));
+      const loaded = new WireClient(rs);
+      // connect() sets the user address synchronously, before the restore
+      loaded.configure({ userAddress: 'a@ho.st' });
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(loaded.token).to.equal('a-token');
+      expect(loaded.refreshToken).to.equal('a-refresh');
+      expect(loaded.TOKEN_URL).to.equal('https://a.example/token');
+    });
+
+    it('does not restore the stored session for a different account', async () => {
+      localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        userAddress: 'a@ho.st', href: 'https://a.example/storage', token: 'a-token',
+        refreshToken: 'a-refresh', tokenURL: 'https://a.example/token', clientId: CLIENT_ID
+      }));
+      const other = new WireClient(rs);
+      // connect() for another account sets the user address synchronously
+      other.configure({ userAddress: 'b@ho.st' });
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(other.userAddress).to.equal('b@ho.st');
+      expect(other.token).to.equal(undefined);
+      expect(other.connected).to.equal(false);
+    });
+
+    it('does not restore the stored session over a disconnect() before the restore runs', async () => {
+      localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        userAddress: 'a@ho.st', href: 'https://a.example/storage', token: 'a-token',
+        refreshToken: 'a-refresh', tokenURL: 'https://a.example/token', clientId: CLIENT_ID
+      }));
+      const disconnected = new WireClient(rs);
+      // disconnect() clears the settings synchronously
+      disconnected.configure({
+        userAddress: null, href: null, token: null,
+        refreshToken: null, tokenURL: null, clientId: null
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(disconnected.href).to.equal(null);
+      expect(disconnected.token).to.equal(null);
+      expect(disconnected.refreshToken).to.equal(null);
+      expect(disconnected.connected).to.equal(false);
+    });
+
     it('keeps the old token while refreshing, so concurrent requests are not refused as "not connected"', async () => {
       mockGet(TOKEN, 401);
       mockGet(NEW_TOKEN, 200);
