@@ -220,6 +220,8 @@ class Dropbox extends RemoteBase implements Remote {
    * @protected
    **/
   async configure (settings: RemoteSettings): Promise<void> {
+    const wasConnected = this.connected;
+
     // We only update this.userAddress if settings.userAddress is set to a string or to null:
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
     // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
@@ -250,22 +252,43 @@ class Dropbox extends RemoteBase implements Remote {
     if (this.refreshToken || this.token) {
       this.connected = true;
       if (this.userAddress) {
-        this._emit('connected');
+        // A refresh continues the session; only a real transition is reported
+        if (!wasConnected) { this._emit('connected'); }
         writeSettingsToCache();
       } else {
         try {
           const info = await this.info();
           this.userAddress = info.email;
-          this._emit('connected');
+          if (!wasConnected) { this._emit('connected'); }
           writeSettingsToCache();
         } catch (err) {
           this.connected = false;
           this.rs._emit('error', new Error('Could not fetch user info.'));
-          writeSettingsToCache.apply(this);
+          writeSettingsToCache();
         }
       }
     } else {
       handleError();
+    }
+  }
+
+  /**
+   * Replace the tokens of the current session, e.g. after a refresh. Unlike
+   * configure(), this doesn't emit `connected` and leaves `connected`/`online`
+   * alone, since the session continues. Accepts a `tokenType` for Dropbox;
+   * WireClient's narrower implementation ignores that optional argument.
+   */
+  _storeTokens (token: string, refreshToken?: string | null, tokenType?: string): void {
+    this.token = token;
+    if (typeof refreshToken !== 'undefined') { this.refreshToken = refreshToken; }
+    if (typeof tokenType !== 'undefined') { this.tokenType = tokenType; }
+    if (hasLocalStorage) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+        userAddress: this.userAddress,
+        token: this.token,
+        refreshToken: this.refreshToken,
+        tokenType: this.tokenType,
+      }));
     }
   }
 

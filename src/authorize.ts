@@ -112,6 +112,33 @@ function codeExchangeSettings (response: TokenResponse | undefined, transaction:
   return settings;
 }
 
+/** Update a remote's tokens without emitting `connected`, since the session continues. */
+async function storeRefreshedToken (remote: Remote, refreshed: RefreshedToken): Promise<void> {
+  if (typeof remote._storeTokens === 'function') {
+    remote._storeTokens(refreshed.token, refreshed.refreshToken, refreshed.tokenType);
+  } else {
+    await remote.configure({
+      token: refreshed.token,
+      tokenType: refreshed.tokenType,
+      refreshToken: refreshed.refreshToken,
+    });
+  }
+}
+
+/** Forget a rejected refresh token without emitting `connected`. */
+async function forgetRefreshToken (remote: Remote): Promise<void> {
+  if (typeof remote._storeTokens === 'function' && typeof remote.token === 'string') {
+    // Dropbox: no event, no info() round-trip, no setBackend() risk. The string
+    // check routes falsy tokens (RemoteSettings.token may be false) to the
+    // configure fallback, which refresh never hits in practice.
+    remote._storeTokens(remote.token, null);
+  } else {
+    // Remotes without a non-emitting update keep using configure(); the
+    // transition guard in Dropbox.configure() prevents its event.
+    await remote.configure({ refreshToken: null });
+  }
+}
+
 // This is set in _rs_init and needed for removal in _rs_cleanup
 let onFeaturesLoaded: EventHandler;
 
@@ -309,26 +336,36 @@ export class Authorize {
     }
   }
 
-  /** On success, calls remote.configure() with new access token */
+  /**
+   * Refresh the access token for a remote. On success, updates the remote's
+   * tokens without emitting `connected`, since the session continues.
+   *
+   * Throws `Unauthorized` only when the server rejects the refresh token
+   * (`invalid_grant`); transient failures keep the tokens so a later 401 can
+   * retry.
+   */
   static async refreshAccessToken (rs: RemoteStorage, remote: Remote, refreshToken: string): Promise<void> {
-    await remote.configure({token: null, tokenType: null});
-    const xhr = await postRefreshGrant(remote.TOKEN_URL, remote.clientId, refreshToken);
-    if (xhr?.status === 200) {
-      log(`[Authorize] access token good for ${xhr?.response?.expires_in} seconds`);
-      const settings = {
-        token: xhr?.response?.access_token,
-        tokenType: xhr?.response?.token_type,
-        // Set only when the server rotates it; undefined keeps the current one
-        refreshToken: xhr?.response?.refresh_token,
-      };
-      if (settings.token) {
-        await remote.configure(settings);
-      } else {
-        throw new Error(`no access_token in "successful" refresh: ${xhr.response}`);
+    const tokenAtStart = remote.token;
+    const sessionUnchanged = (): boolean =>
+      (typeof remote.refreshToken === 'undefined' || remote.refreshToken === refreshToken) &&
+      remote.token === tokenAtStart;
+
+    try {
+      const refreshed = await Authorize.requestRefreshedToken(remote.TOKEN_URL, remote.clientId, refreshToken);
+      if (!sessionUnchanged()) {
+        // Another path replaced the session while the request was in flight;
+        // its tokens win. Don't overwrite them with this refresh's result.
+        return;
       }
-    } else {
-      await remote.configure({refreshToken: null});
-      throw new UnauthorizedError("refresh token rejected:" + JSON.stringify(xhr.response));
+      await storeRefreshedToken(remote, refreshed);
+    } catch (err) {
+      // Only a real invalid_grant means the refresh token is dead. Transient
+      // failures (5xx, 429, network, a 200 without access_token) say nothing
+      // about it, so keep it and let a later 401 retry.
+      if (err instanceof UnauthorizedError && sessionUnchanged()) {
+        await forgetRefreshToken(remote);
+      }
+      throw err;
     }
   }
 
