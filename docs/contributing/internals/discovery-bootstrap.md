@@ -43,10 +43,12 @@ sessionStorage, replacing any earlier ones.
 
 The window location then comes back with a `code` parameter instead of
 `access_token`. The saved values are read and removed, the returned
-`state` must match the saved one, and the app's hash is restored. RS
-then makes a fetch to the saved token endpoint (or `remote.TOKEN_URL`
-for Dropbox) with the code, to retrieve the access token, and possibly a
-refresh token as well.
+`state` must match the saved one, and the app's hash is restored. The OAuth
+parameters (the `code`, `state`, etc.) are also removed from the query string
+with `history.replaceState`, so they don't linger in the address bar or
+browser history after the redirect. RS then makes a fetch to the saved token
+endpoint (or `remote.TOKEN_URL` for Dropbox) with the code, to retrieve the
+access token, and possibly a refresh token as well.
 
 The generic backend stores the refresh token, the token endpoint and the
 client id with the rest of its settings (`remotestorage:wireclient` in

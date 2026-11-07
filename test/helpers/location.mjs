@@ -87,4 +87,15 @@ export default function locationFactory(url) {
     globalThis["document"] = {};
   }
   globalThis.document.location = new MockLocation(url);
+  if (!('history' in globalThis)) {
+    globalThis.history = {
+      state: null,
+      replaceState(state, title, newUrl) {
+        this.state = state;
+        if (newUrl) {
+          globalThis.document.location.href = newUrl;
+        }
+      }
+    };
+  }
 }

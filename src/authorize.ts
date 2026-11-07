@@ -62,6 +62,93 @@ export interface PkceTransaction {
 
 const PKCE_KEYS: Array<keyof PkceTransaction> = ['codeVerifier', 'state', 'tokenURL', 'clientId', 'appState'];
 
+/**
+ * OAuth callback parameters that must not linger in the address bar, browser
+ * history or `Referer` headers once they have been handled. Unlike the implicit
+ * flow's access token, the code flow returns its `code` in the query string
+ * (RFC 6749 §4.1.2), where it would otherwise stay visible after the redirect.
+ */
+const AUTH_QUERY_PARAMS = [
+  'access_token',
+  'code',
+  'state',
+  'error',
+  'error_description',
+  'error_uri',
+  'remotestorage',
+  'refresh_token'
+];
+
+/**
+ * Remove one occurrence of each callback value stored under `key`, keeping any
+ * other values (e.g. ones the app appended under the same name). Returns
+ * whether anything was removed.
+ */
+function removeCallbackValues (
+  params: URLSearchParams,
+  key: string,
+  callbackValues: string[]
+): boolean {
+  const kept: string[] = [];
+  let removed = false;
+  for (const value of params.getAll(key)) {
+    const match = callbackValues.indexOf(value);
+    if (match === -1) {
+      kept.push(value);
+    } else {
+      // Consume one occurrence, so an identical app value added later survives
+      callbackValues.splice(match, 1);
+      removed = true;
+    }
+  }
+  if (removed) {
+    params.delete(key);
+    for (const value of kept) {
+      params.append(key, value);
+    }
+  }
+  return removed;
+}
+
+/**
+ * Remove the OAuth callback parameters from the query string, keeping any
+ * unrelated ones. Only the values the callback itself contributed are removed,
+ * one occurrence each, so values the app set or appended under the same name
+ * during feature initialization are left alone. `replaceState` is used so no
+ * history entry is added and the page is not reloaded (assigning to
+ * `location.search` would do both). When the History API is unavailable the URL
+ * is left as is, rather than navigating and losing the code before it can be
+ * exchanged.
+ */
+function stripAuthQueryParams (callbackQuery: URLSearchParams): void {
+  if (typeof history === 'undefined' || typeof history.replaceState !== 'function') {
+    return;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(Authorize.getLocation().href);
+  } catch {
+    return;
+  }
+
+  let changed = false;
+  for (const key of AUTH_QUERY_PARAMS) {
+    // getAll() returns a fresh array, so consuming it leaves callbackQuery intact
+    const callbackValues = callbackQuery.getAll(key);
+    if (callbackValues.length > 0 && removeCallbackValues(url.searchParams, key, callbackValues)) {
+      changed = true;
+    }
+  }
+  if (!changed) { return; }
+
+  try {
+    history.replaceState(history.state, '', url.href);
+  } catch (err) {
+    log('[Authorize] Could not remove OAuth parameters from the URL', err);
+  }
+}
+
 /** What a token endpoint returns for a refresh token */
 export interface RefreshedToken {
   token: string;
@@ -115,6 +202,7 @@ function codeExchangeSettings (response: TokenResponse | undefined, transaction:
 // This is set in _rs_init and needed for removal in _rs_cleanup
 let onFeaturesLoaded: EventHandler;
 
+/** Whether any OAuth callback parameter is present. */
 function hasAuthCallbackParams (params: AuthResult): boolean {
   return typeof params.access_token === 'string' ||
     typeof params.code === 'string' ||
@@ -123,15 +211,24 @@ function hasAuthCallbackParams (params: AuthResult): boolean {
     typeof params.rsDiscovery === 'object';
 }
 
+/** The query string parameters of a URL, without the fragment. */
+function extractQueryParams (url?: string): AuthResult {
+  // eslint-disable-next-line
+  const location = url || Authorize.getLocation().href;
+  const params = {};
+  for (const [key, value] of new URL(location).searchParams) {
+    params[key] = value;
+  }
+  return params;
+}
+
+/** All callback parameters, from the query string and the fragment. */
 function extractParams (url?: string): AuthResult {
   // FF already decodes the URL fragment in document.location.hash, so use this instead:
   // eslint-disable-next-line
   const location = url || Authorize.getLocation().href;
 
-  const queryParam = {};
-  for (const [key, value] of new URL(location).searchParams) {
-    queryParam[key] = value;
-  }
+  const queryParam = extractQueryParams(location);
 
   const hashPos  = location.indexOf('#');
   if (hashPos === -1) { return queryParam; }
@@ -165,6 +262,7 @@ function extractParams (url?: string): AuthResult {
   }, queryParam);
 }
 
+/** The authorization URL for the given options. */
 function buildOAuthURL (options: AuthorizeOptions): string {
   const redirect = new URL(options.redirectUri);
   if (! options.state) {
@@ -426,6 +524,20 @@ export class Authorize {
   static _rs_init = function (remoteStorage: RemoteStorage): void {
     const params = extractParams();
     const hasCallbackParams = hasAuthCallbackParams(params);
+    // The OAuth response is in the query only when the fragment does not carry one
+    const href = Authorize.getLocation().href;
+    const hashPos = href.indexOf('#');
+    const fragment = hashPos === -1 ? '' : href.substring(hashPos + 1);
+    const fragmentParams = new URLSearchParams(fragment);
+    const hasFragmentCallbackParams = ['access_token', 'code', 'error', 'remotestorage']
+      .some((key) => fragmentParams.has(key));
+    const hasQueryCallbackParams = !hasFragmentCallbackParams &&
+      hasAuthCallbackParams(extractQueryParams());
+    // The callback's own query values, so cleanup only removes them if the URL
+    // still holds them (the app may rewrite it during feature initialization)
+    const callbackQuery = hasCallbackParams
+      ? new URLSearchParams(Authorize.getLocation().search)
+      : new URLSearchParams();
     let location: Location;
 
     if (hasCallbackParams) {
@@ -476,6 +588,16 @@ export class Authorize {
       if (!hasCallbackParams) {
         remoteStorage.remote.stopWaitingForToken();
         return;
+      }
+
+      // Clean the callback URL now, when the code is about to be handled, and
+      // not at init: `features-loaded` can be delayed by asynchronous feature
+      // initialization, and a reload in that window must still find the code so
+      // the stored PKCE transaction can complete the exchange on the next load.
+      // Only when the response came back in the query: for the implicit flow it
+      // is in the fragment and the query belongs to the app.
+      if (hasQueryCallbackParams) {
+        stripAuthQueryParams(callbackQuery);
       }
 
       if (params.error) {
