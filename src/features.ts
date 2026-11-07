@@ -42,6 +42,11 @@ const Features = {
       'Env': Env
     };
 
+    // The default entry point has no runtime import of the Solid SDKs.
+    if (this.constructor.Solid) {
+      this.featureModules.Solid = this.constructor.Solid;
+    }
+
     // enable caching related modules if needed
     if (config.cache) {
       // TODO replace util.extend with modern JS {...object, ...object}
@@ -226,7 +231,7 @@ const Features = {
         this._emit('connected');
       }
 
-      if (!this.hasFeature('Authorize')) {
+      if (!this.hasFeature('Authorize') || this.backend === 'solid') {
         this.remote.stopWaitingForToken();
       }
     }

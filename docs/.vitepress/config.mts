@@ -54,6 +54,7 @@ export default defineConfig({
           { text: 'Usage in Cordova apps', link: '/cordova' },
           { text: 'Usage with TypeScript', link: '/typescript' },
           { text: 'Dropbox and Google Drive', link: '/dropbox-and-google-drive' },
+          { text: 'Solid Pods', link: '/solid' },
         ]
       },
       {
