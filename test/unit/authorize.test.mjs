@@ -314,6 +314,18 @@ describe("Authorize", () => {
       expect(document.location.search).to.equal('?state=dashboard');
     });
 
+    it("keeps an app query code when the implicit token is in the fragment", () => {
+      const mockRemote = new MockRemote({});
+      const rs = createStorage(mockRemote);
+      rs.remote = mockRemote;
+      document.location.href = 'https://example.com/app/?code=app&state=dashboard#access_token=foo';
+
+      Authorize._rs_init(rs);
+      rs._handlers['features-loaded'][0]();
+
+      expect(document.location.search).to.equal('?code=app&state=dashboard');
+    });
+
     it("when it sees a code but no code verifier, doesn't call remote.configure()", async () => {
       const rs = new RemoteStorage();
       const mockRemote = new MockRemote(rs);
