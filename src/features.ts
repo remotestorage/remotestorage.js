@@ -203,6 +203,11 @@ const Features = {
     // eslint-disable-next-line new-cap
     this.local = config.cache && this.features.local && new this.features.local();
 
+    // Collect the cleanup hooks before any `ready`/`connected` handler can
+    // call `disconnect()`, so disconnecting from such a handler still cleans
+    // up the backend (e.g. the LocalStorage cache) on a restored session.
+    this._collectCleanupFunctions();
+
     // this.remote set by WireClient._rs_init as lazy property on
     // RS.prototype
 
@@ -223,15 +228,18 @@ const Features = {
       });
       if (this.remote.connected) {
         this._fireReady();
-        this._emit('connected');
+        // A `ready` handler may have disconnected (e.g. a restored session
+        // logging out on load), replacing `this.remote`. In that case don't
+        // emit a stale `connected` for a session that is already gone.
+        if (this.remote.connected) {
+          this._emit('connected');
+        }
       }
 
       if (!this.hasFeature('Authorize')) {
         this.remote.stopWaitingForToken();
       }
     }
-
-    this._collectCleanupFunctions();
 
     try {
       this._allLoaded = true;
