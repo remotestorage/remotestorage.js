@@ -282,6 +282,25 @@ export class Sync {
     return false;
   }
 
+  corruptItemsMeta (itemsMeta): boolean {
+    if ((typeof(itemsMeta) !== 'object') || (Array.isArray(itemsMeta))) {
+      return true;
+    }
+
+    for (const itemName in itemsMeta) {
+      const meta = itemsMeta[itemName];
+
+      if ((typeof(meta) !== 'object') || Array.isArray(meta) || meta === null) {
+        return true;
+      }
+      if (typeof(meta.ETag) !== 'string') {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   corruptRevision (rev): boolean {
     return ((typeof(rev) !== 'object') ||
             (Array.isArray(rev)) ||
@@ -290,7 +309,8 @@ export class Sync {
             (rev.contentType && typeof(rev.contentType) !== 'string') ||
             (rev.contentLength && typeof(rev.contentLength) !== 'number') ||
             (rev.timestamp && typeof(rev.timestamp) !== 'number') ||
-            (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
+            (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)) ||
+            (rev.itemsMeta && this.corruptItemsMeta(rev.itemsMeta)));
   }
 
   isCorrupt (node: RSNode): boolean {
@@ -512,7 +532,13 @@ export class Sync {
         });
       }
       // Conditional refresh:
-      else if (hasCommonRevision(node)) {
+      // A folder cached before `itemsMeta` existed has a common revision but no
+      // metadata yet; a conditional GET would return 304 and never populate it.
+      // Fetch such folders unconditionally once, so legacy caches regain child
+      // metadata. After the 200, `itemsMeta` is set and refreshes are
+      // conditional again.
+      else if (hasCommonRevision(node) &&
+               (node.common.itemsMeta !== undefined || !isFolder(path))) {
         return taskFor('get', path,
           this.rs.remote.get(path, { ifNoneMatch: node.common.revision })
         );
@@ -884,8 +910,14 @@ export class Sync {
       collectMissingChildren(node.remote);
 
       node.remote.itemsMap = {};
-      for (itemName in bodyOrItemsMap as RSItem["itemsMap"]) {
+      node.remote.itemsMeta = {};
+      const itemsMap = bodyOrItemsMap as RSItem["itemsMap"];
+      for (itemName in itemsMap) {
         node.remote.itemsMap[itemName] = true;
+        const itemMeta = itemsMap[itemName];
+        if (itemMeta && typeof itemMeta === 'object') {
+          node.remote.itemsMeta[itemName] = deepClone(itemMeta);
+        }
       }
     } else {
       node.remote.body = bodyOrItemsMap;

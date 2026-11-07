@@ -602,7 +602,7 @@ define(['./build/config', './build/eventhandling', './build/inmemorystorage',
             var expectedBody = {
               '/foo/item2': 'body2'
             };
-            env.rs.remote._responses[['get', '/foo/', {ifNoneMatch: 'dir-rev1'} ]] =
+            env.rs.remote._responses[['get', '/foo/']] =
               {statusCode: 200, body: response, contentType: 'application/json', revision: 'changedrevision'};
 
             env.rs.sync._tasks = {'/foo/': []};
@@ -714,7 +714,7 @@ define(['./build/config', './build/eventhandling', './build/inmemorystorage',
           env.rs.local.setNodes({
             '/foo/': {
               path: '/foo/',
-              common: { itemsMap: {}, revision: 'fff', timestamp: 1234567891000 }
+              common: { itemsMap: {}, itemsMeta: {}, revision: 'fff', timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/', { ifNoneMatch: 'fff' } ]] =
@@ -727,7 +727,7 @@ define(['./build/config', './build/eventhandling', './build/inmemorystorage',
             setTimeout(function() {
               test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 0);
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
-                test.assertAnd(objs['/foo/'].common, { itemsMap: {}, timestamp: 2234567890123, revision: 'fff' });
+                test.assertAnd(objs['/foo/'].common, { itemsMap: {}, itemsMeta: {}, timestamp: 2234567890123, revision: 'fff' });
                 test.assertAnd(objs['/foo/'].local, undefined);
                 test.assertAnd(objs['/foo/'].push, undefined);
                 test.assertAnd(objs['/foo/'].remote, undefined);
@@ -749,7 +749,7 @@ define(['./build/config', './build/eventhandling', './build/inmemorystorage',
           env.rs.local.setNodes({
             '/foo/': {
               path: '/foo/',
-              common: { itemsMap: {}, revision: 'fff', timestamp: 1234567891000 }
+              common: { itemsMap: {}, itemsMeta: {}, revision: 'fff', timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/', { ifNoneMatch: 'fff' } ]] =
@@ -762,7 +762,7 @@ define(['./build/config', './build/eventhandling', './build/inmemorystorage',
             setTimeout(function() {
               test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 0);
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
-                test.assertAnd(objs['/foo/'].common, { itemsMap: {}, timestamp: 1234567891000, revision: 'fff' });
+                test.assertAnd(objs['/foo/'].common, { itemsMap: {}, itemsMeta: {}, timestamp: 1234567891000, revision: 'fff' });
                 test.assertAnd(objs['/foo/'].local, undefined);
                 test.assertAnd(objs['/foo/'].push, undefined);
                 //test.assertAnd(objs['/foo/'].remote, { revision: 'something else', timestamp: 2234567890123 });
