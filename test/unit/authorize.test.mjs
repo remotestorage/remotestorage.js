@@ -99,9 +99,11 @@ describe("Authorize", () => {
   });
 
   describe("#refreshAccessToken", () => {
-    it("clears the access token on start & sets it on success", async () => {
+    it("sets the new access token without clearing the current one first", async () => {
       const rs = new RemoteStorage();
       const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
       const configureSpy = sinon.spy(mockRemote, 'configure');
 
       const newAccessToken = 'ALLTHETHINGS';
@@ -118,16 +120,21 @@ describe("Authorize", () => {
         { status: 200, body:JSON.stringify(tokenResponse) }
       );
 
-      await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
+      const result = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
 
-      expect(configureSpy.callCount).to.equal(2);
-      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken);
+      // No up-front configure({token: null}), only the successful update
+      expect(configureSpy.callCount).to.equal(1);
+      expect(configureSpy.getCall(0).args[0]).to.include({
+        token: newAccessToken, tokenType: 'bearer', refreshToken: REFRESH_TOKEN
+      });
+      expect(result).to.equal(newAccessToken);
     });
 
     it("stores a rotated refresh token", async () => {
       const rs = new RemoteStorage();
       const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
       const configureSpy = sinon.spy(mockRemote, 'configure');
       fetchMock.mock(
         { method: 'POST', url: TOKEN_URL },
@@ -136,12 +143,14 @@ describe("Authorize", () => {
 
       await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
 
-      expect(configureSpy.getCall(1).args[0]).to.have.property('refreshToken', 'r0tated');
+      expect(configureSpy.getCall(0).args[0]).to.have.property('refreshToken', 'r0tated');
     });
 
     it("keeps the refresh token when the server doesn't rotate it", async () => {
       const rs = new RemoteStorage();
       const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
       const configureSpy = sinon.spy(mockRemote, 'configure');
       fetchMock.mock(
         { method: 'POST', url: TOKEN_URL },
@@ -151,7 +160,305 @@ describe("Authorize", () => {
       await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
 
       // undefined leaves the remote's refresh token as it is
-      expect(configureSpy.getCall(1).args[0].refreshToken).to.be.undefined;
+      expect(configureSpy.getCall(0).args[0].refreshToken).to.be.undefined;
+    });
+
+    it("uses a non-emitting token update when the remote has one", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer', refresh_token: 'r0tated' }) }
+      );
+
+      await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
+
+      expect(storeTokensSpy.callCount).to.equal(1);
+      expect(storeTokensSpy.getCall(0).args).to.deep.equal(['new', 'r0tated', 'bearer']);
+      expect(configureSpy.called).to.equal(false);
+    });
+
+    for (const status of [500, 429]) {
+      it(`keeps the tokens on a transient server error (${status})`, async () => {
+        const rs = new RemoteStorage();
+        const mockRemote = new MockRemote(rs);
+        mockRemote.token = 'old-token';
+        mockRemote.refreshToken = REFRESH_TOKEN;
+        const configureSpy = sinon.spy(mockRemote, 'configure');
+        const storeTokensSpy = sinon.spy();
+        mockRemote._storeTokens = storeTokensSpy;
+        fetchMock.mock(
+          { name: 'postToken', method: 'POST', url: TOKEN_URL },
+          { status, body: JSON.stringify({ error: 'server_error' }) }
+        );
+
+        const err = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)
+          .then(() => null, e => e);
+
+        expect(err).to.be.an('error');
+        expect(err.name).not.to.equal('Unauthorized');
+        // The removed up-front configure() and any clear would show up here
+        expect(configureSpy.callCount).to.equal(0);
+        expect(storeTokensSpy.called).to.equal(false);
+        expect(mockRemote.token).to.equal('old-token');
+        expect(mockRemote.refreshToken).to.equal(REFRESH_TOKEN);
+      });
+    }
+
+    it("keeps the tokens on a network error", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { throws: new TypeError('Failed to fetch') }
+      );
+
+      const err = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)
+        .then(() => null, e => e);
+
+      expect(err).to.be.an('error');
+      expect(err.name).not.to.equal('Unauthorized');
+      expect(configureSpy.called).to.equal(false);
+      expect(storeTokensSpy.called).to.equal(false);
+      expect(mockRemote.token).to.equal('old-token');
+      expect(mockRemote.refreshToken).to.equal(REFRESH_TOKEN);
+    });
+
+    it("keeps the tokens when a successful refresh has no access_token", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({}) }
+      );
+
+      const err = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)
+        .then(() => null, e => e);
+
+      expect(err).to.be.an('error');
+      expect(err.name).not.to.equal('Unauthorized');
+      expect(configureSpy.called).to.equal(false);
+      expect(storeTokensSpy.called).to.equal(false);
+      expect(mockRemote.token).to.equal('old-token');
+      expect(mockRemote.refreshToken).to.equal(REFRESH_TOKEN);
+    });
+
+    it("clears only the refresh token when the server rejects it", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) }
+      );
+
+      const err = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)
+        .then(() => null, e => e);
+
+      expect(err).to.be.an('error');
+      expect(err.name).to.equal('Unauthorized');
+      expect(storeTokensSpy.callCount).to.equal(1);
+      expect(storeTokensSpy.getCall(0).args).to.deep.equal(['old-token', null]);
+      expect(configureSpy.called).to.equal(false);
+    });
+
+    it("falls back to configure() to clear the refresh token when there is no non-emitting update", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) }
+      );
+
+      const err = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)
+        .then(() => null, e => e);
+
+      expect(err).to.be.an('error');
+      expect(err.name).to.equal('Unauthorized');
+      expect(configureSpy.callCount).to.equal(1);
+      expect(configureSpy.getCall(0).args[0]).to.deep.equal({ refreshToken: null });
+    });
+
+    it("does not clear a refresh token another refresh already replaced", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'newer-token';
+      mockRemote.refreshToken = 'rotated-token';
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) }
+      );
+
+      const err = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)
+        .then(() => null, e => e);
+
+      expect(err).to.be.an('error');
+      expect(err.name).to.equal('Unauthorized');
+      expect(configureSpy.called).to.equal(false);
+      expect(storeTokensSpy.called).to.equal(false);
+      expect(mockRemote.token).to.equal('newer-token');
+      expect(mockRemote.refreshToken).to.equal('rotated-token');
+    });
+
+    it("does not overwrite tokens when the session changed during the refresh", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        () => {
+          mockRemote.token = 'session2-token';
+          mockRemote.refreshToken = 'session2-refresh';
+          return { status: 200, body: JSON.stringify({ access_token: 'stale', refresh_token: 'stale-refresh' }) };
+        }
+      );
+
+      const result = await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
+
+      // A replaced session is reported as null so the caller does not retry
+      expect(result).to.be.null;
+      expect(configureSpy.called).to.equal(false);
+      expect(storeTokensSpy.called).to.equal(false);
+      expect(mockRemote.token).to.equal('session2-token');
+      expect(mockRemote.refreshToken).to.equal('session2-refresh');
+    });
+
+    it("shares one in-flight refresh between concurrent callers of a session", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer' }) }
+      );
+
+      const [first, second] = await Promise.all([
+        Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN),
+        Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)
+      ]);
+
+      expect(first).to.equal('new');
+      expect(second).to.equal('new');
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      // The whole operation is shared, so the token is stored exactly once
+      expect(storeTokensSpy.callCount).to.equal(1);
+      expect(configureSpy.called).to.equal(false);
+    });
+
+    it("forgets a shared rejected refresh token exactly once", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      const configureSpy = sinon.spy(mockRemote, 'configure');
+      const storeTokensSpy = sinon.spy();
+      mockRemote._storeTokens = storeTokensSpy;
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) }
+      );
+
+      const results = await Promise.all([
+        Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN).then(() => null, e => e),
+        Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN).then(() => null, e => e)
+      ]);
+
+      for (const err of results) {
+        expect(err).to.be.an('error');
+        expect(err.name).to.equal('Unauthorized');
+      }
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      // Only the session's rejected refresh token is forgotten, once
+      expect(storeTokensSpy.callCount).to.equal(1);
+      expect(storeTokensSpy.getCall(0).args).to.deep.equal(['old-token', null]);
+      expect(configureSpy.called).to.equal(false);
+    });
+
+    it("starts a fresh grant for a caller that arrives after the refresh completed", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 'old-token';
+      mockRemote.refreshToken = REFRESH_TOKEN;
+      mockRemote._storeTokens = sinon.spy();
+      fetchMock.mock(
+        { name: 'postToken', method: 'POST', url: TOKEN_URL },
+        { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer' }) }
+      );
+
+      expect(await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)).to.equal('new');
+      expect(await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN)).to.equal('new');
+
+      // No _lastRefresh for Dropbox: a late arrival posts its own grant
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(2);
+    });
+
+    it("keeps a newer session's in-flight refresh after an older one settles", async () => {
+      const rs = new RemoteStorage();
+      const mockRemote = new MockRemote(rs);
+      mockRemote.token = 't1';
+      mockRemote.refreshToken = 'r1';
+      mockRemote._storeTokens = sinon.spy();
+      let releaseFirst, releaseSecond;
+      const requestRefreshedToken = sinon.stub(Authorize, 'requestRefreshedToken');
+      requestRefreshedToken.onFirstCall().returns(new Promise(resolve => { releaseFirst = resolve; }));
+      requestRefreshedToken.onSecondCall().returns(new Promise(resolve => { releaseSecond = resolve; }));
+
+      try {
+        const first = Authorize.refreshAccessToken(rs, mockRemote, 'r1');
+        // A replacement session starts its own refresh before the first settles
+        mockRemote.token = 't2';
+        mockRemote.refreshToken = 'r2';
+        const second = Authorize.refreshAccessToken(rs, mockRemote, 'r2');
+        const third = Authorize.refreshAccessToken(rs, mockRemote, 'r2');
+
+        releaseFirst({ token: 't1-new' });
+        expect(await first).to.be.null;
+
+        // The older refresh's cleanup must not clear the newer session's entry:
+        // a fourth caller still joins it without a new grant
+        const fourth = Authorize.refreshAccessToken(rs, mockRemote, 'r2');
+        expect(requestRefreshedToken.callCount).to.equal(2);
+
+        releaseSecond({ token: 't2-new' });
+        expect(await second).to.equal('t2-new');
+        expect(await third).to.equal('t2-new');
+        expect(await fourth).to.equal('t2-new');
+      } finally {
+        requestRefreshedToken.restore();
+      }
     });
   });
 

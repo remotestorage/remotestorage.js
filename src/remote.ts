@@ -166,6 +166,15 @@ export interface Remote {
   configure (settings: RemoteSettings): void;
 
   /**
+   * Replace the tokens of the current session without emitting `connected`,
+   * e.g. after a refresh. Optional; refreshAccessToken falls back to
+   * configure() when absent. WireClient implements this with only the first
+   * two arguments; the optional tokenType is ignored there.
+   * @internal
+   */
+  _storeTokens? (token: string, refreshToken?: string | null, tokenType?: string): void;
+
+  /**
    * Initiate the authorization flow's OAuth dance.
    *
    * @internal
