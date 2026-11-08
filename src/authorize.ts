@@ -80,47 +80,13 @@ const AUTH_QUERY_PARAMS = [
 ];
 
 /**
- * Remove one occurrence of each callback value stored under `key`, keeping any
- * other values (e.g. ones the app appended under the same name). Returns
- * whether anything was removed.
- */
-function removeCallbackValues (
-  params: URLSearchParams,
-  key: string,
-  callbackValues: string[]
-): boolean {
-  const kept: string[] = [];
-  let removed = false;
-  for (const value of params.getAll(key)) {
-    const match = callbackValues.indexOf(value);
-    if (match === -1) {
-      kept.push(value);
-    } else {
-      // Consume one occurrence, so an identical app value added later survives
-      callbackValues.splice(match, 1);
-      removed = true;
-    }
-  }
-  if (removed) {
-    params.delete(key);
-    for (const value of kept) {
-      params.append(key, value);
-    }
-  }
-  return removed;
-}
-
-/**
  * Remove the OAuth callback parameters from the query string, keeping any
- * unrelated ones. Only the values the callback itself contributed are removed,
- * one occurrence each, so values the app set or appended under the same name
- * during feature initialization are left alone. `replaceState` is used so no
- * history entry is added and the page is not reloaded (assigning to
- * `location.search` would do both). When the History API is unavailable the URL
- * is left as is, rather than navigating and losing the code before it can be
- * exchanged.
+ * unrelated ones. `replaceState` is used so no history entry is added and the
+ * page is not reloaded (assigning to `location.search` would do both). When the
+ * History API is unavailable the URL is left as is, rather than navigating and
+ * losing the code before it can be exchanged.
  */
-function stripAuthQueryParams (callbackQuery: URLSearchParams): void {
+function stripAuthQueryParams (): void {
   if (typeof history === 'undefined' || typeof history.replaceState !== 'function') {
     return;
   }
@@ -134,9 +100,8 @@ function stripAuthQueryParams (callbackQuery: URLSearchParams): void {
 
   let changed = false;
   for (const key of AUTH_QUERY_PARAMS) {
-    // getAll() returns a fresh array, so consuming it leaves callbackQuery intact
-    const callbackValues = callbackQuery.getAll(key);
-    if (callbackValues.length > 0 && removeCallbackValues(url.searchParams, key, callbackValues)) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
       changed = true;
     }
   }
@@ -533,11 +498,6 @@ export class Authorize {
       .some((key) => fragmentParams.has(key));
     const hasQueryCallbackParams = !hasFragmentCallbackParams &&
       hasAuthCallbackParams(extractQueryParams());
-    // The callback's own query values, so cleanup only removes them if the URL
-    // still holds them (the app may rewrite it during feature initialization)
-    const callbackQuery = hasCallbackParams
-      ? new URLSearchParams(Authorize.getLocation().search)
-      : new URLSearchParams();
     let location: Location;
 
     if (hasCallbackParams) {
@@ -597,7 +557,7 @@ export class Authorize {
       // Only when the response came back in the query: for the implicit flow it
       // is in the fragment and the query belongs to the app.
       if (hasQueryCallbackParams) {
-        stripAuthQueryParams(callbackQuery);
+        stripAuthQueryParams();
       }
 
       if (params.error) {

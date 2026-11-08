@@ -302,7 +302,7 @@ describe("Authorize", () => {
       expect(document.location.hash).to.equal('#foo=bar');
     });
 
-    it("keeps app query parameters when the implicit token is in the fragment", () => {
+    it("keeps app query-string parameters when the implicit token is in the fragment", () => {
       const mockRemote = new MockRemote({});
       const rs = createStorage(mockRemote);
       rs.remote = mockRemote;
@@ -314,10 +314,11 @@ describe("Authorize", () => {
       expect(document.location.search).to.equal('?state=dashboard');
     });
 
-    it("keeps an app query code when the implicit token is in the fragment", () => {
+    it("keeps an app query-string parameter named 'code' when the implicit token is in the fragment", () => {
       const mockRemote = new MockRemote({});
       const rs = createStorage(mockRemote);
       rs.remote = mockRemote;
+      // ?code=app&state=dashboard belong to the app; #access_token=foo is the OAuth response
       document.location.href = 'https://example.com/app/?code=app&state=dashboard#access_token=foo';
 
       Authorize._rs_init(rs);
@@ -559,42 +560,6 @@ describe("Authorize", () => {
         await settled;
 
         expect(document.location.search).to.equal('');
-      });
-
-      it("doesn't remove same-named parameters the app set during initialization", async () => {
-        storeTransaction();
-        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
-        fetchMock.mock(
-          { method: 'POST', url: STORED_TOKEN_URL },
-          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
-        );
-        const { rs, settled } = setUp();
-
-        // The app rewrote the URL during asynchronous feature initialization
-        document.location.href = 'https://example.org/app/?state=app-state';
-
-        rs._handlers['features-loaded'][0]();
-        await settled;
-
-        expect(document.location.search).to.equal('?state=app-state');
-      });
-
-      it("keeps app-appended values under a callback key", async () => {
-        storeTransaction();
-        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
-        fetchMock.mock(
-          { method: 'POST', url: STORED_TOKEN_URL },
-          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
-        );
-        const { rs, settled } = setUp();
-
-        // The app appended its own value under a callback key during init
-        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}&state=app-state`;
-
-        rs._handlers['features-loaded'][0]();
-        await settled;
-
-        expect(document.location.search).to.equal('?state=app-state');
       });
 
       it("removes the OAuth code and state from the URL once handled", async () => {
