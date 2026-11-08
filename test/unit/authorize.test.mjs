@@ -98,62 +98,6 @@ describe("Authorize", () => {
     });
   });
 
-  describe("#refreshAccessToken", () => {
-    it("clears the access token on start & sets it on success", async () => {
-      const rs = new RemoteStorage();
-      const mockRemote = new MockRemote(rs);
-      const configureSpy = sinon.spy(mockRemote, 'configure');
-
-      const newAccessToken = 'ALLTHETHINGS';
-      const tokenResponse = {
-        access_token: newAccessToken,
-        expires_in: 14_400,
-        token_type: 'bearer',
-        scope: 'account_info.read files.content.read files.content.write files.metadata.read files.metadata.write',
-        account_id: 'dbid:AAH4f99',
-        refresh_token: REFRESH_TOKEN,
-      };
-      fetchMock.mock(
-        { name: 'postToken', method: 'POST', url: TOKEN_URL },
-        { status: 200, body:JSON.stringify(tokenResponse) }
-      );
-
-      await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
-
-      expect(configureSpy.callCount).to.equal(2);
-      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken);
-    });
-
-    it("stores a rotated refresh token", async () => {
-      const rs = new RemoteStorage();
-      const mockRemote = new MockRemote(rs);
-      const configureSpy = sinon.spy(mockRemote, 'configure');
-      fetchMock.mock(
-        { method: 'POST', url: TOKEN_URL },
-        { status: 200, body: JSON.stringify({ access_token: 'new', refresh_token: 'r0tated' }) }
-      );
-
-      await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
-
-      expect(configureSpy.getCall(1).args[0]).to.have.property('refreshToken', 'r0tated');
-    });
-
-    it("keeps the refresh token when the server doesn't rotate it", async () => {
-      const rs = new RemoteStorage();
-      const mockRemote = new MockRemote(rs);
-      const configureSpy = sinon.spy(mockRemote, 'configure');
-      fetchMock.mock(
-        { method: 'POST', url: TOKEN_URL },
-        { status: 200, body: JSON.stringify({ access_token: 'new' }) }
-      );
-
-      await Authorize.refreshAccessToken(rs, mockRemote, REFRESH_TOKEN);
-
-      // undefined leaves the remote's refresh token as it is
-      expect(configureSpy.getCall(1).args[0].refreshToken).to.be.undefined;
-    });
-  });
 
   describe("#authorize in Cordova", () => {
     const REDIRECT_URI = 'https://app.example/callback';
@@ -210,49 +154,6 @@ describe("Authorize", () => {
     });
   });
 
-  describe("#requestRefreshedToken", () => {
-    it("returns the new tokens without touching a remote", async () => {
-      fetchMock.mock(
-        { name: 'postToken', method: 'POST', url: TOKEN_URL },
-        { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer', refresh_token: 'r0tated' }) }
-      );
-
-      const refreshed = await Authorize.requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN);
-
-      expect(refreshed).to.deep.equal({ token: 'new', tokenType: 'bearer', refreshToken: 'r0tated' });
-      const body = new URLSearchParams(fetchMock.calls('postToken')[0][1].body);
-      expect(body.get('grant_type')).to.equal('refresh_token');
-      expect(body.get('client_id')).to.equal('client');
-      expect(body.get('refresh_token')).to.equal(REFRESH_TOKEN);
-    });
-
-    it("throws Unauthorized only when the refresh token is rejected (invalid_grant)", async () => {
-      fetchMock.mock(
-        { method: 'POST', url: TOKEN_URL },
-        { status: 400, body: JSON.stringify({ error: 'invalid_grant' }) }
-      );
-
-      await expect(Authorize.requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN))
-        .to.be.rejected.and.eventually.have.property('name', 'Unauthorized');
-    });
-
-    for (const [failure, response] of [
-      ['a server error', { status: 500, body: JSON.stringify({ error: 'server_error' }) }],
-      ['rate limiting', { status: 429, body: JSON.stringify({ error: 'slow_down' }) }],
-      ['a success without an access token', { status: 200, body: JSON.stringify({}) }],
-      ['a success with an access token that is not a string', { status: 200, body: JSON.stringify({ access_token: 123 }) }]
-    ]) {
-      it(`throws a plain error on ${failure}, which says nothing about the refresh token`, async () => {
-        fetchMock.mock({ method: 'POST', url: TOKEN_URL }, response);
-
-        const err = await Authorize.requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN)
-          .then(() => null, e => e);
-
-        expect(err).to.be.an('error');
-        expect(err.name).not.to.equal('Unauthorized');
-      });
-    }
-  });
 
   describe("'features-loaded' handler", () => {
     it("preserves hash routes that are not OAuth callbacks", () => {

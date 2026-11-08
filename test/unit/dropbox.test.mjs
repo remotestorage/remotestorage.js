@@ -136,8 +136,9 @@ describe('Dropbox backend', () => {
       expect(networkOfflineSpy.callCount).to.equal(1);
     });
 
-    it("fetchDelta, when access token is expired, makes two attempts to obtain new access token", async () => {
+    it("fetchDelta, when access token is expired, makes two attempts and does not retry when the token is unchanged", async () => {
       const configureSpy = sinon.spy(dropbox, 'configure');
+      const storeTokensSpy = sinon.spy(dropbox, '_storeTokens');
       const errorSpy = sinon.spy();
       const wireBusySpy = sinon.spy();
       const wireDoneSpy = sinon.spy();
@@ -166,11 +167,11 @@ describe('Dropbox backend', () => {
       );
       await expect(dropbox.fetchDelta()).to.be.rejected;
 
-      expect(configureSpy.callCount).to.equal(4);
-      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken);
-      expect(configureSpy.getCall(2).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(3).args[0]).to.have.property('token', newAccessToken);
+      expect(storeTokensSpy.callCount).to.equal(2);
+      for (let i = 0; i < 2; ++i) {
+        expect(storeTokensSpy.getCall(i).args).to.deep.equal([newAccessToken, REFRESH_TOKEN, 'bearer']);
+      }
+      expect(configureSpy.called).to.equal(false);
 
       expect(errorSpy.called).to.equal(true);
       expect(wireBusySpy.called).to.equal(true);
@@ -179,8 +180,8 @@ describe('Dropbox backend', () => {
       expect(networkOfflineSpy.called).to.equal(false);
 
       const folderCalls = fetchMock.calls('postFolder');
-      expect(folderCalls).to.have.lengthOf(3);
-      for (let c=0; c < 3; ++c) {
+      expect(folderCalls).to.have.lengthOf(2);
+      for (let c=0; c < 2; ++c) {
         expect(folderCalls[c][1]).to.have.property('headers');
         // The first download does use the original token - it appears to be
         // a bug in fetch-mock that this test doesn't observe that.
@@ -302,6 +303,513 @@ describe('Dropbox backend', () => {
       expect(localStorage.getItem(SETTINGS_KEY)).to.be.a('string');
       const persistent = JSON.parse(await localStorage.getItem(SETTINGS_KEY));
       expect(persistent).to.have.property('token', 'some-access-token');
+    });
+
+    it("doesn't emit connected again when a refresh replaces the tokens", async () => {
+      const emitSpy = sinon.spy(dropbox, '_emit');
+
+      await dropbox.configure({ token: 'refreshed-token', refreshToken: 'refreshed-refresh' });
+
+      expect(emitSpy.args.some(args => args[0] === 'connected')).to.equal(false);
+      expect(dropbox.connected).to.equal(true);
+      expect(dropbox.token).to.equal('refreshed-token');
+      expect(dropbox.refreshToken).to.equal('refreshed-refresh');
+    });
+
+    it("_storeTokens replaces the tokens without emitting connected", async () => {
+      const emitSpy = sinon.spy(dropbox, '_emit');
+
+      dropbox._storeTokens('new-token', 'new-refresh', 'bearer');
+
+      expect(emitSpy.args.some(args => args[0] === 'connected')).to.equal(false);
+      expect(dropbox.token).to.equal('new-token');
+      expect(dropbox.refreshToken).to.equal('new-refresh');
+      expect(dropbox.tokenType).to.equal('bearer');
+      const persistent = JSON.parse(await localStorage.getItem(SETTINGS_KEY));
+      expect(persistent).to.include({
+        token: 'new-token', refreshToken: 'new-refresh', tokenType: 'bearer'
+      });
+    });
+
+    it("emits connected once when a disconnected Dropbox is configured", async () => {
+      dropbox.connected = false;
+      const emitSpy = sinon.spy(dropbox, '_emit');
+
+      await dropbox.configure({ token: 'some-token', userAddress: 'a@b.c' });
+
+      expect(emitSpy.args.filter(args => args[0] === 'connected')).to.have.lengthOf(1);
+      expect(dropbox.connected).to.equal(true);
+    });
+  });
+
+  describe("token refresh", () => {
+    const NEW_TOKEN = 'NEWTOKEN';
+    const FILE_RESULT = {
+      name: 'foo',
+      path_lower: '/remotestorage/foo',
+      path_display: '/remotestorage/foo',
+      id: 'id:abc123',
+      client_modified: '2022-09-17T02:48:10Z',
+      server_modified: '2022-09-18T12:00:00Z',
+      rev: '2002',
+      size: 3,
+      is_downloadable: true,
+    };
+
+    function mockExpiredGetFile () {
+      fetchMock.mock(
+        {name: 'getFile', url: DOWNLOAD_URL},
+        {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})}
+      );
+    }
+
+    function mockTokenResponse (response) {
+      fetchMock.mock({name: 'postToken', method: 'POST', url: TOKEN_URL}, response);
+    }
+
+    it("keeps the tokens when the token endpoint fails transiently", async () => {
+      const configureSpy = sinon.spy(dropbox, 'configure');
+      const errorSpy = sinon.spy();
+      const networkOfflineSpy = sinon.spy();
+      rs.on('error', errorSpy);
+      rs.on('network-offline', networkOfflineSpy);
+      mockExpiredGetFile();
+      mockTokenResponse({status: 500, body: JSON.stringify({error: 'server_error'})});
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 401);
+      expect(errorSpy.called).to.equal(true);
+      expect(errorSpy.firstCall.args[0]).to.have.property('name', 'Unauthorized');
+      expect(networkOfflineSpy.called).to.equal(false);
+      expect(dropbox.online).to.equal(true);
+      expect(configureSpy.called).to.equal(false);
+      expect(dropbox.token).to.equal(ACCESS_TOKEN);
+      expect(dropbox.refreshToken).to.equal(REFRESH_TOKEN);
+      const persisted = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+      expect(persisted).to.include({token: ACCESS_TOKEN, refreshToken: REFRESH_TOKEN});
+    });
+
+    it("refreshes successfully on a later 401 after a transient failure", async () => {
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        if (getFileCalls <= 2) {
+          return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+        }
+        return {
+          status: 200,
+          body: 'abc',
+          headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}
+        };
+      });
+      let tokenCalls = 0;
+      mockTokenResponse(() => {
+        tokenCalls++;
+        if (tokenCalls === 1) {
+          return {status: 500, body: JSON.stringify({error: 'server_error'})};
+        }
+        return {status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})};
+      });
+
+      const first = await dropbox.get('/first');
+      expect(first).to.have.property('statusCode', 401);
+
+      const result = await dropbox.get('/second');
+
+      expect(result).to.have.property('statusCode', 200);
+      expect(dropbox.token).to.equal(NEW_TOKEN);
+      expect(tokenCalls).to.equal(2);
+      expect(getFileCalls).to.equal(3);
+    });
+
+    it("keeps the tokens when a successful refresh has no access_token", async () => {
+      const configureSpy = sinon.spy(dropbox, 'configure');
+      const storeTokensSpy = sinon.spy(dropbox, '_storeTokens');
+      const errorSpy = sinon.spy();
+      rs.on('error', errorSpy);
+      mockExpiredGetFile();
+      mockTokenResponse({status: 200, body: JSON.stringify({})});
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 401);
+      expect(errorSpy.called).to.equal(true);
+      expect(errorSpy.firstCall.args[0]).to.have.property('name', 'Unauthorized');
+      expect(configureSpy.called).to.equal(false);
+      expect(storeTokensSpy.called).to.equal(false);
+      expect(dropbox.token).to.equal(ACCESS_TOKEN);
+      expect(dropbox.refreshToken).to.equal(REFRESH_TOKEN);
+    });
+
+    it("clears only the refresh token when the server rejects it", async () => {
+      const emitSpy = sinon.spy(dropbox, '_emit');
+      const configureSpy = sinon.spy(dropbox, 'configure');
+      const errorSpy = sinon.spy();
+      const networkOfflineSpy = sinon.spy();
+      rs.on('error', errorSpy);
+      rs.on('network-offline', networkOfflineSpy);
+      mockExpiredGetFile();
+      mockTokenResponse({status: 400, body: JSON.stringify({error: 'invalid_grant'})});
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 401);
+      expect(errorSpy.called).to.equal(true);
+      expect(errorSpy.firstCall.args[0]).to.have.property('name', 'Unauthorized');
+      expect(networkOfflineSpy.called).to.equal(false);
+      expect(dropbox.online).to.equal(true);
+      expect(configureSpy.called).to.equal(false);
+      expect(dropbox.token).to.equal(ACCESS_TOKEN);
+      expect(dropbox.refreshToken).to.be.null;
+      const persisted = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+      expect(persisted).to.include({token: ACCESS_TOKEN, refreshToken: null});
+      expect(emitSpy.args.some(args => args[0] === 'connected')).to.equal(false);
+    });
+
+    it("doesn't emit connected during a successful refresh", async () => {
+      const dropboxEmitSpy = sinon.spy(dropbox, '_emit');
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        if (getFileCalls === 1) {
+          return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+        }
+        return {
+          status: 200,
+          body: 'abc',
+          headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}
+        };
+      });
+      mockTokenResponse({status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})});
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 200);
+      expect(dropboxEmitSpy.args.some(args => args[0] === 'connected')).to.equal(false);
+    });
+
+    it("retries with the new token after refreshing", async () => {
+      const seenAuthorization = [];
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, (_url, opts) => {
+        getFileCalls++;
+        seenAuthorization.push(opts.headers.Authorization);
+        if (getFileCalls === 1) {
+          return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+        }
+        return {
+          status: 200,
+          body: 'abc',
+          headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}
+        };
+      });
+      mockTokenResponse({status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})});
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 200);
+      expect(seenAuthorization).to.deep.equal(['Bearer ' + ACCESS_TOKEN, 'Bearer ' + NEW_TOKEN]);
+    });
+
+    it("does not retry when the refresh returns the same token", async () => {
+      let getFileCalls = 0;
+      const errorSpy = sinon.spy();
+      const wireBusySpy = sinon.spy();
+      const wireDoneSpy = sinon.spy();
+      rs.on('error', errorSpy);
+      rs.on('wire-busy', wireBusySpy);
+      rs.on('wire-done', wireDoneSpy);
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+      });
+      mockTokenResponse({status: 200, body: JSON.stringify({access_token: ACCESS_TOKEN, token_type: 'bearer'})});
+
+      const result = await dropbox.get('/foo');
+
+      // Retrying with the same token would only fail again
+      expect(result).to.have.property('statusCode', 401);
+      expect(getFileCalls).to.equal(1);
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      expect(errorSpy.called).to.equal(true);
+      expect(errorSpy.firstCall.args[0]).to.have.property('name', 'Unauthorized');
+      // The original request's pair and the refresh's pair are both complete
+      expect(wireBusySpy.callCount).to.equal(2);
+      expect(wireDoneSpy.callCount).to.equal(2);
+      expect(wireDoneSpy.args[0][0]).to.include({ success: true });
+      expect(wireDoneSpy.args[1][0]).to.include({ success: false });
+      expect(dropbox.token).to.equal(ACCESS_TOKEN);
+    });
+
+    it("shares one refresh between concurrent 401s", async () => {
+      const refreshResolvers = [];
+      fetchMock.mock({name: 'postToken', method: 'POST', url: TOKEN_URL}, () => {
+        return new Promise(resolve => { refreshResolvers.push(resolve); });
+      });
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        if (getFileCalls === 2) {
+          // Both operations have received a 401; release the shared refresh
+          setTimeout(() => {
+            for (const resolve of refreshResolvers) {
+              resolve({status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})});
+            }
+          }, 0);
+        }
+        if (getFileCalls <= 2) {
+          return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+        }
+        return {status: 200, body: 'abc', headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}};
+      });
+
+      const [first, second] = await Promise.all([dropbox.get('/a'), dropbox.get('/b')]);
+
+      expect(first).to.have.property('statusCode', 200);
+      expect(second).to.have.property('statusCode', 200);
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      const getCalls = fetchMock.calls('getFile');
+      expect(getCalls).to.have.lengthOf(4);
+      expect(getCalls[2][1].headers.Authorization).to.equal('Bearer ' + NEW_TOKEN);
+      expect(getCalls[3][1].headers.Authorization).to.equal('Bearer ' + NEW_TOKEN);
+    });
+
+    it("does not retry when the session is replaced during the refresh", async () => {
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+      });
+      fetchMock.mock({name: 'postToken', method: 'POST', url: TOKEN_URL}, () => {
+        // Another path replaces the session while the refresh is in flight
+        dropbox.token = 'account2-token';
+        dropbox.refreshToken = 'account2-refresh';
+        return {status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})};
+      });
+      const busy = sinon.spy();
+      const done = sinon.spy();
+      const errorSpy = sinon.spy();
+      const networkOfflineSpy = sinon.spy();
+      rs.on('wire-busy', busy);
+      rs.on('wire-done', done);
+      rs.on('error', errorSpy);
+      rs.on('network-offline', networkOfflineSpy);
+
+      const result = await dropbox.get('/foo');
+
+      // The original 401 is returned rather than replayed against account2
+      expect(result).to.have.property('statusCode', 401);
+      expect(getFileCalls).to.equal(1);
+      expect(dropbox.token).to.equal('account2-token');
+      expect(dropbox.refreshToken).to.equal('account2-refresh');
+      expect(errorSpy.called).to.equal(true);
+      expect(errorSpy.firstCall.args[0]).to.have.property('name', 'Unauthorized');
+      expect(networkOfflineSpy.called).to.equal(false);
+      expect(dropbox.online).to.equal(true);
+      // The refresh's wire-busy is paired, so listeners don't stay busy
+      expect(busy.callCount).to.equal(2);
+      expect(done.callCount).to.equal(2);
+      expect(done.args[0][0]).to.include({ success: true });
+      expect(done.args[1][0]).to.include({ success: false });
+    });
+
+    it("does not retry when the session ends after the refresh", async () => {
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+      });
+      mockTokenResponse({status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})});
+      const errorSpy = sinon.spy();
+      const done = sinon.spy();
+      let doneCount = 0;
+      rs.on('error', errorSpy);
+      rs.on('wire-done', event => {
+        done(event);
+        doneCount++;
+        if (doneCount === 2) {
+          // The refresh completed; the session ends before the retry starts
+          dropbox.connected = false;
+          dropbox.token = null;
+          dropbox.refreshToken = null;
+        }
+      });
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 401);
+      expect(getFileCalls).to.equal(1);
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      expect(errorSpy.called).to.equal(true);
+      expect(errorSpy.firstCall.args[0]).to.have.property('name', 'Unauthorized');
+      expect(dropbox.connected).to.be.false;
+      expect(dropbox.token).to.be.null;
+      expect(done.callCount).to.equal(2);
+    });
+
+    it("does not retry when the session ends during a 429 delay", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+      });
+      const networkOfflineSpy = sinon.spy();
+      rs.on('network-offline', networkOfflineSpy);
+      setTimeout(() => {
+        dropbox.connected = false;
+        dropbox.token = null;
+        dropbox.refreshToken = null;
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 429);
+      expect(getFileCalls).to.equal(1);
+      expect(networkOfflineSpy.called).to.equal(true);
+      expect(dropbox.connected).to.be.false;
+      expect(dropbox.token).to.be.null;
+    });
+
+    it("retries with the refreshed token when the session refreshes during a 429 delay", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        if (getFileCalls === 1) {
+          return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+        }
+        return {status: 200, body: 'abc', headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}};
+      });
+      setTimeout(() => {
+        // Another request refreshes the same session while we back off, and
+        // the server rotates the refresh token
+        dropbox._storeTokens(NEW_TOKEN, 'rotated-refresh', 'bearer');
+        dropbox._lastRefresh = { from: ACCESS_TOKEN, to: NEW_TOKEN, refreshToken: 'rotated-refresh' };
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 200);
+      expect(getFileCalls).to.equal(2);
+      const calls = fetchMock.calls('getFile');
+      expect(calls[1][1].headers.Authorization).to.equal('Bearer ' + NEW_TOKEN);
+    });
+
+    it("retries after a same-session refresh that keeps the access token during a 429 delay", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        if (getFileCalls === 1) {
+          return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+        }
+        return {status: 200, body: 'abc', headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}};
+      });
+      setTimeout(() => {
+        // Another request refreshes the same session; the server keeps the
+        // access token but rotates the refresh token
+        dropbox._storeTokens(ACCESS_TOKEN, 'rotated-refresh', 'bearer');
+        dropbox._lastRefresh = { from: ACCESS_TOKEN, to: ACCESS_TOKEN, refreshToken: 'rotated-refresh' };
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 200);
+      expect(getFileCalls).to.equal(2);
+      expect(fetchMock.calls('getFile')[1][1].headers.Authorization).to.equal('Bearer ' + ACCESS_TOKEN);
+    });
+
+    it("does not retry when the session is replaced during a 429 delay", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+      });
+      setTimeout(() => {
+        dropbox.connected = true;
+        dropbox.token = 'account2-token';
+        dropbox.refreshToken = 'account2-refresh';
+        dropbox._lastRefresh = null;
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 429);
+      expect(getFileCalls).to.equal(1);
+      expect(dropbox.token).to.equal('account2-token');
+      expect(dropbox.refreshToken).to.equal('account2-refresh');
+    });
+
+    it("does not retry when the session is replaced during a 429 delay with the same access token", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+      });
+      setTimeout(() => {
+        // A replacement account with the same access token but a different
+        // refresh token is not the session that made the request
+        dropbox.token = ACCESS_TOKEN;
+        dropbox.refreshToken = 'account2-refresh';
+        dropbox._lastRefresh = null;
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 429);
+      expect(getFileCalls).to.equal(1);
+      expect(dropbox.refreshToken).to.equal('account2-refresh');
+    });
+
+    it("retries a late 401 with the token another request refreshed", async () => {
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, (_url, opts) => {
+        getFileCalls++;
+        if (opts.headers.Authorization === 'Bearer ' + ACCESS_TOKEN) {
+          return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+        }
+        return {status: 200, body: 'abc', headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}};
+      });
+      mockTokenResponse({status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})});
+
+      // First request refreshes and succeeds
+      const first = await dropbox.get('/first');
+      expect(first).to.have.property('statusCode', 200);
+
+      // A request sent with the old token arrives after the refresh
+      const late = await dropbox._request('GET', DOWNLOAD_URL, {}, 1, ACCESS_TOKEN);
+
+      expect(late).to.have.property('status', 200);
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      expect(getFileCalls).to.equal(4);
+    });
+
+    it("does not refresh or retry when the account changed before the refresh starts", async () => {
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        // Another path replaces the session after the request went out, but
+        // before its 401 is handled
+        dropbox.token = 'account2-token';
+        dropbox.refreshToken = 'account2-refresh';
+        return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+      });
+      const errorSpy = sinon.spy();
+      rs.on('error', errorSpy);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 401);
+      expect(getFileCalls).to.equal(1);
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(0);
+      expect(dropbox.token).to.equal('account2-token');
+      expect(dropbox.refreshToken).to.equal('account2-refresh');
+      expect(errorSpy.called).to.equal(true);
+      expect(errorSpy.firstCall.args[0]).to.have.property('name', 'Unauthorized');
     });
   });
 
@@ -805,8 +1313,9 @@ describe('Dropbox backend', () => {
       expect(result).to.have.property('body', CONTENT);
     });
 
-    it("when access token is expired, makes two attempts to obtain new access token", async () => {
+    it("when access token is expired, makes two attempts and does not retry when the token is unchanged", async () => {
       const configureSpy = sinon.spy(dropbox, 'configure');
+      const storeTokensSpy = sinon.spy(dropbox, '_storeTokens');
       fetchMock.mock(
         {name: 'getFile', url: DOWNLOAD_URL},
         {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})}
@@ -826,15 +1335,15 @@ describe('Dropbox backend', () => {
       );
       const result = await dropbox.get('/xyzzy');
 
-      expect(configureSpy.callCount).to.equal(4);
-      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken);
-      expect(configureSpy.getCall(2).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(3).args[0]).to.have.property('token', newAccessToken);
+      expect(storeTokensSpy.callCount).to.equal(2);
+      for (let i = 0; i < 2; ++i) {
+        expect(storeTokensSpy.getCall(i).args).to.deep.equal([newAccessToken, REFRESH_TOKEN, 'bearer']);
+      }
+      expect(configureSpy.called).to.equal(false);
 
       const getCalls = fetchMock.calls('getFile');
-      expect(getCalls).to.have.lengthOf(3);
-      for (let c=0; c < 3; ++c) {
+      expect(getCalls).to.have.lengthOf(2);
+      for (let c=0; c < 2; ++c) {
         expect(getCalls[c][1]).to.have.property('headers');
         // The first download does use the original token - it appears to be
         // a bug in fetch-mock that this test doesn't observe that.
