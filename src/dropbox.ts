@@ -229,17 +229,6 @@ class Dropbox extends RemoteBase implements Remote {
     if (typeof settings.refreshToken !== 'undefined') { this.refreshToken = settings.refreshToken; }
     if (typeof settings.tokenType !== 'undefined') { this.tokenType = settings.tokenType; }
 
-    const writeSettingsToCache = () => {
-      if (hasLocalStorage) {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-          userAddress: this.userAddress,
-          token: this.token,
-          refreshToken: this.refreshToken,
-          tokenType: this.tokenType,
-        }));
-      }
-    };
-
     const handleError = () => {
       this.connected = false;
       if (hasLocalStorage) {
@@ -254,17 +243,17 @@ class Dropbox extends RemoteBase implements Remote {
       if (this.userAddress) {
         // A refresh continues the session; only a real transition is reported
         if (!wasConnected) { this._emit('connected'); }
-        writeSettingsToCache();
+        this._persistSettings();
       } else {
         try {
           const info = await this.info();
           this.userAddress = info.email;
           if (!wasConnected) { this._emit('connected'); }
-          writeSettingsToCache();
+          this._persistSettings();
         } catch (err) {
           this.connected = false;
           this.rs._emit('error', new Error('Could not fetch user info.'));
-          writeSettingsToCache();
+          this._persistSettings();
         }
       }
     } else {
@@ -272,16 +261,8 @@ class Dropbox extends RemoteBase implements Remote {
     }
   }
 
-  /**
-   * Replace the tokens of the current session, e.g. after a refresh. Unlike
-   * configure(), this doesn't emit `connected` and leaves `connected`/`online`
-   * alone, since the session continues. Accepts a `tokenType` for Dropbox;
-   * WireClient's narrower implementation ignores that optional argument.
-   */
-  _storeTokens (token: string, refreshToken?: string | null, tokenType?: string): void {
-    this.token = token;
-    if (typeof refreshToken !== 'undefined') { this.refreshToken = refreshToken; }
-    if (typeof tokenType !== 'undefined') { this.tokenType = tokenType; }
+  /** Store the settings in localStorage, for the next page load */
+  _persistSettings (): void {
     if (hasLocalStorage) {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         userAddress: this.userAddress,
@@ -702,25 +683,31 @@ class Dropbox extends RemoteBase implements Remote {
    *
    * @private
    */
-  async _request (method: string, url: string, options, numAttempts = 1): Promise<any> {
+  async _request (method: string, url: string, options, numAttempts = 1, token: string | false = this.token): Promise<any> {
     if (this.isForbiddenRequestMethod(method, url)) {
       throw `Don't use ${method} on directories!`;
     }
 
-    if (! this.token) { throw new UnauthorizedError("No access token"); }
+    if (! token) { throw new UnauthorizedError("No access token"); }
 
     if (!options.headers) { options.headers = {}; }
-    options.headers['Authorization'] = 'Bearer ' + this.token;
+    options.headers['Authorization'] = 'Bearer ' + token;
 
     if (typeof options.body === 'object' && !isBinaryData(options.body)) {
       options.body = JSON.stringify(options.body);
       options.headers['Content-Type'] = 'application/json; charset=UTF-8';
     }
 
-    this.rs._emit('wire-busy', {
+    const wireEvent = {
       method: method,
       isFolder: isFolder(url)
-    });
+    };
+
+    // Each request emits its own wire-busy/wire-done pair. A refresh emits an
+    // extra pair, and the retry emits its own pair, so listeners see each
+    // request attempt; the last pair for a refresh or retry reflects that
+    // attempt, not the overall outcome of the operation.
+    this.rs._emit('wire-busy', wireEvent);
 
     try {
       const xhr = await requestWithTimeout(method, url, options);
@@ -728,40 +715,33 @@ class Dropbox extends RemoteBase implements Remote {
         this.online = true;
         this.rs._emit('network-online');
       }
-      this.rs._emit('wire-done', {
-        method: method,
-        isFolder: isFolder(url),
-        success: true
-      });
-      if (xhr?.status === 401 && this.refreshToken) {
+      this.rs._emit('wire-done', { ...wireEvent, success: true });
+      if (xhr?.status === 401) {
         if (numAttempts >= NUM_RETRIES) {
           console.error(`Abandoned after ${numAttempts} attempts: ${method} ${url}`);
+          this.rs._emit('error', new UnauthorizedError());
           return xhr;
-        } else {
-          this.rs._emit('wire-busy', {
-            method: method,
-            isFolder: isFolder(url)
-          });
-          const newToken = await Authorize.refreshAccessToken(this.rs, this, this.refreshToken);
+        }
+        if (this.refreshToken) {
+          this.rs._emit('wire-busy', wireEvent);
+          // The refresh is shared with concurrent 401s and only applies to
+          // the session this request was sent with; a request is never
+          // replayed against a replacement account's token.
+          const newToken = await this._refreshAfter401(token);
           if (!newToken) {
-            // The session was replaced while refreshing; don't retry the
-            // original request with the replacement account's token. Pair the
-            // wire-busy above, since no retry request follows.
-            this.rs._emit('wire-done', {
-              method: method,
-              isFolder: isFolder(url),
-              success: false
-            });
+            // No refresh for this session (transient failure, or the session
+            // was replaced); pair the wire-busy above and give up.
+            this.rs._emit('wire-done', { ...wireEvent, success: false });
+            this.rs._emit('error', new UnauthorizedError());
             return xhr;
           }
-          this.rs._emit('wire-done', {
-            method: method,
-            isFolder: isFolder(url),
-            success: true
-          });
+          this.rs._emit('wire-done', { ...wireEvent, success: true });
           // re-runs original request
-          return this._request(method, url, options, numAttempts + 1);
+          return this._request(method, url, options, numAttempts + 1, newToken);
         }
+        // No refresh token, so the session cannot be continued
+        this.rs._emit('error', new UnauthorizedError());
+        return xhr;
       } else if ([503, 429].includes(xhr?.status)) {
         // 503 Service Unavailable; 429 Too Many Requests
         if (this.online) {
@@ -775,10 +755,9 @@ class Dropbox extends RemoteBase implements Remote {
         } else {
           await new Promise(resolve => setTimeout(resolve, retryAfterMs(xhr)));
           // re-runs original request
-          return this._request(method, url, options, numAttempts+1);
+          return this._request(method, url, options, numAttempts+1, token);
         }
       } else {
-
         return xhr;
       }
     } catch (error) {
@@ -786,11 +765,7 @@ class Dropbox extends RemoteBase implements Remote {
         this.online = false;
         this.rs._emit('network-offline');
       }
-      this.rs._emit('wire-done', {
-        method: method,
-        isFolder: isFolder(url),
-        success: false
-      });
+      this.rs._emit('wire-done', { ...wireEvent, success: false });
       throw error;
     }
   }

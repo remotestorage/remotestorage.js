@@ -1,5 +1,7 @@
 import RemoteStorage from "./remotestorage";
 import EventHandling from "./eventhandling";
+import log from "./log";
+import { requestRefreshedToken } from "./oauth/token-refresh";
 import { isFolder } from "./util";
 
 /**
@@ -13,6 +15,21 @@ export class RemoteBase extends EventHandling {
   userAddress: string;
   storageApi: string;
 
+  token?: string | false;
+  refreshToken?: string | null;
+  tokenType?: string;
+  TOKEN_URL?: string | null;
+  clientId?: string | null;
+
+  /**
+   * The refresh in progress, shared by concurrent 401s, with the tokens it
+   * started from: only requests of that same session may wait for it
+   */
+  _refreshing: { token: string | false; refreshToken: string | null; promise: Promise<string | null> } | null = null;
+
+  /** The last successful refresh: which token it replaced, with which */
+  _lastRefresh: { from: string | false; to: string } | null = null;
+
   constructor(rs: RemoteStorage) {
     super();
     this.rs = rs;
@@ -23,6 +40,106 @@ export class RemoteBase extends EventHandling {
   stopWaitingForToken (): void {
     if (!this.connected) {
       this._emit('not-connected');
+    }
+  }
+
+  /**
+   * Replace the tokens of the current session, e.g. after a refresh. Unlike
+   * configure(), this doesn't emit `connected`, since the session continues.
+   * Accepts a `tokenType` for Dropbox; the generic backend ignores it.
+   */
+  _storeTokens (token: string | false, refreshToken?: string | null, tokenType?: string): void {
+    this.token = token;
+    if (typeof refreshToken !== 'undefined') { this.refreshToken = refreshToken; }
+    if (typeof tokenType !== 'undefined') { this.tokenType = tokenType; }
+    this._persistSettings();
+  }
+
+  /** Store the settings in localStorage, for the next page load */
+  _persistSettings (): void {}
+
+  /**
+   * Take over tokens another tab stored for this session, if any. The generic
+   * backend overrides this; by default there is no cross-tab storage.
+   */
+  _adoptTokensFromOtherTab (): string | null { return null; }
+
+  /**
+   * Carry on without a refresh token. Returns null: there is no token to
+   * retry with.
+   */
+  _forgetRejectedRefreshToken (): null {
+    this._storeTokens(this.token || false, null);
+    return null;
+  }
+
+  /**
+   * Refresh the access token after a request made with `usedToken` got a 401.
+   * Concurrent callers share one refresh. Resolves to the token to retry the
+   * request with: only ever one refreshed from `usedToken`, so a request is
+   * never retried with the token of a session that replaced its own.
+   */
+  async _refreshAfter401 (usedToken: string | false): Promise<string | null> {
+    if (usedToken === false) {
+      return null;
+    }
+    if (this._lastRefresh?.from === usedToken && this._lastRefresh.to === this.token) {
+      return this.token;   // another request has refreshed it meanwhile
+    }
+    // Otherwise the token changed for another reason (e.g. connect() or
+    // disconnect()), and the request belongs to a session that is gone
+    if (!this.refreshToken || !this.TOKEN_URL || this.token !== usedToken) {
+      return null;
+    }
+    if (this._refreshing?.token !== this.token || this._refreshing?.refreshToken !== this.refreshToken) {
+      // None, or one the previous session started, whose result is dropped
+      const refreshing = { token: this.token, refreshToken: this.refreshToken, promise: null };
+      refreshing.promise = this._refresh().finally(() => {
+        if (this._refreshing === refreshing) { this._refreshing = null; }
+      });
+      this._refreshing = refreshing;
+    }
+    return this._refreshing.promise;
+  }
+
+  /**
+   * Get a new access token with the refresh token. The current token stays
+   * in place meanwhile, so other requests aren't refused as not connected;
+   * they get a 401 and wait for this refresh. The result is dropped when the
+   * session changed meanwhile: connect() or disconnect() replace or forget
+   * the refresh token, and reconnect() clears the access token. Resolves to
+   * the new token, or null when none was stored.
+   */
+  async _refresh (): Promise<string | null> {
+    // Another tab may have refreshed already, rotating the refresh token;
+    // sending the old one could make the server revoke the whole session
+    return this._adoptTokensFromOtherTab() || this._requestRefresh();
+  }
+
+  /** Refresh with this tab's own refresh token; see `_refresh` */
+  async _requestRefresh (): Promise<string | null> {
+    const refreshToken = this.refreshToken;
+    const tokenAtStart = this.token;
+    const sessionUnchanged = (): boolean => this.refreshToken === refreshToken && this.token === tokenAtStart;
+    try {
+      const refreshed = await requestRefreshedToken(this.TOKEN_URL as string, this.clientId as string, refreshToken as string);
+      if (!sessionUnchanged()) { return null; }
+      this._storeTokens(refreshed.token, refreshed.refreshToken, refreshed.tokenType);
+      if (refreshed.token === tokenAtStart) {
+        // The server returned the same token: retrying would only fail again.
+        return null;
+      }
+      this._lastRefresh = { from: tokenAtStart, to: refreshed.token };
+      return refreshed.token;
+    } catch (err) {
+      log('[RemoteBase] Could not refresh the access token', err);
+      if (err?.name === 'Unauthorized' && sessionUnchanged()) {
+        // Rejected, perhaps because another tab rotated it meanwhile; then
+        // use its tokens, rather than overwrite them in storage
+        return this._adoptTokensFromOtherTab() || this._forgetRejectedRefreshToken();
+      }
+      // Otherwise (e.g. offline) keep it, so that a later 401 can try again
+      return null;
     }
   }
 
@@ -167,12 +284,11 @@ export interface Remote {
 
   /**
    * Replace the tokens of the current session without emitting `connected`,
-   * e.g. after a refresh. Optional; refreshAccessToken falls back to
-   * configure() when absent. WireClient implements this with only the first
-   * two arguments; the optional tokenType is ignored there.
+   * e.g. after a refresh. Optional; RemoteBase implements it with
+   * _persistSettings().
    * @internal
    */
-  _storeTokens? (token: string, refreshToken?: string | null, tokenType?: string): void;
+  _storeTokens? (token: string | false, refreshToken?: string | null, tokenType?: string): void;
 
   /**
    * Initiate the authorization flow's OAuth dance.

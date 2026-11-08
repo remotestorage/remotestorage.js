@@ -5,7 +5,7 @@ import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
 import { EventHandler } from './eventhandling';
 import { requestWithTimeout } from "./requests";
-import { Remote, RemoteSettings, noRefreshSettings } from "./remote";
+import { RemoteSettings, noRefreshSettings } from "./remote";
 
 interface AuthResult {
   access_token?: string;
@@ -62,28 +62,6 @@ export interface PkceTransaction {
 
 const PKCE_KEYS: Array<keyof PkceTransaction> = ['codeVerifier', 'state', 'tokenURL', 'clientId', 'appState'];
 
-/** What a token endpoint returns for a refresh token */
-export interface RefreshedToken {
-  token: string;
-  tokenType?: string;
-  /** A rotated refresh token, when the server issues one */
-  refreshToken?: string;
-}
-
-/** POST a refresh_token grant to the token endpoint */
-function postRefreshGrant (tokenURL: string, clientId: string, refreshToken: string): Promise<XMLHttpRequest> {
-  const formValues = new URLSearchParams({
-    grant_type: 'refresh_token',
-    client_id: clientId,
-    refresh_token: refreshToken,
-  });
-  return requestWithTimeout('POST', tokenURL, {
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: formValues.toString(),
-    responseType: 'json'
-  });
-}
-
 /** The parts of a token endpoint's response that are kept */
 interface TokenResponse {
   access_token?: string;
@@ -111,47 +89,6 @@ function codeExchangeSettings (response: TokenResponse | undefined, transaction:
   }
   return settings;
 }
-
-/** Update a remote's tokens without emitting `connected`, since the session continues. */
-async function storeRefreshedToken (remote: Remote, refreshed: RefreshedToken): Promise<void> {
-  if (typeof remote._storeTokens === 'function') {
-    remote._storeTokens(refreshed.token, refreshed.refreshToken, refreshed.tokenType);
-  } else {
-    await remote.configure({
-      token: refreshed.token,
-      tokenType: refreshed.tokenType,
-      refreshToken: refreshed.refreshToken,
-    });
-  }
-}
-
-/** Forget a rejected refresh token without emitting `connected`. */
-async function forgetRefreshToken (remote: Remote): Promise<void> {
-  if (typeof remote._storeTokens === 'function' && typeof remote.token === 'string') {
-    // Dropbox: no event, no info() round-trip, no setBackend() risk. The string
-    // check routes falsy tokens (RemoteSettings.token may be false) to the
-    // configure fallback, which refresh never hits in practice.
-    remote._storeTokens(remote.token, null);
-  } else {
-    // Remotes without a non-emitting update keep using configure(); the
-    // transition guard in Dropbox.configure() prevents its event.
-    await remote.configure({ refreshToken: null });
-  }
-}
-
-/** A refresh in flight for one remote session, shared by concurrent callers. */
-interface InflightRefresh {
-  /** The access token the refresh was started for */
-  token: string | false | undefined;
-  /** The refresh token the refresh was started for */
-  refreshToken: string;
-  /** Resolves the new token, or null when the session was replaced */
-  promise: Promise<string | null>;
-}
-
-// Keyed by the remote instance: at most one refresh per session is in flight;
-// concurrent 401s share it instead of each posting their own grant.
-const inflightRefreshes = new WeakMap<Remote, InflightRefresh>();
 
 // This is set in _rs_init and needed for removal in _rs_cleanup
 let onFeaturesLoaded: EventHandler;
@@ -348,90 +285,6 @@ export class Authorize {
     for (const key of PKCE_KEYS) {
       sessionStorage.removeItem(`remotestorage:${key}`);
     }
-  }
-
-  /**
-   * Refresh the access token for a remote, sharing one in-flight grant per
-   * session. On success, updates the remote's tokens without emitting
-   * `connected`, since the session continues.
-   *
-   * Resolves the new access token when it was refreshed for the session that
-   * asked, or null when the session was replaced meanwhile (the caller must
-   * not retry). Throws `Unauthorized` only when the server rejects the refresh
-   * token (`invalid_grant`); transient failures keep the tokens so a later 401
-   * can retry.
-   */
-  static async refreshAccessToken (rs: RemoteStorage, remote: Remote, refreshToken: string): Promise<string | null> {
-    const tokenAtStart = remote.token;
-    const existing = inflightRefreshes.get(remote);
-    if (existing && existing.token === tokenAtStart && existing.refreshToken === refreshToken) {
-      return existing.promise;
-    }
-
-    const entry: InflightRefresh = {
-      token: tokenAtStart,
-      refreshToken,
-      promise: (async (): Promise<string | null> => {
-        const sessionUnchanged = (): boolean =>
-          (typeof remote.refreshToken === 'undefined' || remote.refreshToken === refreshToken) &&
-          remote.token === tokenAtStart;
-
-        try {
-          const refreshed = await Authorize.requestRefreshedToken(remote.TOKEN_URL, remote.clientId, refreshToken);
-          if (!sessionUnchanged()) {
-            // Another path replaced the session while the request was in flight;
-            // its tokens win. Don't overwrite them with this refresh's result.
-            return null;
-          }
-          await storeRefreshedToken(remote, refreshed);
-          return refreshed.token;
-        } catch (err) {
-          // Only a real invalid_grant means the refresh token is dead. Transient
-          // failures (5xx, 429, network, a 200 without access_token) say nothing
-          // about it, so keep it and let a later 401 retry.
-          if (err instanceof UnauthorizedError && sessionUnchanged()) {
-            await forgetRefreshToken(remote);
-          }
-          throw err;
-        }
-      })()
-    };
-    inflightRefreshes.set(remote, entry);
-    const cleanup = (): void => {
-      // A newer session's refresh may have replaced this entry; leave it alone
-      if (inflightRefreshes.get(remote) === entry) {
-        inflightRefreshes.delete(remote);
-      }
-    };
-    entry.promise.then(cleanup, cleanup);
-    return entry.promise;
-  }
-
-  /**
-   * Exchange a refresh token for a new access token, without touching any
-   * remote, so the caller decides whether the result still applies.
-   *
-   * Throws `Unauthorized` only when the server rejects the refresh token
-   * (`invalid_grant`, RFC 6749 §5.2). Any other failure, such as a server
-   * error, rate limiting or a network error, says nothing about the refresh
-   * token, and throws a plain error.
-   */
-  static async requestRefreshedToken (tokenURL: string, clientId: string, refreshToken: string): Promise<RefreshedToken> {
-    const xhr = await postRefreshGrant(tokenURL, clientId, refreshToken);
-    const response = xhr?.response;
-    if (xhr?.status === 200 && typeof response?.access_token === 'string' && response.access_token) {
-      log(`[Authorize] access token good for ${response.expires_in} seconds`);
-      return {
-        token: response.access_token,
-        tokenType: response.token_type,
-        // Set only when the server rotates it
-        refreshToken: response.refresh_token
-      };
-    }
-    if (response?.error === 'invalid_grant') {
-      throw new UnauthorizedError('refresh token rejected: ' + JSON.stringify(response));
-    }
-    throw new Error(`could not refresh the access token (${xhr?.status}): ${JSON.stringify(response)}`);
   }
 
   /**
