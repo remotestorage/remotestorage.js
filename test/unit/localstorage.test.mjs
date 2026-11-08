@@ -136,5 +136,34 @@ describe('LocalStorage', function() {
       expect(localStorage.getItem(CHANGES_PREFIX + 'notes/private.txt')).to.be.null;
       expect(localStorage.getItem('unrelated')).to.equal('keep-me');
     });
+
+    it('settles an operation queued before ready when disconnecting from a ready handler', async function() {
+      localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        userAddress: 'user@example.com',
+        href: 'https://storage.example.com/user/',
+        storageApi: 'draft-dejong-remotestorage-02',
+        token: 'access-token'
+      }));
+
+      const rs = new RemoteStorage();
+      // Queued on the pending get/put/delete wrappers before the features load.
+      const queued = rs.get('/notes/private.txt');
+
+      await new Promise((resolve) => {
+        rs.on('ready', () => {
+          rs.disconnect();
+          resolve();
+        });
+      });
+
+      // The stale `featuresLoaded()` must not drain the pending queue into the
+      // newly installed pending wrappers, or this promise would never settle.
+      const result = await Promise.race([
+        queued.then(() => 'settled', () => 'settled'),
+        new Promise((resolve) => setTimeout(() => resolve('pending'), 100))
+      ]);
+
+      expect(result).to.equal('settled');
+    });
   });
 });

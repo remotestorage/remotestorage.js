@@ -30,6 +30,10 @@ const Features = {
     this.features = [];
     this.featuresDone = 0;
     this.readyFired = false;
+    // Bumped on every (re-)initialization, e.g. after `disconnect()`. An
+    // in-flight `featuresLoaded()` compares against the value it captured, so
+    // it can stop when a handler has superseded it with a new initialization.
+    this._initGeneration = (this._initGeneration || 0) + 1;
 
     this.featureModules = {
       'WireClient': WireClient,
@@ -197,6 +201,7 @@ const Features = {
   },
 
   featuresLoaded () {
+    const generation = this._initGeneration;
     log(`[RemoteStorage] All features loaded`);
 
     this._setCachingModule();
@@ -229,17 +234,19 @@ const Features = {
       if (this.remote.connected) {
         this._fireReady();
         // A `ready` handler may have disconnected (e.g. a restored session
-        // logging out on load), replacing `this.remote`. In that case don't
-        // emit a stale `connected` for a session that is already gone.
-        if (this.remote.connected) {
-          this._emit('connected');
-        }
+        // logging out on load). That re-initializes everything, so stop this
+        // stale invocation instead of emitting events against the new session.
+        if (this._initGeneration !== generation) { return; }
+        this._emit('connected');
+        if (this._initGeneration !== generation) { return; }
       }
 
       if (!this.hasFeature('Authorize')) {
         this.remote.stopWaitingForToken();
       }
     }
+
+    if (this._initGeneration !== generation) { return; }
 
     try {
       this._allLoaded = true;
@@ -248,6 +255,7 @@ const Features = {
       logError(exc);
       this._emit('error', exc);
     }
+    if (this._initGeneration !== generation) { return; }
     this._processPending();
   },
 
