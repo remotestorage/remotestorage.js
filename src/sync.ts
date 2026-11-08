@@ -13,9 +13,11 @@ import {
   applyMixins,
   deepClone,
   equal,
+  hasOwn,
   isFolder,
   isDocument,
-  pathsFromRoot
+  pathsFromRoot,
+  setOwn
 } from './util';
 
 let setupSync, syncOnConnect;
@@ -533,17 +535,17 @@ export class Sync {
 
       if (node.common.itemsMap) {
         for (const itemName in node.common.itemsMap) {
-          if (!node.local.itemsMap[itemName]) {
+          if (!hasOwn(node.local.itemsMap, itemName) || !node.local.itemsMap[itemName]) {
             // Indicates the node is either newly being fetched, or
             // has been deleted locally (whether or not leading to
             // conflict); before listing it in local listings, check
             // if a local deletion exists.
-            node.local.itemsMap[itemName] = false;
+            setOwn(node.local.itemsMap, itemName, false);
           }
         }
 
         for (const itemName in node.local.itemsMap) {
-          if (!node.common.itemsMap[itemName]) {
+          if (!hasOwn(node.common.itemsMap, itemName) || !node.common.itemsMap[itemName]) {
             // When an item appears in a folder's local itemsMap, but
             // not in remote/common, it may or may not have been
             // changed or deleted locally. The local itemsMap may
@@ -746,7 +748,7 @@ export class Sync {
         if (changedNodes[nodePath] && meta[nodePath]['Content-Length']) {
           changedNodes[nodePath].remote.contentLength = meta[nodePath]['Content-Length'];
         }
-      } else if (missingChildren[nodePath.substring(path.length)] && node && node.common) {
+      } else if (hasOwn(missingChildren, nodePath.substring(path.length)) && node && node.common) {
         if (node.common.itemsMap) {
           for (const commonItem in node.common.itemsMap) {
             recurse[nodePath+commonItem] = true;
@@ -860,8 +862,8 @@ export class Sync {
     function collectMissingChildren (folder): void {
       if (folder && folder.itemsMap) {
         for (itemName in folder.itemsMap) {
-          if (!bodyOrItemsMap[itemName]) {
-            missingChildren[itemName] = true;
+          if (!hasOwn(bodyOrItemsMap as object, itemName) || !bodyOrItemsMap[itemName]) {
+            setOwn(missingChildren, itemName, true);
           }
         }
       }
@@ -885,7 +887,7 @@ export class Sync {
 
       node.remote.itemsMap = {};
       for (itemName in bodyOrItemsMap as RSItem["itemsMap"]) {
-        node.remote.itemsMap[itemName] = true;
+        setOwn(node.remote.itemsMap, itemName, true);
       }
     } else {
       node.remote.body = bodyOrItemsMap;
@@ -895,7 +897,7 @@ export class Sync {
         itemName = path.substring(parentPath.length);
 
         if (bodyOrItemsMap !== false) {
-          parentNode.local.itemsMap[itemName] = true;
+          setOwn(parentNode.local.itemsMap, itemName, true);
         } else {
           if (parentNode.local.itemsMap[itemName]) {
             // node is 404 on remote, can safely be removed from

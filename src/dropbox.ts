@@ -6,6 +6,7 @@ import UnauthorizedError from './unauthorized-error';
 import {
   applyMixins,
   isFolder,
+  setOwn,
   shouldBeTreatedAsBinary,
   stripLegacyCharsetBinary,
   getJSONFromLocalStorage,
@@ -311,10 +312,10 @@ class Dropbox extends RemoteBase implements Remote {
           const isDir = item['.tag'] === 'folder';
           const itemName = item.path_display.split('/').slice(-1)[0] + (isDir ? '/' : '');
           if (isDir) {
-            map[itemName] = {ETag: revCache.get(path + itemName)};
+            setOwn(map, itemName, {ETag: revCache.get(path + itemName)});
           } else {
             const date = new Date(item.server_modified);
-            map[itemName] = {ETag: item.rev, 'Content-Length': item.size, 'Last-Modified': date.toUTCString()};
+            setOwn(map, itemName, {ETag: item.rev, 'Content-Length': item.size, 'Last-Modified': date.toUTCString()});
             this._revCache.set(path + itemName, item.rev);
           }
         } catch (err) {
@@ -325,7 +326,10 @@ class Dropbox extends RemoteBase implements Remote {
 
       if (body.has_more) {
         return loadNext(body.cursor).then(function (nextListing) {
-          return Object.assign(listing, nextListing);
+          for (const itemName of Object.keys(nextListing)) {
+            setOwn(listing, itemName, nextListing[itemName]);
+          }
+          return listing;
         });
       }
 

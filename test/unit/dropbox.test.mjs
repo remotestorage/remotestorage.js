@@ -542,6 +542,34 @@ describe('Dropbox backend', () => {
       // expect(result.body['File3']).to.have.property('Content-Type').which.is.a('string');
     });
 
+    it("keeps items named __proto__ and constructor in folder listings", async () => {
+      function file(name) {
+        return {
+          ".tag": "file",
+          name: name,
+          path_lower: "/remotestorage/stuff/" + name.toLowerCase(),
+          path_display: "/remotestorage/stuff/" + name,
+          id: "id:" + name,
+          server_modified: "2022-04-27T13:55:03Z",
+          rev: "rev" + name,
+          size: 10
+        };
+      }
+      fetchMock.config.overwriteRoutes = false;
+      fetchMock.mock(
+        {method: 'POST', url: FOLDER_URL, repeat: 1},
+        {status: 200, body: JSON.stringify({entries: [file('__proto__')], has_more: true, cursor: 'cur1'})}
+      ).mock(
+        {method: 'POST', url: FOLDER_URL + '/continue'},
+        {status: 200, body: JSON.stringify({entries: [file('constructor')], has_more: false, cursor: 'cur2'})}
+      );
+      const result = await dropbox.get('/stuff/');
+
+      expect(Object.keys(result.body)).to.deep.equal(['__proto__', 'constructor']);
+      expect(result.body).to.have.own.property('__proto__').which.has.property('ETag', 'rev__proto__');
+      expect(result.body).to.have.own.property('constructor').which.has.property('ETag', 'revconstructor');
+    });
+
     /* happy path */
     it('text file with success emits wire-busy & wire-done but not network-online if remote.online was true', async () => {
       const mockNetworkOnline = sinon.spy();

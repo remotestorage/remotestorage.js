@@ -429,6 +429,18 @@ describe('WireClient', () => {
       expect(res.body['two/']['ETag']).to.equal('etag2');
     });
 
+    it('keeps items named __proto__ and constructor in pre-02 folder listings', async () => {
+      fetchMock.mock(`${BASE_URI}/foo/01/`, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+        body: '{"__proto__":"etag1","constructor":"etag2"}' }
+      );
+      const res = await connectedClient.get('/foo/01/');
+      expect(Object.keys(res.body)).to.deep.equal(['__proto__', 'constructor']);
+      expect(res.body).to.have.own.property('__proto__').that.deep.equals({ ETag: 'etag1' });
+      expect(res.body).to.have.own.property('constructor').that.deep.equals({ ETag: 'etag2' });
+    });
+
     it('unpacks -02 folder listings', async () => {
       fetchMock.mock(`${BASE_URI}/foo/02/`, {
         status: 200,

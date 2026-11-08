@@ -49,6 +49,32 @@ export const isDocument = (path: string): boolean => {
   return !isFolder(path);
 };
 
+/**
+ * Check whether `obj` has its own property `key`.
+ *
+ * Folder item names can be any string, including names of inherited
+ * properties like `constructor` or `__proto__`, so item maps must not be
+ * checked with `obj[key]` or `key in obj`.
+ */
+export const hasOwn = (obj: object, key: string): boolean => {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+};
+
+/**
+ * Set `obj[key]` as an own, enumerable property.
+ *
+ * Unlike `obj[key] = value`, this also works when `key` is `__proto__`, where
+ * plain assignment would change the object's prototype instead.
+ */
+export const setOwn = (obj: object, key: string, value: unknown): void => {
+  Object.defineProperty(obj, key, {
+    value: value,
+    writable: true,
+    enumerable: true,
+    configurable: true
+  });
+};
+
 export const baseName = (path: string): string => {
   const parts = path.split('/');
   if (isFolder(path)) {
@@ -114,18 +140,18 @@ export const equal = (a: any, b: any, seen = []): boolean => {
   } else {
     // Check that keys from a exist in b
     for (key in a) {
-      if (a.hasOwnProperty(key) && !(key in b)) {
+      if (hasOwn(a, key) && !hasOwn(b, key)) {
         return false;
       }
     }
 
     // Check that keys from b exist in a, and compare the values
     for (key in b) {
-      if (!b.hasOwnProperty(key)) {
+      if (!hasOwn(b, key)) {
         continue;
       }
 
-      if (!(key in a)) {
+      if (!hasOwn(a, key)) {
         return false;
       }
 

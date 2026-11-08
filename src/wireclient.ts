@@ -42,6 +42,7 @@ import {
   getTextFromArrayBuffer,
   isFolder,
   localStorageAvailable,
+  setOwn,
   shouldBeTreatedAsBinary,
   stripLegacyCharsetBinary
 } from './util';
@@ -509,7 +510,7 @@ class WireClient extends RemoteBase implements Remote {
             // < 02 spec
             Object.keys(r.body).forEach((key) => {
               this._revisionCache[path + key] = r.body[key];
-              itemsMap[key] = {'ETag': r.body[key]};
+              setOwn(itemsMap, key, {'ETag': r.body[key]});
             });
           }
           r.body = itemsMap;

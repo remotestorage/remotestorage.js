@@ -4,6 +4,7 @@ import {
   applyMixins,
   isFolder,
   cleanPath,
+  setOwn,
   shouldBeTreatedAsBinary,
   stripLegacyCharsetBinary,
   getJSONFromLocalStorage,
@@ -520,11 +521,11 @@ class GoogleDrive extends RemoteBase implements Remote {
             };
           } else {
             this._fileIdCache.set(path + cleanPath(item.title), item.id);
-            itemsMap[item.title] = {
+            setOwn(itemsMap, item.title, {
               ETag: etagWithoutQuotes,
               'Content-Type': item.mimeType,
               'Content-Length': item.fileSize
-            };
+            });
           }
         }
 
