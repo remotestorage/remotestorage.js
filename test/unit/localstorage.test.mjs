@@ -148,9 +148,12 @@ describe('LocalStorage', function() {
       const rs = new RemoteStorage();
       // Queued on the pending get/put/delete wrappers before the features load.
       const queued = rs.get('/notes/private.txt');
+      let disconnected = false;
 
       await new Promise((resolve) => {
         rs.on('ready', () => {
+          if (disconnected) { return; }
+          disconnected = true;
           rs.disconnect();
           resolve();
         });
@@ -161,6 +164,39 @@ describe('LocalStorage', function() {
       const result = await Promise.race([
         queued.then(() => 'settled', () => 'settled'),
         new Promise((resolve) => setTimeout(() => resolve('pending'), 100))
+      ]);
+
+      expect(result).to.equal('settled');
+    });
+
+    it('settles a queued operation when disconnect cleanup is asynchronous', async function() {
+      localStorage.setItem(WIRECLIENT_SETTINGS_KEY, JSON.stringify({
+        userAddress: 'user@example.com',
+        href: 'https://storage.example.com/user/',
+        storageApi: 'draft-dejong-remotestorage-02',
+        token: 'access-token'
+      }));
+
+      const rs = new RemoteStorage();
+      const queued = rs.get('/notes/private.txt');
+      let disconnected = false;
+
+      await new Promise((resolve) => {
+        rs.on('ready', () => {
+          if (disconnected) { return; }
+          disconnected = true;
+          // Simulate an async backend cleanup (e.g. IndexedDB), which defers
+          // `_init()` — and its generation bump — past this synchronous
+          // `featuresLoaded()` invocation.
+          rs._cleanups.push(() => new Promise((r) => setTimeout(r, 20)));
+          rs.disconnect();
+          resolve();
+        });
+      });
+
+      const result = await Promise.race([
+        queued.then(() => 'settled', () => 'settled'),
+        new Promise((resolve) => setTimeout(() => resolve('pending'), 300))
       ]);
 
       expect(result).to.equal('settled');
