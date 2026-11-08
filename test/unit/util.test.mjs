@@ -90,6 +90,29 @@ describe('util', () => {
       expect(equal({key: null}, {key: null})).to.equal(true);
     });
 
+    it('does not treat inherited properties as keys when comparing objects', () => {
+      const equal = util.equal;
+      const withProto = JSON.parse('{"__proto__": true}');
+
+      expect(equal({ constructor: true }, {})).to.equal(false);
+      expect(equal({}, { constructor: true })).to.equal(false);
+      expect(equal(withProto, {})).to.equal(false);
+      expect(equal({}, withProto)).to.equal(false);
+      expect(equal(withProto, JSON.parse('{"__proto__": true}'))).to.equal(true);
+    });
+
+    it('sets own properties, also for __proto__', () => {
+      const obj = {};
+      util.setOwn(obj, '__proto__', true);
+      util.setOwn(obj, 'constructor', true);
+
+      expect(Object.keys(obj)).to.deep.equal(['__proto__', 'constructor']);
+      expect(Object.getPrototypeOf(obj)).to.equal(Object.prototype);
+      expect(util.hasOwn(obj, '__proto__')).to.equal(true);
+      expect(util.hasOwn({}, '__proto__')).to.equal(false);
+      expect(util.hasOwn({}, 'constructor')).to.equal(false);
+    });
+
     it('clones objects deeply', () => {
       const deepClone = util.deepClone;
       const obj = { str: 'a', i: 0, b: true };

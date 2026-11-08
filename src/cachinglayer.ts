@@ -14,6 +14,7 @@ import {
   isDocument,
   isFolder,
   pathsFromRoot,
+  setOwn,
   stripLegacyCharsetBinary
 } from './util';
 
@@ -85,7 +86,7 @@ function updateFolderNodeWithItemName (node: RSNode, itemName: string): RSNode {
   if (!node.local.itemsMap) {
     node.local.itemsMap = node.common.itemsMap;
   }
-  node.local.itemsMap[itemName] = true;
+  setOwn(node.local.itemsMap, itemName, true);
 
   return node;
 }

@@ -801,6 +801,88 @@ describe("Sync", function() {
       });
     });
 
+    describe("Items named like Object.prototype properties", function() {
+      it("keeps fetched folder items named __proto__ and constructor", async function() {
+        await this.rs.sync.handleResponse("/foo/", "get", {
+          statusCode: 200,
+          body: JSON.parse('{"__proto__": {"ETag": "one"}, "constructor": {"ETag": "two"}, "bar": {"ETag": "three"}}'),
+          contentType: "application/ld+json",
+          revision: "newfolderrevision"
+        });
+
+        const nodes = await this.rs.local.getNodes(["/foo/"]);
+        expect(Object.keys(nodes["/foo/"].common.itemsMap).sort()).to.deep.equal([
+          "__proto__", "bar", "constructor"
+        ]);
+
+        const res = await this.rs.local.get("/foo/", false);
+        expect(Object.keys(res.body).sort()).to.deep.equal([
+          "__proto__", "bar", "constructor"
+        ]);
+      });
+
+      it("removes an item named constructor that was deleted on remote", async function() {
+        await this.rs.local.setNodes({
+          "/foo/": {
+            path: "/foo/",
+            common: {
+              itemsMap: { "bar": true, "constructor": true },
+              revision: "remotefolderrevision",
+              timestamp: 1397210425598
+            }
+          },
+          "/foo/constructor": {
+            path: "/foo/constructor",
+            common: {
+              body: "old", contentType: "text/plain",
+              revision: "olddocrevision", timestamp: 1234567891000
+            }
+          }
+        });
+
+        await this.rs.sync.handleResponse("/foo/", "get", {
+          statusCode: 200, body: { "bar": { "ETag": "bardocrevision" } },
+          contentType: "application/ld+json",
+          revision: "newfolderrevision"
+        });
+
+        const nodes = await this.rs.local.getNodes(["/foo/", "/foo/constructor"]);
+        expect(nodes["/foo/"].common.itemsMap).to.deep.equal({ "bar": true });
+        expect(nodes["/foo/constructor"]).to.be.undefined;
+      });
+
+      it("keeps a local item named constructor when a sibling is fetched", async function() {
+        await this.rs.local.setNodes({
+          "/foo/": {
+            path: "/foo/",
+            common: {
+              itemsMap: { "bar": true },
+              revision: "remotefolderrevision",
+              timestamp: 1397210425598
+            },
+            local: {
+              itemsMap: { "bar": true, "constructor": true },
+              timestamp: 1397210425612
+            }
+          },
+          "/foo/constructor": {
+            path: "/foo/constructor",
+            local: {
+              body: "new", contentType: "text/plain", timestamp: 1234567891000
+            }
+          }
+        });
+
+        await this.rs.sync.handleResponse("/foo/bar", "get", {
+          statusCode: 200, body: "bar", contentType: "text/plain",
+          revision: "bardocrevision"
+        });
+
+        const res = await this.rs.local.get("/foo/", false);
+        expect(Object.keys(res.body).sort()).to.deep.equal(["bar", "constructor"]);
+      });
+    });
+
     describe("Documents deleted both locally and on remote", function() {
       beforeEach(async function() {
         // three and four deleted on remote, three also deleted locally

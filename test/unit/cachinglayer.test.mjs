@@ -128,6 +128,23 @@ describe("CachingLayer", function() {
     });
   });
 
+  describe("folder listings with item names of Object.prototype properties", function() {
+    it("lists local items named __proto__ and constructor", async function() {
+      await this.rs.local.put('/bar/__proto__', 'one', 'text/plain');
+      await this.rs.local.put('/bar/constructor', 'two', 'text/plain');
+      await this.rs.local.put('/bar/baz/__proto__', 'three', 'text/plain');
+
+      const res = await this.rs.local.get('/bar/', false);
+      expect(res.statusCode).to.equal(200);
+      expect(Object.keys(res.body).sort()).to.deep.equal(['__proto__', 'baz/', 'constructor']);
+      expect(res.body).to.have.own.property('__proto__', true);
+      expect(res.body).to.have.own.property('constructor', true);
+
+      const subRes = await this.rs.local.get('/bar/baz/', false);
+      expect(Object.keys(subRes.body)).to.deep.equal(['__proto__']);
+    });
+  });
+
   describe("#delete", function() {
     describe("when connected", function() {
       beforeEach(async function() {
