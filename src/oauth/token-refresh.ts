@@ -38,12 +38,16 @@ export async function requestRefreshedToken (tokenURL: string, clientId: string,
   const response = xhr?.response;
   if (xhr?.status === 200 && typeof response?.access_token === 'string' && response.access_token) {
     log(`[token-refresh] access token good for ${response.expires_in} seconds`);
-    return {
+    const refreshed: RefreshedToken = {
       token: response.access_token,
-      tokenType: response.token_type,
-      // Set only when the server rotates it
-      refreshToken: response.refresh_token
+      tokenType: response.token_type
     };
+    // Set only when the server rotates it to a valid value; a null or empty
+    // refresh_token must not discard the token we already have.
+    if (typeof response.refresh_token === 'string' && response.refresh_token) {
+      refreshed.refreshToken = response.refresh_token;
+    }
+    return refreshed;
   }
   if (response?.error === 'invalid_grant') {
     throw new UnauthorizedError('refresh token rejected: ' + JSON.stringify(response));

@@ -614,6 +614,64 @@ describe('Dropbox backend', () => {
       expect(done.args[1][0]).to.include({ success: false });
     });
 
+    it("does not retry when the session ends after the refresh", async () => {
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})};
+      });
+      mockTokenResponse({status: 200, body: JSON.stringify({access_token: NEW_TOKEN, token_type: 'bearer'})});
+      const errorSpy = sinon.spy();
+      const done = sinon.spy();
+      let doneCount = 0;
+      rs.on('error', errorSpy);
+      rs.on('wire-done', event => {
+        done(event);
+        doneCount++;
+        if (doneCount === 2) {
+          // The refresh completed; the session ends before the retry starts
+          dropbox.connected = false;
+          dropbox.token = null;
+          dropbox.refreshToken = null;
+        }
+      });
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 401);
+      expect(getFileCalls).to.equal(1);
+      expect(fetchMock.calls('postToken')).to.have.lengthOf(1);
+      expect(errorSpy.called).to.equal(true);
+      expect(errorSpy.firstCall.args[0]).to.have.property('name', 'Unauthorized');
+      expect(dropbox.connected).to.be.false;
+      expect(dropbox.token).to.be.null;
+      expect(done.callCount).to.equal(2);
+    });
+
+    it("does not retry when the session ends during a 429 delay", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+      });
+      const networkOfflineSpy = sinon.spy();
+      rs.on('network-offline', networkOfflineSpy);
+      setTimeout(() => {
+        dropbox.connected = false;
+        dropbox.token = null;
+        dropbox.refreshToken = null;
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 429);
+      expect(getFileCalls).to.equal(1);
+      expect(networkOfflineSpy.called).to.equal(true);
+      expect(dropbox.connected).to.be.false;
+      expect(dropbox.token).to.be.null;
+    });
+
     it("retries a late 401 with the token another request refreshed", async () => {
       let getFileCalls = 0;
       fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, (_url, opts) => {

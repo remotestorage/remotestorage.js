@@ -736,6 +736,12 @@ class Dropbox extends RemoteBase implements Remote {
             return xhr;
           }
           this.rs._emit('wire-done', { ...wireEvent, success: true });
+          if (!this.connected || this.token !== newToken) {
+            // The session changed while the refresh was in flight; do not
+            // replay this request against the old account.
+            this.rs._emit('error', new UnauthorizedError());
+            return xhr;
+          }
           // re-runs original request
           return this._request(method, url, options, numAttempts + 1, newToken);
         }
@@ -754,6 +760,11 @@ class Dropbox extends RemoteBase implements Remote {
           return xhr;
         } else {
           await new Promise(resolve => setTimeout(resolve, retryAfterMs(xhr)));
+          if (!this.connected || this.token !== token) {
+            // The session changed while waiting; do not replay this request
+            // against the old account.
+            return xhr;
+          }
           // re-runs original request
           return this._request(method, url, options, numAttempts+1, token);
         }

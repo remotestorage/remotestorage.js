@@ -32,6 +32,19 @@ describe('token refresh', () => {
       expect(body.get('refresh_token')).to.equal(REFRESH_TOKEN);
     });
 
+    for (const refreshToken of [null, '']) {
+      it(`omits a ${refreshToken === null ? 'null' : 'empty'} refresh_token from the response`, async () => {
+        fetchMock.mock(
+          { method: 'POST', url: TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer', refresh_token: refreshToken }) }
+        );
+
+        const refreshed = await requestRefreshedToken(TOKEN_URL, 'client', REFRESH_TOKEN);
+
+        expect(refreshed).to.deep.equal({ token: 'new', tokenType: 'bearer' });
+      });
+    }
+
     it('throws Unauthorized only when the refresh token is rejected (invalid_grant)', async () => {
       fetchMock.mock(
         { method: 'POST', url: TOKEN_URL },

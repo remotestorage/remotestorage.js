@@ -64,6 +64,24 @@ describe('RemoteBase token refresh', () => {
     expect(storeTokensSpy.getCall(0).args).to.deep.equal(['new', undefined, undefined]);
   });
 
+  it('keeps the refresh token when the server sends a null refresh_token', async () => {
+    const remote = new MockRemote(new RemoteStorage());
+    remote.token = 'old-token';
+    remote.refreshToken = REFRESH_TOKEN;
+    const storeTokensSpy = sinon.spy(remote, '_storeTokens');
+    fetchMock.mock(
+      { name: 'postToken', method: 'POST', url: TOKEN_URL },
+      { status: 200, body: JSON.stringify({ access_token: 'new', token_type: 'bearer', refresh_token: null }) }
+    );
+
+    const result = await remote._refreshAfter401('old-token');
+
+    expect(result).to.equal('new');
+    expect(remote.token).to.equal('new');
+    expect(remote.refreshToken).to.equal(REFRESH_TOKEN);
+    expect(storeTokensSpy.getCall(0).args).to.deep.equal(['new', undefined, 'bearer']);
+  });
+
   for (const status of [500, 429]) {
     it(`keeps the tokens on a transient server error (${status})`, async () => {
       const remote = new MockRemote(new RemoteStorage());
@@ -172,6 +190,31 @@ describe('RemoteBase token refresh', () => {
     );
 
     const result = await remote._refreshAfter401('old-token');
+
+    expect(result).to.be.null;
+    expect(storeTokensSpy.called).to.equal(false);
+    expect(remote.token).to.equal('session2-token');
+    expect(remote.refreshToken).to.equal('session2-refresh');
+  });
+
+  it('does not clear replacement tokens when a refresh is rejected after the session changed', async () => {
+    const remote = new MockRemote(new RemoteStorage());
+    remote.token = 'old-token';
+    remote.refreshToken = REFRESH_TOKEN;
+    const storeTokensSpy = sinon.spy(remote, '_storeTokens');
+    let resolveRefresh;
+    fetchMock.mock(
+      { name: 'postToken', method: 'POST', url: TOKEN_URL },
+      () => new Promise(resolve => { resolveRefresh = resolve; })
+    );
+
+    const refresh = remote._refreshAfter401('old-token');
+    await Promise.resolve();
+    remote.token = 'session2-token';
+    remote.refreshToken = 'session2-refresh';
+    resolveRefresh({ status: 400, body: JSON.stringify({ error: 'invalid_grant' }) });
+
+    const result = await refresh;
 
     expect(result).to.be.null;
     expect(storeTokensSpy.called).to.equal(false);
