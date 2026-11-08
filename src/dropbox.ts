@@ -221,6 +221,12 @@ class Dropbox extends RemoteBase implements Remote {
    **/
   async configure (settings: RemoteSettings): Promise<void> {
     const wasConnected = this.connected;
+    const tokenChanged = typeof settings.token !== 'undefined' && settings.token !== this.token;
+    const refreshTokenChanged = typeof settings.refreshToken !== 'undefined' && settings.refreshToken !== this.refreshToken;
+    if (tokenChanged || refreshTokenChanged) {
+      // A new or changed token is a new session, not a refresh of this one
+      this._lastRefresh = null;
+    }
 
     // We only update this.userAddress if settings.userAddress is set to a string or to null:
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
@@ -683,7 +689,7 @@ class Dropbox extends RemoteBase implements Remote {
    *
    * @private
    */
-  async _request (method: string, url: string, options, numAttempts = 1, token: string | false = this.token): Promise<any> {
+  async _request (method: string, url: string, options, numAttempts = 1, token: string | false = this.token, requestRefreshToken: string | null = this.refreshToken): Promise<any> {
     if (this.isForbiddenRequestMethod(method, url)) {
       throw `Don't use ${method} on directories!`;
     }
@@ -736,14 +742,16 @@ class Dropbox extends RemoteBase implements Remote {
             return xhr;
           }
           this.rs._emit('wire-done', { ...wireEvent, success: true });
-          if (!this.connected || this.token !== newToken) {
+          const retryToken = this._sessionRetryToken(token, token, requestRefreshToken) ||
+            this._sessionRetryToken(newToken, newToken, requestRefreshToken);
+          if (!retryToken) {
             // The session changed while the refresh was in flight; do not
             // replay this request against the old account.
             this.rs._emit('error', new UnauthorizedError());
             return xhr;
           }
           // re-runs original request
-          return this._request(method, url, options, numAttempts + 1, newToken);
+          return this._request(method, url, options, numAttempts + 1, retryToken, requestRefreshToken);
         }
         // No refresh token, so the session cannot be continued
         this.rs._emit('error', new UnauthorizedError());
@@ -760,13 +768,14 @@ class Dropbox extends RemoteBase implements Remote {
           return xhr;
         } else {
           await new Promise(resolve => setTimeout(resolve, retryAfterMs(xhr)));
-          if (!this.connected || this.token !== token) {
-            // The session changed while waiting; do not replay this request
-            // against the old account.
+          const retryToken = this._sessionRetryToken(token, token, requestRefreshToken);
+          if (!retryToken) {
+            // The session ended or was replaced while waiting; do not replay
+            // this request against the old account.
             return xhr;
           }
           // re-runs original request
-          return this._request(method, url, options, numAttempts+1, token);
+          return this._request(method, url, options, numAttempts+1, retryToken, requestRefreshToken);
         }
       } else {
         return xhr;

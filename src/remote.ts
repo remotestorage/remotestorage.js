@@ -27,8 +27,11 @@ export class RemoteBase extends EventHandling {
    */
   _refreshing: { token: string | false; refreshToken: string | null; promise: Promise<string | null> } | null = null;
 
-  /** The last successful refresh: which token it replaced, with which */
-  _lastRefresh: { from: string | false; to: string } | null = null;
+  /**
+   * The last successful refresh: which token and refresh token it replaced,
+   * with which. The refresh token is the session's stable identity.
+   */
+  _lastRefresh: { from: string | false; to: string; refreshToken: string | null } | null = null;
 
   constructor(rs: RemoteStorage) {
     super();
@@ -83,7 +86,8 @@ export class RemoteBase extends EventHandling {
     if (usedToken === false) {
       return null;
     }
-    if (this._lastRefresh?.from === usedToken && this._lastRefresh.to === this.token) {
+    if (this._lastRefresh?.from === usedToken && this._lastRefresh.to === this.token &&
+        this._lastRefresh.from !== this._lastRefresh.to) {
       return this.token;   // another request has refreshed it meanwhile
     }
     // Otherwise the token changed for another reason (e.g. connect() or
@@ -100,6 +104,29 @@ export class RemoteBase extends EventHandling {
       this._refreshing = refreshing;
     }
     return this._refreshing.promise;
+  }
+
+  /**
+   * The access token to retry a request with when the session is still the
+   * same, or null when the session ended or was replaced. A successful refresh
+   * changes the access token without changing the session, so `_lastRefresh`
+   * tells those two cases apart.
+   */
+  _sessionRetryToken (usedToken: string | false, refreshedToken: string | false = usedToken, requestRefreshToken: string | null = this.refreshToken): string | null {
+    if (!this.connected || usedToken === false || refreshedToken === false) { return null; }
+    if (this._lastRefresh?.from === usedToken && this._lastRefresh.to === this.token &&
+        this._lastRefresh.refreshToken === this.refreshToken) {
+      return this.token;
+    }
+    if (refreshedToken !== usedToken &&
+        this._lastRefresh?.from === refreshedToken && this._lastRefresh.to === this.token &&
+        this._lastRefresh.refreshToken === this.refreshToken) {
+      return this.token;
+    }
+    if (this.token === refreshedToken && this.refreshToken === requestRefreshToken) {
+      return refreshedToken;
+    }
+    return null;
   }
 
   /**
@@ -125,11 +152,11 @@ export class RemoteBase extends EventHandling {
       const refreshed = await requestRefreshedToken(this.TOKEN_URL as string, this.clientId as string, refreshToken as string);
       if (!sessionUnchanged()) { return null; }
       this._storeTokens(refreshed.token, refreshed.refreshToken, refreshed.tokenType);
+      this._lastRefresh = { from: tokenAtStart, to: refreshed.token, refreshToken: this.refreshToken ?? null };
       if (refreshed.token === tokenAtStart) {
         // The server returned the same token: retrying would only fail again.
         return null;
       }
-      this._lastRefresh = { from: tokenAtStart, to: refreshed.token };
       return refreshed.token;
     } catch (err) {
       log('[RemoteBase] Could not refresh the access token', err);

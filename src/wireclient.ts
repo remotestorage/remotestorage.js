@@ -213,7 +213,7 @@ class WireClient extends RemoteBase implements Remote {
         !stored.refreshToken || stored.refreshToken === this.refreshToken) {
       return null;
     }
-    this._lastRefresh = { from: this.token, to: stored.token };
+    this._lastRefresh = { from: this.token, to: stored.token, refreshToken: stored.refreshToken };
     this._storeTokens(stored.token, stored.refreshToken);
     return stored.token;
   }
@@ -320,6 +320,12 @@ class WireClient extends RemoteBase implements Remote {
   configure (settings: RemoteSettings): void {
     if (typeof settings !== 'object') {
       throw new Error('WireClient configure settings parameter should be an object');
+    }
+    const tokenChanged = typeof settings.token !== 'undefined' && settings.token !== this.token;
+    const refreshTokenChanged = typeof settings.refreshToken !== 'undefined' && settings.refreshToken !== this.refreshToken;
+    if (tokenChanged || refreshTokenChanged) {
+      // A new or changed token is a new session, not a refresh of this one
+      this._lastRefresh = null;
     }
     if (typeof settings.userAddress !== 'undefined') {
       this.userAddress = settings.userAddress;

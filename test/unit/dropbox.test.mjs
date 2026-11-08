@@ -672,6 +672,99 @@ describe('Dropbox backend', () => {
       expect(dropbox.token).to.be.null;
     });
 
+    it("retries with the refreshed token when the session refreshes during a 429 delay", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        if (getFileCalls === 1) {
+          return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+        }
+        return {status: 200, body: 'abc', headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}};
+      });
+      setTimeout(() => {
+        // Another request refreshes the same session while we back off, and
+        // the server rotates the refresh token
+        dropbox._storeTokens(NEW_TOKEN, 'rotated-refresh', 'bearer');
+        dropbox._lastRefresh = { from: ACCESS_TOKEN, to: NEW_TOKEN, refreshToken: 'rotated-refresh' };
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 200);
+      expect(getFileCalls).to.equal(2);
+      const calls = fetchMock.calls('getFile');
+      expect(calls[1][1].headers.Authorization).to.equal('Bearer ' + NEW_TOKEN);
+    });
+
+    it("retries after a same-session refresh that keeps the access token during a 429 delay", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        if (getFileCalls === 1) {
+          return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+        }
+        return {status: 200, body: 'abc', headers: {'Dropbox-API-Result': httpHeaderSafeJson(FILE_RESULT)}};
+      });
+      setTimeout(() => {
+        // Another request refreshes the same session; the server keeps the
+        // access token but rotates the refresh token
+        dropbox._storeTokens(ACCESS_TOKEN, 'rotated-refresh', 'bearer');
+        dropbox._lastRefresh = { from: ACCESS_TOKEN, to: ACCESS_TOKEN, refreshToken: 'rotated-refresh' };
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 200);
+      expect(getFileCalls).to.equal(2);
+      expect(fetchMock.calls('getFile')[1][1].headers.Authorization).to.equal('Bearer ' + ACCESS_TOKEN);
+    });
+
+    it("does not retry when the session is replaced during a 429 delay", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+      });
+      setTimeout(() => {
+        dropbox.connected = true;
+        dropbox.token = 'account2-token';
+        dropbox.refreshToken = 'account2-refresh';
+        dropbox._lastRefresh = null;
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 429);
+      expect(getFileCalls).to.equal(1);
+      expect(dropbox.token).to.equal('account2-token');
+      expect(dropbox.refreshToken).to.equal('account2-refresh');
+    });
+
+    it("does not retry when the session is replaced during a 429 delay with the same access token", async function () {
+      this.timeout(5000);
+      let getFileCalls = 0;
+      fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, () => {
+        getFileCalls++;
+        return {status: 429, headers: {'Retry-After': '1'}, body: JSON.stringify({error: 'too_many_requests'})};
+      });
+      setTimeout(() => {
+        // A replacement account with the same access token but a different
+        // refresh token is not the session that made the request
+        dropbox.token = ACCESS_TOKEN;
+        dropbox.refreshToken = 'account2-refresh';
+        dropbox._lastRefresh = null;
+      }, 0);
+
+      const result = await dropbox.get('/foo');
+
+      expect(result).to.have.property('statusCode', 429);
+      expect(getFileCalls).to.equal(1);
+      expect(dropbox.refreshToken).to.equal('account2-refresh');
+    });
+
     it("retries a late 401 with the token another request refreshed", async () => {
       let getFileCalls = 0;
       fetchMock.mock({name: 'getFile', url: DOWNLOAD_URL}, (_url, opts) => {
