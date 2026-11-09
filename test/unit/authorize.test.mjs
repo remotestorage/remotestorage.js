@@ -302,6 +302,31 @@ describe("Authorize", () => {
       expect(document.location.hash).to.equal('#foo=bar');
     });
 
+    it("keeps app query-string parameters when the implicit token is in the fragment", () => {
+      const mockRemote = new MockRemote({});
+      const rs = createStorage(mockRemote);
+      rs.remote = mockRemote;
+      document.location.href = 'https://example.com/app/?state=dashboard#access_token=foo&state=bar';
+
+      Authorize._rs_init(rs);
+      rs._handlers['features-loaded'][0]();
+
+      expect(document.location.search).to.equal('?state=dashboard');
+    });
+
+    it("keeps an app query-string parameter named 'code' when the implicit token is in the fragment", () => {
+      const mockRemote = new MockRemote({});
+      const rs = createStorage(mockRemote);
+      rs.remote = mockRemote;
+      // ?code=app&state=dashboard belong to the app; #access_token=foo is the OAuth response
+      document.location.href = 'https://example.com/app/?code=app&state=dashboard#access_token=foo';
+
+      Authorize._rs_init(rs);
+      rs._handlers['features-loaded'][0]();
+
+      expect(document.location.search).to.equal('?code=app&state=dashboard');
+    });
+
     it("when it sees a code but no code verifier, doesn't call remote.configure()", async () => {
       const rs = new RemoteStorage();
       const mockRemote = new MockRemote(rs);
@@ -516,6 +541,56 @@ describe("Authorize", () => {
         rs._handlers['features-loaded'][0]();
         await settled;
 
+        expect(document.location.hash).to.equal('#/notes/42');
+      });
+
+      it("keeps the code in the URL until the callback is handled, so a reload can retry", async () => {
+        storeTransaction();
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
+        );
+        const { rs, settled } = setUp();
+
+        // _rs_init has run, but features-loaded (which exchanges the code) has not
+        expect(document.location.search).to.equal(`?code=c0de&state=${STATE}`);
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(document.location.search).to.equal('');
+      });
+
+      it("removes the OAuth code and state from the URL once handled", async () => {
+        storeTransaction();
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
+        );
+        const { rs, settled } = setUp();
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(document.location.search).to.equal('');
+        expect(document.location.href).to.equal('https://example.org/app/');
+      });
+
+      it("keeps unrelated query parameters when removing the OAuth ones", async () => {
+        storeTransaction('#/notes/42');
+        document.location.href = `https://example.org/app/?foo=bar&code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ access_token: 'tok' }) }
+        );
+        const { rs, settled } = setUp();
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(document.location.search).to.equal('?foo=bar');
         expect(document.location.hash).to.equal('#/notes/42');
       });
 
