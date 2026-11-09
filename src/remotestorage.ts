@@ -378,6 +378,13 @@ export class RemoteStorage {
   _cleanups: [] = [];
 
   /**
+   * Bumped on every (re-)initialization of the feature modules, so an
+   * in-flight `featuresLoaded()` can detect that it has been superseded.
+   * @internal
+   */
+  _initGeneration = 0;
+
+  /**
    * TODO: document
    * @internal
    */
@@ -845,6 +852,13 @@ export class RemoteStorage {
    * cache.
    */
   disconnect (): void {
+    // Invalidate any in-flight featuresLoaded() right away: backend cleanup
+    // can be asynchronous (e.g. IndexedDB), so _init() — and its generation
+    // bump — may only run after the cleanup resolves. Without this, the old
+    // featuresLoaded() would keep going and drain pending operations into the
+    // temporary wrappers while the cleanup is still running.
+    this._initGeneration = (this._initGeneration || 0) + 1;
+
     if (this.remote) {
       this.remote.configure({
         userAddress: null,

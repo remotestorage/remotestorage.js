@@ -30,6 +30,10 @@ const Features = {
     this.features = [];
     this.featuresDone = 0;
     this.readyFired = false;
+    // Bumped on every (re-)initialization, e.g. after `disconnect()`. An
+    // in-flight `featuresLoaded()` compares against the value it captured, so
+    // it can stop when a handler has superseded it with a new initialization.
+    this._initGeneration = (this._initGeneration || 0) + 1;
 
     this.featureModules = {
       'WireClient': WireClient,
@@ -197,11 +201,17 @@ const Features = {
   },
 
   featuresLoaded () {
+    const generation = this._initGeneration;
     log(`[RemoteStorage] All features loaded`);
 
     this._setCachingModule();
     // eslint-disable-next-line new-cap
     this.local = config.cache && this.features.local && new this.features.local();
+
+    // Collect the cleanup hooks before any `ready`/`connected` handler can
+    // call `disconnect()`, so disconnecting from such a handler still cleans
+    // up the backend (e.g. the LocalStorage cache) on a restored session.
+    this._collectCleanupFunctions();
 
     // this.remote set by WireClient._rs_init as lazy property on
     // RS.prototype
@@ -223,7 +233,12 @@ const Features = {
       });
       if (this.remote.connected) {
         this._fireReady();
+        // A `ready` handler may have disconnected (e.g. a restored session
+        // logging out on load). That re-initializes everything, so stop this
+        // stale invocation instead of emitting events against the new session.
+        if (this._initGeneration !== generation) { return; }
         this._emit('connected');
+        if (this._initGeneration !== generation) { return; }
       }
 
       if (!this.hasFeature('Authorize')) {
@@ -231,7 +246,7 @@ const Features = {
       }
     }
 
-    this._collectCleanupFunctions();
+    if (this._initGeneration !== generation) { return; }
 
     try {
       this._allLoaded = true;
@@ -240,6 +255,7 @@ const Features = {
       logError(exc);
       this._emit('error', exc);
     }
+    if (this._initGeneration !== generation) { return; }
     this._processPending();
   },
 
