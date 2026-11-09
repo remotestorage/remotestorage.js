@@ -69,6 +69,13 @@ When caching is enabled, `storeFile()`, `storeObject()`, and `remove()` save
 changes locally first and synchronize them with the remote server
 automatically. In most apps, you do not need to trigger anything extra after
 writing data.
+
+A resolved write means the local adapter accepted the change, not that the
+server acknowledged it. The IndexedDB adapter queues database commits, so it
+also does not establish crash durability. Conflicting remote edits use the
+default remote-wins policy. See [sync invariants and current
+limits](../contributing/internals/sync-invariants) for the completion boundaries
+and known listing/concurrency gaps.
 :::
 
 [1]: ../api/remotestorage/classes/RemoteStorage
