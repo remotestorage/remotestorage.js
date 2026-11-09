@@ -148,16 +148,13 @@ abstract class CachingLayer {
     if (typeof (maxAge) === 'number') {
       return this.getNodes(pathsFromRoot(path))
         .then((objs) => {
-          const item: RSItem = getLatest(objs[path]);
+          const node: RSNode = objs[path];
+          const item: RSItem = getLatest(node);
 
           if (isOutdated(objs, maxAge)) {
             return queueGetRequest(path);
           } else if (item) {
-            return {
-              statusCode: 200,
-              body: item.body || item.itemsMap,
-              contentType: stripLegacyCharsetBinary(item.contentType || null)
-            };
+            return this._itemResponse(path, node, item);
           } else {
             return { statusCode: 404 };
           }
@@ -165,27 +162,67 @@ abstract class CachingLayer {
     } else {
       return this.getNodes([path])
         .then((objs) => {
-          const item: RSItem = getLatest(objs[path]);
+          const node: RSNode = objs[path];
+          const item: RSItem = getLatest(node);
 
           if (item) {
-            if (isFolder(path)) {
-              for (const i in item.itemsMap) {
-                // the hasOwnProperty check here is only because our jshint settings require it:
-                if (item.itemsMap.hasOwnProperty(i) && item.itemsMap[i] === false) {
-                  delete item.itemsMap[i];
-                }
-              }
-            }
-            return {
-              statusCode: 200,
-              body: item.body || item.itemsMap,
-              contentType: stripLegacyCharsetBinary(item.contentType || null)
-            };
+            return this._itemResponse(path, node, item);
           } else {
             return {statusCode: 404};
           }
         });
     }
+  }
+
+  /**
+   * Build the cached response for a single item.
+   *
+   * For folders, this produces a listing with the same shape as the wire
+   * client returns for a fresh remote folder description: each child name maps
+   * to its metadata object, or to `true` when no remote metadata is known (for
+   * example a locally created item that has not been synced yet). Children
+   * marked as deleted (`false` in the itemsMap) are omitted.
+   */
+  private _itemResponse (path: string, node: RSNode, item: RSItem): QueuedRequestResponse {
+    let body: string | object;
+
+    if (isFolder(path)) {
+      body = this._folderListing(node, item);
+    } else {
+      body = item.body || item.itemsMap;
+    }
+
+    return {
+      statusCode: 200,
+      body: body,
+      contentType: stripLegacyCharsetBinary(item.contentType || null)
+    };
+  }
+
+  /**
+   * Compose the cached folder listing body for `get`.
+   *
+   * Child existence is taken from the itemsMap of the latest version (`local`
+   * if present, otherwise `common`). Metadata is read from `common.itemsMeta`
+   * only: a folder's `local` copy can be a stale clone of an older `common`,
+   * so it must not be used as a metadata source.
+   */
+  private _folderListing (node: RSNode, item: RSItem): { [key: string]: unknown } {
+    const listing: { [key: string]: unknown } = {};
+    const itemsMap = item.itemsMap || {};
+    const itemsMeta = (node && node.common && node.common.itemsMeta) || {};
+
+    for (const itemName in itemsMap) {
+      if (!Object.prototype.hasOwnProperty.call(itemsMap, itemName)) { continue; }
+      if (itemsMap[itemName] === false) { continue; }
+
+      const meta = Object.prototype.hasOwnProperty.call(itemsMeta, itemName)
+        ? itemsMeta[itemName]
+        : undefined;
+      listing[itemName] = meta ? deepClone(meta) : true;
+    }
+
+    return listing;
   }
 
   async put (path: string, body: string | ArrayBuffer | ArrayBufferView, contentType: string): Promise<QueuedRequestResponse> {
@@ -257,6 +294,10 @@ abstract class CachingLayer {
           }
           const itemName = nodePaths[i - 1].substring(nodePath.length);
           delete node.local.itemsMap[itemName];
+
+          if (node.local.itemsMeta) {
+            delete node.local.itemsMeta[itemName];
+          }
 
           if (Object.getOwnPropertyNames(node.local.itemsMap).length > 0) {
             // This folder still contains other items, don't remove any further ancestors

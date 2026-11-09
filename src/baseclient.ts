@@ -294,28 +294,24 @@ export class BaseClient {
    *
    * ```js
    * {
-   *   "@context": "http://remotestorage.io/spec/folder-description",
-   *   "items": {
-   *     "thumbnails/": true,
-   *     "screenshot-20170902-1913.png": {
-   *       "ETag": "6749fcb9eef3f9e46bb537ed020aeece",
-   *       "Content-Length": 53698,
-   *       "Content-Type": "image/png"
-   *     },
-   *     "screenshot-20170823-0142.png": {
-   *       "ETag": "92ab84792ef3f9e46bb537edac9bc3a1",
-   *       "Content-Length": 412401,
-   *       "Content-Type": "image/png"
-   *     }
+   *   "thumbnails/": { "ETag": "6749fcb9eef3f9e46bb537ed020aeece" },
+   *   "screenshot-20170902-1913.png": {
+   *     "ETag": "6749fcb9eef3f9e46bb537ed020aeece",
+   *     "Content-Length": 53698,
+   *     "Content-Type": "image/png"
+   *   },
+   *   "screenshot-20170823-0142.png": {
+   *     "ETag": "92ab84792ef3f9e46bb537edac9bc3a1",
+   *     "Content-Length": 412401,
+   *     "Content-Type": "image/png"
    *   }
    * }
    * ```
    *
-   * > [!WARNING]
-   * > At the moment, this function only returns detailed metadata, when
-   * > caching is turned off. With caching turned on, it will only contain the
-   * > item names as properties with `true` as value. See issues 721 and 1108 —
-   * > contributions welcome!
+   * > [!NOTE]
+   * > Locally created items that have not been synced to the remote yet have
+   * > no metadata available, so they are listed with `true` as their value
+   * > until the next sync.
    */
   // TODO add real return type
   async getListing (path?: string, maxAge?: false | number): Promise<unknown> {
@@ -382,8 +378,10 @@ export class BaseClient {
    * ```
    * > [!NOTE]
    * > For items that are not JSON-stringified objects (for example stored using
-   * > {@link storeFile} instead of {@link storeObject}), the object's value is
-   * > filled in with `true`.
+   * > {@link storeFile} instead of {@link storeObject}), the item's value is
+   * > left as its folder-listing metadata object (its `ETag`, `Content-Type`,
+   * > and `Content-Length`). Locally created items that have not been synced
+   * > yet are left as `true`.
    *
    */
   // TODO add real return type
