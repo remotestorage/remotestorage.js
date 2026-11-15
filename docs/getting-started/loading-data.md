@@ -67,4 +67,52 @@ wait to check the remote storage for potential updates, set the optional `maxAge
 argument to `false`.
 :::
 
+## Handling bulk incoming changes
+
+During a sync cycle, the library emits a separate `change` event for each
+incoming item. If another device added 20 photos, your `change` handler fires
+20 times during that cycle.
+
+The most efficient approach is to handle each event individually — update a
+single item in your UI state rather than reloading the full collection:
+
+```js
+client.on('change', event => {
+  if (event.newValue) {
+    addOrUpdateItem(event.relativePath, event.newValue);
+  } else {
+    removeItem(event.relativePath);
+  }
+});
+```
+
+::: warning Avoid calling getAll() in a change handler
+Calling [getAll()][1] inside a `change` handler means rereading the entire local
+cache on every incoming item. During a bulk sync this causes redundant reads
+against a cache that is still being populated.
+:::
+
+If your app architecture requires reloading full collections (e.g. a reactive
+store that replaces the entire items object), you can use `change` events as a
+signal and defer the reload until the sync cycle completes:
+
+```js
+let hasChanges = false;
+
+client.on('change', () => {
+  hasChanges = true;
+});
+
+remoteStorage.on('sync-done', () => {
+  if (hasChanges) {
+    hasChanges = false;
+    reloadFromCache(); // single getAll() call per cycle
+  }
+});
+```
+
+Note that `sync-done` fires at the end of every sync cycle — including idle
+ones where nothing changed. The `hasChanges` flag ensures you only reload when
+data has actually been updated.
+
 [1]: ../api/baseclient/classes/BaseClient.html#getall
