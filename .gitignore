@@ -12,3 +12,5 @@ tags
 docs/api/index.md
 docs/.vitepress/dist/
 skills-lock.json
+examples/solid/test-results/
+examples/solid/playwright-report/

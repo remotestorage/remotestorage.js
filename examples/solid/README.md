@@ -42,3 +42,24 @@ documented in the [Solid guide](../../docs/solid.md).
 
 `SOLID_BUNDLE_DIRECTORY` optionally selects a directory containing a separately
 built `remotestorage-solid.js`, its source map, and its license file.
+
+## Two-browser regression test
+
+After building the Solid bundle and installing this example's dependencies:
+
+```sh
+npm run test:install-browser --prefix examples/solid
+npm run test:browser --prefix examples/solid
+```
+
+Run these from the repository root. Ports 3000 and 8787 must be free. The test
+starts a fresh in-memory CSS 7.2.0 instance, creates temporary random credentials,
+and logs in through the real browser OIDC flow in two isolated Chromium contexts.
+The temporary account seed is removed when the server exits.
+
+It checks nested file updates with polling slowed to ten minutes, observes real
+WebSocket notification frames, discovers additions and deletions, then disconnects
+one client's network and sockets while the other edits the pod. It verifies
+reconciliation after reconnect and reload, polling without notifications, stale
+write/delete rejection, and disconnect cleanup. It reads the local cache when
+asserting synchronization, rather than accidentally refreshing through test reads.

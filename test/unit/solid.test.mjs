@@ -25,7 +25,8 @@ function fakeRS() {
   return {
     _emit: sinon.spy(),
     setBackend(type) { this.backend = type; },
-    on: sinon.spy()
+    on: sinon.spy(),
+    removeEventListener: sinon.spy()
   };
 }
 
@@ -516,6 +517,21 @@ describe('Solid backend', () => {
       finish();
       await cleanup;
       expect(complete).to.equal(true);
+    });
+
+    it('awaits notification cleanup begun by disconnect configuration before logging out', async () => {
+      rs.solid = solid;
+      rs.remote = solid;
+      rs.backend = 'solid';
+      let finish;
+      solid.notifications = { stop: () => new Promise(resolve => { finish = resolve; }) };
+      const logout = sinon.stub(solid.session, 'logout').resolves();
+      solid.configure({ properties: null });
+      const cleanup = Solid._rs_cleanup(rs);
+      expect(logout.called).to.equal(false);
+      finish();
+      await cleanup;
+      expect(logout.calledOnce).to.equal(true);
     });
   });
 

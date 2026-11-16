@@ -90,6 +90,41 @@ It does not sign the user out of their identity provider in other apps.
 Tokens and DPoP keys stay in the SDK's in-memory secure store. Non-secret login
 state is kept separately in namespaced browser storage, not in app data.
 
+## Notifications and recovery
+
+With caching enabled, the Solid backend discovers `WebSocketChannel2023`
+services through the pod's `describedby` / `solid:storageDescription` links.
+Subscriptions use the existing authenticated session. Files and containers
+are watched separately: a container subscription is not a recursive watch of
+every descendant. File events trigger revalidation of that file; container
+membership events trigger a fresh listing and normal cache synchronization.
+Notifications never replace conditional writes or the existing conflict policy.
+
+The adapter subscribes to cached resources that the app has permission to read,
+with at most 64 channels and four subscription requests in flight. Existing
+subscriptions are kept stable; resources beyond that limit still synchronize
+through periodic checks. Notifications are optional: discovery, subscription,
+or WebSocket failures do not prevent file operations.
+
+Recovery checks run when connecting, returning online, or returning to a visible
+tab. Each socket opening also triggers a fresh read of its topic, closing the
+read/subscribe gap. Channels are retried with bounded backoff, renewed, and
+closed when their resource leaves the cache or the app disconnects. CSS channel
+deletion is attempted during cleanup; expiry is requested when supported.
+
+Solid container ETags do not certify the state of all descendants. Periodic
+sync therefore checks each stale cached resource directly, including when no
+notifications are available. It does not discard a child check just because an
+ancestor is also queued. A notification arriving during a request queues a
+subsequent revalidation. These checks use the configured sync intervals and
+may require more requests than a recursive remoteStorage folder validator.
+
+The implementation supports the compact JSON-LD subscription response and
+ActivityStreams event shapes used by CSS 7.2.0. It does not implement legacy
+`Updates-Via` notifications, arbitrary JSON-LD event compaction, or event replay.
+Other providers require integration testing. Cache-disabled apps continue to
+read directly from the pod and do not create notification subscriptions.
+
 ## Server requirements and limitations
 
 - The provider must support Solid-OIDC browser login and advertise pods with

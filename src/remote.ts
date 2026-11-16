@@ -76,6 +76,9 @@ export interface RemoteResponse {
  * The public interface for WireClient, GoogleDrive & Dropbox
  */
 export interface Remote {
+  /** Whether a folder validator covers every descendant. Defaults to true. @internal */
+  folderETagsAreRecursive?: boolean;
+
   /**
    * Whether or not a remote store is connected
    */

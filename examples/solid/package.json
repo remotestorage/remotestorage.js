@@ -6,6 +6,11 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.cjs"
+    "start": "node server.cjs",
+    "test:browser": "playwright test",
+    "test:install-browser": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
   }
 }

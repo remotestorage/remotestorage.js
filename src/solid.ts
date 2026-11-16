@@ -6,6 +6,7 @@ import type { Remote, RemoteResponse, RemoteSettings } from './remote';
 import config from './config';
 import { cleanPath, getJSONFromLocalStorage, localStorageAvailable } from './util';
 import SolidStorage from './solid-storage';
+import { SolidNotifications } from './solid-notifications';
 
 const SETTINGS_KEY = 'remotestorage:solid';
 type Conditions = { ifMatch?: string; ifNoneMatch?: string };
@@ -30,12 +31,30 @@ function httpURL (value: string): URL {
  * Based on the Solid adapter contributed in PR #1319.
  */
 export class Solid extends RemoteBase implements Remote {
+  readonly folderETagsAreRecursive = false;
   authURL: string | null = null;
   podURLs: string[] | null = null;
   selectedPodURL: string | null = null;
   session: Session;
   private active = true;
   private appHash: string | null = null;
+  private notifications?: SolidNotifications;
+  private notificationCleanup?: Promise<void>;
+  private startNotifications = (): void => {
+    if (this.active && this.connected && this.rs.sync && !this.notifications && typeof document !== 'undefined') {
+      this.notifications = new SolidNotifications(this.rs, this);
+      this.notifications.start();
+    }
+  };
+
+  private stopNotifications (): Promise<void> | undefined {
+    const notifications = this.notifications;
+    this.notifications = undefined;
+    if (notifications) {
+      this.notificationCleanup = Promise.all([this.notificationCleanup, notifications.stop()]).then(() => undefined);
+    }
+    return this.notificationCleanup;
+  }
 
   constructor (rs: RemoteStorage) {
     super(rs);
@@ -68,6 +87,7 @@ export class Solid extends RemoteBase implements Remote {
       this.authURL = settings.href;
     }
     if (settings.properties === null) {
+      void this.stopNotifications();
       this.active = false;
       this.connected = false;
       this.podURLs = null;
@@ -109,11 +129,13 @@ export class Solid extends RemoteBase implements Remote {
         throw new Error('A Solid pod URL must end with a slash.');
       }
     }
+    if (podURL !== this.selectedPodURL) { void this.stopNotifications(); }
     this.selectedPodURL = podURL;
     this.connected = podURL !== null;
     this.saveSettings();
     if (this.connected) {
       this._emit('connected');
+      this.startNotifications();
     } else {
       this.rs._emit('pod-not-selected');
     }
@@ -349,6 +371,7 @@ export class Solid extends RemoteBase implements Remote {
   static async _rs_init (rs: RemoteStorage): Promise<void> {
     const solid = new Solid(rs);
     rs.solid = solid;
+    rs.on('connected', solid.startNotifications);
     if (rs.backend !== 'solid') { return; }
     rs.remote = solid;
     try {
@@ -366,6 +389,9 @@ export class Solid extends RemoteBase implements Remote {
     if (wasActive) { rs.setBackend(undefined); }
     solid.active = false;
     solid.connected = false;
+    rs.removeEventListener('connected', solid.startNotifications);
+    const notificationCleanup = solid.stopNotifications();
+    if (notificationCleanup) { await notificationCleanup; }
     try {
       if (solid.session.info.isLoggedIn || wasActive) {
         await solid.session.logout();

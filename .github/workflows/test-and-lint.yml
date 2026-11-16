@@ -39,3 +39,20 @@ jobs:
         run: npm run build:release
       - name: Build optional Solid bundle
         run: npm run build:solid
+
+  solid-browser:
+    name: Solid two-browser sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6.3.0
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm run build:solid
+      - run: npm ci --prefix examples/solid
+      - run: npm run test:install-browser --prefix examples/solid -- --with-deps
+      - run: npm run test:browser --prefix examples/solid

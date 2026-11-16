@@ -139,6 +139,17 @@ export class Sync {
    */
   _finishedTasks: SyncTask[] = [];
 
+  /** Remote invalidations not yet covered by a request. @internal */
+  private remoteChanges = new Set<string>();
+
+  /** Queue a targeted revalidation, including when a request is in flight. @internal */
+  refreshRemote (path: string): void {
+    if (!this.rs.access.checkPathPermission(path, 'r')) { return; }
+    this.remoteChanges.add(path);
+    this.addTask(path);
+    if (!this.stopped) { this.doTasks(); }
+  }
+
   constructor (remoteStorage: RemoteStorage) {
     this.rs = remoteStorage;
 
@@ -338,7 +349,9 @@ export class Sync {
   }
 
   deleteChildPathsFromTasks (): void {
+    if (this.rs.remote.folderETagsAreRecursive === false) { return; }
     for (const path in this._tasks) {
+      if (this.remoteChanges.has(path)) { continue; }
       const paths = pathsFromRoot(path);
 
       for (let i=1; i < paths.length; i++) {
@@ -363,6 +376,12 @@ export class Sync {
     await this.rs.local.forAllNodes((node: RSNode) => {
       let parentPath: string;
       if (this.needsRefresh(node)) {
+        // Solid container validators do not cover descendants. Refresh every
+        // cached resource so recovery does not depend on notifications.
+        if (this.rs.remote.folderETagsAreRecursive === false) {
+          if (this.rs.access.checkPathPermission(node.path, 'r')) { this.addTask(node.path); }
+          return;
+        }
         try {
           parentPath = this.getParentPath(node.path);
         } catch(e) {
@@ -398,8 +417,13 @@ export class Sync {
    * Sync one path
    */
   async doTask (path: string): Promise<SyncTask> {
+    const revalidate = this.remoteChanges.delete(path);
     return this.rs.local.getNodes([path]).then((nodes: RSNodes) => {
       const node = nodes[path];
+      if (revalidate) {
+        return taskFor('get', path, this.rs.remote.get(path,
+          node?.common?.revision ? { ifNoneMatch: node.common.revision } : {}));
+      }
       // First fetch:
       if (typeof(node) === 'undefined') {
         return taskFor('get', path, this.rs.remote.get(path));
@@ -1025,7 +1049,8 @@ export class Sync {
     delete this._timeStarted[task.path];
     delete this._running[task.path];
 
-    if (completed) {
+    // An event arriving after doTask began must get a subsequent request.
+    if (completed && !this.remoteChanges.has(task.path)) {
       if (this._tasks[task.path]) {
         for (let i=0; i < this._tasks[task.path].length; i++) {
           this._tasks[task.path][i]();
