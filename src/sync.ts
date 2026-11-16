@@ -1366,6 +1366,20 @@ export class Sync {
    */
   public async sync (): Promise<void> {
     this.done = false;
+    const remote = this.rs.remote;
+    if (remote.prepareSync) {
+      try {
+        await remote.prepareSync();
+      } catch (error) {
+        if (this.isCurrentSession() && this.rs.remote === remote) {
+          this.done = true;
+          this.rs._emit('error', new SyncError(error));
+          this.rs._emit('sync-done', { completed: false });
+        }
+        return;
+      }
+      if (!this.isCurrentSession() || this.rs.remote !== remote) { return; }
+    }
 
     if (!this.doTasks()) {
       try {
