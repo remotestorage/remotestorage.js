@@ -57,9 +57,11 @@ starts a fresh in-memory CSS 7.2.0 instance, creates temporary random credential
 and logs in through the real browser OIDC flow in two isolated Chromium contexts.
 The temporary account seed is removed when the server exits.
 
-It checks nested file updates with polling slowed to ten minutes, observes real
-WebSocket notification frames, discovers additions and deletions, then disconnects
+It observes multiple routine sync cycles with a stale subscribed file and asserts
+that no file GET is sent. It then checks nested updates with polling slowed to ten
+minutes, observes real WebSocket notification frames, discovers additions and deletions, then disconnects
 one client's network and sockets while the other edits the pod. It verifies
+recovery of a deliberately missed notification on channel renewal,
 reconciliation after reconnect and reload, polling without notifications, stale
 write/delete rejection, and disconnect cleanup. It reads the local cache when
 asserting synchronization, rather than accidentally refreshing through test reads.

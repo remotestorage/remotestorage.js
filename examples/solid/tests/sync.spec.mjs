@@ -34,7 +34,7 @@ async function cached(page, path) {
   }, path);
 }
 
-test('two authenticated browser clients: live nested changes, offline recovery, reload, fallback and conflicts', async ({ browser }) => {
+test('two authenticated browser clients: polling suppression, notifications, renewal, recovery and conflicts', async ({ browser }) => {
   const contextA = await browser.newContext();
   const contextB = await browser.newContext();
   const a = await contextA.newPage();
@@ -56,6 +56,36 @@ test('two authenticated browser clients: live nested changes, offline recovery, 
       return watches?.get('/solid-demo/nested/note.json')?.socket?.readyState;
     })).toBe(1);
 
+    // Make this file stale and observe multiple real polling cycles. An active
+    // subscription must suppress its GETs, without suppressing the cycles.
+    await expect.poll(() => b.evaluate(() => {
+      const rs = window.demo.remote;
+      return rs.solid.hasActiveSubscription('/solid-demo/nested/note.json') && !rs.sync.hasTasks();
+    })).toBe(true);
+    let fileReads = 0;
+    b.on('request', request => {
+      if (request.method() === 'GET' && new URL(request.url()).pathname.endsWith('/solid-demo/nested/note.json')) { fileReads++; }
+    });
+    await b.evaluate(async () => {
+      const rs = window.demo.remote;
+      const path = '/solid-demo/nested/note.json';
+      const nodes = await rs.local.getNodes([path]);
+      nodes[path].common.timestamp = 0;
+      await rs.local.setNodes(nodes);
+      window.routineChecks = 0;
+      const collect = rs.sync.collectRefreshTasks.bind(rs.sync);
+      rs.sync.collectRefreshTasks = async () => { await collect(); window.routineChecks++; };
+      rs.setSyncInterval(2000);
+      rs.setBackgroundSyncInterval(2000);
+      await rs.startSync();
+    });
+    await expect.poll(() => b.evaluate(() => window.routineChecks)).toBeGreaterThanOrEqual(3);
+    expect(fileReads).toBe(0);
+    await b.evaluate(() => {
+      window.demo.remote.setSyncInterval(600000);
+      window.demo.remote.setBackgroundSyncInterval(600000);
+    });
+
     const before = messages.length;
     await write(a, 'nested/note.json', 'live edit');
     await expect.poll(() => cached(b, 'nested/note.json')).toBe('live edit');
@@ -70,6 +100,27 @@ test('two authenticated browser clients: live nested changes, offline recovery, 
     await a.evaluate(() => window.demo.client.remove('nested/added.json'));
     await expect.poll(() => cached(b, 'nested/added.json')).toBe(null);
 
+    // Drop a notification, then force the real renewal path without waiting
+    // thirty minutes. Opening the replacement channel must recover the edit.
+    await b.evaluate(() => {
+      const watch = window.demo.remote.solid.notifications.watches.get('/solid-demo/nested/note.json');
+      watch.socket.onmessage = null;
+      window.previousSocket = watch.socket;
+    });
+    await write(a, 'nested/note.json', 'recovered on renewal');
+    expect(await cached(b, 'nested/note.json')).toBe('live edit');
+    await b.evaluate(async () => {
+      const notifications = window.demo.remote.solid.notifications;
+      notifications.watches.get('/solid-demo/nested/note.json').renewAt = Date.now() - 1;
+      await notifications.reconcile();
+    });
+    await expect.poll(() => cached(b, 'nested/note.json')).toBe('recovered on renewal');
+    expect(await b.evaluate(() => {
+      const solid = window.demo.remote.solid;
+      return solid.hasActiveSubscription('/solid-demo/nested/note.json') &&
+        solid.notifications.watches.get('/solid-demo/nested/note.json').socket !== window.previousSocket;
+    })).toBe(true);
+
     // Explicitly close sockets too: browser network emulation alone may leave
     // pre-existing WebSockets alive, which would not exercise a delivery gap.
     await contextB.setOffline(true);
@@ -78,7 +129,7 @@ test('two authenticated browser clients: live nested changes, offline recovery, 
     });
     await write(a, 'nested/note.json', 'changed while offline');
     await write(a, 'nested/offline.json', 'created while offline');
-    expect(await cached(b, 'nested/note.json')).toBe('live edit');
+    expect(await cached(b, 'nested/note.json')).toBe('recovered on renewal');
     await contextB.setOffline(false);
     await expect.poll(() => cached(b, 'nested/note.json')).toBe('changed while offline');
     await expect.poll(() => cached(b, 'nested/offline.json')).toBe('created while offline');

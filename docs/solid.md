@@ -108,16 +108,24 @@ or WebSocket failures do not prevent file operations.
 
 Recovery checks run when connecting, returning online, or returning to a visible
 tab. Each socket opening also triggers a fresh read of its topic, closing the
-read/subscribe gap. Channels are retried with bounded backoff, renewed, and
-closed when their resource leaves the cache or the app disconnects. CSS channel
+read/subscribe gap. Renewal also revalidates the topic and is scheduled after
+30 minutes or sooner if the server expires the channel. Maintenance checks run
+every ten seconds while the page is active. Channels are retried with bounded
+backoff and closed when their resource leaves the cache or the app disconnects. CSS channel
 deletion is attempted during cleanup; expiry is requested when supported.
 
-Solid container ETags do not certify the state of all descendants. Periodic
-sync therefore checks each stale cached resource directly, including when no
-notifications are available. It does not discard a child check just because an
-ancestor is also queued. A notification arriving during a request queues a
-subsequent revalidation. These checks use the configured sync intervals and
-may require more requests than a recursive remoteStorage folder validator.
+Solid container ETags do not certify the state of all descendants. Routine sync
+checks each stale cached resource without an active subscription directly.
+An open, unexpired subscription suppresses routine polling only for its exact
+path, after socket opening has queued recovery. Connecting, failed, expired,
+and unwatched resources retain checks at the configured sync intervals.
+Notifications, explicit reads, pending local writes, and recovery still run
+for subscribed resources. A notification arriving during a request queues a
+subsequent revalidation. Child checks are never discarded just because an
+ancestor is also queued. Idle sync cycles still schedule the next cycle, so
+polling resumes if a subscription later fails. Renewal limits how long an
+undetected missed notification can leave an otherwise connected resource stale,
+assuming the renewal and recovery requests succeed.
 
 The implementation supports the compact JSON-LD subscription response and
 ActivityStreams event shapes used by CSS 7.2.0. It does not implement legacy

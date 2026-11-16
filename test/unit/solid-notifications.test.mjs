@@ -79,6 +79,43 @@ describe('Solid notifications', () => {
     expect(rs.sync.refreshRemote.callCount).to.equal(2);
   });
 
+  it('only suppresses polling for the exact opened, unexpired resource', async () => {
+    const path = '/notes/nested/';
+    await notifications.reconcile();
+    const socket = sockets[1];
+    expect(notifications.hasActiveSubscription(path)).to.equal(false);
+    socket.readyState = 1;
+    expect(notifications.hasActiveSubscription(path)).to.equal(false);
+    socket.onopen();
+    expect(rs.sync.refreshRemote.calledWith(path)).to.equal(true);
+    expect(notifications.hasActiveSubscription(path)).to.equal(true);
+    expect(notifications.hasActiveSubscription('/notes/nested/a.json')).to.equal(false);
+    socket.readyState = 2;
+    expect(notifications.hasActiveSubscription(path)).to.equal(false);
+    socket.readyState = 1;
+    await clock.tickAsync(30 * 60 * 1000);
+    expect(notifications.hasActiveSubscription(path)).to.equal(false);
+  });
+
+  it('resumes polling during renewal and revalidates before suppressing it again', async () => {
+    const path = '/notes/nested/a.json';
+    await notifications.reconcile();
+    sockets[2].readyState = 1;
+    sockets[2].onopen();
+    expect(notifications.hasActiveSubscription(path)).to.equal(true);
+    await clock.tickAsync(30 * 60 * 1000);
+    await notifications.reconcile();
+    expect(notifications.hasActiveSubscription(path)).to.equal(false);
+    sockets[5].readyState = 1;
+    sockets[5].onopen();
+    expect(rs.sync.refreshRemote.callCount).to.equal(2);
+    expect(notifications.hasActiveSubscription(path)).to.equal(true);
+    sockets[5].onclose();
+    expect(notifications.hasActiveSubscription(path)).to.equal(false);
+    await notifications.stop();
+    expect(notifications.hasActiveSubscription(path)).to.equal(false);
+  });
+
   it('refreshes the watched container for membership events but ignores unrelated URLs and malformed messages', async () => {
     await notifications.reconcile();
     sockets[1].onmessage({ data: JSON.stringify({ type: 'Add', object: POD + 'notes/nested/new', target: POD + 'notes/nested/' }) });
@@ -254,6 +291,33 @@ describe('Solid sync recovery', () => {
     sync.addTask('/notes/nested/file');
     sync.deleteChildPathsFromTasks();
     expect(Object.keys(sync._tasks)).to.deep.equal(['/notes/']);
+  });
+
+  it('skips only subscribed paths during routine refresh, preserving explicit recovery', async () => {
+    const paths = ['/notes/', '/notes/nested/', '/notes/nested/file'];
+    await rs.local.setNodes(Object.fromEntries(paths.map(path =>
+      [path, { path, common: { revision: 'r1', timestamp: 0 } }])));
+    rs.remote.hasActiveSubscription = path => path === '/notes/nested/';
+    await sync.collectRefreshTasks();
+    expect(Object.keys(sync._tasks)).to.have.members(['/notes/', '/notes/nested/file']);
+    sync.refreshRemote('/notes/nested/');
+    expect(Object.keys(sync._tasks)).to.have.members(paths);
+    const task = await sync.doTask('/notes/nested/');
+    expect(task.action).to.equal('get');
+    expect(rs.remote.get.lastCall.args).to.deep.equal(['/notes/nested/', { ifNoneMatch: 'r1' }]);
+  });
+
+  it('completes an idle subscribed cycle and polls again after subscription failure', async () => {
+    const path = '/notes/file';
+    await rs.local.setNodes({ [path]: { path, common: { revision: 'r1', timestamp: 0, body: 'cached' } } });
+    rs.remote.hasActiveSubscription = () => true;
+    await sync.sync();
+    expect(sync.hasTasks()).to.equal(false);
+    expect(sync.done).to.equal(true);
+    expect(rs._emit.calledWith('sync-done', { completed: true })).to.equal(true);
+    rs.remote.hasActiveSubscription = () => false;
+    await sync.sync();
+    expect(sync._tasks).to.have.property(path);
   });
 
   it('keeps a notification received during a request for the next request', async () => {

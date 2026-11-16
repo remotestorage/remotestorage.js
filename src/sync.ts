@@ -433,9 +433,10 @@ export class Sync {
     await this._sessionLocal.forAllNodes((node: RSNode) => {
       let parentPath: string;
       if (this.needsRefresh(node)) {
-        // Solid container validators do not cover descendants. Refresh every
-        // cached resource so recovery does not depend on notifications.
+        // Solid container validators do not cover descendants. Unwatched paths
+        // need individual checks; watched paths recover on socket open/renewal.
         if (this.rs.remote.folderETagsAreRecursive === false) {
+          if (this.rs.remote.hasActiveSubscription?.(node.path)) { return; }
           if (this.rs.access.checkPathPermission(node.path, 'r')) { this.addTask(node.path); }
           return;
         }
@@ -1401,6 +1402,12 @@ export class Sync {
       };
 
       this.doTasks();
+      // All stale resources may be subscribed. Complete the idle cycle too,
+      // so the next timer can poll resources whose subscription later fails.
+      if (this.isCurrentSession() && !this.hasTasks() && !Object.keys(this._running).length && !this.done) {
+        this.done = true;
+        this.rs._emit('sync-done', { completed: true });
+      }
     }
   }
 

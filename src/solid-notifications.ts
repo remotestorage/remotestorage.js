@@ -15,6 +15,7 @@ interface Watch {
   socket?: WebSocket;
   channel?: string;
   pending?: boolean;
+  opened?: boolean;
   retryAt: number;
   failures: number;
   renewAt?: number;
@@ -32,7 +33,7 @@ function endpoint (value: string, websocket = false): string {
   return url.href;
 }
 
-/** Resource-specific notifications; periodic Sync checks remain the correctness fallback. @internal */
+/** Resource notifications with reconnect/renewal recovery and polling for unwatched paths. @internal */
 export class SolidNotifications {
   private active = false;
   private watches = new Map<string, Watch>();
@@ -47,6 +48,13 @@ export class SolidNotifications {
   private recovery = false;
 
   constructor (private rs: RemoteStorage, private solid: Solid) {}
+
+  /** Only suppress routine polling after onopen has queued recovery, until renewal is due. */
+  hasActiveSubscription (path: string): boolean {
+    const watch = this.watches.get(path);
+    return !!(this.active && watch?.opened && watch.socket?.readyState === 1 &&
+      watch.renewAt > Date.now());
+  }
 
   private onSync = (): void => { this.schedule(); };
   private onOnline = (): void => { this.schedule(true); };
@@ -203,6 +211,7 @@ export class SolidNotifications {
         // Subscribe first, then revalidate to cover the initial-read/subscribe
         // gap and any updates missed while the socket was disconnected.
         this.rs.sync?.refreshRemote(watch.path);
+        watch.opened = true;
       };
       socket.onmessage = event => {
         if (watch.socket === socket) { this.receive(watch, event.data); }
@@ -249,6 +258,7 @@ export class SolidNotifications {
   private async close (watch: Watch): Promise<void> {
     const socket = watch.socket;
     watch.socket = undefined;
+    watch.opened = false;
     watch.renewAt = undefined;
     if (socket) {
       socket.onopen = socket.onmessage = socket.onclose = socket.onerror = null;

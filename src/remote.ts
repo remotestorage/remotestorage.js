@@ -89,6 +89,9 @@ export interface Remote {
   /** Whether a folder validator covers every descendant. Defaults to true. @internal */
   folderETagsAreRecursive?: boolean;
 
+  /** Whether notifications currently cover this exact path for routine polling. @internal */
+  hasActiveSubscription?: (path: string) => boolean;
+
   /**
    * Whether or not a remote store is connected
    */

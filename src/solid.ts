@@ -40,6 +40,12 @@ export class Solid extends RemoteBase implements Remote {
   private appHash: string | null = null;
   private notifications?: SolidNotifications;
   private notificationCleanup?: Promise<void>;
+
+  /** Whether an open, unexpired notification channel covers this exact path. @internal */
+  hasActiveSubscription (path: string): boolean {
+    return this.notifications?.hasActiveSubscription(path) ?? false;
+  }
+
   private startNotifications = (): void => {
     if (this.active && this.connected && this.rs.sync && !this.notifications && typeof document !== 'undefined') {
       this.notifications = new SolidNotifications(this.rs, this);
