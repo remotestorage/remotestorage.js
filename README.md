@@ -9,6 +9,9 @@ servers and syncing data across devices and applications. It is also capable of
 connecting and syncing data with a person's Dropbox or Google Drive account
 (optional).
 
+An [optional Solid build](docs/solid.md) also supports Solid Pods. Its login
+and RDF dependencies are excluded from the default browser bundle.
+
 The library is well-tested and actively maintained. It is safe to use in
 production.
 
