@@ -229,6 +229,7 @@ describe('Solid sync recovery', () => {
       _emit: sinon.spy()
     };
     sync = new Sync(rs);
+    rs.sync = sync;
     sinon.stub(sync, 'doTasks');
   });
   afterEach(() => sinon.restore());
@@ -283,5 +284,18 @@ describe('Solid sync recovery', () => {
     sync.refreshRemote('/notes/file');
     expect(sync.doTasks.called).to.equal(false);
     expect(sync._tasks).to.have.property('/notes/file');
+  });
+
+  it('discards a pending notification fetch when the session changes during cache lookup', async () => {
+    const path = '/notes/file';
+    let resolveNodes;
+    sinon.stub(rs.local, 'getNodes').returns(new Promise(resolve => { resolveNodes = resolve; }));
+    sync.refreshRemote(path);
+    const pending = sync.doTask(path);
+    rs.sync = {};
+    resolveNodes({});
+    const error = await pending.catch(err => err);
+    expect(error.name).to.equal('SessionEndedError');
+    expect(rs.remote.get.called).to.equal(false);
   });
 });

@@ -5,7 +5,7 @@ import { localStorageAvailable, globalContext, toBase64 } from './util';
 import UnauthorizedError from './unauthorized-error';
 import { EventHandler } from './eventhandling';
 import { requestWithTimeout } from "./requests";
-import { Remote } from "./remote";
+import { Remote, RemoteSettings, noRefreshSettings } from "./remote";
 
 interface AuthResult {
   access_token?: string;
@@ -42,6 +42,74 @@ export interface AuthorizeOptions {
   code_challenge?: string;
   code_challenge_method?: 'S256' | 'plain';
   token_access_type?: 'online' | 'offline'; // Dropbox only
+}
+
+/**
+ * What the token request needs after the redirect back from the authorization
+ * server (a full page load), kept in sessionStorage.
+ */
+export interface PkceTransaction {
+  codeVerifier: string;
+  /** The random state sent to the authorization server */
+  state: string;
+  /** Token endpoint; the remote's TOKEN_URL when not set (Dropbox) */
+  tokenURL?: string;
+  /** Client id; the remote's clientId when not set (Dropbox) */
+  clientId?: string;
+  /** The app's location hash before the redirect, restored afterwards */
+  appState?: string;
+}
+
+const PKCE_KEYS: Array<keyof PkceTransaction> = ['codeVerifier', 'state', 'tokenURL', 'clientId', 'appState'];
+
+/** What a token endpoint returns for a refresh token */
+export interface RefreshedToken {
+  token: string;
+  tokenType?: string;
+  /** A rotated refresh token, when the server issues one */
+  refreshToken?: string;
+}
+
+/** POST a refresh_token grant to the token endpoint */
+function postRefreshGrant (tokenURL: string, clientId: string, refreshToken: string): Promise<XMLHttpRequest> {
+  const formValues = new URLSearchParams({
+    grant_type: 'refresh_token',
+    client_id: clientId,
+    refresh_token: refreshToken,
+  });
+  return requestWithTimeout('POST', tokenURL, {
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: formValues.toString(),
+    responseType: 'json'
+  });
+}
+
+/** The parts of a token endpoint's response that are kept */
+interface TokenResponse {
+  access_token?: string;
+  refresh_token?: string;
+  token_type?: string;
+}
+
+/**
+ * The remote settings from a code exchange's token response. The generic
+ * backend also keeps the token endpoint and client id, to refresh the token
+ * later; Dropbox sets its own.
+ */
+function codeExchangeSettings (response: TokenResponse | undefined, transaction: PkceTransaction, tokenURL: string, clientId: string): RemoteSettings {
+  const settings: RemoteSettings = {
+    token: response?.access_token,
+    refreshToken: response?.refresh_token,
+    tokenType: response?.token_type,
+  };
+  if (transaction.tokenURL) {
+    settings.tokenURL = tokenURL;
+    settings.clientId = clientId;
+    // A new authorization replaces any stored refresh token, even with none
+    // (e.g. one stored by a refresh in another tab)
+    settings.refreshToken = response?.refresh_token ?? null;
+  }
+  return settings;
 }
 
 // This is set in _rs_init and needed for removal in _rs_cleanup
@@ -171,7 +239,12 @@ export class Authorize {
       Authorize
         .openWindow(url, options.redirectUri, 'location=yes,clearsessioncache=yes,clearcache=yes')
         .then((authResult: AuthResult) => {
-          remoteStorage.remote.configure({ token: authResult.access_token });
+          // Only a new access token replaces the refresh settings; a callback
+          // without one (e.g. Dropbox's code) leaves them alone
+          remoteStorage.remote.configure({
+            token: authResult.access_token,
+            ...(authResult.access_token ? noRefreshSettings : {})
+          });
           if (typeof remoteStorage._completeAuthorization === 'function') {
             remoteStorage._completeAuthorization(authResult.scope || options.scope);
           }
@@ -182,24 +255,71 @@ export class Authorize {
     Authorize.setLocation(url);
   }
 
+  /**
+   * Store a PKCE transaction before redirecting to the authorization server,
+   * replacing any earlier one (e.g. from an abandoned authorization). The
+   * current location hash is kept so it can be restored afterwards, since the
+   * state parameter carries the random value instead.
+   *
+   * Throws when sessionStorage rejects the writes, after removing what it
+   * can; nothing is written when the earlier transaction can't be removed.
+   */
+  static savePkceTransaction (transaction: PkceTransaction): void {
+    const values: PkceTransaction = {
+      appState: Authorize.getLocation().hash.substring(1),
+      ...transaction
+    };
+    try {
+      Authorize.clearPkceTransaction();
+      for (const key of PKCE_KEYS) {
+        if (values[key]) {
+          sessionStorage.setItem(`remotestorage:${key}`, values[key]);
+        }
+      }
+    } catch (err) {
+      try {
+        Authorize.clearPkceTransaction();
+      } catch (cleanupErr) {
+        log('[Authorize] Could not remove a partial PKCE transaction', cleanupErr);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Read and remove the stored PKCE transaction, so a code is exchanged at
+   * most once and nothing outlives it. Returns null when there is none.
+   */
+  static takePkceTransaction (): PkceTransaction | null {
+    if (typeof sessionStorage === 'undefined') { return null; }
+    const transaction = {} as PkceTransaction;
+    for (const key of PKCE_KEYS) {
+      transaction[key] = sessionStorage.getItem(`remotestorage:${key}`) || undefined;
+    }
+    Authorize.clearPkceTransaction();
+    // Without a state, a callback without one would match it
+    return (transaction.codeVerifier && transaction.state) ? transaction : null;
+  }
+
+  /** Remove any stored PKCE transaction. */
+  static clearPkceTransaction (): void {
+    if (typeof sessionStorage === 'undefined') { return; }
+    for (const key of PKCE_KEYS) {
+      sessionStorage.removeItem(`remotestorage:${key}`);
+    }
+  }
+
   /** On success, calls remote.configure() with new access token */
   static async refreshAccessToken (rs: RemoteStorage, remote: Remote, refreshToken: string): Promise<void> {
     await remote.configure({token: null, tokenType: null});
-    const formValues = new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: remote.clientId,
-      refresh_token: refreshToken,
-    });
-    const xhr = await requestWithTimeout('POST', remote.TOKEN_URL, {
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: formValues.toString(),
-      responseType: 'json'
-    });
+    const xhr = await postRefreshGrant(remote.TOKEN_URL, remote.clientId, refreshToken);
     if (xhr?.status === 200) {
       log(`[Authorize] access token good for ${xhr?.response?.expires_in} seconds`);
       const settings = {
         token: xhr?.response?.access_token,
         tokenType: xhr?.response?.token_type,
+        // Set only when the server rotates it; undefined keeps the current one
+        refreshToken: xhr?.response?.refresh_token,
       };
       if (settings.token) {
         await remote.configure(settings);
@@ -210,6 +330,33 @@ export class Authorize {
       await remote.configure({refreshToken: null});
       throw new UnauthorizedError("refresh token rejected:" + JSON.stringify(xhr.response));
     }
+  }
+
+  /**
+   * Exchange a refresh token for a new access token, without touching any
+   * remote, so the caller decides whether the result still applies.
+   *
+   * Throws `Unauthorized` only when the server rejects the refresh token
+   * (`invalid_grant`, RFC 6749 §5.2). Any other failure, such as a server
+   * error, rate limiting or a network error, says nothing about the refresh
+   * token, and throws a plain error.
+   */
+  static async requestRefreshedToken (tokenURL: string, clientId: string, refreshToken: string): Promise<RefreshedToken> {
+    const xhr = await postRefreshGrant(tokenURL, clientId, refreshToken);
+    const response = xhr?.response;
+    if (xhr?.status === 200 && typeof response?.access_token === 'string' && response.access_token) {
+      log(`[Authorize] access token good for ${response.expires_in} seconds`);
+      return {
+        token: response.access_token,
+        tokenType: response.token_type,
+        // Set only when the server rotates it
+        refreshToken: response.refresh_token
+      };
+    }
+    if (response?.error === 'invalid_grant') {
+      throw new UnauthorizedError('refresh token rejected: ' + JSON.stringify(response));
+    }
+    throw new Error(`could not refresh the access token (${xhr?.status}): ${JSON.stringify(response)}`);
   }
 
   /**
@@ -289,6 +436,42 @@ export class Authorize {
       location.hash = '';
     }
 
+    // Give the app back the hash it had before the redirect
+    function restoreAppState(transaction: PkceTransaction | null): void {
+      if (transaction?.appState) {
+        location = Authorize.getLocation();
+        Authorize.setLocation(location.href.split('#')[0]+'#'+transaction.appState);
+      }
+    }
+
+    // The code couldn't be exchanged: report it, and stop waiting for a token
+    function failTokenRequest (error: Error): void {
+      if (typeof remoteStorage._forgetPendingScope === 'function') {
+        remoteStorage._forgetPendingScope();
+      }
+      remoteStorage._emit('error', error);
+      remoteStorage.remote.stopWaitingForToken();
+    }
+
+    function handleCode(code: string, state: string | undefined): void {
+      const transaction = Authorize.takePkceTransaction();
+      if (!transaction) {
+        log("[Authorize] Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
+        return;
+      }
+      restoreAppState(transaction);
+      if (state !== transaction.state) {
+        if (typeof remoteStorage._forgetPendingScope === 'function') {
+          remoteStorage._forgetPendingScope();
+        }
+        remoteStorage._emit('error', new UnauthorizedError('Authorization failed: state mismatch'));
+        return;
+      }
+      // remote.configure() is called asynchronously. Network errors, timeouts
+      // and non-JSON bodies reject before fetchTokens() sees a status.
+      fetchTokens(code, transaction).catch(failTokenRequest);
+    }
+
     // eslint-disable-next-line
     onFeaturesLoaded = function(): void {
       let authParamsUsed = false;
@@ -299,6 +482,13 @@ export class Authorize {
       }
 
       if (params.error) {
+        // A denied or failed code flow: drop its transaction, and give the app
+        // its hash back as a successful one would. A transaction with another
+        // state is left from an abandoned attempt; drop it, but not its hash.
+        const transaction = Authorize.takePkceTransaction();
+        if (transaction?.state === params.state) {
+          restoreAppState(transaction);
+        }
         if (typeof remoteStorage._forgetPendingScope === 'function') {
           remoteStorage._forgetPendingScope();
         }
@@ -309,14 +499,37 @@ export class Authorize {
         }
       }
 
-      // rsDiscovery came with the redirect, because it couldn't be
-      // saved in localStorage
+      // rsDiscovery is only ever emitted by us when localStorage is
+      // unavailable (see Authorize.authorize), and it carries endpoint
+      // metadata, never a credential. Applying it over a remote that already
+      // holds a stored token would retarget the endpoint while retaining the
+      // token, leaking it to the substituted server. So only apply it when
+      // there is no stored token to protect, or when the same callback also
+      // hands us a fresh token (the server-initiated pre-authed flow).
+      const hasFreshToken = !!params.access_token;
+
       if (params.rsDiscovery) {
-        remoteStorage.remote.configure(params.rsDiscovery);
+        const hasStoredToken = !!(remoteStorage.remote && remoteStorage.remote.token);
+
+        if (hasFreshToken) {
+          // Apply the endpoint metadata and the fresh token in a single
+          // configure() call. Otherwise the endpoint would be switched while
+          // the previously stored token is still in place, and the
+          // synchronous 'connected' event could leak that token to the new
+          // endpoint before the next call installs the fresh one.
+          remoteStorage.remote.configure({ ...params.rsDiscovery, token: params.access_token, ...noRefreshSettings });
+        } else if (!hasStoredToken) {
+          remoteStorage.remote.configure(params.rsDiscovery);
+        } else {
+          log('[Authorize] Ignoring rsDiscovery metadata for an already-authenticated remote');
+        }
       }
 
       if (params.access_token) {
-        remoteStorage.remote.configure({ token: params.access_token });
+        if (!params.rsDiscovery) {
+          // A new token, here and above, replaces any earlier refresh settings
+          remoteStorage.remote.configure({ token: params.access_token, ...noRefreshSettings });
+        }
         if (typeof remoteStorage._completeAuthorization === 'function') {
           remoteStorage._completeAuthorization(params.scope);
         }
@@ -328,14 +541,12 @@ export class Authorize {
         authParamsUsed = true;
       }
 
-      if (params.state) {
+      if (params.code) {   // OAuth2 code or PKCE flow
+        handleCode(params.code, params.state);
+        authParamsUsed = true;
+      } else if (params.state) {
         location = Authorize.getLocation();
         Authorize.setLocation(location.href.split('#')[0]+'#'+params.state);
-      }
-
-      if (params.code) {   // OAuth2 code or PKCE flow
-        fetchTokens(params.code);   // remote.configure() called asynchronously
-        authParamsUsed = true;
       }
 
       if (!authParamsUsed) {
@@ -344,12 +555,13 @@ export class Authorize {
     };
 
     // OAuth2 PKCE flow
-    async function fetchTokens(code: string) {
-      const codeVerifier = sessionStorage.getItem('remotestorage:codeVerifier');
-      if (!codeVerifier) {
-        log("[Authorize] Ignoring OAuth code parameter, because no PKCE code verifier found in sessionStorage");
-        return;
-      }
+    async function fetchTokens(code: string, transaction: PkceTransaction) {
+      const codeVerifier = transaction.codeVerifier;
+      // The token endpoint and client id were stored before the redirect (the
+      // generic backend does not re-discover before this runs); fall back to the
+      // remote for backends that set them directly, like Dropbox.
+      const tokenURL = transaction.tokenURL || remoteStorage.remote.TOKEN_URL;
+      const clientId = transaction.clientId || remoteStorage.remote.clientId;
       location = Authorize.getLocation();
       let redirectUri = location.origin;
       if (location.pathname !== '/') {
@@ -358,13 +570,13 @@ export class Authorize {
       const formValues = new URLSearchParams({
         code: code,
         grant_type: 'authorization_code',
-        client_id: remoteStorage.remote.clientId,
+        client_id: clientId,
         redirect_uri: redirectUri,
         code_verifier: codeVerifier
       });
       const xhr = await requestWithTimeout(
           'POST',
-          remoteStorage.remote.TOKEN_URL,
+          tokenURL,
           {
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: formValues.toString(),
@@ -375,27 +587,19 @@ export class Authorize {
       switch (xhr.status) {
         case 200: {
           log(`[Authorize] access token good for ${xhr?.response?.expires_in} seconds`);
-          const settings = {
-            token: xhr?.response?.access_token,
-            refreshToken: xhr?.response?.refresh_token,
-            tokenType: xhr?.response?.token_type,
-          };
+          const settings = codeExchangeSettings(xhr?.response, transaction, tokenURL, clientId);
           if (settings.token) {
             remoteStorage.remote.configure(settings);
             if (typeof remoteStorage._completeAuthorization === 'function') {
               remoteStorage._completeAuthorization(xhr?.response?.scope);
             }
           } else {
-            remoteStorage._emit('error', new Error(`no access_token in "successful" response: ${xhr.response}`));
+            failTokenRequest(new Error(`no access_token in "successful" response: ${xhr.response}`));
           }
-          sessionStorage.removeItem('remotestorage:codeVerifier');
           break;
         }
         default:
-          if (typeof remoteStorage._forgetPendingScope === 'function') {
-            remoteStorage._forgetPendingScope();
-          }
-          remoteStorage._emit('error', new Error(`${xhr.statusText}: ${xhr.response}`));
+          failTokenRequest(new Error(`${xhr.statusText}: ${xhr.response}`));
       }
     }
 

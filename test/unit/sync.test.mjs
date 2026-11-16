@@ -88,6 +88,22 @@ describe("Sync", function() {
       this.rs.sync = new Sync(this.rs);
       expect(this.rs.sync._tasks).to.have.property("/foo/");
     });
+
+    it("settles queued requests immediately, even if no response arrives", async function() {
+      this.rs.remote.connected = true;
+      this.rs.remote.online = true;
+      this.rs.sync.doTasks = this.original.doTasks;
+      // A request that never settles.
+      this.rs.remote.get = sinon.stub().returns(new Promise(() => {}));
+
+      const pending = this.rs.sync.queueGetRequest("/notes/private.txt");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      Sync._rs_cleanup(this.rs);
+
+      await expect(pending).to.be.rejectedWith(/session ended/);
+      expect(this.rs.sync).to.be.undefined;
+    });
   });
 
   describe("#getParentPath", function() {
@@ -441,6 +457,36 @@ describe("Sync", function() {
         expect(Object.keys(this.rs.sync._running)).to.deep.equal([
           "/foo1/", "/foo2/", "/foo3", "/foo4/", "/foo/5"
         ]);
+      });
+    });
+
+    describe("when a task fails before its response is processed", function() {
+      it("settles only the queued callbacks for the failing path", async function() {
+        this.rs.remote.connected = true;
+        this.rs.remote.online = true;
+        this.rs.sync.numThreads = 5;
+
+        const failure = new Error("cache read failed");
+        this.rs.sync.doTask = sinon.stub().callsFake((path) => {
+          if (path === "/notes/a.txt") { return Promise.reject(failure); }
+          // Never settles, so it stays in _running.
+          return new Promise(() => { /* keep pending */ });
+        });
+        const callbackA = sinon.spy();
+        const callbackB = sinon.spy();
+        this.rs.sync._tasks = {
+          "/notes/a.txt": [callbackA],
+          "/notes/b.txt": [callbackB]
+        };
+
+        this.rs.sync.doTasks();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        // Each rejection handler must settle its own path, not the last one
+        // iterated by doTasks().
+        expect(callbackA.calledWith(failure)).to.be.true;
+        expect(callbackB.called).to.be.false;
+        expect(Object.keys(this.rs.sync._running)).to.deep.equal(["/notes/b.txt"]);
       });
     });
   });
@@ -1601,6 +1647,219 @@ describe("Sync", function() {
         await expect(this.rs.sync.queueGetRequest("/example/one")).to
           .eventually.be.rejectedWith(/remote is not online/);
       });
+    });
+  });
+
+  describe("stale responses after session replacement", function() {
+    it("does not write a held GET response into a replacement adapter", async function() {
+      let releaseGet;
+      this.rs.remote.get = sinon.stub().returns(
+        new Promise((resolve) => { releaseGet = resolve; })
+      );
+
+      const staleSync = this.rs.sync;
+      const task = await staleSync.doTask("/notes/private.txt");
+      expect(task.action).to.equal("get");
+
+      // Simulate disconnect(): tear down the old session and install a fresh
+      // adapter + Sync instance.
+      const replacement = new InMemoryStorage();
+      const emitChange = sinon.spy(replacement, "emitChange");
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      // Release the old account's response.
+      releaseGet({
+        statusCode: 200,
+        body: "A_ONLY",
+        contentType: "text/plain",
+        revision: "rev-a"
+      });
+      await staleSync.finishTask(task, false);
+
+      // The replacement cache and event stream must not see A's body.
+      const nodes = await replacement.getNodes(["/notes/private.txt"]);
+      expect(nodes["/notes/private.txt"]).to.be.undefined;
+      const res = await replacement.get("/notes/private.txt");
+      expect(res.statusCode).to.equal(404);
+      expect(emitChange.called).to.be.false;
+    });
+
+    it("does not apply an in-flight response and settles a waiting queueGetRequest", async function() {
+      // Exercise the real dispatch flow, where finishTask() is already
+      // awaiting the response when the session is replaced.
+      this.rs.remote.connected = true;
+      this.rs.remote.online = true;
+      this.rs.sync.doTasks = this.original.doTasks;
+
+      let releaseGet;
+      this.rs.remote.get = sinon.stub().returns(
+        new Promise((resolve) => { releaseGet = resolve; })
+      );
+
+      const staleSync = this.rs.sync;
+      const pending = staleSync.queueGetRequest("/notes/private.txt");
+      // Let the queued task start and issue its remote GET.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Replace the session while the request is still in flight.
+      const replacement = new InMemoryStorage();
+      const emitChange = sinon.spy(replacement, "emitChange");
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      releaseGet({
+        statusCode: 200,
+        body: "A_ONLY",
+        contentType: "text/plain",
+        revision: "rev-a"
+      });
+
+      // The stale response is discarded and the waiting request settles
+      // instead of resolving with the previous account's data or hanging.
+      await expect(pending).to.be.rejectedWith(/session ended/);
+      const nodes = await replacement.getNodes(["/notes/private.txt"]);
+      expect(nodes["/notes/private.txt"]).to.be.undefined;
+      expect(emitChange.called).to.be.false;
+    });
+
+    it("settles every queued request when a parked successor is discarded", async function() {
+      this.rs.remote.connected = true;
+      this.rs.remote.online = true;
+      this.rs.sync.doTasks = this.original.doTasks;
+
+      const releases = {};
+      this.rs.remote.get = sinon.stub().callsFake((path) => {
+        return new Promise((resolve) => { releases[path] = resolve; });
+      });
+
+      const staleSync = this.rs.sync;
+      const pendingA = staleSync.queueGetRequest("/notes/a.txt");
+      const pendingB = staleSync.queueGetRequest("/notes/b.txt");
+      // Let both tasks be dispatched; the second is parked in _finishedTasks
+      // while the first awaits its response.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const replacement = new InMemoryStorage();
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      releases["/notes/a.txt"]({
+        statusCode: 200, body: "A_ONLY", contentType: "text/plain", revision: "a"
+      });
+      releases["/notes/b.txt"]({
+        statusCode: 200, body: "B_ONLY", contentType: "text/plain", revision: "b"
+      });
+
+      await expect(pendingA).to.be.rejectedWith(/session ended/);
+      await expect(pendingB).to.be.rejectedWith(/session ended/);
+      const nodes = await replacement.getNodes(["/notes/a.txt", "/notes/b.txt"]);
+      expect(nodes["/notes/a.txt"]).to.be.undefined;
+      expect(nodes["/notes/b.txt"]).to.be.undefined;
+    });
+
+    it("settles a request whose task was never started", async function() {
+      this.rs.remote.connected = true;
+      this.rs.remote.online = true;
+      this.rs.sync.doTasks = this.original.doTasks;
+
+      const releases = {};
+      this.rs.remote.get = sinon.stub().callsFake((path) => {
+        return new Promise((resolve) => { releases[path] = resolve; });
+      });
+
+      const staleSync = this.rs.sync;
+      staleSync.numThreads = 1; // keep the second request queued but not started
+      const pendingA = staleSync.queueGetRequest("/notes/a.txt");
+      const pendingB = staleSync.queueGetRequest("/notes/b.txt");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const replacement = new InMemoryStorage();
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      releases["/notes/a.txt"]({
+        statusCode: 200, body: "A_ONLY", contentType: "text/plain", revision: "a"
+      });
+
+      await expect(pendingA).to.be.rejectedWith(/session ended/);
+      await expect(pendingB).to.be.rejectedWith(/session ended/);
+      const nodes = await replacement.getNodes(["/notes/a.txt", "/notes/b.txt"]);
+      expect(nodes["/notes/a.txt"]).to.be.undefined;
+      expect(nodes["/notes/b.txt"]).to.be.undefined;
+    });
+
+    it("does not write when the session is replaced while handleResponse awaits the cache", async function() {
+      const originalLocal = this.rs.local;
+      const staleSync = this.rs.sync;
+
+      // Hold the cache read that completeFetch() performs after the response
+      // has already been deemed current.
+      let releaseGetNodes;
+      const getNodesStub = sinon.stub(originalLocal, "getNodes").returns(
+        new Promise((resolve) => { releaseGetNodes = resolve; })
+      );
+      const setNodesSpy = sinon.spy(originalLocal, "setNodes");
+
+      const task = {
+        action: "get",
+        path: "/notes/private.txt",
+        promise: Promise.resolve({
+          statusCode: 200,
+          body: "A_ONLY",
+          contentType: "text/plain",
+          revision: "rev-a"
+        })
+      };
+
+      const finished = staleSync.finishTask(task, false);
+      // Let finishTask() await the response and enter handleResponse().
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Replace the session while completeFetch() is awaiting the cache read.
+      const replacement = new InMemoryStorage();
+      const emitChange = sinon.spy(replacement, "emitChange");
+      this.rs.local = replacement;
+      this.rs.sync = new Sync(this.rs);
+
+      releaseGetNodes({});
+      await finished;
+
+      expect(getNodesStub.called).to.be.true;
+      // The stale cache read must not lead to a write on either adapter.
+      expect(setNodesSpy.called).to.be.false;
+      const nodes = await replacement.getNodes(["/notes/private.txt"]);
+      expect(nodes["/notes/private.txt"]).to.be.undefined;
+      expect(emitChange.called).to.be.false;
+    });
+
+    it("observes a discarded task's rejection to avoid an unhandled rejection", async function() {
+      const unhandled = [];
+      const onUnhandled = (reason) => { unhandled.push(reason); };
+      process.on("unhandledRejection", onUnhandled);
+      try {
+        const staleSync = this.rs.sync;
+        let rejectGet;
+        const promise = new Promise((resolve, reject) => { rejectGet = reject; });
+        const task = { action: "get", path: "/notes/private.txt", promise };
+
+        this.rs.local = new InMemoryStorage();
+        this.rs.sync = new Sync(this.rs);
+
+        // finishTask() hits the stale-session guard and discards the task
+        // without ever awaiting its promise.
+        await staleSync.finishTask(task, false);
+
+        rejectGet(new Error("held request failed"));
+
+        // Give the runtime a couple of turns to surface a rejection.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(unhandled).to.be.empty;
+      } finally {
+        process.off("unhandledRejection", onUnhandled);
+      }
     });
   });
 

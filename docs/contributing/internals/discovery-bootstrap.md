@@ -29,7 +29,78 @@ user to that URL. When the dance comes back, the library will detect the
 `access_token` from the window location during the page load, and from
 that point onwards, the remote is connected.
 
-If the OAuth flow is PKCE, the window location will contain a `code`
-parameter instead of `access_token`. RS then makes a fetch to
-remote.TOKEN_URL with the code, to retrieve the access token, and
-possibly a refresh token as well.
+If the WebFinger record advertises the PKCE code flow (spec §10.1: an
+authorization endpoint, a token endpoint and the `S256` method), the
+generic remoteStorage backend uses it instead of the implicit flow. It
+falls back to the implicit flow (or emits an error, when the server only
+offers PKCE) if it runs in Cordova, browser storage is unusable, Web
+Crypto is unavailable (it needs a secure context), or the token endpoint
+doesn't use https (plain http is allowed on localhost). Those fallbacks
+don't apply to Dropbox, which always uses the code flow. Before the
+redirect, the code verifier, a random `state`, the token endpoint, the
+client id and the app's current location hash are saved together in
+sessionStorage, replacing any earlier ones.
+
+The window location then comes back with a `code` parameter instead of
+`access_token`. The saved values are read and removed, the returned
+`state` must match the saved one, and the app's hash is restored. RS
+then makes a fetch to the saved token endpoint (or `remote.TOKEN_URL`
+for Dropbox) with the code, to retrieve the access token, and possibly a
+refresh token as well.
+
+The generic backend stores the refresh token, the token endpoint and the
+client id with the rest of its settings (`remotestorage:wireclient` in
+localStorage). When a request gets a 401, it asks the token endpoint for
+a new access token and retries the request once with it. The old token
+stays in place meanwhile, so concurrent requests aren't refused as not
+connected; their 401s wait for the same refresh. A rotated refresh token
+replaces the old one.
+
+Only an `invalid_grant` answer means the refresh token is dead: it is then
+forgotten, and the backend carries on as without one, so every 401 emits
+an `Unauthorized` event until the user connects again. Any other failure
+(a server error, rate limiting, being offline) keeps it for a later 401.
+
+Tabs of the same app share these settings in localStorage, but each
+keeps its own copy in memory. Before refreshing, and again when its
+refresh token is rejected, a tab checks whether another tab has stored
+newer tokens for the same account and endpoint (e.g. after rotating the
+refresh token), and uses those instead. So once another tab has stored
+rotated tokens, a tab doesn't send the refresh token they replaced
+(servers may revoke the whole session when one is reused), nor
+overwrite them in storage. Two tabs refreshing at the very same moment
+can still race; a cross-tab lock would close that gap.
+
+Disconnecting forgets the refresh settings, and so does any new access
+token: connecting with a new authorization, to a different endpoint, or
+a callback that brings a token. Calling `connect()` again for the same
+account and endpoint the session is already on keeps them. A refresh
+only applies to the session it started in: its result is dropped when
+the access or refresh token changed meanwhile, and a request is only
+retried with a token refreshed from its own. The token endpoint is
+only taken from a code exchange, never from discovery alone, so it has
+always passed the https check.
+
+## The `rsDiscovery` fallback
+
+When `localStorage` is unavailable, the discovery data (storage base URL,
+API version, properties) cannot be persisted across the OAuth redirect. In
+that case `Authorize.authorize()` embeds it in the redirect fragment as an
+`rsDiscovery` value inside the `state` parameter, and it is restored from
+the callback on the way back.
+
+Because `rsDiscovery` carries endpoint metadata but never a credential, it
+must not be able to retarget a remote that already holds a stored access
+token: doing so would send the (still valid) token to a substituted
+endpoint. The callback handler therefore ignores `rsDiscovery` when the
+remote already has a token, unless the same callback also delivers a fresh
+`access_token` (as in server-initiated, pre-authenticated links). The
+no-localStorage fallback is unaffected, because no token can be stored in
+that case.
+
+When a fresh `access_token` is present, the endpoint metadata and the token
+are applied in a single `configure()` call. Applying them separately would
+switch the endpoint while the previously stored token is still in place,
+and the synchronous `connected` event could leak that token to the new
+endpoint before the token is replaced.
+

@@ -1,5 +1,7 @@
 // Reusable utility functions
 
+import type { StorageInfo } from './interfaces/storage_info';
+
 export const logError = (error: string | Error): void => {
   if (typeof (error) === 'string') {
     console.error(error);
@@ -170,21 +172,27 @@ export const pathsFromRoot = (path: string): string[] => {
   return paths;
 };
 
-export const localStorageAvailable = (): boolean => {
+const storageAvailable = (name: 'localStorage' | 'sessionStorage'): boolean => {
   const context = getGlobalContext();
 
-  if (!('localStorage' in context)) {
+  if (!(name in context)) {
     return false;
   }
 
   try {
-    context.localStorage.setItem('rs-check', '1');
-    context.localStorage.removeItem('rs-check');
+    context[name].setItem('rs-check', '1');
+    context[name].removeItem('rs-check');
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
+
+/** Whether localStorage exists and accepts writes (it can be blocked or full). */
+export const localStorageAvailable = (): boolean => storageAvailable('localStorage');
+
+/** Whether sessionStorage exists and accepts writes (it can be blocked or full). */
+export const sessionStorageAvailable = (): boolean => storageAvailable('sessionStorage');
 
 /**
  * Extract and parse JSON data from localStorage.
@@ -295,6 +303,38 @@ export const toBase64 = (str: string): string => {
     return Buffer.from(str).toString('base64');
   }
 };
+
+/**
+ * Whether credentials may be sent to this endpoint: https, or plain http on
+ * localhost for development.
+ */
+export function isSecureEndpoint (url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol === 'https:') {
+    return true;
+  }
+  return parsed.protocol === 'http:' &&
+    ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
+}
+
+/**
+ * The PKCE token endpoint advertised by the server (spec §10.1), or null when
+ * it does not advertise the S256 authorization code flow (an authorization
+ * endpoint, a token endpoint and the S256 method, all three).
+ */
+export function pkceTokenURL (info: StorageInfo): string | null {
+  const methods = Array.isArray(info.pkceMethods)
+    ? info.pkceMethods
+    : typeof info.pkceMethods === 'string'
+      ? info.pkceMethods.split(/[\s,]+/).filter(Boolean)
+      : [];
+  return (info.authorizationURL && info.tokenURL && methods.includes('S256')) ? info.tokenURL : null;
+}
 
 /**
  * Generates values required for OAuth2 PKCE in a cryptographically secure manner.
