@@ -120,8 +120,20 @@ function httpHeaderSafeJson(obj) {
   );
 }
 
-function compareApiError (response: {error_summary: string}, expect: string[]): boolean {
-  return new RegExp('^' + expect.join('\\/') + '(\\/|$)').test(response.error_summary);
+function compareApiError (response: {error_summary?: string; error?: unknown}, expected: string[]): boolean {
+  let error = response.error;
+  if (error && typeof error === 'object') {
+    for (const tag of expected) {
+      // UploadError.path wraps WriteError in UploadWriteFailed.reason.
+      if (error && typeof error === 'object' && !('.tag' in error) && 'reason' in error) {
+        error = error.reason;
+      }
+      if (!error || typeof error !== 'object' || error['.tag'] !== tag) { return false; }
+      error = error[tag];
+    }
+    return true;
+  }
+  return new RegExp('^' + expected.join('\\/') + '(\\/|$)').test(response.error_summary || '');
 }
 
 function isBinaryData (data): boolean {
@@ -220,6 +232,12 @@ class Dropbox extends RemoteBase implements Remote {
    * @protected
    **/
   async configure (settings: RemoteSettings): Promise<void> {
+    if (settings.userAddress !== undefined && settings.userAddress !== this.userAddress) {
+      this._revCache = new RevisionCache('rev');
+      this._fetchDeltaCursor = null;
+      this._initialFetchDone = false;
+      this._fetchDeltaPromise = null;
+    }
     // We only update this.userAddress if settings.userAddress is set to a string or to null:
     if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
     // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
@@ -311,6 +329,7 @@ class Dropbox extends RemoteBase implements Remote {
           const isDir = item['.tag'] === 'folder';
           const itemName = item.path_display.split('/').slice(-1)[0] + (isDir ? '/' : '');
           if (isDir) {
+            revCache.ensureFolder(path + itemName);
             map[itemName] = {ETag: revCache.get(path + itemName)};
           } else {
             const date = new Date(item.server_modified);
@@ -367,22 +386,17 @@ class Dropbox extends RemoteBase implements Remote {
    *
    * @protected
    */
-  get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
+  async get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
     if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
+    if (options.ifNoneMatch && !this._initialFetchDone) {
+      await this.fetchDelta();
+    }
     const savedRev = this._revCache.get(path);
     if (savedRev === null) {
       // file was deleted server side
       return Promise.resolve({statusCode: 404});
     }
     if (options && options.ifNoneMatch) {
-      // We must wait for local revision cache to be initialized before
-      // checking if local revision is outdated
-      if (! this._initialFetchDone) {
-        return this.fetchDelta().then(() => {
-          return this.get(path, options);
-        });
-      }
-
       if (savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
         return Promise.resolve({statusCode: 304});
@@ -435,7 +449,7 @@ class Dropbox extends RemoteBase implements Remote {
         mime = resp.getResponseHeader('Content-Type');
         rev = meta.rev;
         this._revCache.set(path, rev);
-        this._shareIfNeeded(path);   // There doesn't appear to be a need to await this.
+        this._shareIfNeeded(path);
 
         if (shouldBeTreatedAsBinary(responseText, mime)) {
           // return unprocessed response
@@ -486,7 +500,7 @@ class Dropbox extends RemoteBase implements Remote {
     // check if file has changed and return 412
     const savedRev = this._revCache.get(path);
     if (options && options.ifMatch &&
-        savedRev && (savedRev !== options.ifMatch)) {
+        savedRev && savedRev !== 'rev' && (savedRev !== options.ifMatch)) {
       return {statusCode: 412, revision: savedRev};
     }
     if (options && (options.ifNoneMatch === '*') &&
@@ -503,7 +517,9 @@ class Dropbox extends RemoteBase implements Remote {
     const uploadParams = {
       body: body,
       contentType: contentType,
-      path: path
+      path: path,
+      ifMatch: options.ifMatch,
+      ifNoneMatch: options.ifNoneMatch
     };
 
     if (needsMetadata) {
@@ -516,15 +532,15 @@ class Dropbox extends RemoteBase implements Remote {
         };
       }
 
-      if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+      if (options.ifMatch && (!metadata || metadata.rev !== options.ifMatch)) {
         return {
           statusCode: 412,
-          revision: metadata.rev
+          revision: metadata?.rev
         };
       }
     }
     const result = await this._uploadSimple(uploadParams);
-    this._shareIfNeeded(path);   // There doesn't appear to be a need to await this.
+    if (result.statusCode === 200) { this._shareIfNeeded(path); }
     return result;
   }
 
@@ -548,7 +564,7 @@ class Dropbox extends RemoteBase implements Remote {
 
     // check if file has changed and return 412
     const savedRev = this._revCache.get(path);
-    if (options?.ifMatch && savedRev && (options.ifMatch !== savedRev)) {
+    if (options?.ifMatch && savedRev && savedRev !== 'rev' && (options.ifMatch !== savedRev)) {
       return { statusCode: 412, revision: savedRev };
     }
 
@@ -562,7 +578,7 @@ class Dropbox extends RemoteBase implements Remote {
       }
     }
 
-    return this._deleteSimple(path);
+    return this._deleteSimple(path, options.ifMatch);
   }
 
   /**
@@ -775,102 +791,91 @@ class Dropbox extends RemoteBase implements Remote {
       return this._fetchDeltaPromise;
     }
 
-    /** This should resolve (with no value) on success, and reject on error. */
-    const fetch = async (cursor: string) => {
-      let url;
-      let requestBody;
-
-      if (typeof cursor === 'string') {
-        url = CONTINUE_URL;
-        requestBody = { cursor };
-      } else {
-        url = FOLDER_URL;
-        requestBody = {
-          path: PATH_PREFIX,
-          recursive: true,
-          include_deleted: true
-        };
-      }
-
-      try {
-        const response = await this._request('POST', url, {body: requestBody});
-        if (response.status === 401) {
-          throw new UnauthorizedError();
+    // Do not publish a cursor until every page has been applied. Otherwise a
+    // failed page can leave synthetic folder revisions inconsistent with it.
+    const originalCache = this._revCache;
+    const originalUser = this.userAddress;
+    const fetch = async (): Promise<void> => {
+      let cursor = this._fetchDeltaCursor;
+      let rebuild = typeof cursor !== 'string';
+      let resets = 0;
+      let entries: Array<{ '.tag': string; path_display?: string; path_lower?: string; rev?: string }> = [];
+      while (true) {
+        const response = await this._request('POST', typeof cursor === 'string' ? CONTINUE_URL : FOLDER_URL, {
+          body: typeof cursor === 'string' ? { cursor } : {
+            path: PATH_PREFIX, recursive: true, include_deleted: true
+          }
+        });
+        if (!this.connected || this._revCache !== originalCache || this.userAddress !== originalUser) {
+          throw new Error('Dropbox session changed during delta fetch');
         }
-
+        if (response.status === 401) { throw new UnauthorizedError(); }
         if (response.status !== 200 && response.status !== 409) {
           throw new Error('Invalid response status: ' + response.status);
         }
-
-        let responseBody;
-
-        try {
-          responseBody = JSON.parse(response.responseText);
-        } catch (e) {
-          throw new Error('Invalid response body: ' + response.responseText);
-        }
-
+        const body = JSON.parse(response.responseText);
         if (response.status === 409) {
-          if (compareApiError(responseBody, ['path', 'not_found'])) {
-            responseBody = {
-              cursor: null,
-              entries: [],
-              has_more: false
-            };
-          } else {
-            throw new Error('API returned an error: ' + responseBody.error_summary);
+          if (compareApiError(body, ['reset']) && resets++ === 0) {
+            cursor = null;
+            rebuild = true;
+            entries = [];
+            continue;
           }
-        }
-
-        if (!cursor) {
-          //we are doing a complete fetch, so propagation would introduce unnecessary overhead
-          this._revCache.deactivatePropagation();
-        }
-
-        responseBody.entries.forEach(entry => {
-          const path = entry.path_display.slice(PATH_PREFIX.length);
-
-          if (entry['.tag'] === 'deleted') {
-            // there's no way to know whether the entry was a file or a folder
-            this._revCache.delete(path);
-            this._revCache.delete(path + '/');
-          } else if (entry['.tag'] === 'file') {
-            this._revCache.set(path, entry.rev);
+          if (compareApiError(body, ['path', 'not_found'])) {
+            cursor = null;
+            rebuild = true;
+            entries = [];
+            break;
           }
-        });
-
-        this._fetchDeltaCursor = responseBody.cursor;
-        if (responseBody.has_more) {
-          return fetch(responseBody.cursor);
-        } else {
-          this._revCache.activatePropagation();
-          this._initialFetchDone = true;
+          throw new Error('API returned an error: ' + body.error_summary);
         }
-      } catch (error) {
-        if (error === 'timeout') {
-          // Offline is handled elsewhere already, just ignore it here
-          return;
-        } else {
-          throw error;
+        if (!Array.isArray(body.entries) || (body.has_more && typeof body.cursor !== 'string')) {
+          throw new Error('Invalid Dropbox delta page');
+        }
+        entries.push(...body.entries);
+        cursor = body.cursor;
+        if (!body.has_more) { break; }
+      }
+      // Validate the complete batch before touching the live cache.
+      for (const entry of entries) {
+        const fullPath = entry.path_display || entry.path_lower;
+        if (typeof fullPath !== 'string' || !fullPath.toLowerCase().startsWith(PATH_PREFIX + '/') ||
+            (entry['.tag'] === 'file' && typeof entry.rev !== 'string')) {
+          throw new Error('Invalid Dropbox delta entry');
         }
       }
+      const cache = rebuild ? new RevisionCache('rev') : originalCache;
+      cache.deactivatePropagation();
+      try {
+        for (const entry of entries) {
+          const fullPath = entry.path_display || entry.path_lower;
+          const path = fullPath.slice(PATH_PREFIX.length);
+          if (entry['.tag'] === 'deleted') {
+            cache.delete(path);
+            cache.delete(path + '/');
+          } else if (entry['.tag'] === 'file') {
+            cache.set(path, entry.rev);
+          } else if (entry['.tag'] === 'folder') {
+            cache.ensureFolder(path + '/');
+          }
+        }
+      } finally {
+        cache.activatePropagation();
+      }
+      this._revCache = cache;
+      this._fetchDeltaCursor = cursor;
+      this._initialFetchDone = true;
     };
 
-    this._fetchDeltaPromise = fetch(this._fetchDeltaCursor).catch(error => {
-      if (typeof(error) === 'object' && 'message' in error) {
-        error.message = 'Dropbox: fetchDelta: ' + error.message;
-      } else {
-        error = `Dropbox: fetchDelta: ${error}`;
-      }
-      this.rs._emit('error', error);
-      this._fetchDeltaPromise = null;
-      return Promise.reject(error);
-    }).then(() => {
-      this._fetchDeltaPromise = null;
-      return Promise.resolve(args);
+    const promise = fetch().then(() => args).catch(error => {
+      const failure = new Error('Dropbox: fetchDelta: ' + (error?.message || error));
+      this.rs._emit('error', failure);
+      throw failure;
+    }).finally(() => {
+      if (this._fetchDeltaPromise === promise) { this._fetchDeltaPromise = null; }
     });
-
-    return this._fetchDeltaPromise;
+    this._fetchDeltaPromise = promise;
+    return promise;
   }
 
   /**
@@ -930,15 +935,18 @@ class Dropbox extends RemoteBase implements Remote {
    *
    * @private
    */
-  _uploadSimple (params: { body: XMLHttpRequestBodyInit; contentType?: string; path: string; ifMatch?: string; }): Promise<RemoteResponse> {
+  _uploadSimple (params: { body: XMLHttpRequestBodyInit; contentType?: string; path: string; ifMatch?: string; ifNoneMatch?: string; }): Promise<RemoteResponse> {
     const args = {
       path: getDropboxPath(params.path),
       mode: { '.tag': 'overwrite', update: undefined },
-      mute: true
+      mute: true,
+      ...(params.ifMatch || params.ifNoneMatch === '*' ? { strict_conflict: true, autorename: false } : {})
     };
 
     if (params.ifMatch) {
       args.mode = { '.tag': 'update', update: params.ifMatch };
+    } else if (params.ifNoneMatch === '*') {
+      args.mode = { '.tag': 'add', update: undefined };
     }
 
     return this._request('POST', UPLOAD_URL, {
@@ -965,7 +973,7 @@ class Dropbox extends RemoteBase implements Remote {
           return this._getMetadata(params.path).then(function (metadata) {
             return Promise.resolve({
               statusCode: 412,
-              revision: metadata.rev
+              revision: metadata?.rev
             });
           });
         }
@@ -990,8 +998,8 @@ class Dropbox extends RemoteBase implements Remote {
    *
    * @private
    */
-  _deleteSimple (path: string): Promise<RemoteResponse> {
-    const requestBody = { path: getDropboxPath(path) };
+  _deleteSimple (path: string, ifMatch?: string): Promise<RemoteResponse> {
+    const requestBody = { path: getDropboxPath(path), ...(ifMatch ? { parent_rev: ifMatch } : {}) };
 
     return this._request('POST', DELETE_URL, { body: requestBody }).then((response) => {
       if (response.status !== 200 && response.status !== 409) {
@@ -1007,6 +1015,9 @@ class Dropbox extends RemoteBase implements Remote {
       }
 
       if (response.status === 409) {
+        if (compareApiError(responseBody, ['path_write', 'conflict'])) {
+          return { statusCode: 412 };
+        }
         if (compareApiError(responseBody, ['path_lookup', 'not_found'])) {
           return Promise.resolve({statusCode: 404});
         }

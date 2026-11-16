@@ -103,7 +103,7 @@ describe('Dropbox backend', () => {
       await expect(dropbox.get('/wug/blicket')).to.be.rejectedWith(/timeout/);
     });
 
-    it("fetchDelta doesn't reject on timeouts", async () => {
+    it("fetchDelta rejects on timeouts so sync cannot use stale revisions", async () => {
       config.requestTimeout = 20;
 
       fetchMock.mock(
@@ -111,7 +111,7 @@ describe('Dropbox backend', () => {
         {status: 200, body: JSON.stringify({entries: []})},
         {delay: 100}
       );
-      await expect(dropbox.fetchDelta()).to.be.fulfilled;
+      await expect(dropbox.fetchDelta()).to.be.rejectedWith(/timeout/);
     });
 
     it("fetchDelta fails when offline", async () => {
@@ -1252,7 +1252,7 @@ describe('Dropbox backend', () => {
       expect(calls[1][0]).to.equal(DELETE_URL);
       expect(calls[1][1]).to.have.property('method', 'POST');
       expect(calls[1][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);
-      expect(calls[1][1]).to.have.property('body', JSON.stringify({path: "/remotestorage/fnord/xyzzy"}));
+      expect(calls[1][1]).to.have.property('body', JSON.stringify({path: "/remotestorage/fnord/xyzzy", parent_rev: metadata.rev}));
       expect(result).to.have.property('statusCode', 200);
       expect(result).to.have.property('revision', metadata.rev);
       expect(dropbox._revCache.get('/fnord/xyzzy')).to.be.null;

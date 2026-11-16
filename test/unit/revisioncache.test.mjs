@@ -92,4 +92,29 @@ describe('RevisionCache', () => {
     expect(revCache.get('/foo2/')).to.equal(revFoo2);
     expect(revCache.get('/')).to.equal(revRoot);
   });
+
+  it('changes every ancestor revision when a file is renamed without changing its revision', () => {
+    revCache.set('/folder/old-name', 'same-content');
+    const folder = revCache.get('/folder/');
+    const root = revCache.get('/');
+    revCache.deactivatePropagation();
+    revCache.delete('/folder/old-name');
+    revCache.set('/folder/new-name', 'same-content');
+    revCache.activatePropagation();
+    expect(revCache.get('/folder/')).not.to.equal(folder);
+    expect(revCache.get('/')).not.to.equal(root);
+  });
+
+  it('invalidates descendants of a deleted folder without deleting similar sibling names', () => {
+    revCache.set('/folder/nested/file', 'one');
+    revCache.set('/folder-sibling/file', 'two');
+    revCache.delete('/FOLDER/');
+    expect(revCache.get('/folder/nested/file')).to.equal(null);
+    expect(revCache.get('/folder/nested/')).to.equal(null);
+    expect(revCache.get('/folder/')).to.equal(null);
+    expect(revCache.get('/folder-sibling/file')).to.equal('two');
+    revCache.set('/folder/restored', 'three');
+    expect(revCache.get('/folder/')).not.to.equal(null);
+    expect(revCache.get('/folder/nested/file')).to.equal(null);
+  });
 });
