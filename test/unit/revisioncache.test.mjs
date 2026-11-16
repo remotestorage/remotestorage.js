@@ -117,4 +117,14 @@ describe('RevisionCache', () => {
     expect(revCache.get('/folder/')).not.to.equal(null);
     expect(revCache.get('/folder/nested/file')).to.equal(null);
   });
+
+  it('restores a deleted empty folder without resurrecting its old contents', () => {
+    revCache.set('/folder/file', 'old');
+    revCache.delete('/folder/');
+    const root = revCache.get('/');
+    revCache.ensureFolder('/folder/');
+    expect(revCache.get('/folder/')).to.equal('rev');
+    expect(revCache.get('/')).not.to.equal(root);
+    expect(revCache.get('/folder/file')).to.equal(null);
+  });
 });

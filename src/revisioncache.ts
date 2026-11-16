@@ -59,6 +59,7 @@ class RevisionCache {
     key = key.toLowerCase();
     if (!this._itemsRev[key]) {
       this._itemsRev[key] = {};
+      this._storage[key] = this.defaultValue;
       this._updateParentFolderItemRev(key, this.defaultValue);
       if (this._canPropagate) { this._propagate(key); }
     }
