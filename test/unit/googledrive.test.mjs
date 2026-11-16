@@ -88,11 +88,20 @@ describe('Google Drive changes', () => {
 
   it('does not reuse listed validators on reset, even with the same server cursor', async () => {
     await tracker.prepare();
+    const previous = tracker.revision;
     tracker.markListed('/notes/', tracker.revision);
     tracker.reset();
     request.onSecondCall().resolves(response({ startPageToken: 'start' }));
     await tracker.prepare();
     expect(tracker.getRevision('/notes/')).to.equal(undefined);
+    expect(tracker.revision).not.to.equal(previous);
+  });
+
+  it('uses distinct folder revisions after reopening even if the server token is identical', async () => {
+    await tracker.prepare();
+    const reopened = new GoogleDriveChanges(async () => response({ startPageToken: 'start' }), () => {});
+    await reopened.prepare();
+    expect(reopened.revision).not.to.equal(tracker.revision);
   });
 
   it('reinitializes an expired cursor and invalidates IDs and listings', async () => {

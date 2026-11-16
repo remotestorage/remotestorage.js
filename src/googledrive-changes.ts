@@ -8,6 +8,9 @@ const CHANGES_URL = 'https://www.googleapis.com/drive/v3/changes';
 /** Account-wide change cursor and conservative synthetic folder validators. @internal */
 export class GoogleDriveChanges {
   revision?: string;
+  // Common-cache revisions survive reloads. Do not assume opaque Drive tokens
+  // are unique across accounts or reuse another instance's folder validators.
+  private instance = `${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
   private token?: string;
   private serial = 0;
   private epoch = 0;
@@ -26,7 +29,7 @@ export class GoogleDriveChanges {
   invalidate (): void {
     this.serial++;
     this.listed.clear();
-    this.revision = this.token ? `gd:${this.token}:${this.serial}` : undefined;
+    this.revision = this.token ? `gd:${this.instance}:${this.token}:${this.serial}` : undefined;
   }
 
   markListed (path: string, revision: string): void {
