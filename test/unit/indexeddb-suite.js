@@ -75,6 +75,15 @@ define(['./build/indexeddb', './build/config'], function (IndexedDB, config) {
         timeout: 250,
         run: function(env, test) {
           env.idb.putsRunning = 0;
+          // Local writes resolve once committed, so let the mock commit them.
+          var transaction = env.idb.db.transaction;
+          env.idb.db.transaction = function(stores, mode) {
+            var t = transaction();
+            if (mode === 'readwrite') {
+              Promise.resolve().then(function() { t.oncomplete(); });
+            }
+            return t;
+          };
           env.idb.put('/foo/bla', 'basdf', 'text/plain').then(function() {
             env.idb.on('change', function(event) {
               test.assertAnd(event.origin, 'local');

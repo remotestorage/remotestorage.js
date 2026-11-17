@@ -116,14 +116,47 @@ abstract class CachingLayer {
    * Serialize local read–modify–write operations, including sync reconciliation.
    * Acquire before reading and release after persisting. Callbacks must not await
    * another queued operation; sync's internal helpers run within the outer job.
-   * This coordinates this cache instance, not writers in other browser tabs.
+   * Backends whose storage is shared between browser tabs also hold a Web Lock
+   * (when the browser supports it), so tabs don't overwrite each other's updates.
    * @internal
    */
   withLocalUpdate<T> (update: () => Promise<T>): Promise<T> {
-    const result = this._localUpdates.then(update);
+    const result = this._localUpdates.then(() => this._withSharedLock(update));
     // A rejected operation must not prevent subsequent writes from running.
     this._localUpdates = result.then(() => undefined, () => undefined);
     return result;
+  }
+
+  /**
+   * Name of the Web Lock guarding storage that other tabs can write to, or
+   * `undefined` when the storage belongs to this instance alone.
+   * @internal
+   */
+  protected sharedLockName (): string | undefined {
+    return undefined;
+  }
+
+  /**
+   * Resolves once every node passed to `setNodes` so far has been persisted,
+   * so the next lock holder (possibly in another tab) reads it from storage.
+   * @internal
+   */
+  protected waitForCommit (): Promise<void> {
+    return Promise.resolve();
+  }
+
+  private _withSharedLock<T> (update: () => Promise<T>): Promise<T> {
+    const name = this.sharedLockName();
+    const locks: LockManager | undefined = globalContext.navigator?.locks;
+    if (!name || !locks) { return update(); }
+
+    return locks.request(name, async () => {
+      try {
+        return await update();
+      } finally {
+        await this.waitForCommit();
+      }
+    });
   }
 
   // functions that will be overwritten

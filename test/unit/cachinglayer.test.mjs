@@ -169,6 +169,9 @@ describe("CachingLayer", function() {
         });
 
         await this.rs.local.delete('/foo/one', this.rs.remote.connected);
+        // Sync marks the push. Run its task directly: the scheduled one may wait
+        // behind the folder sync started by caching.enable().
+        await this.rs.sync.doTask('/foo/one');
       });
 
       it("marks the node for deletion", async function() {
