@@ -2,8 +2,9 @@ import type RemoteStorage from './remotestorage';
 import { RemoteBase, Remote, RemoteResponse, RemoteSettings } from './remote';
 import Authorize from './authorize';
 import { generateCodeVerifier, localStorageAvailable, getJSONFromLocalStorage } from './util';
-import { DriveItem, DeltaPage, OneDriveIndex, graphURL, parentPath } from './onedrive-index';
+import { DriveItem, DeltaPage, OneDriveIndex, graphURL, parentPath, validateName } from './onedrive-index';
 import config from './config';
+import UnauthorizedError from './unauthorized-error';
 
 const SETTINGS = 'remotestorage:onedrive';
 const LOGIN = 'https://login.microsoftonline.com/consumers/oauth2/v2.0/';
@@ -26,13 +27,11 @@ function revision (item: DriveItem): string {
   return item.eTag.replace(/^"|"$/g, '');
 }
 
-/** Decode each remoteStorage segment once, then encode it for Graph path addressing. */
+/** Encode literal remoteStorage names once for Graph path addressing. */
 function graphPath (path: string): string {
   if (!path.startsWith('/') || path.includes('//')) { throw new Error('Invalid OneDrive path'); }
   return path.split('/').filter(Boolean).map(segment => {
-    const name = decodeURIComponent(segment);
-    // eslint-disable-next-line no-control-regex
-    if (name === '.' || name === '..' || /[\\/\u0000-\u001f]/.test(name)) { throw new Error('Invalid OneDrive path segment'); }
+    const name = validateName(segment);
     return encodeURIComponent(name).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
   }).join('/');
 }
@@ -62,8 +61,9 @@ export class OneDrive extends RemoteBase implements Remote {
     this.addEvents(['connected', 'not-connected']);
     const settings = localStorageAvailable() && getJSONFromLocalStorage(SETTINGS);
     if (settings) {
+      const generation = this.generation;
       setTimeout(() => {
-        if (this.active && rs.backend === 'onedrive' && !this.token) { void this.configure(settings); }
+        if (this.active && generation === this.generation && rs.backend === 'onedrive' && !this.token) { void this.configure(settings); }
       }, 0);
     }
   }
@@ -88,26 +88,36 @@ export class OneDrive extends RemoteBase implements Remote {
   async configure (settings: RemoteSettings): Promise<void> {
     if (!this.active) { throw new Error('OneDrive session ended'); }
     const generation = ++this.generation;
+    for (const controller of this.controllers) { controller.abort(); }
     this.index = new OneDriveIndex();
     this.rootId = undefined;
     this.preparing = undefined;
     this.refresh = undefined;
+    if (settings.token !== undefined && settings.token !== this.token && settings.refreshToken === undefined) {
+      this.refreshToken = undefined;
+    }
     if (settings.token !== undefined) { this.token = settings.token || undefined; }
     if (settings.refreshToken !== undefined) { this.refreshToken = settings.refreshToken || undefined; }
+    if (settings.token === null) { this.refreshToken = undefined; }
     this.connected = false;
+    this.userAddress = undefined;
     if (settings.token === null || (!this.token && !this.refreshToken)) { this.persist(); return; }
     try {
       const response = await this.request(GRAPH);
       const drive = await this.json(response);
       this.checkSession(generation);
-      if (drive.driveType !== 'personal') { throw new Error('This OneDrive backend currently supports Personal accounts only'); }
+      if (typeof drive?.driveType !== 'string') { throw new Error('Invalid OneDrive account metadata'); }
+      if (drive.driveType !== 'personal') {
+        this.token = this.refreshToken = undefined;
+        throw new Error('This OneDrive backend currently supports Personal accounts only');
+      }
       this.userAddress = drive.owner?.user?.email || drive.owner?.user?.displayName || 'OneDrive';
       this.connected = true;
       this.persist();
       this._emit('connected');
     } catch (error) {
       if (this.active && this.generation === generation) {
-        this.token = this.refreshToken = undefined;
+        if (error instanceof UnauthorizedError) { this.token = this.refreshToken = undefined; }
         this.persist();
         this.rs._emit('error', error);
         this._emit('not-connected');
@@ -126,7 +136,7 @@ export class OneDrive extends RemoteBase implements Remote {
   }
 
   private async renewToken (generation: number): Promise<void> {
-    if (!this.refreshToken) { throw new Error('OneDrive sign-in expired'); }
+    if (!this.refreshToken) { throw new UnauthorizedError('OneDrive sign-in expired'); }
     if (!this.refresh) {
       const token = this.refreshToken;
       const pending = Authorize.requestRefreshedToken(this.TOKEN_URL, this.clientId, token).then(result => {
@@ -134,6 +144,13 @@ export class OneDrive extends RemoteBase implements Remote {
         this.token = result.token;
         this.refreshToken = result.refreshToken || token;
         this.persist();
+      }).catch(error => {
+        if (this.active && this.generation === generation && error instanceof UnauthorizedError) {
+          this.token = this.refreshToken = undefined;
+          this.connected = false;
+          this.persist();
+        }
+        throw error;
       });
       this.refresh = pending;
       void pending.finally(() => { if (this.refresh === pending) { this.refresh = undefined; } }).catch(() => undefined);
@@ -149,30 +166,50 @@ export class OneDrive extends RemoteBase implements Remote {
     this.checkSession(generation);
     const controller = new AbortController();
     this.controllers.add(controller);
-    const timer = setTimeout(() => controller.abort(), config.requestTimeout);
-    const send = () => fetch(url, { ...init, credentials: 'omit', cache: 'no-store',
-      redirect: authenticated ? 'error' : 'follow', signal: controller.signal,
-      headers: { ...init.headers, ...(authenticated ? { Authorization: 'Bearer ' + this.token } : {}) } });
+    const aborted = new Promise<never>((_resolve, reject) => {
+      controller.signal.addEventListener('abort', () => reject(controller.signal.reason), { once: true });
+    });
+    const timer = setTimeout(() => controller.abort(new Error('OneDrive request timed out')), config.requestTimeout);
+    const send = async (): Promise<Response> => {
+      this.checkSession(generation);
+      if (controller.signal.aborted) { throw controller.signal.reason; }
+      const response = await fetch(url, { ...init, credentials: 'omit', cache: 'no-store',
+        redirect: authenticated ? 'error' : 'follow', signal: controller.signal,
+        headers: { ...init.headers, ...(authenticated ? { Authorization: 'Bearer ' + this.token } : {}) } });
+      // Keep cancellation and timeout active until the body has arrived too.
+      const bytes = await response.arrayBuffer();
+      this.checkSession(generation);
+      if (controller.signal.aborted) { throw controller.signal.reason; }
+      return new Response([204, 205, 304].includes(response.status) ? null : bytes, {
+        status: response.status, statusText: response.statusText, headers: response.headers
+      });
+    };
     const sentToken = this.token;
     try {
-      let response = await send();
-      this.checkSession(generation);
-      if (authenticated && response.status === 401 && this.refreshToken) {
-        if (this.token === sentToken) { await this.renewToken(generation); }
+      const operation = async () => {
+        let response = await send();
         this.checkSession(generation);
-        response = await send();
-        this.checkSession(generation);
-      }
+        if (authenticated && response.status === 401 && this.refreshToken) {
+          if (this.token === sentToken) { await this.renewToken(generation); }
+          this.checkSession(generation);
+          response = await send();
+        }
+        if (authenticated && response.status === 401) { throw new UnauthorizedError('OneDrive authorization failed (401)'); }
+        return response;
+      };
+      const response = await Promise.race([operation(), aborted]);
       this.online = true;
       return response;
     } catch (error) {
-      if (this.active && this.generation === generation) { this.online = false; }
+      this.checkSession(generation);
+      if (!(error instanceof UnauthorizedError)) { this.online = false; }
       throw error;
     } finally { clearTimeout(timer); this.controllers.delete(controller); }
   }
 
   // Graph error payloads may contain signed URLs; expose only the status.
   private async json (response: Response): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (response.status === 401) { throw new UnauthorizedError('OneDrive authorization failed (401)'); }
     if (!response.ok) { throw new Error('OneDrive request failed (' + response.status + ')'); }
     return response.json();
   }
@@ -208,7 +245,7 @@ export class OneDrive extends RemoteBase implements Remote {
     }
     const parent = path === '/' ? undefined : await this.ensureFolder(parentPath(path), generation);
     this.checkSession(generation);
-    const name = path === '/' ? ROOT : decodeURIComponent(path.split('/').filter(Boolean).pop());
+    const name = path === '/' ? ROOT : path.split('/').filter(Boolean).pop();
     const url = parent ? GRAPH + '/items/' + encodeURIComponent(parent.id) + '/children' : GRAPH + '/root/children';
     const response = await this.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }) });
@@ -263,6 +300,7 @@ export class OneDrive extends RemoteBase implements Remote {
     // associating a newer download with an older validator.
     for (let attempt = 0; attempt < 3; attempt++) {
       const item = await this.metadata(path, generation);
+      this.checkSession(generation);
       if (!item || item.folder) { return { statusCode: 404 }; }
       const tag = revision(item);
       if (tag === options.ifNoneMatch) { return { statusCode: 304, revision: tag }; }
@@ -270,7 +308,8 @@ export class OneDrive extends RemoteBase implements Remote {
       if (!download.ok) { throw new Error('OneDrive download failed (' + download.status + ')'); }
       const bytes = await download.arrayBuffer();
       const after = await this.metadata(path, generation);
-      if (!after || revision(after) !== tag) { continue; }
+      this.checkSession(generation);
+      if (!after || after.folder || after.id !== item.id || revision(after) !== tag) { continue; }
       const contentType = item.file?.mimeType || 'application/octet-stream';
       const textual = /^(text\/|application\/(json|[^;]+\+json|xml|[^;]+\+xml)(;|$))/i.test(contentType);
       const body = textual ? new TextDecoder('utf-8', { fatal: true }).decode(bytes) : bytes;
@@ -280,7 +319,10 @@ export class OneDrive extends RemoteBase implements Remote {
   }
 
   private async getFolder (path: string, options: { ifNoneMatch?: string }): Promise<RemoteResponse> {
+    const generation = this.generation;
     await this.prepareSync();
+    this.checkSession(generation);
+    path = [...this.index.revisions.keys()].find(candidate => candidate.toLowerCase() === path.toLowerCase()) || path;
     const tag = this.index.revisions.get(path);
     if (!tag) { return { statusCode: 404 }; }
     if (options.ifNoneMatch === tag) { return { statusCode: 304, revision: tag }; }
@@ -305,7 +347,7 @@ export class OneDrive extends RemoteBase implements Remote {
     if (!bytes.byteLength) { throw new Error('Empty OneDrive uploads are not supported by the conditional upload-session path'); }
     const parent = await this.ensureFolder(parentPath(path), generation);
     this.checkSession(generation);
-    const name = decodeURIComponent(path.split('/').pop());
+    const name = path.split('/').pop();
     const target = GRAPH + '/items/' + encodeURIComponent(parent.id) + ':/' + graphPath('/' + path.split('/').pop());
     const headers = { 'Content-Type': 'application/json', ...(options.ifMatch ? { 'If-Match': this.addQuotes(options.ifMatch) } : {}) };
     const conflict = options.ifNoneMatch === '*' ? 'fail' : 'replace';
@@ -325,32 +367,41 @@ export class OneDrive extends RemoteBase implements Remote {
         if (response.status !== 202) { throw new Error('OneDrive did not defer the upload commit (' + response.status + ')'); }
       }
       this.checkSession(generation);
-      const committed = await this.request(target, { method: 'PUT', headers, body: JSON.stringify({
+      // Microsoft's explicit-commit flow addresses the destination parent;
+      // the new item's name is supplied in the driveItem body.
+      const committed = await this.request(this.itemURL(parentPath(path)), { method: 'PUT', headers, body: JSON.stringify({
         name, '@microsoft.graph.conflictBehavior': conflict, '@microsoft.graph.sourceUrl': upload
       }) });
       if (await this.isConflict(committed, options.ifMatch)) { return { statusCode: 412 }; }
+      if (committed.status !== 200 && committed.status !== 201) { throw new Error('OneDrive commit failed (' + committed.status + ')'); }
       const item = await this.json(committed);
       this.checkSession(generation);
       return { statusCode: committed.status, revision: revision(item) };
     } finally {
       // Capability DELETE cancels only this upload session, never a user file.
       try { await this.request(upload, { method: 'DELETE' }, false); } catch { /* Session expiry is the fallback. */ }
+      this.checkSession(generation);
     }
   }
 
   async delete (path: string, options: { ifMatch?: string } = {}): Promise<RemoteResponse> {
+    const generation = this.generation;
     graphPath(path);
     if (path.endsWith('/')) { throw new Error('OneDrive document deletes require a file path'); }
     if (!this.connected) { throw new Error('OneDrive is not connected'); }
     const response = await this.request(this.itemURL(path), { method: 'DELETE',
       headers: options.ifMatch ? { 'If-Match': this.addQuotes(options.ifMatch) } : {} });
+    this.checkSession(generation);
     return { statusCode: response.status === 404 && options.ifMatch ? 412 : response.status };
   }
 
   /** A temporary download capability, not a permanent public sharing URL. */
   async getItemURL (path: string): Promise<string | undefined> {
+    const generation = this.generation;
+    if (!this.connected) { throw new Error('OneDrive is not connected'); }
     const item = await this.metadata(path);
-    return item && capabilityURL(item['@microsoft.graph.downloadUrl']);
+    this.checkSession(generation);
+    return item && !item.folder ? capabilityURL(item['@microsoft.graph.downloadUrl']) : undefined;
   }
 
   private stop (): void {

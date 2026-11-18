@@ -1118,7 +1118,14 @@ export class RemoteStorage {
 
     Object.keys(apiKeys).forEach(type => {
       const key = apiKeys[type];
-      if (!key) { delete this.apiKeys[type]; return; }
+      if (!key) {
+        if (type === ApiKeyType.ONEDRIVE) {
+          OneDrive._rs_cleanup(this);
+          delete this.onedrive;
+        }
+        delete this.apiKeys[type];
+        return;
+      }
 
       switch(type) {
         case ApiKeyType.ONEDRIVE:

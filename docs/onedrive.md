@@ -11,6 +11,9 @@ shortcuts, and empty-file uploads are not supported by this initial implementati
 It rejects Business accounts and zero-byte uploads explicitly. OneDrive filename
 restrictions and case-insensitive names apply; paths differing only in letter case
 cannot represent separate files.
+Paths and listing keys use literal names: pass spaces, Unicode and percent signs
+unchanged. The backend encodes them only when constructing Microsoft API URLs.
+Folder lookups follow OneDrive's case-insensitive naming rules.
 
 ## Application registration
 
@@ -24,6 +27,9 @@ A client secret must never be embedded in the app. The backend uses the existing
 remoteStorage authorization-code flow with PKCE and validates OAuth state. Both
 localStorage and sessionStorage must be available. Tokens are kept in browser
 storage like the other cloud backends; disconnect removes the OneDrive session.
+Temporary connection failures retain saved credentials for a later retry. Clearing
+credentials, replacing the account or removing the application registration cancels
+pending transfers; a delayed startup restore cannot revive cleared credentials.
 
 ```js
 const remoteStorage = new RemoteStorage();
@@ -55,10 +61,14 @@ in the delta response. Expired delta tokens trigger a complete rebuild. A failed
 or incomplete feed does not advance the cursor or allow sync to trust stale data.
 The feed includes drive metadata beyond the shared folder; only descendants of
 `/remotestorage` are exposed to remoteStorage clients.
+Deleted subtrees are pruned after all pages are applied, preserving children moved
+out of them. Missing file validators and ambiguous paths reject the snapshot
+instead of publishing an incomplete listing.
 
 File downloads use Microsoft's preauthenticated download URL without sending the
 Graph access token to that host. Metadata is checked again after downloading so
-a concurrent edit cannot associate a body with an older ETag. Binary bodies remain
+a concurrent edit or replacement cannot associate a body with an older ETag. Request
+timeouts and cancellation cover the response body as well as headers. Binary bodies remain
 ArrayBuffers; textual MIME types are decoded as UTF-8. OneDrive chooses the stored
 MIME type from its file metadata, so callers should use appropriate file extensions.
 `getItemURL()` returns a temporary download capability, not a permanent public URL.
@@ -71,6 +81,9 @@ The documented conditional explicit-commit path is currently limited to OneDrive
 Personal, which is why Business accounts are not enabled. The browser sends chunks
 without the Graph bearer token. On failure, temporary sessions are cancelled on a
 best-effort basis; Microsoft expires abandoned sessions.
+The explicit commit addresses the destination parent path, with the filename and
+upload-session URL in its body, following Microsoft's documented Personal flow.
+Its conditional behavior still needs the live acceptance test below.
 
 Zero-byte files are rejected because there is no verified conditional empty-file
 path in this implementation. Other uploads use sequential 3.125 MiB chunks and

@@ -8,6 +8,7 @@ import InMemoryStorage from '../../build/inmemorystorage.js';
 import { OneDrive } from '../../build/onedrive.js';
 import { OneDriveIndex, graphURL } from '../../build/onedrive-index.js';
 import { Authorize } from '../../build/authorize.js';
+import UnauthorizedError from '../../build/unauthorized-error.js';
 import { localStorage, sessionStorage } from '../helpers/memoryStorage.mjs';
 
 const GRAPH = 'https://graph.microsoft.com/v1.0/me/drive';
@@ -18,6 +19,7 @@ const file = { id: 'f', name: 'file.json', eTag: '"v1"', file: { mimeType: 'appl
   parentReference: { id: 'root' }, '@microsoft.graph.downloadUrl': DOWNLOAD };
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const page = (items, token = '1') => ({ value: items, '@odata.deltaLink': GRAPH + '/root/delta?token=' + token });
+const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 async function rejects(promise, text) {
   const error = await promise.then(() => undefined, e => e);
   expect(error).to.be.instanceOf(Error);
@@ -25,6 +27,50 @@ async function rejects(promise, text) {
 }
 
 describe('OneDrive delta index', () => {
+  it('rejects files without validators before publishing a cursor', async () => {
+    const index = new OneDriveIndex();
+    await rejects(index.update('root', async () => page([root, { ...file, eTag: undefined }])), 'ETag');
+    expect(index.cursor).to.equal(undefined);
+  });
+
+  it('rejects colliding paths instead of silently dropping a file', async () => {
+    const index = new OneDriveIndex();
+    await rejects(index.update('root', async () => page([root, file, { ...file, id: 'other', name: 'FILE.JSON' }])), 'duplicate');
+    expect(index.paths.size).to.equal(0);
+  });
+
+  it('does not resurrect deleted descendants when a folder ID reappears', async () => {
+    const index = new OneDriveIndex();
+    const folder = { id: 'folder', name: 'notes', folder: {}, parentReference: { id: 'root' } };
+    await index.update('root', async () => page([root, folder, { ...file, parentReference: { id: 'folder' } }]));
+    await index.update('root', async () => page([{ id: 'folder', deleted: {} }], '2'));
+    await index.update('root', async () => page([folder], '3'));
+    expect(index.paths.has('/notes/file.json')).to.equal(false);
+  });
+
+  it('preserves a child moved out of a deleted subtree on a later page', async () => {
+    const index = new OneDriveIndex();
+    await index.update('root', async () => page([root,
+      { id: 'folder', name: 'old', folder: {}, parentReference: { id: 'root' } },
+      { id: 'nested', name: 'nested', folder: {}, parentReference: { id: 'folder' } },
+      { ...file, parentReference: { id: 'nested' } },
+      { ...file, id: 'gone', name: 'gone.json', parentReference: { id: 'nested' } }]));
+    let count = 0;
+    await index.update('root', async () => ++count === 1 ?
+      { value: [{ id: 'folder', deleted: {} }], '@odata.nextLink': GRAPH + '/root/delta?page=2' } :
+      page([{ id: 'f', parentReference: { id: 'root' } }], '2'));
+    expect(index.paths.has('/file.json')).to.equal(true);
+    expect(index.items.has('nested')).to.equal(false);
+    expect(index.items.has('gone')).to.equal(false);
+  });
+
+  for (const links of [{ '@odata.nextLink': '' }, { '@odata.deltaLink': {} }]) {
+    it('rejects malformed delta links: ' + JSON.stringify(links), async () => {
+      const index = new OneDriveIndex();
+      await rejects(index.update('root', async () => ({ ...page([root, file]), ...links })), 'OneDrive');
+      expect(index.cursor).to.equal(undefined);
+    });
+  }
   it('propagates nested file revisions into all ancestor folder revisions', async () => {
     const index = new OneDriveIndex();
     const folder = { id: 'folder', name: 'nested', folder: {}, parentReference: { id: 'root' } };
@@ -84,11 +130,11 @@ describe('OneDrive delta index', () => {
     expect(() => graphURL('https://user:pass@graph.microsoft.com/v1.0/me')).to.throw();
   });
 
-  it('includes filenames in revision hashes and safely encodes special names', async () => {
+  it('includes literal filenames in revision hashes', async () => {
     const index = new OneDriveIndex();
     await index.update('root', async () => page([root, { ...file, name: 'a #?.json' }]));
     const before = index.revisions.get('/');
-    expect(index.paths.has('/a%20%23%3F.json')).to.equal(true);
+    expect(index.paths.has('/a #?.json')).to.equal(true);
     await index.update('root', async () => page([{ id: 'f', name: 'renamed.json' }], '2'));
     expect(index.revisions.get('/')).not.to.equal(before);
   });
@@ -117,6 +163,112 @@ describe('OneDrive backend', () => {
     else { delete globalThis.localStorage; }
     if (originalSessionStorage) { Object.defineProperty(globalThis, 'sessionStorage', originalSessionStorage); }
     else { delete globalThis.sessionStorage; }
+  });
+
+  it('round-trips raw percent signs and Unicode in public paths and listings', async () => {
+    const name = '100% café.json';
+    const item = { ...file, name };
+    fetchStub.withArgs(GRAPH + '/root:/remotestorage').callsFake(async () => json(root));
+    fetchStub.withArgs(GRAPH + '/root/delta').resolves(json(page([root, item])));
+    fetchStub.withArgs(GRAPH + '/root:/remotestorage/100%25%20caf%C3%A9.json').callsFake(async () => json(item));
+    fetchStub.withArgs(DOWNLOAD).resolves(new Response('contents'));
+    const listing = await backend.get('/');
+    expect(Object.keys(listing.body)).to.deep.equal([name]);
+    expect((await backend.get('/' + name)).body).to.equal('contents');
+  });
+
+  it('resolves folder reads case-insensitively like file reads', async () => {
+    fetchStub.withArgs(GRAPH + '/root:/remotestorage').callsFake(async () => json(root));
+    fetchStub.withArgs(GRAPH + '/root/delta').resolves(json(page([root,
+      { id: 'notes', name: 'Notes', folder: {}, parentReference: { id: 'root' } },
+      { ...file, parentReference: { id: 'notes' } }])));
+    const listing = await backend.get('/notes/');
+    expect(listing.statusCode).to.equal(200);
+    expect(Object.keys(listing.body)).to.deep.equal(['file.json']);
+  });
+
+  it('preserves saved credentials when reconnecting fails temporarily', async () => {
+    fetchStub.resolves(new Response(null, { status: 503 }));
+    await backend.configure({ token: 'saved-token', refreshToken: 'saved-refresh' });
+    expect(backend.connected).to.equal(false);
+    expect(backend.token).to.equal('saved-token');
+    expect(backend.refreshToken).to.equal('saved-refresh');
+    expect(JSON.parse(localStorage.getItem('remotestorage:onedrive')).refreshToken).to.equal('saved-refresh');
+  });
+
+  it('does not pair a replacement access token with the old account refresh token', async () => {
+    backend.refreshToken = 'old-refresh';
+    fetchStub.resolves(json({ driveType: 'personal' }));
+    await backend.configure({ token: 'new-account-token' });
+    expect(backend.refreshToken).to.equal(undefined);
+  });
+
+  it('forgets refresh credentials on an explicit token clear', async () => {
+    backend.refreshToken = 'old-refresh';
+    await backend.configure({ token: null });
+    expect(localStorage.getItem('remotestorage:onedrive')).to.equal(null);
+  });
+
+  it('returns no download link for a folder', async () => {
+    fetchStub.resolves(json(root));
+    expect(await backend.getItemURL('/')).to.equal(undefined);
+  });
+
+  it('does not revive saved credentials after an explicit clear before startup restoration', async () => {
+    const clock = sinon.useFakeTimers();
+    localStorage.setItem('remotestorage:onedrive', JSON.stringify({ token: 'saved' }));
+    rs.backend = 'onedrive';
+    backend = rs.onedrive = new OneDrive(rs);
+    fetchStub.resolves(json({ driveType: 'personal' }));
+    await backend.configure({ token: null });
+    await clock.tickAsync(0);
+    expect(fetchStub.called).to.equal(false);
+    expect(backend.connected).to.equal(false);
+  });
+
+  it('times out a response body that stalls after headers arrive', async () => {
+    const clock = sinon.useFakeTimers();
+    const timeout = config.requestTimeout;
+    config.requestTimeout = 25;
+    let stream;
+    fetchStub.resolves(new Response(new ReadableStream({ start(controller) { stream = controller; } })));
+    try {
+      const result = rejects(backend.get('/file.json'), 'timed out');
+      await clock.tickAsync(26);
+      await result;
+      expect(fetchStub.firstCall.args[1].signal.aborted).to.equal(true);
+    } finally { stream.close(); config.requestTimeout = timeout; }
+  });
+
+  it('cancels a stalled response body when the account is replaced', async () => {
+    let stream;
+    fetchStub.withArgs(GRAPH + '/root:/remotestorage/file.json').resolves(new Response(new ReadableStream({ start(controller) { stream = controller; } })));
+    fetchStub.withArgs(GRAPH).resolves(json({ driveType: 'personal' }));
+    const result = rejects(backend.get('/file.json'), 'session ended');
+    try {
+      await backend.configure({ token: 'new-account' });
+      await result;
+      expect(backend.online).to.equal(true);
+    } finally { stream.close(); }
+  });
+
+  it('forgets revoked refresh credentials and reports an authorization error', async () => {
+    backend.refreshToken = 'revoked';
+    sinon.stub(Authorize, 'requestRefreshedToken').rejects(new UnauthorizedError('invalid_grant'));
+    fetchStub.resolves(new Response(null, { status: 401 }));
+    const error = await backend.get('/file.json').catch(e => e);
+    expect(error).to.be.instanceOf(UnauthorizedError);
+    expect(backend.token).to.equal(undefined);
+    expect(backend.refreshToken).to.equal(undefined);
+    expect(backend.connected).to.equal(false);
+    expect(backend.online).to.equal(true);
+  });
+
+  it('reports a final HTTP 401 as authorization failure without marking the network offline', async () => {
+    fetchStub.resolves(new Response(null, { status: 401 }));
+    const error = await backend.get('/file.json').catch(e => e);
+    expect(error).to.be.instanceOf(UnauthorizedError);
+    expect(backend.online).to.equal(true);
   });
 
   it('restores the selected backend and routes uncached operations through it', async () => {
@@ -197,10 +349,18 @@ describe('OneDrive backend', () => {
     expect(fetchStub.withArgs(DOWNLOAD).callCount).to.equal(2);
   });
 
+  it('retries when the path is replaced by a different item with the same ETag', async () => {
+    let reads = 0;
+    fetchStub.withArgs(GRAPH + '/root:/remotestorage/file.json').callsFake(async () => json({ ...file, id: ++reads === 1 ? 'old-id' : 'new-id' }));
+    fetchStub.withArgs(DOWNLOAD).callsFake(async () => new Response('new contents'));
+    expect((await backend.get('/file.json')).body).to.equal('new contents');
+    expect(fetchStub.withArgs(DOWNLOAD).callCount).to.equal(2);
+  });
+
   it('rejects unsafe transfer URLs and invalid path segments', async () => {
     fetchStub.resolves(json({ ...file, '@microsoft.graph.downloadUrl': 'http://insecure.example/file' }));
     await rejects(backend.get('/file.json'), 'transfer URL');
-    await rejects(backend.get('/a/%2Fsecret'), 'path segment');
+    await rejects(backend.get('/a/..'), 'path segment');
     await rejects(backend.get('/../secret'), 'path segment');
     expect(fetchStub.callCount).to.equal(1);
   });
@@ -227,12 +387,46 @@ describe('OneDrive backend', () => {
     expect(backend.index.cursor).to.equal(GRAPH + '/root/delta?token=fresh');
   });
 
+  function commitRequest() {
+    return fetchStub.withArgs(GRAPH + '/root:/remotestorage', sinon.match.has('method', 'PUT'));
+  }
+
   function uploadFixture() {
     fetchStub.withArgs(GRAPH + '/root:/remotestorage').callsFake(async () => json(root));
     fetchStub.withArgs(GRAPH + '/items/root:/file.json:/createUploadSession').resolves(json({ uploadUrl: UPLOAD }));
     fetchStub.withArgs(UPLOAD).callsFake(async (_url, init) => new Response(null, { status: init.method === 'DELETE' ? 204 : 202 }));
-    fetchStub.withArgs(GRAPH + '/items/root:/file.json').resolves(json({ ...file, eTag: '"v2"' }, 201));
+    commitRequest().resolves(json({ ...file, eTag: '"v2"' }, 201));
   }
+
+  it('keeps percent-encoded-looking names literal during upload', async () => {
+    uploadFixture();
+    fetchStub.withArgs(GRAPH + '/items/root:/percent%252F.json:/createUploadSession').resolves(json({ uploadUrl: UPLOAD }));
+    await backend.put('/percent%2F.json', 'data', 'text/plain');
+    const commit = commitRequest().firstCall.args[1];
+    expect(JSON.parse(commit.body).name).to.equal('percent%2F.json');
+    expect(fetchStub.withArgs(GRAPH + '/items/root:/percent%252F.json:/createUploadSession').calledOnce).to.equal(true);
+  });
+
+  it('requires a completed explicit commit, not an accepted pending response', async () => {
+    uploadFixture();
+    commitRequest().resolves(json(file, 202));
+    await rejects(backend.put('/file.json', 'data', 'text/plain'), 'commit failed (202)');
+  });
+
+  it('does not return an old upload result when the account changes during cleanup', async () => {
+    uploadFixture();
+    const cleanup = deferred(), started = deferred();
+    fetchStub.withArgs(UPLOAD).callsFake(async (_url, init) => {
+      if (init.method === 'DELETE') { started.resolve(); return cleanup.promise; }
+      return new Response(null, { status: 202 });
+    });
+    fetchStub.withArgs(GRAPH).resolves(json({ driveType: 'personal' }));
+    const result = rejects(backend.put('/file.json', 'data', 'text/plain'), 'session ended');
+    await started.promise;
+    await backend.configure({ token: 'replacement' });
+    cleanup.resolve(new Response(null, { status: 204 }));
+    await result;
+  });
 
   it('uploads binary bytes without bearer credentials and sends If-Match at final commit', async () => {
     uploadFixture();
@@ -244,23 +438,23 @@ describe('OneDrive backend', () => {
     expect(upload.headers).not.to.have.property('Authorization');
     expect(upload.headers['Content-Range']).to.equal('bytes 0-2/3');
     expect([...new Uint8Array(upload.body)]).to.deep.equal([...bytes]);
-    const commit = fetchStub.withArgs(GRAPH + '/items/root:/file.json').firstCall.args[1];
+    const commit = commitRequest().firstCall.args[1];
     expect(commit.headers['If-Match']).to.equal('"v1"');
     expect(JSON.parse(commit.body)['@microsoft.graph.sourceUrl']).to.equal(UPLOAD);
   });
 
   it('uses conflict fail at final create and maps a concurrent create to 412', async () => {
     uploadFixture();
-    fetchStub.withArgs(GRAPH + '/items/root:/file.json').resolves(json({ error: { code: 'nameAlreadyExists' } }, 409));
+    commitRequest().resolves(json({ error: { code: 'nameAlreadyExists' } }, 409));
     expect(await backend.put('/file.json', 'data', 'text/plain', { ifNoneMatch: '*' })).to.deep.equal({ statusCode: 412 });
-    const commit = fetchStub.withArgs(GRAPH + '/items/root:/file.json').firstCall.args[1];
+    const commit = commitRequest().firstCall.args[1];
     expect(JSON.parse(commit.body)['@microsoft.graph.conflictBehavior']).to.equal('fail');
     expect(fetchStub.withArgs(UPLOAD).lastCall.args[1].method).to.equal('DELETE');
   });
 
   it('does not mistake unrelated upload errors for concurrent edits', async () => {
     uploadFixture();
-    fetchStub.withArgs(GRAPH + '/items/root:/file.json').resolves(json({ error: { code: 'quotaLimitReached' } }, 409));
+    commitRequest().resolves(json({ error: { code: 'quotaLimitReached' } }, 409));
     await rejects(backend.put('/file.json', 'data', 'text/plain'), '409');
   });
 
@@ -275,7 +469,7 @@ describe('OneDrive backend', () => {
 
   it('rejects a stale final commit and cancels the temporary upload', async () => {
     uploadFixture();
-    fetchStub.withArgs(GRAPH + '/items/root:/file.json').resolves(new Response(null, { status: 412 }));
+    commitRequest().resolves(new Response(null, { status: 412 }));
     expect(await backend.put('/file.json', 'data', 'text/plain', { ifMatch: 'stale' })).to.deep.equal({ statusCode: 412 });
     expect(fetchStub.withArgs(UPLOAD).lastCall.args[1].method).to.equal('DELETE');
   });
@@ -284,7 +478,7 @@ describe('OneDrive backend', () => {
     uploadFixture();
     fetchStub.withArgs(UPLOAD).resolves(json(file, 201));
     await rejects(backend.put('/file.json', 'data', 'text/plain', { ifMatch: 'v1' }), 'defer');
-    expect(fetchStub.withArgs(GRAPH + '/items/root:/file.json').called).to.equal(false);
+    expect(commitRequest().called).to.equal(false);
   });
 
   it('rejects empty uploads and directory mutations without network requests', async () => {
@@ -354,6 +548,18 @@ describe('OneDrive backend', () => {
     expect(rs.remote).to.equal(original);
   });
 
+  it('disconnects the backend when its application registration is removed', () => {
+    const original = rs.remote;
+    backend.select();
+    rs.backend = 'onedrive';
+    RemoteStorage.prototype.setApiKeys.call(rs, { onedrive: null });
+    expect(rs.onedrive).to.equal(undefined);
+    expect(rs.apiKeys.onedrive).to.equal(undefined);
+    expect(rs.remote).to.equal(original);
+    expect(backend.connected).to.equal(false);
+    expect(backend.token).to.equal(undefined);
+  });
+
   it('treats prototype-like filenames as ordinary listing entries', async () => {
     fetchStub.withArgs(GRAPH + '/root:/remotestorage').callsFake(async () => json(root));
     fetchStub.withArgs(GRAPH + '/root/delta').resolves(json(page([root, { ...file, name: '__proto__' }])));
@@ -375,7 +581,7 @@ describe('OneDrive backend', () => {
 describe('OneDrive sync preparation', () => {
   let rs, sync;
   beforeEach(() => {
-    rs = { local: new InMemoryStorage(), remote: {}, caching: { onActivate() {} }, _emit: sinon.spy() };
+    rs = { local: new InMemoryStorage(), remote: { connected: true }, caching: { onActivate() {} }, _emit: sinon.spy() };
     sync = new Sync(rs);
     rs.sync = sync;
     sinon.stub(sync, 'doTasks').returns(true);
@@ -399,6 +605,27 @@ describe('OneDrive sync preparation', () => {
     expect(sync.doTasks.called).to.equal(false);
     expect(rs._emit.calledWith('sync-done', { completed: false })).to.equal(true);
     expect(rs._emit.firstCall.args[1].message).to.include('feed unavailable');
+  });
+
+  it('does not prepare a disconnected backend', async () => {
+    rs.remote.connected = false;
+    rs.remote.prepareSync = sinon.stub().rejects(new Error('not connected'));
+    await sync.sync();
+    expect(rs.remote.prepareSync.called).to.equal(false);
+    expect(rs._emit.called).to.equal(false);
+  });
+
+  it('preserves authorization errors during preparation', async () => {
+    rs.remote.prepareSync = async () => { throw new UnauthorizedError(); };
+    await sync.sync();
+    expect(rs._emit.firstCall.args[1]).to.be.instanceOf(UnauthorizedError);
+  });
+
+  it('preserves authorization errors during file requests', async () => {
+    sinon.stub(sync, 'dealWithFailure').resolves();
+    sinon.stub(sync, 'finishUnsuccessfulTask').resolves();
+    await sync.finishTask({ path: '/notes/a', action: 'get', promise: Promise.reject(new UnauthorizedError()) }, true);
+    expect(rs._emit.firstCall.args[1]).to.be.instanceOf(UnauthorizedError);
   });
 
   for (const replacement of ['sync', 'remote']) {
