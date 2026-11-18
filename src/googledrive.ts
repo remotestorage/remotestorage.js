@@ -627,10 +627,11 @@ class GoogleDrive extends RemoteBase implements Remote {
         const folder = item.mimeType === GD_DIR_MIME_TYPE;
         const name = item.title + (folder ? '/' : '');
         if (Object.prototype.hasOwnProperty.call(itemsMap, name)) {
-          if (path !== '/') { throw new Error('Ambiguous duplicate Google Drive filename: ' + item.title); }
-          // Older clients used the final matching root entry. Preserve that
-          // existing account mapping; changing it would hide the user's data.
-          console.warn('Multiple remoteStorage folders in Google Drive; retaining the legacy root folder selection.');
+          if (!folder) { throw new Error('Ambiguous duplicate Google Drive filename: ' + item.title); }
+          // Older clients could create duplicate directories and used the final
+          // matching entry. Preserve that hierarchy so upgrades retain access to
+          // existing data. Ambiguous documents still fail rather than overwrite.
+          console.warn('Duplicate Google Drive directory; retaining the legacy folder selection.');
         }
         ids.set(path + cleanPath(name), item.id);
         itemsMap[name] = folder ? { ETag: revision || this.stripQuotes(item.etag) } : {
