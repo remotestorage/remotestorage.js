@@ -89,6 +89,49 @@ Console](https://console.developers.google.com/flows/enableapi?apiid=drive).
 - Sharing public files is not supported yet (see [issue 1051](https://github.com/remotestorage/remotestorage.js/issues/1051))
 - [`getItemURL()`][1] is not implemented yet (see [issue 1054](https://github.com/remotestorage/remotestorage.js/issues/1054))
 
+## Google Drive synchronization
+
+The Google Drive backend checks the Drive v3 changes feed before periodic sync.
+After fully listing a folder, it can reuse a synthetic folder revision when the
+feed confirms that nothing changed. These revisions are internal sync markers;
+they are not Google's folder metadata ETags. File requests and conditional writes
+continue to use the real file ETags through the Drive v2 API.
+
+For now, any change in the account invalidates all folder revisions and cached
+path-to-ID mappings. This conservative approach handles nested edits, moves,
+renames, removals, and permission changes without treating folder metadata ETags
+as recursive. Activity elsewhere in the account may cause extra listings.
+Unchanged accounts avoid repeatedly listing every cached subfolder. Explicit
+conditional folder reads also check the feed, even outside periodic sync;
+unconditional reads always fetch a complete listing.
+
+Folder listings and change feeds follow all pagination tokens. Failed or
+incomplete pages never become authoritative listings or advance the saved change
+cursor. An expired cursor triggers a fresh baseline and invalidation. Cursors
+are held in memory and reset on token/account changes and disconnect. Reads do
+not create missing folders; uploads create parents when necessary.
+
+The initial change-feed baseline also clears any IDs learned before tracking
+started. Completed mutations invalidate folder listings again, including listings
+read while the write was in flight. Failed downloads are reported as errors, not
+file contents; only files explicitly identified as zero bytes may be returned as
+empty without a download URL. Expired authorization is reported to the app so it
+can request reconnection.
+
+Duplicate sibling filenames are rejected because Drive allows multiple IDs with
+the same name, which cannot be represented unambiguously in remoteStorage paths.
+Names containing `/` are also rejected. Other names, including spaces, percent
+signs, apostrophes and Unicode, are returned unchanged in listings and can be
+passed directly to file operations.
+Conditional deletion sends `If-Match` to the server, including after a matching
+metadata read. Creating files by name still cannot provide an atomic
+`If-None-Match: *` guarantee across different clients, because Drive permits
+duplicate names. The changes feed does not change that limitation.
+
+The regression suite uses deterministic HTTP fixtures, including nested sync,
+pagination failures, login changes, and conditional operations. It does not
+replace testing with a live Google account.
+
 ## Sharing public files via Dropbox
 
 [`BaseClient.getItemURL()`][1] is supported for the Dropbox backend. It returns a

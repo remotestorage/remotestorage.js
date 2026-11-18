@@ -240,7 +240,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
           test.assertAnd(getMockRequestMethod(), 'GET');
           test.assertAnd(getMockRequestUrl(), 'https://www.googleapis.com/drive/v2/files?'
             + 'q=' + encodeURIComponent('\'abcd\' in parents')
-            + '&fields=' + encodeURIComponent('items(downloadUrl,etag,fileSize,id,mimeType,title,labels)')
+            + '&fields=' + encodeURIComponent('nextPageToken,incompleteSearch,items(downloadUrl,etag,fileSize,id,mimeType,title,labels)')
             + '&maxResults=1000'
             + '&trashed=false');
         });
@@ -271,6 +271,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
                 etag: '"1234"',
                 mimeType: 'application/vnd.google-apps.folder',
                 title: 'bar',
+                id: 'bar-id',
                 labels: {
                   trashed: false
                 }
@@ -280,6 +281,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
                 mimeType: 'image/png',
                 fileSize: 25003,
                 title: 'baz.png',
+                id: 'baz-id',
                 labels: {
                   trashed: false
                 }
@@ -321,6 +323,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
                 etag: '"1234"',
                 mimeType: 'application/vnd.google-apps.folder',
                 title: 'bar',
+                id: 'bar-id',
                 labels: {
                   trashed: false
                 }
@@ -330,6 +333,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
                 mimeType: 'image/png',
                 fileSize: 25003,
                 title: 'baz.png',
+                id: 'baz-id',
                 labels: {
                   trashed: false
                 }
@@ -444,9 +448,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
         setTimeout(function() {
           mockRequestSuccess({
             status: 200,
-            responseText: JSON.stringify({ items: [
-              { etag: '"1234"' }
-            ] })
+            responseText: JSON.stringify({ etag: '"1234"', mimeType: 'text/plain', fileSize: '0' })
           });
         }, 10);
       }
@@ -464,9 +466,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
         setTimeout(function() {
           mockRequestSuccess({
             status: 200,
-            responseText: JSON.stringify({ items: [
-              { etag: '"1234"' }
-            ] })
+            responseText: JSON.stringify({ etag: '"1234"', mimeType: 'text/plain', fileSize: '0' })
           });
         }, 10);
       }
@@ -485,7 +485,7 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
           mockRequestSuccess({
             status: 200,
             responseText: JSON.stringify({ items: [
-              { etag: '"1234"', title: 'abcd', labels: { trashed: false } }
+              { etag: '"1234"', title: 'abcd', id: 'abcd-id', mimeType: 'text/plain', labels: { trashed: false } }
             ] })
           });
         }, 10);
