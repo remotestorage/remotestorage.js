@@ -616,6 +616,9 @@ class GoogleDrive extends RemoteBase implements Remote {
       }
       for (const item of data.items || []) {
         if (item.labels?.trashed) { continue; }
+        // The Drive root is only traversed to find our application directory.
+        // Personal files outside it need not have remoteStorage-compatible names.
+        if (path === '/' && (item.title !== PATH_PREFIX.slice(1) || item.mimeType !== GD_DIR_MIME_TYPE)) { continue; }
         if (typeof item.title !== 'string' || !item.title || typeof item.etag !== 'string' ||
             typeof item.id !== 'string' || !item.id || typeof item.mimeType !== 'string') {
           throw new Error('Invalid Google Drive listing item.');
@@ -624,7 +627,10 @@ class GoogleDrive extends RemoteBase implements Remote {
         const folder = item.mimeType === GD_DIR_MIME_TYPE;
         const name = item.title + (folder ? '/' : '');
         if (Object.prototype.hasOwnProperty.call(itemsMap, name)) {
-          throw new Error('Ambiguous duplicate Google Drive filename: ' + item.title);
+          if (path !== '/') { throw new Error('Ambiguous duplicate Google Drive filename: ' + item.title); }
+          // Older clients used the final matching root entry. Preserve that
+          // existing account mapping; changing it would hide the user's data.
+          console.warn('Multiple remoteStorage folders in Google Drive; retaining the legacy root folder selection.');
         }
         ids.set(path + cleanPath(name), item.id);
         itemsMap[name] = folder ? { ETag: revision || this.stripQuotes(item.etag) } : {
