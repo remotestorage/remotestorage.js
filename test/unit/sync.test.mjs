@@ -712,9 +712,9 @@ describe("Sync", function() {
           ]);
         });
 
-        it("only updates local index for the latest change", function() {
+        it("preserves every concurrent response in the local index", function() {
           expect(this.nodes["/foo/"].local.itemsMap).to.deep.equal({
-            "1": true, "3": true // does not include "2"
+            "1": true, "2": true, "3": true
           });
         });
 
@@ -1721,6 +1721,32 @@ describe("Sync", function() {
       const nodes = await replacement.getNodes(["/notes/private.txt"]);
       expect(nodes["/notes/private.txt"]).to.be.undefined;
       expect(emitChange.called).to.be.false;
+    });
+
+    it("discards a response whose session ended while it waited for the cache lock", async function() {
+      const staleSync = this.rs.sync;
+      const staleLocal = this.rs.local;
+      const setNodes = sinon.spy(staleLocal, "setNodes");
+
+      let releaseLock, lockTaken;
+      const taken = new Promise((resolve) => { lockTaken = resolve; });
+      const held = staleLocal.withLocalUpdate(() => new Promise((resolve) => {
+        releaseLock = resolve;
+        lockTaken();
+      }));
+      await taken;
+      const response = staleSync.handleResponse("/notes/private.txt", "get", {
+        statusCode: 200, body: "A_ONLY", contentType: "text/plain", revision: "rev-a"
+      });
+
+      // Replace the session while the response waits behind the held lock.
+      this.rs.local = new InMemoryStorage();
+      this.rs.sync = new Sync(this.rs);
+      releaseLock();
+      await held;
+
+      await expect(response).to.be.rejectedWith(/session ended/);
+      expect(setNodes.called).to.be.false;
     });
 
     it("settles every queued request when a parked successor is discarded", async function() {

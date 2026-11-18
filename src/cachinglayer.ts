@@ -109,9 +109,55 @@ abstract class CachingLayer {
   // refactored. Right now it's almost impossible to refactor as there's no
   // explanation of why things are implemented certain ways or what the goal(s)
   // of the behavior are. -slvrbckt (+1 -les)
-  private _updateNodesRunning = false;
-  private _updateNodesQueued = [];
+  private _localUpdates: Promise<void> = Promise.resolve();
 
+
+  /**
+   * Serialize local read–modify–write operations, including sync reconciliation.
+   * Acquire before reading and release after persisting. Callbacks must not await
+   * another queued operation; sync's internal helpers run within the outer job.
+   * Backends whose storage is shared between browser tabs also hold a Web Lock
+   * (when the browser supports it), so tabs don't overwrite each other's updates.
+   * @internal
+   */
+  withLocalUpdate<T> (update: () => Promise<T>): Promise<T> {
+    const result = this._localUpdates.then(() => this._withSharedLock(update));
+    // A rejected operation must not prevent subsequent writes from running.
+    this._localUpdates = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  /**
+   * Name of the Web Lock guarding storage that other tabs can write to, or
+   * `undefined` when the storage belongs to this instance alone.
+   * @internal
+   */
+  protected sharedLockName (): string | undefined {
+    return undefined;
+  }
+
+  /**
+   * Resolves once every node passed to `setNodes` so far has been persisted,
+   * so the next lock holder (possibly in another tab) reads it from storage.
+   * @internal
+   */
+  protected waitForCommit (): Promise<void> {
+    return Promise.resolve();
+  }
+
+  private _withSharedLock<T> (update: () => Promise<T>): Promise<T> {
+    const name = this.sharedLockName();
+    const locks: LockManager | undefined = globalContext.navigator?.locks;
+    if (!name || !locks) { return update(); }
+
+    return locks.request(name, async () => {
+      try {
+        return await update();
+      } finally {
+        await this.waitForCommit();
+      }
+    });
+  }
 
   // functions that will be overwritten
   // ----------------------------------
@@ -270,6 +316,10 @@ abstract class CachingLayer {
   }
 
   flush(path: string): Promise<void> {
+    return this.withLocalUpdate(() => this._flush(path));
+  }
+
+  private _flush(path: string): Promise<void> {
     return this._getAllDescendentPaths(path).then((paths: string[]) => {
       return this.getNodes(paths);
     }).then((nodes: RSNodes) => {
@@ -328,73 +378,48 @@ abstract class CachingLayer {
   }
 
   private _updateNodes(paths: string[], _processNodes: ProcessNodes): Promise<QueuedRequestResponse> {
-    return new Promise((resolve, reject) => {
-      this._doUpdateNodes(paths, _processNodes, {
-        resolve: resolve,
-        reject: reject
-      });
-    });
+    return this.withLocalUpdate(() => this._doUpdateNodes(paths, _processNodes));
   }
 
-  private async _doUpdateNodes(paths: string[], _processNodes: ProcessNodes, promise): Promise<void> {
-    if (this._updateNodesRunning) {
-      this._updateNodesQueued.push({
-        paths: paths,
-        cb: _processNodes,
-        promise: promise
-      });
-      return;
-    }
-    this._updateNodesRunning = true;
+  private async _doUpdateNodes(paths: string[], _processNodes: ProcessNodes): Promise<QueuedRequestResponse> {
+    let nodes = await this.getNodes(paths);
+    const existingNodes = deepClone(nodes);
+    const changeEvents = [];
 
-    try {
-      let nodes = await this.getNodes(paths);
-      const existingNodes = deepClone(nodes);
-      const changeEvents = [];
+    nodes = _processNodes(paths, nodes);
 
-      nodes = _processNodes(paths, nodes);
-
-      for (const path in nodes) {
-        const node = nodes[path];
-        if (equal(node, existingNodes[path])) {
-          delete nodes[path];
-        } else if (isDocument(path)) {
-          if (
-            !equal(node.local.body, node.local.previousBody) ||
-            node.local.contentType !== node.local.previousContentType
-          ) {
-            changeEvents.push({
-              path: path,
-              origin: 'window',
-              oldValue: node.local.previousBody,
-              newValue: node.local.body === false ? undefined : node.local.body,
-              oldContentType: node.local.previousContentType,
-              newContentType: node.local.contentType
-            });
-          }
-          if (node.local.body === undefined) {
-            // no remote connected, remove deleted node from cache immediately
-            nodes[path] = undefined;
-          } else {
-            delete node.local.previousBody;
-            delete node.local.previousContentType;
-          }
+    for (const path in nodes) {
+      const node = nodes[path];
+      if (equal(node, existingNodes[path])) {
+        delete nodes[path];
+      } else if (isDocument(path)) {
+        if (
+          !equal(node.local.body, node.local.previousBody) ||
+          node.local.contentType !== node.local.previousContentType
+        ) {
+          changeEvents.push({
+            path: path,
+            origin: 'window',
+            oldValue: node.local.previousBody,
+            newValue: node.local.body === false ? undefined : node.local.body,
+            oldContentType: node.local.previousContentType,
+            newContentType: node.local.contentType
+          });
+        }
+        if (node.local.body === undefined) {
+          // no remote connected, remove deleted node from cache immediately
+          nodes[path] = undefined;
+        } else {
+          delete node.local.previousBody;
+          delete node.local.previousContentType;
         }
       }
-
-      await this.setNodes(nodes);
-      this._emitChangeEvents(changeEvents);
-
-      promise.resolve({ statusCode: 200 });
-    } catch (err) {
-      promise.reject(err);
     }
 
-    this._updateNodesRunning = false;
-    const nextJob = this._updateNodesQueued.shift();
-    if (nextJob) {
-      await this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
-    }
+    await this.setNodes(nodes);
+    this._emitChangeEvents(changeEvents);
+
+    return { statusCode: 200 };
   }
 
   private _emitChangeEvents(events: RSEvent[]) {

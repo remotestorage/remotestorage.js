@@ -57,6 +57,8 @@ class IndexedDB extends CachingLayer {
   changesQueued: { [key: string]: unknown };
   changesRunning: { [key: string]: unknown };
   commitSlownessWarning: any; // TODO null | number (but node's setInterval returns an unknown type)
+  private commitWaiters: { resolve: () => void; reject: (err: unknown) => void }[] = [];
+  private commitError: unknown;
 
   constructor(database) {
     super();
@@ -161,8 +163,45 @@ class IndexedDB extends CachingLayer {
     if (Object.keys(this.changesQueued).length > 0) {
       this.changesRunning = this.changesQueued;
       this.changesQueued = {};
-      this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
+      this.setNodesInDb(this.changesRunning).then(() => {
+        // Committed nodes are read from the database again, which other tabs
+        // may have updated since.
+        this.changesRunning = {};
+      }, (err) => {
+        log('[IndexedDB] Failed to commit changes', err);
+        // Don't serve the uncommitted nodes; report the failure to the writer.
+        this.changesRunning = {};
+        this.commitError = err;
+      }).then(this.flushChangesQueued.bind(this));
+    } else if (this.putsRunning === 0) {
+      const waiters = this.commitWaiters;
+      const err = this.commitError;
+      this.commitWaiters = [];
+      this.commitError = undefined;
+      waiters.forEach(w => err ? w.reject(err) : w.resolve());
     }
+  }
+
+  /**
+   * Resolves once all queued changes have been written to the database, or
+   * rejects if writing them failed.
+   *
+   * @internal
+   */
+  protected waitForCommit (): Promise<void> {
+    if (this.putsRunning === 0 && Object.keys(this.changesQueued).length === 0) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => { this.commitWaiters.push({ resolve, reject }); });
+  }
+
+  /**
+   * Tabs sharing this database coordinate updates through this Web Lock.
+   *
+   * @internal
+   */
+  protected sharedLockName (): string {
+    return `remotestorage:indexeddb:${this.db.name}`;
   }
 
   /**
@@ -208,6 +247,14 @@ class IndexedDB extends CachingLayer {
       const transaction = this.db.transaction(['nodes'], 'readwrite');
       const nodesStore = transaction.objectStore('nodes');
       const startTime = new Date().getTime();
+      let settled = false;
+      // A failed write fires both error and abort; count it as finished once.
+      const finish = (err?: unknown): void => {
+        if (settled) { return; }
+        settled = true;
+        this.putsRunning--;
+        if (err) { reject(err); } else { resolve(); }
+      };
 
       this.putsRunning++;
 
@@ -215,38 +262,27 @@ class IndexedDB extends CachingLayer {
 
       for (const path in nodes) {
         const node = nodes[path];
-        if (typeof (node) === 'object') {
-          try {
+        try {
+          if (typeof (node) === 'object') {
             nodesStore.put(node);
-          } catch (e) {
-            log('[IndexedDB] Error while putting', node, e);
-            throw e;
-          }
-        } else {
-          try {
+          } else {
             nodesStore.delete(path);
-          } catch (e) {
-            log('[IndexedDB] Error while removing', nodesStore, node, e);
-            throw e;
           }
+        } catch (e) {
+          log('[IndexedDB] Error while writing', path, node, e);
+          transaction.abort();
+          finish(e);
+          return;
         }
       }
 
       transaction.oncomplete = () => {
-        this.putsRunning--;
-        log('[IndexedDB] Finished puts', nodes, this.putsRunning, (new Date().getTime() - startTime) + 'ms');
-        resolve();
+        log('[IndexedDB] Finished puts', nodes, this.putsRunning - 1, (new Date().getTime() - startTime) + 'ms');
+        finish();
       };
 
-      transaction.onerror = () => {
-        this.putsRunning--;
-        reject('transaction error');
-      };
-
-      transaction.onabort = () => {
-        reject('transaction abort');
-        this.putsRunning--;
-      };
+      transaction.onerror = () => { finish('transaction error'); };
+      transaction.onabort = () => { finish('transaction abort'); };
 
     });
   }

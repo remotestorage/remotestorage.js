@@ -55,6 +55,15 @@ class LocalStorage extends CachingLayer {
     return Promise.resolve();
   }
 
+  /**
+   * Tabs sharing localStorage coordinate updates through this Web Lock.
+   *
+   * @internal
+   */
+  protected sharedLockName(): string {
+    return 'remotestorage:localstorage';
+  }
+
   forAllNodes(cb: (node: RSNode) => void): Promise<void> {
     let node: RSNode | undefined;
 
