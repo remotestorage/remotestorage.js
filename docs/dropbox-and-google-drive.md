@@ -60,6 +60,30 @@ You need to set one or more OAuth2 redirect URIs for all routes a user can
 connect from, for example `http://localhost:8000` for an app you are developing
 locally. If the path is '/', rs.js drops it.
 
+### Synchronization and conflicts
+
+Before each sync cycle, the adapter reads Dropbox's recursive change feed and
+generates folder revisions locally. Nested file changes, renames, empty-folder
+additions, and deletions update the ancestor revisions used by the sync engine.
+An expired cursor triggers a fresh listing. All pages must succeed before a new
+cursor is published; a timeout or failed page aborts that sync cycle so it cannot
+mistake stale cached revisions for an unchanged remote tree.
+
+Conditional file uploads use Dropbox's strict `update` or `add` mode, and
+conditional deletes send `parent_rev`. These checks run on the server at the
+mutation itself, protecting against another writer changing the file after a
+metadata lookup. Revision conflicts are returned to normal sync handling as
+HTTP-style status 412. Dropbox does not support `parent_rev` for folder deletion.
+
+Folder listings do not overwrite the change-feed cache: a delayed or incomplete
+listing cannot hide a newer change. File/folder replacements invalidate the
+old cache entries, including descendants. An unconditional read always checks
+Dropbox, even if the cache records a previous deletion.
+
+Concurrent requests share a token refresh. Disconnecting or changing accounts
+invalidates pending responses and retries, so they cannot update the new
+account's cache or credentials.
+
 ### Known issues
 
 - Storing files larger than 150MB is not yet supported

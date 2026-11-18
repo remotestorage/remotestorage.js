@@ -40,6 +40,11 @@ class RevisionCache {
    */
   set(key: string, value): unknown {
     key = key.toLowerCase();
+    if (value && !key.endsWith('/')) {
+      // Dropbox can replace a folder with a file without a separate deletion.
+      if (this._itemsRev[key + '/'] || this._storage[key + '/']) { this.delete(key + '/'); }
+      this.ensureFolder(this._getParentFolder(key));
+    }
     if (this._storage[key] === value) {
       return value;
     }
@@ -54,10 +59,35 @@ class RevisionCache {
     return value;
   }
 
+  /** Record an empty folder without replacing an existing subtree revision. */
+  ensureFolder(key: string): void {
+    key = key.toLowerCase();
+    if (key !== '/') {
+      const filePath = key.slice(0, -1);
+      if (this._storage[filePath]) { this.delete(filePath); }
+      this.ensureFolder(this._getParentFolder(key));
+    }
+    if (!this._itemsRev[key]) {
+      this._itemsRev[key] = {};
+      this._storage[key] = this.defaultValue;
+      this._updateParentFolderItemRev(key, this.defaultValue);
+      if (this._canPropagate) { this._propagate(key); }
+    }
+  }
+
   /**
    * Delete a value
    */
   delete(key: string): unknown {
+    key = key.toLowerCase();
+    if (key.endsWith('/')) {
+      for (const child of Object.keys(this._storage)) {
+        if (child.startsWith(key) && child !== key) {
+          this._storage[child] = null;
+          delete this._itemsRev[child];
+        }
+      }
+    }
     return this.set(key, null);
   }
 
@@ -145,7 +175,7 @@ class RevisionCache {
       const parentFolderItemsRev = this._itemsRev[parentFolder];
       const hashItems = [];
       for (const path in parentFolderItemsRev) {
-        hashItems.push(parentFolderItemsRev[path]);
+        hashItems.push(JSON.stringify([path, parentFolderItemsRev[path]]));
       }
       const newRev = this._generateHash(hashItems);
       this.set(parentFolder, newRev);
@@ -169,7 +199,7 @@ class RevisionCache {
         } else {
           hashItem = itemsRev[path];
         }
-        hashItems.push(hashItem);
+        hashItems.push(JSON.stringify([path, hashItem]));
       }
       if (hashItems.length > 0) {
         hash = this._generateHash(hashItems);
