@@ -111,8 +111,18 @@ cursor. An expired cursor triggers a fresh baseline and invalidation. Cursors
 are held in memory and reset on token/account changes and disconnect. Reads do
 not create missing folders; uploads create parents when necessary.
 
+The initial change-feed baseline also clears any IDs learned before tracking
+started. Completed mutations invalidate folder listings again, including listings
+read while the write was in flight. Failed downloads are reported as errors, not
+file contents; only files explicitly identified as zero bytes may be returned as
+empty without a download URL. Expired authorization is reported to the app so it
+can request reconnection.
+
 Duplicate sibling filenames are rejected because Drive allows multiple IDs with
 the same name, which cannot be represented unambiguously in remoteStorage paths.
+Names containing `/` are also rejected. Other names, including spaces, percent
+signs, apostrophes and Unicode, are returned unchanged in listings and can be
+passed directly to file operations.
 Conditional deletion sends `If-Match` to the server, including after a matching
 metadata read. Creating files by name still cannot provide an atomic
 `If-None-Match: *` guarantee across different clients, because Drive permits

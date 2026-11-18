@@ -19,6 +19,8 @@ export class GoogleDriveChanges {
 
   constructor (private request: (url: string) => Promise<ChangeResponse>, private onChange: () => void) {}
 
+  get generation (): number { return this.serial; }
+
   reset (): void {
     this.epoch++;
     this.token = undefined;
@@ -72,6 +74,7 @@ export class GoogleDriveChanges {
       if (typeof body.startPageToken !== 'string' || !body.startPageToken) { throw new Error('Missing Google Drive start token.'); }
       this.token = body.startPageToken;
       this.invalidate();
+      this.onChange();
       return;
     }
     let pageToken = this.token;

@@ -5,6 +5,7 @@ import GoogleDrive from '../../build/googledrive.js';
 import { GoogleDriveChanges } from '../../build/googledrive-changes.js';
 import { Sync } from '../../build/sync.js';
 import InMemoryStorage from '../../build/inmemorystorage.js';
+import UnauthorizedError from '../../build/unauthorized-error.js';
 
 const response = (body, status = 200) => ({ status, responseText: JSON.stringify(body) });
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
@@ -27,6 +28,7 @@ describe('Google Drive changes', () => {
 
   it('keeps validators stable when the fully drained feed has no changes', async () => {
     await tracker.prepare();
+    changed.resetHistory();
     const revision = tracker.revision;
     tracker.markListed('/notes/', revision);
     request.onSecondCall().resolves(response({ newStartPageToken: 'next', changes: [] }));
@@ -37,6 +39,7 @@ describe('Google Drive changes', () => {
 
   it('invalidates every ancestor after a change on a later page', async () => {
     await tracker.prepare();
+    changed.resetHistory();
     const revision = tracker.revision;
     for (const path of ['/', '/notes/', '/notes/nested/']) { tracker.markListed(path, revision); }
     request.onSecondCall().resolves(response({ nextPageToken: 'page/2', changes: [] }));
@@ -50,6 +53,7 @@ describe('Google Drive changes', () => {
 
   it('retries from the old committed cursor after a failed later page', async () => {
     await tracker.prepare();
+    changed.resetHistory();
     tracker.markListed('/notes/', tracker.revision);
     request.onSecondCall().resolves(response({ nextPageToken: 'second', changes: [{ fileId: 'a' }] }));
     request.onThirdCall().resolves(response({}, 503));
@@ -106,12 +110,13 @@ describe('Google Drive changes', () => {
 
   it('reinitializes an expired cursor and invalidates IDs and listings', async () => {
     await tracker.prepare();
+    changed.resetHistory();
     tracker.markListed('/notes/', tracker.revision);
     request.onSecondCall().resolves(response({}, 410));
     request.onThirdCall().resolves(response({ startPageToken: 'replacement' }));
     await tracker.prepare();
     expect(tracker.getRevision('/notes/')).to.equal(undefined);
-    expect(changed.calledOnce).to.equal(true);
+    expect(changed.callCount).to.equal(2);
     expect(tracker.revision).to.include('replacement');
   });
 
@@ -154,6 +159,59 @@ describe('Google Drive backend reliability', () => {
     expect(drive._fileIdCache.get('/remotestorage/notes/b')).to.equal('b');
   });
 
+  for (const existing of [false, true]) {
+    it(`returns a successful public put result for ${existing ? 'updates' : 'new files'}`, async () => {
+      sinon.stub(drive, '_getFileId').resolves(existing ? 'file-id' : undefined);
+      sinon.stub(drive, '_getParentId').resolves('parent-id');
+      request.onFirstCall().resolves({ status: 200, getResponseHeader: () => 'https://www.googleapis.com/upload/session' });
+      request.onSecondCall().resolves(response({ id: 'file-id', etag: '"new"', mimeType: 'text/plain' }));
+      expect(await drive.put('/notes/a', 'contents', 'text/plain')).to.deep.equal({ statusCode: 200, revision: 'new', contentType: 'text/plain' });
+    });
+  }
+
+  for (const status of [403, 404, 500]) {
+    it(`does not turn a failed ${status} download into file contents`, async () => {
+      sinon.stub(drive, '_getFileId').resolves('file-id');
+      sinon.stub(drive, '_getMeta').resolves({ etag: '"old"', mimeType: 'text/plain', downloadUrl: 'https://www.googleapis.com/download' });
+      request.resolves({ status, response: new TextEncoder().encode('error page').buffer });
+      expect(await drive.get('/notes/a')).to.deep.equal({ statusCode: status });
+    });
+  }
+
+  it('round-trips listing names through the public get API without encoding them twice', async () => {
+    const title = "space % café's.txt";
+    drive._fileIdCache.set('/remotestorage/notes/', 'folder-id');
+    request.onFirstCall().resolves(response({ items: [file(title)] }));
+    request.onSecondCall().resolves(response({ etag: '"file-v1"', mimeType: 'text/plain', fileSize: '0' }));
+    const listing = await drive.get('/notes/');
+    expect(Object.keys(listing.body)).to.deep.equal([title]);
+    expect((await drive.get('/notes/' + Object.keys(listing.body)[0])).statusCode).to.equal(200);
+    expect(request.secondCall.args[1]).to.equal('https://www.googleapis.com/drive/v2/files/' + encodeURIComponent(title));
+  });
+
+  it('discards path IDs learned before the initial change-feed baseline', async () => {
+    drive._fileIdCache.set('/remotestorage/notes/', 'moved-folder');
+    request.resolves(response({ startPageToken: 'start' }));
+    await drive.prepareSync();
+    expect(drive._fileIdCache.get('/remotestorage/notes/')).to.equal(undefined);
+  });
+
+  it('rejects a malformed listing ID instead of treating the file as missing', async () => {
+    sinon.stub(drive, '_getFileId').resolves('folder-id');
+    request.resolves(response({ items: [{ ...file('a'), id: undefined }] }));
+    expect(await rejection(drive.get('/notes/'))).to.be.instanceOf(Error);
+    expect(drive._fileIdCache.get('/remotestorage/notes/a')).to.equal(undefined);
+  });
+
+  for (const body of [new TextEncoder().encode('{"value":1}'), new Blob(['{"value":1}'])]) {
+    it(`preserves JSON supplied as ${body.constructor.name} bytes`, async () => {
+      request.onFirstCall().resolves({ status: 200, getResponseHeader: () => 'https://www.googleapis.com/upload/session' });
+      request.onSecondCall().resolves(response({ etag: '"new"' }));
+      await drive._updateFile('id', '/a', body, 'application/json', {});
+      expect(request.secondCall.args[2].body).to.equal(body);
+    });
+  }
+
   it('does not publish partial IDs when the second listing page fails', async () => {
     sinon.stub(drive, '_getFileId').resolves('folder-id');
     request.onFirstCall().resolves(response({ items: [file('a')], nextPageToken: 'second' }));
@@ -175,12 +233,100 @@ describe('Google Drive backend reliability', () => {
     expect(request.callCount).to.equal(2);
   });
 
-  it('encodes path separators in names and preserves prototype-like filenames', async () => {
+  it('preserves prototype-like filenames', async () => {
     sinon.stub(drive, '_getFileId').resolves('folder-id');
-    request.resolves(response({ items: [file('a/b'), file('__proto__')] }));
+    request.resolves(response({ items: [file('__proto__')] }));
     const result = await drive.get('/notes/');
-    expect(Object.keys(result.body)).to.deep.equal(['a%2Fb', '__proto__']);
+    expect(Object.keys(result.body)).to.deep.equal(['__proto__']);
     expect(result.body.__proto__.ETag).to.equal('file-v1');
+  });
+
+  it('rejects slash-containing names instead of aliasing a different remoteStorage path', async () => {
+    sinon.stub(drive, '_getFileId').resolves('folder-id');
+    request.resolves(response({ items: [file('a/b')] }));
+    expect((await rejection(drive.get('/notes/'))).message).to.include('cannot be represented');
+  });
+
+  it('rejects listings invalidated before a change-feed baseline exists', async () => {
+    sinon.stub(drive, '_getFileId').resolves('folder-id');
+    const pending = deferred();
+    request.returns(pending.promise);
+    const listing = drive.get('/notes/');
+    await Promise.resolve();
+    drive.changes.invalidate();
+    pending.resolve(response({ items: [file('old')] }));
+    expect((await rejection(listing)).message).to.include('changed during listing');
+    expect(drive._fileIdCache.get('/remotestorage/notes/old')).to.equal(undefined);
+  });
+
+  for (const operation of ['put', 'delete']) {
+    it(`invalidates a folder listing read before an in-flight ${operation} completes`, async () => {
+      request.onFirstCall().resolves(response({ startPageToken: 'start' }));
+      await drive.prepareSync();
+      sinon.stub(drive, '_getFileId').resolves('id');
+      sinon.stub(drive, '_getMeta').resolves({ etag: '"old"' });
+      const pending = deferred();
+      sinon.stub(drive, '_updateFile').returns(pending.promise);
+      request.callsFake(async method => method === 'DELETE' ? pending.promise : response({ items: [file('a')] }));
+      const mutation = operation === 'put' ? drive.put('/notes/a', 'data', 'text/plain') : drive.delete('/notes/a');
+      await drive.get('/notes/');
+      expect(drive.changes.getRevision('/remotestorage/notes/')).to.be.a('string');
+      pending.resolve(response({ etag: '"new"', mimeType: 'text/plain' }));
+      await mutation;
+      expect(drive.changes.getRevision('/remotestorage/notes/')).to.equal(undefined);
+      expect(drive._fileIdCache.get('/remotestorage/notes/a')).to.equal(undefined);
+    });
+  }
+
+  for (const meta of [{ fileSize: '4', mimeType: 'text/plain' }, { mimeType: 'application/vnd.google-apps.spreadsheet' }]) {
+    it(`does not replace an unavailable ${meta.mimeType} download with an empty file`, async () => {
+      sinon.stub(drive, '_getFileId').resolves('id');
+      sinon.stub(drive, '_getMeta').resolves({ etag: '"old"', ...meta });
+      expect((await rejection(drive.get('/notes/a'))).message).to.include('download URL');
+    });
+  }
+
+  it('rejects incomplete upload metadata instead of publishing an undefined revision', async () => {
+    sinon.stub(drive, '_getFileId').resolves('id');
+    sinon.stub(drive, '_updateFile').resolves(response({}));
+    expect((await rejection(drive.put('/notes/a', 'data', 'text/plain'))).message).to.include('upload result');
+  });
+
+  it('rejects a late download after switching accounts', async () => {
+    sinon.stub(drive, '_getFileId').resolves('id');
+    sinon.stub(drive, '_getMeta').resolves({ etag: '"old"', mimeType: 'text/plain', downloadUrl: 'https://www.googleapis.com/download' });
+    const pending = deferred(), started = deferred();
+    request.callsFake(() => { started.resolve(); return pending.promise; });
+    const download = drive.get('/notes/a');
+    await started.promise;
+    drive.configure({ userAddress: 'new@example.test', token: 'new-token' });
+    pending.resolve({ status: 200, response: new TextEncoder().encode('old account').buffer });
+    expect((await rejection(download)).message).to.include('session changed');
+  });
+
+  for (const failure of [false, true]) {
+    it(`balances request events after a stale ${failure ? 'failure' : 'response'} without changing the new session`, async () => {
+      request.restore();
+      const pending = deferred();
+      sinon.stub(globalThis, 'fetch').returns(pending.promise.then(() => {
+        if (failure) { throw new Error('offline'); }
+        return new Response('{}');
+      }));
+      const download = drive._request('GET', 'https://www.googleapis.com/test', {});
+      drive.configure({ userAddress: 'new@example.test', token: 'new-token' });
+      pending.resolve();
+      expect((await rejection(download)).message).to.include('session changed');
+      expect(rs._emit.getCalls().filter(call => call.args[0] === 'wire-done')).to.have.length(1);
+      expect(rs._emit.calledWith('network-offline')).to.equal(false);
+    });
+  }
+
+  it('rejects requests after disconnect without sending a bearer token', async () => {
+    request.restore();
+    const fetch = sinon.stub(globalThis, 'fetch');
+    drive.configure({ token: null, userAddress: null });
+    expect((await rejection(drive._request('GET', 'https://www.googleapis.com/test', {}))).name).to.equal('Unauthorized');
+    expect(fetch.called).to.equal(false);
   });
 
   it('invalidates IDs of children missing from a complete listing', async () => {
@@ -421,7 +567,7 @@ describe('Google Drive backend reliability', () => {
 describe('Sync backend preparation', () => {
   let rs, sync;
   beforeEach(() => {
-    rs = { local: new InMemoryStorage(), remote: {}, caching: { onActivate() {} }, _emit: sinon.spy() };
+    rs = { local: new InMemoryStorage(), remote: { connected: true }, caching: { onActivate() {} }, _emit: sinon.spy() };
     sync = new Sync(rs);
     rs.sync = sync;
     sinon.stub(sync, 'doTasks').returns(true);
@@ -438,12 +584,34 @@ describe('Sync backend preparation', () => {
     expect(sync.doTasks.calledOnce).to.equal(true);
   });
 
+  it('does not request a change feed before the backend is connected', async () => {
+    rs.remote.connected = false;
+    rs.remote.prepareSync = sinon.stub().rejects(new UnauthorizedError());
+    await sync.sync();
+    expect(rs.remote.prepareSync.called).to.equal(false);
+    expect(rs._emit.called).to.equal(false);
+  });
+
   it('reports failed preparation and reschedules rather than syncing stale revisions', async () => {
     rs.remote.prepareSync = async () => { throw new Error('feed unavailable'); };
     await sync.sync();
     expect(sync.doTasks.called).to.equal(false);
     expect(rs._emit.calledWith('sync-done', { completed: false })).to.equal(true);
     expect(rs._emit.firstCall.args[1].message).to.include('feed unavailable');
+  });
+
+  it('reports expired authorization during preparation so the app can reconnect', async () => {
+    rs.remote.prepareSync = async () => { throw new UnauthorizedError(); };
+    await sync.sync();
+    expect(rs._emit.firstCall.args[1]).to.be.instanceOf(UnauthorizedError);
+    expect(sync.doTasks.called).to.equal(false);
+  });
+
+  it('reports expired authorization during a file request rather than a network failure', async () => {
+    sinon.stub(sync, 'dealWithFailure').resolves();
+    sinon.stub(sync, 'finishUnsuccessfulTask').resolves();
+    await sync.finishTask({ path: '/notes/a', action: 'get', promise: Promise.reject(new UnauthorizedError()) }, true);
+    expect(rs._emit.firstCall.args[1]).to.be.instanceOf(UnauthorizedError);
   });
 
   for (const replacement of ['sync', 'remote']) {

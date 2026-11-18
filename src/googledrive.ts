@@ -298,9 +298,13 @@ class GoogleDrive extends RemoteBase implements Remote {
     const fullPath = googleDrivePath(path);
     this.changes.invalidate();
 
-    function putDone(response) {
+    const putDone = (response) => {
+      this.assertSession(sessionVersion);
       if (response.status >= 200 && response.status < 300) {
         const meta = JSON.parse(response.responseText);
+        if (!meta || typeof meta.etag !== 'string' || !meta.etag || typeof meta.mimeType !== 'string') {
+          throw new Error('Invalid Google Drive upload result.');
+        }
         const etagWithoutQuotes: string = this.stripQuotes(meta.etag);
         return Promise.resolve({statusCode: 200, contentType: meta.mimeType, revision: etagWithoutQuotes});
       } else if (response.status === 412) {
@@ -308,7 +312,7 @@ class GoogleDrive extends RemoteBase implements Remote {
       } else {
         return Promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
       }
-    }
+    };
 
     return this._getFileId(fullPath).then((id) => {
       this.assertSession(sessionVersion);
@@ -320,6 +324,11 @@ class GoogleDrive extends RemoteBase implements Remote {
       } else {
         if (options.ifMatch) { return putDone({ status: 412 }); }
         return this._createFile(fullPath, body, contentType).then(putDone);
+      }
+    }).finally(() => {
+      if (sessionVersion === this.sessionVersion) {
+        this.changes.invalidate();
+        this._fileIdCache.delete(fullPath);
       }
     });
   }
@@ -359,7 +368,8 @@ class GoogleDrive extends RemoteBase implements Remote {
         }
 
         const headers = options.ifMatch ? { 'If-Match': this.addQuotes(options.ifMatch) } : {};
-        return this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, { headers }).then((response) => {
+        return this._request('DELETE', BASE_URL + '/drive/v2/files/' + encodeURIComponent(id), { headers }).then((response) => {
+          this.assertSession(sessionVersion);
           if (response.status === 200 || response.status === 204) {
             this._fileIdCache.delete(fullPath);
             return {statusCode: 200};
@@ -370,6 +380,12 @@ class GoogleDrive extends RemoteBase implements Remote {
           }
         });
       });
+    }).finally(() => {
+      if (sessionVersion === this.sessionVersion) {
+        this.changes.invalidate();
+        this._fileIdCache.delete(fullPath);
+        if (isFolder(fullPath)) { this._fileIdCache.removeChildren(fullPath); }
+      }
     });
   }
 
@@ -420,7 +436,7 @@ class GoogleDrive extends RemoteBase implements Remote {
       headers['If-Match'] = this.addQuotes(options.ifMatch);
     }
 
-    return this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
+    return this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + encodeURIComponent(id) + '?uploadType=resumable', {
       body: JSON.stringify(metadata),
       headers: headers
     }).then((response) => {
@@ -478,7 +494,9 @@ class GoogleDrive extends RemoteBase implements Remote {
       return Promise.reject(new Error('Invalid Google Drive upload session URL.'));
     }
     return this._request('PUT', location, {
-      body: contentType.match(/^application\/json/) && typeof body !== 'string' ? JSON.stringify(body) : body,
+      body: contentType.match(/^application\/json/) && typeof body !== 'string' &&
+        !(body instanceof ArrayBuffer) && !ArrayBuffer.isView(body) &&
+        !(typeof Blob !== 'undefined' && body instanceof Blob) ? JSON.stringify(body) : body,
       headers: ifMatch ? { 'If-Match': this.addQuotes(ifMatch) } : {}
     });
   }
@@ -519,7 +537,10 @@ class GoogleDrive extends RemoteBase implements Remote {
             meta.mimeType += ';export=text/html';
             meta.downloadUrl = meta.exportLinks['text/html'];
           } else {
-            // empty file
+            if (String(meta.fileSize) !== '0') {
+              throw new Error('Google Drive did not provide a download URL for this file.');
+            }
+            // Only explicit zero-byte files can safely be returned as empty.
             return Promise.resolve({statusCode: 200, body: '', contentType: meta.mimeType, revision: etagWithoutQuotes});
           }
         }
@@ -528,9 +549,12 @@ class GoogleDrive extends RemoteBase implements Remote {
           responseType: 'arraybuffer'
         };
         return this._request('GET', meta.downloadUrl, params).then((response) => {
+          this.assertSession(sessionVersion);
+          if (response.status !== 200) { return { statusCode: response.status }; }
           //first encode the response as text, and later check if
           //text appears to actually be binary data
-          return getTextFromArrayBuffer(response.response, 'UTF-8').then(function (responseText) {
+          return getTextFromArrayBuffer(response.response, 'UTF-8').then((responseText) => {
+            this.assertSession(sessionVersion);
             let body = responseText;
             if (meta.mimeType.match(/^application\/json/)) {
               try {
@@ -567,6 +591,7 @@ class GoogleDrive extends RemoteBase implements Remote {
   async _getFolder (path: string): Promise<RemoteResponse> {
     const sessionVersion = this.sessionVersion;
     const revision = this.changes.revision;
+    const generation = this.changes.generation;
     const id = await this._getFileId(path);
     this.assertSession(sessionVersion);
     if (!id) { return { statusCode: 404 }; }
@@ -591,13 +616,17 @@ class GoogleDrive extends RemoteBase implements Remote {
       }
       for (const item of data.items || []) {
         if (item.labels?.trashed) { continue; }
-        if (typeof item.title !== 'string' || typeof item.etag !== 'string') { throw new Error('Invalid Google Drive listing item.'); }
+        if (typeof item.title !== 'string' || !item.title || typeof item.etag !== 'string' ||
+            typeof item.id !== 'string' || !item.id || typeof item.mimeType !== 'string') {
+          throw new Error('Invalid Google Drive listing item.');
+        }
+        if (item.title.includes('/')) { throw new Error('Google Drive filenames containing / cannot be represented as remoteStorage paths.'); }
         const folder = item.mimeType === GD_DIR_MIME_TYPE;
-        const name = encodeURIComponent(item.title) + (folder ? '/' : '');
+        const name = item.title + (folder ? '/' : '');
         if (Object.prototype.hasOwnProperty.call(itemsMap, name)) {
           throw new Error('Ambiguous duplicate Google Drive filename: ' + item.title);
         }
-        ids.set(path + name, item.id);
+        ids.set(path + cleanPath(name), item.id);
         itemsMap[name] = folder ? { ETag: revision || this.stripQuotes(item.etag) } : {
           ETag: this.stripQuotes(item.etag),
           'Content-Type': item.mimeType,
@@ -612,7 +641,7 @@ class GoogleDrive extends RemoteBase implements Remote {
     } while (pageToken);
     // Publish only complete listings, and never restore IDs invalidated by a
     // concurrent change feed response or a replacement login session.
-    if (revision !== this.changes.revision) {
+    if (generation !== this.changes.generation) {
       throw new Error('Google Drive changed during listing. Retry the operation.');
     }
     this._fileIdCache.removeChildren(path);
@@ -676,6 +705,7 @@ class GoogleDrive extends RemoteBase implements Remote {
         if (response.status < 200 || response.status >= 300) { throw new Error('Google Drive folder creation failed: ' + response.status); }
         const meta = JSON.parse(response.responseText);
         if (typeof meta.id !== 'string' || !meta.id) { throw new Error('Missing Google Drive folder ID.'); }
+        this.changes.invalidate();
         this._fileIdCache.set(path, meta.id);
         return Promise.resolve(meta.id);
       });
@@ -692,6 +722,7 @@ class GoogleDrive extends RemoteBase implements Remote {
    */
   _getFileId (path) {
     let id;
+    const generation = this.changes.generation;
 
     if (path === '/') {
       // "root" is a special alias for the fileId of the root folder
@@ -703,6 +734,9 @@ class GoogleDrive extends RemoteBase implements Remote {
     // id is not cached (or file doesn't exist).
     // load parent folder listing to propagate / update id cache.
     return this._getFolder(parentPath(path)).then(() => {
+      if (generation !== this.changes.generation) {
+        throw new Error('Google Drive changed during lookup. Retry the operation.');
+      }
       id = this._fileIdCache.get(path);
       if (!id) {
         return Promise.resolve();
@@ -720,7 +754,7 @@ class GoogleDrive extends RemoteBase implements Remote {
    * @private
    */
   _getMeta (id) {
-    return this._request('GET', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
+    return this._request('GET', BASE_URL + '/drive/v2/files/' + encodeURIComponent(id), {}).then(function (response) {
       if (response.status === 200) {
         return Promise.resolve(JSON.parse(response.responseText));
       } else if (response.status === 404) {
@@ -746,9 +780,8 @@ class GoogleDrive extends RemoteBase implements Remote {
     if (this.isForbiddenRequestMethod(method, url)) {
       return Promise.reject(`Don't use ${method} on directories!`);
     }
-
-    if (! options.headers) { options.headers = {}; }
-    options.headers['Authorization'] = 'Bearer ' + this.token;
+    if (!this.connected || !this.token) { return Promise.reject(new UnauthorizedError('No Google Drive access token.')); }
+    options = { ...options, headers: { ...options.headers, Authorization: 'Bearer ' + this.token } };
 
     this.rs._emit('wire-busy', {
       method: method,
@@ -756,36 +789,25 @@ class GoogleDrive extends RemoteBase implements Remote {
     });
 
     return requestWithTimeout(method, url, options).then((xhr) => {
+      this.rs._emit('wire-done', { method, isFolder: isFolder(url), success: sessionVersion === this.sessionVersion && xhr?.status !== 401 });
       if (sessionVersion !== this.sessionVersion) { throw new Error('Google Drive session changed during request.'); }
       // Google tokens expire from time to time...
       if (xhr && xhr.status === 401) {
-        this.rs._emit('wire-done', { method, isFolder: isFolder(url), success: false });
         throw new UnauthorizedError();
       } else {
         if (!this.online) {
           this.online = true;
           this.rs._emit('network-online');
         }
-        this.rs._emit('wire-done', {
-          method: method,
-          isFolder: isFolder(url),
-          success: true
-        });
-
         return Promise.resolve(xhr);
       }
     }, (error) => {
+      this.rs._emit('wire-done', { method, isFolder: isFolder(url), success: false });
       if (sessionVersion !== this.sessionVersion) { throw new Error('Google Drive session changed during request.'); }
       if (this.online) {
         this.online = false;
         this.rs._emit('network-offline');
       }
-      this.rs._emit('wire-done', {
-        method: method,
-        isFolder: isFolder(url),
-        success: false
-      });
-
       return Promise.reject(error);
     });
   }
@@ -831,6 +853,7 @@ class GoogleDrive extends RemoteBase implements Remote {
    * @protected
    */
   static _rs_cleanup (remoteStorage): void {
+    if (remoteStorage.googledrive) { remoteStorage.googledrive.connected = false; }
     remoteStorage.googledrive?.resetSession();
     remoteStorage.setBackend(undefined);
     if (remoteStorage._origRemote) {

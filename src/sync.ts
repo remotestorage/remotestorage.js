@@ -1155,7 +1155,7 @@ export class Sync {
       res = await task.promise;
     } catch (err) {
       log('[Sync] wire client rejects its promise', task.path, task.action, err);
-      res = { statusCode: 'offline' };
+      res = { statusCode: err instanceof UnauthorizedError ? 401 : 'offline' };
     }
 
     // Re-check after awaiting the response: the session may have been replaced
@@ -1368,13 +1368,13 @@ export class Sync {
     this.done = false;
 
     const remote = this.rs.remote;
-    if (remote.prepareSync) {
+    if (remote.connected && remote.prepareSync) {
       try {
         await remote.prepareSync();
       } catch (error) {
         if (this.isCurrentSession() && this.rs.remote === remote) {
           this.done = true;
-          this.rs._emit('error', new SyncError(error));
+          this.rs._emit('error', error instanceof UnauthorizedError ? error : new SyncError(error));
           this.rs._emit('sync-done', { completed: false });
         }
         return;
