@@ -75,6 +75,15 @@ mutation itself, protecting against another writer changing the file after a
 metadata lookup. Revision conflicts are returned to normal sync handling as
 HTTP-style status 412. Dropbox does not support `parent_rev` for folder deletion.
 
+Folder listings do not overwrite the change-feed cache: a delayed or incomplete
+listing cannot hide a newer change. File/folder replacements invalidate the
+old cache entries, including descendants. An unconditional read always checks
+Dropbox, even if the cache records a previous deletion.
+
+Concurrent requests share a token refresh. Disconnecting or changing accounts
+invalidates pending responses and retries, so they cannot update the new
+account's cache or credentials.
+
 ### Known issues
 
 - Storing files larger than 150MB is not yet supported

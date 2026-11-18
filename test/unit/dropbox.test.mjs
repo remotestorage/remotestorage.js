@@ -137,7 +137,6 @@ describe('Dropbox backend', () => {
     });
 
     it("fetchDelta, when access token is expired, makes two attempts to obtain new access token", async () => {
-      const configureSpy = sinon.spy(dropbox, 'configure');
       const errorSpy = sinon.spy();
       const wireBusySpy = sinon.spy();
       const wireDoneSpy = sinon.spy();
@@ -166,11 +165,8 @@ describe('Dropbox backend', () => {
       );
       await expect(dropbox.fetchDelta()).to.be.rejected;
 
-      expect(configureSpy.callCount).to.equal(4);
-      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken);
-      expect(configureSpy.getCall(2).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(3).args[0]).to.have.property('token', newAccessToken);
+      expect(dropbox.token).to.equal(newAccessToken);
+      expect(dropbox.connected).to.equal(true);
 
       expect(errorSpy.called).to.equal(true);
       expect(wireBusySpy.called).to.equal(true);
@@ -182,9 +178,7 @@ describe('Dropbox backend', () => {
       expect(folderCalls).to.have.lengthOf(3);
       for (let c=0; c < 3; ++c) {
         expect(folderCalls[c][1]).to.have.property('headers');
-        // The first download does use the original token - it appears to be
-        // a bug in fetch-mock that this test doesn't observe that.
-        expect(folderCalls[c][1].headers).to.have.property('Authorization', 'Bearer ' + newAccessToken);
+        expect(folderCalls[c][1].headers).to.have.property('Authorization', 'Bearer ' + (c === 0 ? ACCESS_TOKEN : newAccessToken));
         expect(folderCalls[c][1].headers).to.have.property('Content-Type').which.matches(/^application\/json\b/);
         expect(folderCalls[c][1].body).to.equal(JSON.stringify({path: '/remotestorage', recursive: true, include_deleted: true}));
       }
@@ -806,7 +800,6 @@ describe('Dropbox backend', () => {
     });
 
     it("when access token is expired, makes two attempts to obtain new access token", async () => {
-      const configureSpy = sinon.spy(dropbox, 'configure');
       fetchMock.mock(
         {name: 'getFile', url: DOWNLOAD_URL},
         {status: 401, body: JSON.stringify({error_summary: "expired_access_token/", error: {".tag": "expired_access_token"}})}
@@ -826,19 +819,14 @@ describe('Dropbox backend', () => {
       );
       const result = await dropbox.get('/xyzzy');
 
-      expect(configureSpy.callCount).to.equal(4);
-      expect(configureSpy.getCall(0).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(1).args[0]).to.have.property('token', newAccessToken);
-      expect(configureSpy.getCall(2).args[0]).to.have.property('token', null);
-      expect(configureSpy.getCall(3).args[0]).to.have.property('token', newAccessToken);
+      expect(dropbox.token).to.equal(newAccessToken);
+      expect(dropbox.connected).to.equal(true);
 
       const getCalls = fetchMock.calls('getFile');
       expect(getCalls).to.have.lengthOf(3);
       for (let c=0; c < 3; ++c) {
         expect(getCalls[c][1]).to.have.property('headers');
-        // The first download does use the original token - it appears to be
-        // a bug in fetch-mock that this test doesn't observe that.
-        expect(getCalls[c][1].headers).to.have.property('Authorization', 'Bearer ' + newAccessToken);
+        expect(getCalls[c][1].headers).to.have.property('Authorization', 'Bearer ' + (c === 0 ? ACCESS_TOKEN : newAccessToken));
         expect(getCalls[c][1].headers).to.have.property('Dropbox-API-Arg', JSON.stringify({path: '/remotestorage/xyzzy'}));
         expect(getCalls[c][1].headers).not.to.have.property('If-None-Match');
       }
@@ -906,18 +894,16 @@ describe('Dropbox backend', () => {
         {status: 200, body: JSON.stringify({entries: initialEntries})},
         {repeat: 2}
       );
+      await expect(dropbox.fetchDelta()).to.be.fulfilled;
       const result1 = await dropbox.get('/');
 
-      expect(fetchMock.calls()).to.have.lengthOf(1);
+      expect(fetchMock.calls()).to.have.lengthOf(2);
       expect(result1).to.have.property('statusCode', 200);
       expect(result1).to.have.property('revision').which.is.a('string');
       expect(result1).to.have.property('body').which.is.an('object');
       expect(result1.body).to.have.property('foo/').which.is.an('object');
       expect(result1.body['foo/']).to.have.property('ETag').which.is.a('string');
       const initialFooRev = result1.body['foo/'].ETag;
-
-      await expect(dropbox.fetchDelta()).to.be.fulfilled;
-      expect(fetchMock.calls()).to.have.lengthOf(2);
 
       const result2 = await dropbox.get('/', { ifNoneMatch: result1.revision });
 

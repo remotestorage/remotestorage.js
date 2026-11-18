@@ -40,6 +40,11 @@ class RevisionCache {
    */
   set(key: string, value): unknown {
     key = key.toLowerCase();
+    if (value && !key.endsWith('/')) {
+      // Dropbox can replace a folder with a file without a separate deletion.
+      if (this._itemsRev[key + '/'] || this._storage[key + '/']) { this.delete(key + '/'); }
+      this.ensureFolder(this._getParentFolder(key));
+    }
     if (this._storage[key] === value) {
       return value;
     }
@@ -57,6 +62,11 @@ class RevisionCache {
   /** Record an empty folder without replacing an existing subtree revision. */
   ensureFolder(key: string): void {
     key = key.toLowerCase();
+    if (key !== '/') {
+      const filePath = key.slice(0, -1);
+      if (this._storage[filePath]) { this.delete(filePath); }
+      this.ensureFolder(this._getParentFolder(key));
+    }
     if (!this._itemsRev[key]) {
       this._itemsRev[key] = {};
       this._storage[key] = this.defaultValue;
