@@ -353,6 +353,17 @@ describe('Google Drive backend reliability', () => {
     expect(drive._fileIdCache.get('/a')).to.equal(undefined);
   });
 
+  it('ignores personal Drive root names and preserves the legacy app root selection', async () => {
+    request.resolves(response({ items: [
+      file('personal/name'), file('duplicate'), file('duplicate'),
+      folder('remotestorage', 'older-mapping'), folder('remotestorage', 'legacy-mapping')
+    ] }));
+    const warning = sinon.stub(console, 'warn');
+    expect(await drive._getFileId('/remotestorage/')).to.equal('legacy-mapping');
+    expect(drive._fileIdCache.get('/personal/name')).to.equal(undefined);
+    expect(warning.calledOnce).to.equal(true);
+  });
+
   it('does not create missing directories during a read', async () => {
     sinon.stub(drive, '_getFolder').resolves({ statusCode: 200, body: {} });
     const create = sinon.spy(drive, '_createFolder');
