@@ -364,6 +364,16 @@ describe('Google Drive backend reliability', () => {
     expect(warning.calledOnce).to.equal(true);
   });
 
+  it('preserves legacy module directory selection without blocking other modules', async () => {
+    drive._fileIdCache.set('/remotestorage/', 'root-id');
+    request.resolves(response({ items: [
+      folder('inbox', 'duplicate-id'), folder('bookmarks'), folder('inbox', 'legacy-id')
+    ] }));
+    sinon.stub(console, 'warn');
+    expect(await drive._getFileId('/remotestorage/bookmarks/')).to.equal('bookmarks');
+    expect(await drive._getFileId('/remotestorage/inbox/')).to.equal('legacy-id');
+  });
+
   it('does not create missing directories during a read', async () => {
     sinon.stub(drive, '_getFolder').resolves({ statusCode: 200, body: {} });
     const create = sinon.spy(drive, '_createFolder');
