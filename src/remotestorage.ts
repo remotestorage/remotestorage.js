@@ -20,6 +20,7 @@ import LocalStorage from './localstorage';
 import { EventHandling, EventHandler } from './eventhandling';
 import GoogleDrive from './googledrive';
 import Dropbox from './dropbox';
+import { OneDrive } from './onedrive';
 import DiscoverModule from './discover';
 import SyncError from './sync-error';
 import UnauthorizedError from './unauthorized-error';
@@ -83,7 +84,7 @@ const AUTHORIZED_SCOPE_KEY = 'remotestorage:authorized-scope';
 const PENDING_SCOPE_KEY = 'remotestorage:pending-scope';
 
 interface StoredScopeSettings {
-  backend?: 'remotestorage' | 'dropbox' | 'googledrive';
+  backend?: 'remotestorage' | 'dropbox' | 'googledrive' | 'onedrive';
   scope?: string;
 }
 
@@ -177,7 +178,8 @@ export interface RSModule {
 
 enum ApiKeyType {
   GOOGLE = 'googledrive',
-  DROPBOX = 'dropbox'
+  DROPBOX = 'dropbox',
+  ONEDRIVE = 'onedrive'
 }
 
 /**
@@ -387,7 +389,7 @@ export class RemoteStorage {
    * Holds OAuth app keys for Dropbox, Google Drive
    * @internal
    */
-  apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}} = {};
+  apiKeys: {googledrive?: {clientId: string}; dropbox?: {appKey: string}; onedrive?: {clientId: string}} = {};
 
   /**
    * Managing claimed access scopes
@@ -427,7 +429,7 @@ export class RemoteStorage {
 
   /**
    */
-  backend?: 'remotestorage' | 'dropbox' | 'googledrive';
+  backend?: 'remotestorage' | 'dropbox' | 'googledrive' | 'onedrive';
 
   /**
    * Depending on the chosen backend, this is either an instance of `WireClient`,
@@ -459,6 +461,8 @@ export class RemoteStorage {
    * @internal
    */
   googledrive: GoogleDrive;
+  /** OneDrive Personal backend. */
+  onedrive: OneDrive;
 
   /**
    * @internal
@@ -504,7 +508,7 @@ export class RemoteStorage {
 
       const backendType = localStorage.getItem('remotestorage:backend');
 
-      if (backendType === 'dropbox' || backendType === 'googledrive') {
+      if (backendType === 'dropbox' || backendType === 'googledrive' || backendType === 'onedrive') {
         this.setBackend(backendType);
       } else {
         this.setBackend('remotestorage');
@@ -894,7 +898,7 @@ export class RemoteStorage {
   /**
    * @internal
    */
-  setBackend (backendType?: 'remotestorage' | 'dropbox' | 'googledrive'): void {
+  setBackend (backendType?: 'remotestorage' | 'dropbox' | 'googledrive' | 'onedrive'): void {
     this.backend = backendType;
 
     if (hasLocalStorage) {
@@ -1094,18 +1098,19 @@ export class RemoteStorage {
   }
 
   /**
-   * Set the OAuth key/ID for GoogleDrive and/or Dropbox backend support.
+   * Set OAuth application IDs for the cloud storage backends.
    *
    * @param apiKeys - A config object
    *
    * @example
    * remoteStorage.setApiKeys({
    *   dropbox: 'your-app-key',
-   *   googledrive: 'your-client-id'
+   *   googledrive: 'your-client-id',
+   *   onedrive: 'your-application-client-id'
    * });
    */
   setApiKeys (apiKeys: {[key in ApiKeyType]?: string}): void | boolean {
-    const validTypes: string[] = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX];
+    const validTypes: string[] = [ApiKeyType.GOOGLE, ApiKeyType.DROPBOX, ApiKeyType.ONEDRIVE];
     if (typeof apiKeys !== 'object' || !Object.keys(apiKeys).every(type => validTypes.includes(type))) {
       console.error('setApiKeys() was called with invalid arguments') ;
       return false;
@@ -1113,9 +1118,20 @@ export class RemoteStorage {
 
     Object.keys(apiKeys).forEach(type => {
       const key = apiKeys[type];
-      if (!key) { delete this.apiKeys[type]; return; }
+      if (!key) {
+        if (type === ApiKeyType.ONEDRIVE) {
+          OneDrive._rs_cleanup(this);
+          delete this.onedrive;
+        }
+        delete this.apiKeys[type];
+        return;
+      }
 
       switch(type) {
+        case ApiKeyType.ONEDRIVE:
+          this.apiKeys.onedrive = { clientId: key };
+          if (!this.onedrive || this.onedrive.clientId !== key) { OneDrive._rs_init(this); }
+          break;
         case ApiKeyType.DROPBOX:
           this.apiKeys[ApiKeyType.DROPBOX] = { appKey: key };
           if (typeof this.dropbox === 'undefined' ||

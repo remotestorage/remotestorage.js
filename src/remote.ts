@@ -86,6 +86,9 @@ export interface RemoteResponse {
  * The public interface for WireClient, GoogleDrive & Dropbox
  */
 export interface Remote {
+  /** Refresh backend change tracking before a periodic sync cycle. @internal */
+  prepareSync?: () => Promise<void>;
+
   /**
    * Whether or not a remote store is connected
    */

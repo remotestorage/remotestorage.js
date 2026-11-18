@@ -249,20 +249,13 @@ define(['require', 'tv4', './build/eventhandling', './build/util'],
         desc: "cleanup functions don't bloat up on repeated initialization",
         run: function(env, test) {
           var initsCalled = 0;
-          // // Mock feature to be loaded on initialization
-          // Sync._rs_init = function Sync_rs_init() {};
-          // Sync._rs_cleanup = function Sync_rs_cleanup() {};
-
-          // TODO Please someone document this test. It is incomprehensible as is.
-
+          var cleanupCount;
           var loadedHandler = function() {
             initsCalled++;
-
-            if (initsCalled === 1) { // ignore first init, as that's from original initialization
-              test.assertAnd(env.rs._cleanups.length, 4);
-            } else {
-              test.assertAnd(env.rs._cleanups.length, 4);
-            }
+            // Supported features vary with browser API availability. The count
+            // must stay stable across initialization, rather than be hardcoded.
+            if (initsCalled === 1) { cleanupCount = env.rs._cleanups.length; }
+            test.assertAnd(env.rs._cleanups.length, cleanupCount);
 
             if (initsCalled === 2) {
               env.rs._init();
