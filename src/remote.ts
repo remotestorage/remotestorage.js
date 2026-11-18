@@ -91,6 +91,8 @@ export interface Remote {
 
   /** Whether notifications currently cover this exact path for routine polling. @internal */
   hasActiveSubscription?: (path: string) => boolean;
+  /** Refresh backend change tracking before a periodic sync cycle. @internal */
+  prepareSync?: () => Promise<void>;
 
   /**
    * Whether or not a remote store is connected
