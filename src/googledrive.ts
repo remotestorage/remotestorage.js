@@ -24,6 +24,8 @@ const PATH_PREFIX = '/remotestorage';
 const GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
 const RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
+class ListingChangedError extends Error {}
+
 let hasLocalStorage;
 
 /**
@@ -262,6 +264,23 @@ class GoogleDrive extends RemoteBase implements Remote {
    * @protected
    */
   async get (path: string, options: { ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
+    const sessionVersion = this.sessionVersion;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.getOnce(path, options);
+      } catch (error) {
+        // Initial change tracking can finish while the app's first read is in
+        // flight. Discard that listing and read it again instead of reporting
+        // a network outage. Never retry into a replacement login session.
+        this.assertSession(sessionVersion);
+        if (!(error instanceof ListingChangedError) || attempt >= 1) { throw error; }
+        await this.changes.prepare();
+        this.assertSession(sessionVersion);
+      }
+    }
+  }
+
+  private async getOnce (path: string, options: { ifNoneMatch?: string }): Promise<RemoteResponse> {
     const sessionVersion = this.sessionVersion;
     if (isFolder(path)) {
       // Explicit conditional reads can run outside the periodic sync hook.
@@ -649,7 +668,7 @@ class GoogleDrive extends RemoteBase implements Remote {
     // Publish only complete listings, and never restore IDs invalidated by a
     // concurrent change feed response or a replacement login session.
     if (generation !== this.changes.generation) {
-      throw new Error('Google Drive changed during listing. Retry the operation.');
+      throw new ListingChangedError('Google Drive changed during listing. Retry the operation.');
     }
     this._fileIdCache.removeChildren(path);
     for (const [itemPath, itemId] of ids) { this._fileIdCache.set(itemPath, itemId); }
@@ -742,7 +761,7 @@ class GoogleDrive extends RemoteBase implements Remote {
     // load parent folder listing to propagate / update id cache.
     return this._getFolder(parentPath(path)).then(() => {
       if (generation !== this.changes.generation) {
-        throw new Error('Google Drive changed during lookup. Retry the operation.');
+        throw new ListingChangedError('Google Drive changed during lookup. Retry the operation.');
       }
       id = this._fileIdCache.get(path);
       if (!id) {

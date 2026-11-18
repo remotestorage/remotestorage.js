@@ -159,6 +159,25 @@ describe('Google Drive backend reliability', () => {
     expect(drive._fileIdCache.get('/remotestorage/notes/b')).to.equal('b');
   });
 
+  it('retries the first app read when change tracking invalidates its in-flight listing', async () => {
+    sinon.stub(drive, '_getFileId').resolves('folder-id');
+    const firstListing = deferred(), started = deferred();
+    let listings = 0;
+    request.callsFake(async (method, url) => {
+      if (url.includes('/startPageToken')) { return response({ startPageToken: 'start' }); }
+      if (url.includes('/changes?')) { return response({ changes: [], newStartPageToken: 'next' }); }
+      if (++listings === 1) { started.resolve(); return firstListing.promise; }
+      return response({ items: [file('fresh')] });
+    });
+    const reading = drive.get('/notes/');
+    await started.promise;
+    await drive.prepareSync();
+    firstListing.resolve(response({ items: [file('stale')] }));
+    expect(Object.keys((await reading).body)).to.deep.equal(['fresh']);
+    expect(listings).to.equal(2);
+    expect(drive._fileIdCache.get('/remotestorage/notes/stale')).to.equal(undefined);
+  });
+
   for (const existing of [false, true]) {
     it(`returns a successful public put result for ${existing ? 'updates' : 'new files'}`, async () => {
       sinon.stub(drive, '_getFileId').resolves(existing ? 'file-id' : undefined);
@@ -251,7 +270,7 @@ describe('Google Drive backend reliability', () => {
     sinon.stub(drive, '_getFileId').resolves('folder-id');
     const pending = deferred();
     request.returns(pending.promise);
-    const listing = drive.get('/notes/');
+    const listing = drive._getFolder('/remotestorage/notes/');
     await Promise.resolve();
     drive.changes.invalidate();
     pending.resolve(response({ items: [file('old')] }));
@@ -496,7 +515,7 @@ describe('Google Drive backend reliability', () => {
     await drive.prepareSync();
     const pending = deferred();
     request.onSecondCall().returns(pending.promise);
-    const listing = drive.get('/notes/');
+    const listing = drive._getFolder('/remotestorage/notes/');
     await Promise.resolve();
     request.onThirdCall().resolves(response({ changes: [{ fileId: 'a' }], newStartPageToken: 'end' }));
     await drive.prepareSync();
