@@ -77,12 +77,12 @@ function hasCommonRevision (node: RSNode): boolean {
 }
 
 function hasNoRemoteChanges (node: RSNode): boolean {
-  if (node.remote && node.remote.revision &&
+  if (node.remote && node.remote.revision && node.common.revision &&
       node.remote.revision !== node.common.revision) {
     return false;
   }
   return (node.common.body === undefined && node.remote.body === false) ||
-         (node.remote.body === node.common.body &&
+         (equal(node.remote.body, node.common.body) &&
           node.remote.contentType === node.common.contentType);
 }
 
@@ -494,6 +494,13 @@ export class Sync {
       else if (isStaleChild(node)) {
         return taskFor('get', path, this.rs.remote.get(path));
       }
+      // A successful write may omit ETag. Its body is known, but another
+      // mutation must revalidate before choosing a conditional write token.
+      else if (!hasCommonRevision(node) && node.common?.body !== undefined &&
+               node.common.body !== false &&
+               (this.needsRemotePut(node) || this.needsRemoteDelete(node))) {
+        return taskFor('get', path, this.rs.remote.get(path));
+      }
       // Push PUT:
       else if (this.needsRemotePut(node)) {
         node.push = deepClone(node.local);
@@ -595,6 +602,13 @@ export class Sync {
   autoMergeDocument (node: RSNode): RSNode {
     if (hasNoRemoteChanges(node)) {
       node = mergeMutualDeletion(node);
+      // Recover an omitted validator only after GET confirms that the remote
+      // representation still equals the last acknowledged body. A different
+      // body continues through the normal conflict path, preserving both sides.
+      if (!node.common.revision && node.remote.revision &&
+          node.common.body !== undefined && node.remote.body !== false) {
+        node.common = node.remote;
+      }
       delete node.remote;
     } else if (node.remote.body !== undefined) {
       if (node.remote.body === false && node.local?.body === false) {
