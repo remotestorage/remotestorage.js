@@ -3,7 +3,7 @@ import type { RemoteResponse } from './remote';
 import log from './log';
 
 function shareFirst(path: string): boolean {
-  return ( this.backend === 'dropbox' &&
+  return ( ['dropbox', 'googledrive', 'solid'].includes(this.backend) &&
            !!path.match(/^\/public\/.*[^\/]$/) );
 }
 

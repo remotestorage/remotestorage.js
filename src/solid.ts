@@ -332,7 +332,10 @@ export class Solid extends RemoteBase implements Remote {
     const result = this.result(response);
     // Solid servers may return 204 or 205 on updates. BaseClient's write API
     // expects 200/201, so normalize successful mutations at the adapter edge.
-    if (response.ok) { result.statusCode = 201; }
+    if (response.ok) {
+      if (path.startsWith('/public/')) { await this.getItemURL(path); }
+      result.statusCode = 201;
+    }
     // PUT may succeed without returning a validator. Do not HEAD afterwards:
     // another writer may already have changed the resource, and associating
     // that writer's revision with our body would allow a later lost update.

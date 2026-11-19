@@ -98,6 +98,18 @@ describe('Solid backend', () => {
     }
   });
 
+  it('publishes public assets on upload but keeps private writes private', async () => {
+    fetchStub.resolves(response('', 201));
+    const share = sinon.stub(solid, 'setPublicAccess').resolves({ read: true });
+    await solid.put('/wikiavec/private', 'private', 'text/plain');
+    expect(share.called).to.equal(false);
+    await solid.put('/public/wikiavec/style.css', 'body {}', 'text/css');
+    expect(share.calledOnceWithExactly(POD + 'public/wikiavec/style.css')).to.equal(true);
+    share.resolves(null);
+    await expect(solid.put('/public/wikiavec/index.html', 'page', 'text/html'))
+      .to.be.rejectedWith('did not grant');
+  });
+
   describe('file reads', () => {
     it('preserves every byte in a binary response', async () => {
       const bytes = new Uint8Array([0, 255, 128, 65]);
