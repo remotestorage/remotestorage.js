@@ -225,8 +225,17 @@ export const shouldBeTreatedAsBinary = (content: string | ArrayBuffer, mimeType:
   // with a release <=2.0.0-beta.9 carry that non-standard suffix in their stored
   // Content-Type. New uploads no longer emit it; the control-char heuristic below
   // handles them.
+  const type = (mimeType || '').split(';')[0].trim().toLowerCase();
+  if (/charset\s*=\s*binary/i.test(mimeType || '') ||
+      /^(image|audio|video)\//.test(type) && type !== 'image/svg+xml' ||
+      ['application/pdf', 'application/zip'].includes(type)) {
+    return true;
+  }
+  // XHR returns an ArrayBuffer. Testing that object's string representation
+  // misses binary bytes and corrupts them when they are decoded as text.
+  const text = typeof content === 'string' ? content : new TextDecoder().decode(content);
   // eslint-disable-next-line no-control-regex
-  return !!((mimeType && mimeType.match(/charset=binary/)) || /[\x00-\x08\x0E-\x1F\x80-\x9F\uFFFD]/.test(content as string));
+  return /[\x00-\x08\x0E-\x1F\x80-\x9F\uFFFD]/.test(text);
 };
 
 /**

@@ -45,6 +45,9 @@ describe('util', () => {
 
   describe('binary content detection', () => {
     it('treats C1 control characters as binary', () => {
+      expect(util.shouldBeTreatedAsBinary(new Uint8Array([0, 255, 65]).buffer, '')).to.equal(true);
+      expect(util.shouldBeTreatedAsBinary(new TextEncoder().encode('café').buffer, 'text/plain')).to.equal(false);
+      expect(util.shouldBeTreatedAsBinary(new TextEncoder().encode('%PDF-1.7').buffer, 'application/pdf')).to.equal(true);
       expect(util.shouldBeTreatedAsBinary('\u0080', '')).to.equal(true);
       expect(util.shouldBeTreatedAsBinary('\u009F', '')).to.equal(true);
     });

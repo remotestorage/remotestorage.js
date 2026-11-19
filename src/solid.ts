@@ -1,5 +1,5 @@
 import { InMemoryStorage, Session } from '@inrupt/solid-client-authn-browser';
-import { getContainedResourceUrlAll, getPodUrlAll, getSolidDataset } from '@inrupt/solid-client';
+import { getContainedResourceUrlAll, getPodUrlAll, getSolidDataset, universalAccess } from '@inrupt/solid-client';
 import type RemoteStorage from './remotestorage';
 import { RemoteBase } from './remote';
 import type { Remote, RemoteResponse, RemoteSettings } from './remote';
@@ -186,9 +186,21 @@ export class Solid extends RemoteBase implements Remote {
     return this.selectedPodURL + cleanPath(relative);
   }
 
-  /** Resource URL for BaseClient; this does not grant public access. */
+  /** Resource URL; public-scope files are shared read-only before returning. */
   async getItemURL (path: string): Promise<string | undefined> {
-    return this.connected ? this.getFileURL(path) : undefined;
+    if (!this.connected) { return undefined; }
+    const url = this.getFileURL(path);
+    if (path.startsWith('/public/') && !path.endsWith('/')) {
+      const access = await this.setPublicAccess(url);
+      if (!access?.read) { throw new Error('The Solid pod did not grant public read access.'); }
+    }
+    return url;
+  }
+
+  private setPublicAccess (url: string) {
+    return universalAccess.setPublicAccess(url, {
+      read: true, write: false, append: false, controlRead: false, controlWrite: false
+    }, { fetch: this.session.fetch });
   }
 
   private async request (url: string, options: RequestInit = {}): Promise<Response> {

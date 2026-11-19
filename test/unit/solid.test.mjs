@@ -83,6 +83,21 @@ describe('Solid backend', () => {
     localStorage.removeItem('remotestorage:solid');
   });
 
+  it('shares only public-scope files, with failure visible to the caller', async () => {
+    const share = sinon.stub(solid, 'setPublicAccess').resolves({ read: true });
+    expect(await solid.getItemURL('/private/a')).to.equal(POD + 'private/a');
+    expect(share.called).to.equal(false);
+    expect(await solid.getItemURL('/public/shares/a')).to.equal(POD + 'public/shares/a');
+    expect(share.calledOnceWithExactly(POD + 'public/shares/a')).to.equal(true);
+    share.resolves(null);
+    try {
+      await solid.getItemURL('/public/shares/b');
+      throw new Error('Expected access failure');
+    } catch (error) {
+      expect(error.message).to.include('did not grant');
+    }
+  });
+
   describe('file reads', () => {
     it('preserves every byte in a binary response', async () => {
       const bytes = new Uint8Array([0, 255, 128, 65]);

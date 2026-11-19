@@ -171,3 +171,14 @@ above.
 :::
 
 [1]: ./api/baseclient/classes/BaseClient#getitemurl
+
+### Concurrent writes and public links
+
+Google Drive serializes mutations within a client so that simultaneous uploads
+cannot invalidate one another's path lookups. A queued write is rejected if the
+login session changes; failed uploads are not silently replayed.
+
+`getItemURL()` now returns a Google Drive file link. For a file explicitly stored
+under `/public/`, it first grants anyone-with-the-link read access. It never grants
+public access for private paths. These are provider file links, not website hosting:
+Google Drive does not serve a static site's relative asset URLs like a web server.
