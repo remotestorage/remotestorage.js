@@ -493,8 +493,8 @@ describe("Sync", function() {
 
   describe("writes after an acknowledgement without ETag", function() {
     it("revalidates the acknowledged body before another PUT and adopts the verified revision", async function() {
-      const path = "/bookmarks/native.ttl";
-      this.rs.caching.enable("/bookmarks/");
+      const path = "/foo/native.ttl";
+      this.rs.caching.enable("/foo/");
       await this.rs.local.setNodes({ [path]: {
         path,
         common: { body: "acknowledged RDF", contentType: "text/turtle", timestamp: Date.now() },
@@ -516,8 +516,8 @@ describe("Sync", function() {
     });
 
     it("revalidates before DELETE rather than creating a dangling push version", async function() {
-      const path = "/bookmarks/native.ttl";
-      this.rs.caching.enable("/bookmarks/");
+      const path = "/foo/native.ttl";
+      this.rs.caching.enable("/foo/");
       await this.rs.local.setNodes({ [path]: { path,
         common: { body: "acknowledged RDF", contentType: "text/turtle" }, local: { body: false }
       } });
@@ -535,7 +535,7 @@ describe("Sync", function() {
         expect(change.lastCommonValue).to.equal("acknowledged RDF");
         done();
       };
-      this.rs.sync.autoMerge({ path: "/bookmarks/native.ttl",
+      this.rs.sync.autoMerge({ path: "/foo/native.ttl",
         common: { body: "acknowledged RDF", contentType: "text/turtle" },
         local: { body: "local edit", contentType: "text/turtle" },
         remote: { body: "another writer", contentType: "text/turtle", revision: "newer-etag" }
