@@ -654,10 +654,8 @@ export class BaseClient {
    *          backends the URL is derived from the server's base href. For
    *          Dropbox, a share link is fetched or created via the provider's API.
    *
-   * > [!WARNING]
-   * > This method currently only works for remoteStorage and Dropbox
-   * > backends. The GitHub issue for implementing it for Google Drive
-   * > is #1054.
+   * Google Drive creates a read-only link for files in the public scope.
+   * Private file URLs do not grant access to other people.
    */
   async getItemURL (path: string): Promise<string | undefined> {
     if (typeof path !== 'string') {

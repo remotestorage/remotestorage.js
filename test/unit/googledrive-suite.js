@@ -617,13 +617,11 @@ define(['util', 'require', './build/eventhandling', './build/googledrive',
     },
 
     {
-      desc: "#getItemURL rejects with not-implemented error",
+      desc: "#getItemURL reports a missing file without publishing it",
       run: function (env, test) {
-        env.connectedClient.getItemURL('/foo/bar.txt').then(function () {
-          test.result(false, 'getItemURL should not resolve');
-        }).catch(function (err) {
-          test.assertAnd(err.message, 'getItemURL is not implemented for Google Drive yet');
-        }).then(function () {
+        env.connectedClient._getFileId = function () { return Promise.resolve(undefined); };
+        env.connectedClient.getItemURL('/foo/bar.txt').then(function (url) {
+          test.assertAnd(url, undefined);
           test.done();
         });
       }

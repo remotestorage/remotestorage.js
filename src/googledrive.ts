@@ -146,6 +146,7 @@ class GoogleDrive extends RemoteBase implements Remote {
   _fileIdCache: FileIdCache;
   private changes: GoogleDriveChanges;
   private sessionVersion = 0;
+  private mutationQueue?: Promise<void>;
 
   constructor(remoteStorage, clientId) {
     super(remoteStorage);
@@ -313,6 +314,10 @@ class GoogleDrive extends RemoteBase implements Remote {
    * @protected
    */
   put (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string } = {}): Promise<RemoteResponse> {
+    return this.queueMutation(() => this.putOnce(path, body, contentType, options));
+  }
+
+  private putOnce (path: string, body: XMLHttpRequestBodyInit, contentType: string, options: { ifMatch?: string; ifNoneMatch?: string }): Promise<RemoteResponse> {
     const sessionVersion = this.sessionVersion;
     const fullPath = googleDrivePath(path);
     this.changes.invalidate();
@@ -364,6 +369,26 @@ class GoogleDrive extends RemoteBase implements Remote {
    * @protected
    */
   delete (path: string, options: { ifMatch?: string } = {}): Promise<RemoteResponse> {
+    return this.queueMutation(() => this.deleteOnce(path, options));
+  }
+
+  // Writes invalidate shared path lookups. Serialize them so a batch of uploads
+  // cannot repeatedly invalidate every other upload before it reaches the server.
+  private queueMutation (operation: () => Promise<RemoteResponse>): Promise<RemoteResponse> {
+    const sessionVersion = this.sessionVersion;
+    const run = () => {
+      this.assertSession(sessionVersion);
+      return operation();
+    };
+    const result = this.mutationQueue ? this.mutationQueue.then(run) : run();
+    const settled = result.then(() => {}, () => {});
+    this.mutationQueue = settled;
+    return result.finally(() => {
+      if (this.mutationQueue === settled) { this.mutationQueue = undefined; }
+    });
+  }
+
+  private deleteOnce (path: string, options: { ifMatch?: string }): Promise<RemoteResponse> {
     const sessionVersion = this.sessionVersion;
     const fullPath = googleDrivePath(path);
     this.changes.invalidate();
@@ -838,8 +863,35 @@ class GoogleDrive extends RemoteBase implements Remote {
     });
   }
 
-  async getItemURL(_path: string): Promise<never> {
-    throw new Error('getItemURL is not implemented for Google Drive yet');
+  async getItemURL(path: string): Promise<string | undefined> {
+    if (!this.connected) { return undefined; }
+    const sessionVersion = this.sessionVersion;
+    const fullPath = googleDrivePath(path);
+    const id = await this._getFileId(fullPath);
+    this.assertSession(sessionVersion);
+    if (!id) { return undefined; }
+    let meta = await this._getMeta(id);
+    this.assertSession(sessionVersion);
+    // A private resource URL must never implicitly publish the file. Only the
+    // explicit public scope opts into link sharing, matching other backends.
+    if (fullPath.startsWith(PATH_PREFIX + '/public/') &&
+        !meta?.permissions?.some(permission => permission.type === 'anyone' && permission.role === 'reader')) {
+      const response = await this._request('POST', BASE_URL + '/drive/v2/files/' + encodeURIComponent(id) + '/permissions', {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'anyone', role: 'reader', withLink: true })
+      });
+      this.assertSession(sessionVersion);
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error('Google Drive could not create a public link: ' + response.status);
+      }
+      meta = await this._getMeta(id);
+      this.assertSession(sessionVersion);
+    }
+    const link = meta?.webContentLink || meta?.alternateLink;
+    if (typeof link !== 'string' || !link.startsWith('https://')) {
+      throw new Error('Google Drive did not return a file link.');
+    }
+    return link;
   }
 
   /**

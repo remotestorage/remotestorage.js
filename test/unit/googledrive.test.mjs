@@ -178,6 +178,66 @@ describe('Google Drive backend reliability', () => {
     expect(drive._fileIdCache.get('/remotestorage/notes/stale')).to.equal(undefined);
   });
 
+  it('uploads concurrent files without invalidating sibling lookups', async () => {
+    drive._fileIdCache.set('/remotestorage/notes/', 'folder-id');
+    const uploaded = [];
+    request.callsFake(async () => response({ items: uploaded.map(name => file(name)) }));
+    sinon.stub(drive, '_createFile').callsFake(async (path) => {
+      uploaded.push(path.split('/').pop());
+      return response({ etag: '"new"', mimeType: 'text/plain' });
+    });
+    const results = await Promise.all(['article.json', 'raw.html', 'preview.txt'].map(name =>
+      drive.put('/notes/' + name, name, 'text/plain')));
+    expect(results.map(result => result.statusCode)).to.deep.equal([200, 200, 200]);
+    expect(uploaded).to.deep.equal(['article.json', 'raw.html', 'preview.txt']);
+  });
+
+  it('continues queued writes after a failed upload without replaying it', async () => {
+    sinon.stub(drive, '_getFileId').resolves('id');
+    const upload = sinon.stub(drive, '_updateFile');
+    upload.onFirstCall().rejects(new Error('Upload failed'));
+    upload.onSecondCall().resolves(response({ etag: '"new"', mimeType: 'text/plain' }));
+    const first = drive.put('/notes/a', 'a', 'text/plain');
+    const second = drive.put('/notes/b', 'b', 'text/plain');
+    expect((await rejection(first)).message).to.equal('Upload failed');
+    expect((await second).statusCode).to.equal(200);
+    expect(upload.callCount).to.equal(2);
+  });
+
+  it('does not execute a queued write after the login session changes', async () => {
+    sinon.stub(drive, '_getFileId').resolves('id');
+    const pending = deferred();
+    const upload = sinon.stub(drive, '_updateFile').returns(pending.promise);
+    const first = rejection(drive.put('/notes/a', 'a', 'text/plain'));
+    const second = rejection(drive.put('/notes/b', 'b', 'text/plain'));
+    await Promise.resolve();
+    drive.resetSession();
+    pending.resolve(response({ etag: '"new"', mimeType: 'text/plain' }));
+    expect((await first).message).to.include('session changed');
+    expect((await second).message).to.include('session changed');
+    expect(upload.calledOnce).to.equal(true);
+  });
+
+  it('creates a read-only share link only for an explicit public file', async () => {
+    sinon.stub(drive, '_getFileId').resolves('file-id');
+    sinon.stub(drive, '_getMeta').resolves({ webContentLink: 'https://drive.google.com/download?id=file-id' });
+    request.resolves(response({ id: 'anyoneWithLink' }));
+    expect(await drive.getItemURL('/public/shares/test.txt')).to.include('drive.google.com');
+    expect(request.calledOnce).to.equal(true);
+    expect(request.firstCall.args[1].endsWith('/file-id/permissions')).to.equal(true);
+    expect(JSON.parse(request.firstCall.args[2].body)).to.deep.equal({ type: 'anyone', role: 'reader', withLink: true });
+    request.resetHistory();
+    await drive.getItemURL('/shares/private.txt');
+    expect(request.called).to.equal(false);
+  });
+
+  it('does not return a share link when publishing fails', async () => {
+    sinon.stub(drive, '_getFileId').resolves('file-id');
+    sinon.stub(drive, '_getMeta').resolves({ webContentLink: 'https://drive.google.com/download' });
+    request.resolves(response({}, 403));
+    expect((await rejection(drive.getItemURL('/public/shares/test.txt'))).message).to.include('403');
+  });
+
   for (const existing of [false, true]) {
     it(`returns a successful public put result for ${existing ? 'updates' : 'new files'}`, async () => {
       sinon.stub(drive, '_getFileId').resolves(existing ? 'file-id' : undefined);
