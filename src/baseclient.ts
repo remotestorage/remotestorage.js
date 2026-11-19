@@ -623,6 +623,8 @@ export class BaseClient {
 
   /**
    * Remove node at given path from storage. Triggers synchronization.
+   * Public files on Dropbox, Google Drive and Solid are removed remotely before
+   * the promise resolves, including files which were never cached locally.
    *
    * @param path - Path relative to the module root. Must not end with `/`,
    *               which denotes a folder.

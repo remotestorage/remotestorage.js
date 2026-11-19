@@ -38,6 +38,7 @@ export class Solid extends RemoteBase implements Remote {
   session: Session;
   private active = true;
   private appHash: string | null = null;
+  private appPath: string | null = null;
   private notifications?: SolidNotifications;
   private notificationCleanup?: Promise<void>;
 
@@ -73,13 +74,14 @@ export class Solid extends RemoteBase implements Remote {
       this.authURL = settings.href || null;
       this.selectedPodURL = settings.properties?.podURL || null;
       this.appHash = typeof settings.properties?.appHash === 'string' ? settings.properties.appHash : null;
+      this.appPath = typeof settings.properties?.appPath === 'string' ? settings.properties.appPath : null;
     }
   }
 
   private saveSettings (): void {
     if (localStorageAvailable()) {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-        href: this.authURL, properties: { podURL: this.selectedPodURL, appHash: this.appHash }
+        href: this.authURL, properties: { podURL: this.selectedPodURL, appHash: this.appHash, appPath: this.appPath }
       }));
     }
   }
@@ -158,6 +160,7 @@ export class Solid extends RemoteBase implements Remote {
     try {
       const redirect = new URL(window.location.href);
       this.appHash = redirect.hash;
+      this.appPath = redirect.pathname + redirect.search + redirect.hash;
       redirect.hash = '';
       this.saveSettings();
       await this.session.login({
@@ -352,12 +355,26 @@ export class Solid extends RemoteBase implements Remote {
   }
 
   private async restore (): Promise<void> {
+    // Session renewal can return to the original login URL; preserve this route.
+    const current = new URL(window.location.href);
+    const callback = current.searchParams.has('code') && current.searchParams.has('state');
+    if (!callback && this.appPath === null && this.appHash === null) {
+      this.appPath = current.pathname + current.search + current.hash;
+      this.saveSettings();
+    }
     await this.session.handleIncomingRedirect({ restorePreviousSession: true });
     if (!this.active || !this.session.info.isLoggedIn) { return; }
-    if (this.appHash !== null) {
+    if (this.appPath !== null || this.appHash !== null) {
       const url = new URL(window.location.href);
-      url.hash = this.appHash;
-      window.history.replaceState(null, '', url.href);
+      const saved = this.appPath === null ? url : new URL(this.appPath, url);
+      if (this.appPath === null) { saved.hash = this.appHash; }
+      if (saved.origin === url.origin && window.history) {
+        window.history.replaceState(window.history.state, '', saved.href);
+        if (typeof window.PopStateEvent === 'function') {
+          window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+        }
+      }
+      this.appPath = null;
       this.appHash = null;
       this.saveSettings();
     }

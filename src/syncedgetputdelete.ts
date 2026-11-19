@@ -42,7 +42,15 @@ const SyncedGetPutDelete = {
     }
   },
 
-  'delete': function (path: string, remoteConnected: boolean): Promise<QueuedRequestResponse | RemoteResponse> {
+  'delete': async function (path: string, remoteConnected: boolean): Promise<QueuedRequestResponse | RemoteResponse> {
+    // Public uploads bypass the cache, so deletion must reach the provider too.
+    if (shareFirst.bind(this)(path)) {
+      const response = await SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path, remoteConnected));
+      if (this.local && ((response.statusCode >= 200 && response.statusCode < 300) || response.statusCode === 404)) {
+        await this.local.flush(path);
+      }
+      return response;
+    }
     if (this.local) {
       return this.local.delete(path, remoteConnected);
     } else {

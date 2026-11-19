@@ -441,6 +441,24 @@ describe('Solid backend', () => {
       expect(JSON.parse(localStorage.getItem('remotestorage:solid')).properties.appHash).to.equal(null);
     });
 
+    it('preserves a changed application route across a session-renewal redirect', async () => {
+      sinon.stub(solid.session, 'handleIncomingRedirect').resolves();
+      solid.session.info.isLoggedIn = false;
+      await solid.restore();
+      expect(JSON.parse(localStorage.getItem('remotestorage:solid')).properties.appPath)
+        .to.equal('/nested/editor?view=one#item');
+      window.location.href = 'https://app.example/?code=authorization&state=test';
+      window.history = { state: { position: 1 }, replaceState: sinon.spy() };
+      const restored = new Solid(rs);
+      restored.session.info.isLoggedIn = true;
+      restored.session.info.webId = 'https://id.example/profile#me';
+      sinon.stub(restored.session, 'handleIncomingRedirect').resolves();
+      publicFetch.callsFake(async url => response('', 200, { 'Content-Type': 'text/turtle' }, String(url)));
+      await restored.restore();
+      expect(window.history.replaceState.firstCall.args[2]).to.equal('https://app.example/nested/editor?view=one#item');
+      expect(JSON.parse(localStorage.getItem('remotestorage:solid')).properties.appPath).to.equal(null);
+    });
+
     it('replays the zero-pod state to a listener registered after feature loading', async () => {
       const previousBackend = localStorage.getItem('remotestorage:backend');
       localStorage.setItem('remotestorage:backend', 'solid');
