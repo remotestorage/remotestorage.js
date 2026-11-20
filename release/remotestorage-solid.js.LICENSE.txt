@@ -1,0 +1,26 @@
+/*!
+ * The buffer module from node.js, for the browser.
+ *
+ * @author   Feross Aboukhadijeh <https://feross.org>
+ * @license  MIT
+ */
+
+/*!
+ * webfinger.js
+ *   http://github.com/silverbucket/webfinger.js
+ *
+ * Developed and Maintained by:
+ *   Nick Jennings <nick@silverbucket.net>
+ *
+ * webfinger.js is released under the MIT License (see LICENSE).
+ *
+ * You are free to use, modify, and distribute this software under the terms
+ * of the MIT License. All copyright information must remain.
+ *
+ */
+
+/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
+
+/*! remotestorage.js 2.0.0-beta.10, https://remotestorage.io, MIT licensed */
+
+/*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
