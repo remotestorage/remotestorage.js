@@ -1982,3 +1982,45 @@ describe("Sync", function() {
     });
   });
 });
+
+describe('cache mutations during sync acknowledgements', function () {
+  for (const firstMutation of ['acknowledgement', 'edit']) {
+    it('preserves both changes when ' + firstMutation + ' starts first', async function () {
+      const local = new InMemoryStorage();
+      const path = '/drafts/release';
+      await local.setNodes({ [path]: {
+        path, common: { body: 'original', contentType: 'text/plain', revision: 'old' },
+        local: { body: 'author', contentType: 'text/plain' },
+        push: { body: 'author', contentType: 'text/plain' }
+      } });
+      const rs = { local, remote: {}, caching: { checkPath: () => 'ALL', onActivate: () => {} }, _emit: () => {} };
+      const sync = rs.sync = new Sync(rs);
+      sync.doTasks = () => true;
+      sync.finishSuccessfulTask = () => {};
+      let releaseRead;
+      let readStarted;
+      const started = new Promise(resolve => { readStarted = resolve; });
+      const hold = new Promise(resolve => { releaseRead = resolve; });
+      const originalGet = local.getNodes.bind(local);
+      let first = true;
+      local.getNodes = async paths => {
+        const snapshot = JSON.parse(JSON.stringify(await originalGet(paths)));
+        if (first) { first = false; readStarted(); await hold; }
+        return snapshot;
+      };
+      const acknowledge = () => sync.finishTask({ path, action: 'put', promise: Promise.resolve({statusCode: 205}) });
+      const update = () => local.put(path, 'author and license and publisher', 'text/plain');
+      const firstMutationDone = firstMutation === 'acknowledgement' ? acknowledge() : update();
+      await started;
+      const secondMutationDone = firstMutation === 'acknowledgement' ? update() : acknowledge();
+      await new Promise(resolve => setTimeout(resolve, 0));
+      releaseRead();
+      await Promise.all([firstMutationDone, secondMutationDone]);
+      const node = (await local.getNodes([path]))[path];
+      expect(node.local.body).to.equal('author and license and publisher');
+      expect(node.common.body).to.equal('author');
+      expect(node.common.revision).to.equal(undefined);
+      local.onDiff(() => {});
+    });
+  }
+});

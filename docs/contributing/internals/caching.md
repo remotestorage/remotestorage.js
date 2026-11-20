@@ -23,3 +23,16 @@ paths:
 The result is all paths with an explicit \'ALL\' strategy will get
 fetched, and if they are folders, then in the next round, all its
 children will also be fetched, etcetera.
+
+### Local writes and sync acknowledgements
+
+Cache read/modify/write operations share a mutation queue per local cache
+instance. Application PUT/DELETE, cache flushes, sync request preparation and
+sync response application use this queue. Otherwise an acknowledgement can
+replace a newer local edit, or an application write can restore an obsolete
+common revision and cause a spurious conflict.
+
+The queue covers local cache work only. HTTP responses are awaited before
+entering it, so an offline or slow server does not prevent local edits. This
+queue coordinates one cache instance; cross-tab coordination still belongs to
+the storage adapter.

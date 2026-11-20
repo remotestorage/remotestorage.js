@@ -1,3 +1,4 @@
+import { withCacheTransaction } from './cache-transaction';
 import type RemoteStorage from './remotestorage';
 import type { RSItem, RSNode, RSNodes } from './interfaces/rs_node';
 import type { QueuedRequestResponse } from './interfaces/queued_request_response';
@@ -476,7 +477,7 @@ export class Sync {
    */
   async doTask (path: string): Promise<SyncTask> {
     const revalidate = this.remoteChanges.delete(path);
-    return this._sessionLocal.getNodes([path]).then((nodes: RSNodes) => {
+    return withCacheTransaction(this._sessionLocal, () => this._sessionLocal.getNodes([path]).then((nodes: RSNodes) => {
       // The session may have been replaced while the cache lookup was in
       // flight; do not act on it against the replacement session.
       this.assertCurrentSession();
@@ -552,7 +553,7 @@ export class Sync {
       else {
         return taskFor('get', path, this.rs.remote.get(path));
       }
-    });
+    }));
   }
 
   /**
@@ -1205,7 +1206,8 @@ export class Sync {
     }
 
     try {
-      const completed = await this.handleResponse(task.path, task.action, res);
+      const completed = await withCacheTransaction(this._sessionLocal, () =>
+        this.handleResponse(task.path, task.action, res));
       this.finishSuccessfulTask(task, completed);
     } catch (err) {
       // A `SessionEndedError` means the session changed after the check above

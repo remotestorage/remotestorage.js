@@ -5,6 +5,7 @@ import type { RSItem, RSNode, RSNodes, ProcessNodes } from './interfaces/rs_node
 import Env from './env';
 import EventHandling from './eventhandling';
 import config from './config';
+import { withCacheTransaction } from './cache-transaction';
 import log from './log';
 import {
   applyMixins,
@@ -270,7 +271,7 @@ abstract class CachingLayer {
   }
 
   flush(path: string): Promise<void> {
-    return this._getAllDescendentPaths(path).then((paths: string[]) => {
+    return withCacheTransaction(this, () => this._getAllDescendentPaths(path).then((paths: string[]) => {
       return this.getNodes(paths);
     }).then((nodes: RSNodes) => {
       for (const nodePath in nodes) {
@@ -288,7 +289,7 @@ abstract class CachingLayer {
       }
 
       return this.setNodes(nodes);
-    });
+    }));
   }
 
   /**
@@ -328,12 +329,12 @@ abstract class CachingLayer {
   }
 
   private _updateNodes(paths: string[], _processNodes: ProcessNodes): Promise<QueuedRequestResponse> {
-    return new Promise((resolve, reject) => {
+    return withCacheTransaction(this, () => new Promise((resolve, reject) => {
       this._doUpdateNodes(paths, _processNodes, {
         resolve: resolve,
         reject: reject
       });
-    });
+    }));
   }
 
   private async _doUpdateNodes(paths: string[], _processNodes: ProcessNodes, promise): Promise<void> {
