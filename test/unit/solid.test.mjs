@@ -442,6 +442,9 @@ describe('Solid backend', () => {
     });
 
     it('preserves a changed application route across a session-renewal redirect', async () => {
+      window.HashChangeEvent = class { constructor (type, detail) { this.type = type; Object.assign(this, detail); } };
+      window.dispatchEvent = sinon.spy();
+      global.HashChangeEvent = window.HashChangeEvent;
       sinon.stub(solid.session, 'handleIncomingRedirect').resolves();
       solid.session.info.isLoggedIn = false;
       await solid.restore();
@@ -457,6 +460,9 @@ describe('Solid backend', () => {
       await restored.restore();
       expect(window.history.replaceState.firstCall.args[2]).to.equal('https://app.example/nested/editor?view=one#item');
       expect(JSON.parse(localStorage.getItem('remotestorage:solid')).properties.appPath).to.equal(null);
+      expect(window.dispatchEvent.firstCall.args[0].type).to.equal('hashchange');
+      expect(window.dispatchEvent.firstCall.args[0].newURL).to.equal('https://app.example/nested/editor?view=one#item');
+      delete global.HashChangeEvent;
     });
 
     it('replays the zero-pod state to a listener registered after feature loading', async () => {

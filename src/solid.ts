@@ -370,6 +370,9 @@ export class Solid extends RemoteBase implements Remote {
       if (this.appPath === null) { saved.hash = this.appHash; }
       if (saved.origin === url.origin && window.history) {
         window.history.replaceState(window.history.state, '', saved.href);
+        if (url.hash !== saved.hash && typeof window.HashChangeEvent === 'function') {
+          window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: url.href, newURL: saved.href }));
+        }
         if (typeof window.PopStateEvent === 'function') {
           window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
         }
