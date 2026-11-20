@@ -113,6 +113,30 @@ describe("CachingLayer", function() {
       });
     });
 
+    for (const state of ['missing', 'placeholder', 'stale']) {
+      it(`fetches a ${state} child even when the adapter returns a fresh parent first`, async function() {
+        const getNodes = this.rs.local.getNodes.bind(this.rs.local);
+        await this.rs.local.setNodes({
+          '/foo/': { path: '/foo/', common: { itemsMap: { two: true }, timestamp: Date.now() } },
+          '/foo/two': state === 'missing' ? undefined : {
+            path: '/foo/two',
+            common: state === 'stale'
+              ? { body: 'old', contentType: 'text/plain', timestamp: 1 }
+              : {},
+            ...(state !== 'missing' ? { remote: { revision: 'remote-version' } } : {})
+          }
+        });
+        // IndexedDB merges pending writes into its DB result, so property
+        // insertion order need not match the requested paths' order.
+        this.rs.local.getNodes = async paths => {
+          const nodes = await getNodes(paths);
+          return Object.fromEntries(Object.entries(nodes).sort(([a], [b]) => Number(b === '/foo/') - Number(a === '/foo/')));
+        };
+        const result = await this.rs.local.get('/foo/two', 1000, this.rs.sync.queueGetRequest.bind(this.rs.sync));
+        expect(result).to.deep.equal({ statusCode: 200, body: 'ohai', contentType: 'text/plain' });
+      });
+    }
+
     it("strips legacy charset=binary from cached contentType", async function() {
       const res = await this.rs.local.get('/foo/binary', 120000, this.rs.sync.queueGetRequest.bind(this.rs.sync));
       expect(res).to.deep.equal({

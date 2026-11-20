@@ -45,7 +45,9 @@ function getLatest (node: RSNode): RSItem {
 }
 
 function isOutdated (nodes: RSNodes, maxAge: number): boolean {
-  for (const path in nodes) {
+  // Adapters may merge pending writes after database results. Inspect the
+  // requested child before its ancestors, regardless of object insertion order.
+  for (const path of Object.keys(nodes).sort((a, b) => b.length - a.length)) {
     if (nodes[path] && nodes[path].remote) {
       return true;
     }

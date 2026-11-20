@@ -36,3 +36,8 @@ The queue covers local cache work only. HTTP responses are awaited before
 entering it, so an offline or slow server does not prevent local edits. This
 queue coordinates one cache instance; cross-tab coordination still belongs to
 the storage adapter.
+
+Cache freshness checks inspect the requested child before its ancestors. Cache
+adapters may return node properties in a different order when merging database
+reads with pending writes; a fresh parent must not hide an unfetched or remotely
+changed child.
