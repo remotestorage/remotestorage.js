@@ -490,6 +490,26 @@ describe("Authorize", () => {
         expectNoTransaction();
       });
 
+      it("emits an error without configuring when a 200 response carries no access token", async () => {
+        // A token endpoint that answers 200 but omits access_token must not be
+        // treated as a successful authorization
+        storeTransaction();
+        document.location.href = `https://example.org/app/?code=c0de&state=${STATE}`;
+        fetchMock.mock(
+          { method: 'POST', url: STORED_TOKEN_URL },
+          { status: 200, body: JSON.stringify({ token_type: 'bearer' }) }
+        );
+        const { rs, configureSpy, stopWaitingSpy, errorSpy, settled } = setUp();
+
+        rs._handlers['features-loaded'][0]();
+        await settled;
+
+        expect(configureSpy.called).to.equal(false);
+        expect(errorSpy.calledOnce).to.equal(true);
+        expect(stopWaitingSpy.calledOnce).to.equal(true);
+        expectNoTransaction();
+      });
+
       for (const [failure, response] of [
         ['cannot be reached', { throws: new TypeError('Failed to fetch') }],
         ['answers with a body that is not JSON', { status: 502, body: '<h1>Bad Gateway</h1>' }]
