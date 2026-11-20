@@ -8,6 +8,7 @@ import fetchMock from 'fetch-mock';
 import { localStorage } from '../helpers/memoryStorage.mjs';
 import { backendBehavior } from '../helpers/backend-behavior.mjs';
 
+import { Authorize } from "../../build/authorize.js";
 import config from "../../build/config.js";
 import Dropbox from "../../build/dropbox.js";
 import InMemoryStorage from '../../build/inmemorystorage.js';
@@ -228,6 +229,53 @@ describe('Dropbox backend', () => {
       rs2.sync.sync();
 
       expect(fetchDeltaSpy.callCount).to.equal(2);
+    });
+  });
+
+  describe("connect", () => {
+    it("starts the PKCE code flow and stores a transaction when there is no token", async () => {
+      // A fresh, disconnected Dropbox; beforeEach() configured a token
+      dropbox.token = undefined;
+      dropbox.connected = false;
+      // Stub the storage/redirect so the test needs no sessionStorage or location
+      const saveStub = sandbox.stub(Authorize, 'savePkceTransaction');
+      const authorizeStub = sandbox.stub(Authorize, 'authorize');
+
+      await dropbox.connect();
+
+      expect(rs.backend).to.equal('dropbox');
+
+      expect(saveStub.calledOnce).to.equal(true);
+      const transaction = saveStub.getCall(0).args[0];
+      expect(transaction.codeVerifier).to.be.a('string').with.length.above(0);
+      expect(transaction.state).to.be.a('string').with.length.above(0);
+      // Dropbox sets its own token endpoint and client id, so it stores neither
+      expect(transaction.tokenURL).to.be.undefined;
+      expect(transaction.clientId).to.be.undefined;
+
+      expect(authorizeStub.calledOnce).to.equal(true);
+      const options = authorizeStub.getCall(0).args[1];
+      expect(options.authURL).to.equal('https://www.dropbox.com/oauth2/authorize');
+      expect(options.response_type).to.equal('code');
+      expect(options.code_challenge_method).to.equal('S256');
+      expect(options.code_challenge).to.be.a('string').with.length.above(0);
+      // The same random state is sent and stored, so the callback can be matched
+      expect(options.state).to.equal(transaction.state);
+      expect(options.clientId).to.equal(CLIENT_ID);
+      // Dropbox needs a refresh token, so it asks for offline access
+      expect(options.token_access_type).to.equal('offline');
+    });
+
+    it("hooks into the sync cycle without redirecting when a token is already present", async () => {
+      dropbox.connected = false;
+      const saveStub = sandbox.stub(Authorize, 'savePkceTransaction');
+      const authorizeStub = sandbox.stub(Authorize, 'authorize');
+
+      await dropbox.connect();   // beforeEach() left a token in place
+
+      expect(saveStub.called).to.equal(false);
+      expect(authorizeStub.called).to.equal(false);
+      expect(rs.backend).to.equal('dropbox');
     });
   });
 

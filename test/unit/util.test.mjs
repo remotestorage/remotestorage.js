@@ -205,4 +205,54 @@ describe('util', () => {
       expect(util.pkceTokenURL(info({}))).to.equal(null);
     });
   });
+
+  describe('generateCodeVerifier', () => {
+    // The unreserved characters allowed in a PKCE code verifier (RFC 7636 §4.1)
+    const UNRESERVED = /^[A-Za-z0-9\-._~]+$/;
+
+    // The S256 code challenge is base64url(SHA-256(ASCII(codeVerifier))), without
+    // padding. Recomputing it here proves the challenge actually matches the
+    // verifier, which is what the authorization server will check.
+    async function expectedChallenge(codeVerifier) {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier));
+      return Buffer.from(digest).toString('base64')
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    it('defaults to a 128-character verifier from the unreserved set', async () => {
+      const { codeVerifier } = await util.generateCodeVerifier();
+      expect(codeVerifier).to.have.lengthOf(128);
+      expect(codeVerifier).to.match(UNRESERVED);
+    });
+
+    it('honors the requested verifier length at both ends of the range', async () => {
+      expect((await util.generateCodeVerifier(43)).codeVerifier).to.have.lengthOf(43);
+      expect((await util.generateCodeVerifier(128)).codeVerifier).to.have.lengthOf(128);
+    });
+
+    it('derives the challenge as the url-safe SHA-256 of the verifier', async () => {
+      const { codeVerifier, codeChallenge } = await util.generateCodeVerifier();
+      expect(codeChallenge).to.equal(await expectedChallenge(codeVerifier));
+    });
+
+    it('url-encodes the challenge without padding', async () => {
+      const { codeChallenge } = await util.generateCodeVerifier();
+      expect(codeChallenge).not.to.match(/[+/=]/);
+    });
+
+    it('returns a state separate from the verifier', async () => {
+      const { codeVerifier, state } = await util.generateCodeVerifier();
+      expect(state).to.be.a('string').with.length.above(0);
+      expect(state).to.match(UNRESERVED);
+      expect(state).not.to.equal(codeVerifier);
+    });
+
+    it('generates a fresh verifier, challenge and state each call', async () => {
+      const a = await util.generateCodeVerifier();
+      const b = await util.generateCodeVerifier();
+      expect(a.codeVerifier).not.to.equal(b.codeVerifier);
+      expect(a.codeChallenge).not.to.equal(b.codeChallenge);
+      expect(a.state).not.to.equal(b.state);
+    });
+  });
 });
