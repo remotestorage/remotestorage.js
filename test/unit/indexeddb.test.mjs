@@ -84,5 +84,67 @@ describe("IndexedDB", () => {
       expect(close.calledOnce).to.equal(true);
       expect(deleteRequest.onblocked).to.be.a("function");
     });
+
+    it("reports a failed reset instead of opening the database again", () => {
+      const open = sinon.stub().returns({
+        result: { objectStoreNames: createObjectStoreNames(new Set()), close() {} }
+      });
+      const deleteRequest = {};
+      const callback = sinon.spy();
+      sinon.stub(console, "error");
+
+      globalThis.indexedDB = {
+        open,
+        deleteDatabase() {
+          return deleteRequest;
+        }
+      };
+
+      IndexedDB.open("remotestorage", callback);
+      open.firstCall.returnValue.onsuccess();
+      deleteRequest.onerror("delete failed");
+
+      expect(open.calledOnce).to.equal(true);
+      expect(callback.calledOnceWith("delete failed")).to.equal(true);
+    });
+
+    it("closes the database when another connection wants to delete or upgrade it", () => {
+      const close = sinon.spy();
+      const db = {
+        objectStoreNames: createObjectStoreNames(new Set(["nodes", "changes"])),
+        close
+      };
+      const request = { result: db };
+
+      globalThis.indexedDB = {
+        open() {
+          return request;
+        }
+      };
+
+      IndexedDB.open("remotestorage", () => {});
+      request.onsuccess();
+      db.onversionchange();
+
+      expect(close.calledOnce).to.equal(true);
+    });
+  });
+
+  describe("._rs_cleanup", () => {
+    it("resolves when deleting the database fails", async () => {
+      const deleteRequest = {};
+      sinon.stub(console, "error");
+
+      globalThis.indexedDB = {
+        deleteDatabase() {
+          return deleteRequest;
+        }
+      };
+
+      const cleanup = IndexedDB._rs_cleanup({});
+      deleteRequest.onerror(new Event("error"));
+
+      await cleanup;
+    });
   });
 });

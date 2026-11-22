@@ -348,11 +348,18 @@ class IndexedDB extends CachingLayer {
         if (!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
           log("[IndexedDB] Missing object store. Resetting the database.");
           db.close();
-          IndexedDB.clean(name, function () {
+          IndexedDB.clean(name, function (err) {
+            if (err) {
+              callback(err);
+              return;
+            }
             IndexedDB.open(name, callback);
           });
           return;
         }
+
+        // Let another tab delete or upgrade the database instead of blocking it
+        db.onversionchange = () => db.close();
 
         callback(null, req.result);
       };
@@ -362,7 +369,11 @@ class IndexedDB extends CachingLayer {
 
       clearTimeout(timer);
 
-      IndexedDB.clean(name, function () {
+      IndexedDB.clean(name, function (err) {
+        if (err) {
+          callback(err);
+          return;
+        }
         IndexedDB.open(name, callback);
       });
     }
@@ -371,7 +382,7 @@ class IndexedDB extends CachingLayer {
   /**
    * Cleanup: Delete IndexedDB database
    */
-  static clean (databaseName: string, callback: () => void) {
+  static clean (databaseName: string, callback: (err?: unknown) => void) {
     const req = indexedDB.deleteDatabase(databaseName);
 
     req.onblocked = function (evt) {
@@ -386,6 +397,7 @@ class IndexedDB extends CachingLayer {
     // TODO check if this does anything as onabort does not exist on type according to ts
     req.onerror = (req as any).onabort = function (evt) {
       console.error('Failed to remove database "' + databaseName + '"', evt);
+      callback(evt);
     };
   }
 
