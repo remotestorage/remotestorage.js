@@ -77,12 +77,12 @@ function hasCommonRevision (node: RSNode): boolean {
 }
 
 function hasNoRemoteChanges (node: RSNode): boolean {
-  if (node.remote && node.remote.revision &&
+  if (node.remote && node.remote.revision && node.common.revision &&
       node.remote.revision !== node.common.revision) {
     return false;
   }
   return (node.common.body === undefined && node.remote.body === false) ||
-         (node.remote.body === node.common.body &&
+         (equal(node.remote.body, node.common.body) &&
           node.remote.contentType === node.common.contentType);
 }
 
@@ -170,6 +170,17 @@ export class Sync {
    * Holds finished tasks for orderly processing
    */
   _finishedTasks: SyncTask[] = [];
+
+  /** Remote invalidations not yet covered by a request. @internal */
+  private remoteChanges = new Set<string>();
+
+  /** Queue a targeted revalidation, including when a request is in flight. @internal */
+  refreshRemote (path: string): void {
+    if (!this.rs.access.checkPathPermission(path, 'r')) { return; }
+    this.remoteChanges.add(path);
+    this.addTask(path);
+    if (!this.stopped) { this.doTasks(); }
+  }
 
   constructor (remoteStorage: RemoteStorage) {
     this.rs = remoteStorage;
@@ -345,7 +356,7 @@ export class Sync {
       if (!node.common.timestamp) {
         return true;
       }
-      return (this.now() - node.common.timestamp > config.syncInterval);
+      return (this.now() - node.common.timestamp > Math.max(config.syncInterval, this.rs.remote.minRefreshInterval || 0));
     }
     return false;
   }
@@ -395,7 +406,9 @@ export class Sync {
   }
 
   deleteChildPathsFromTasks (): void {
+    if (this.rs.remote.folderETagsAreRecursive === false) { return; }
     for (const path in this._tasks) {
+      if (this.remoteChanges.has(path)) { continue; }
       const paths = pathsFromRoot(path);
 
       for (let i=1; i < paths.length; i++) {
@@ -417,9 +430,25 @@ export class Sync {
    * Collect tasks to refresh highest outdated folder in tree
    */
   async collectRefreshTasks (): Promise<void> {
+    const cachedFolders = new Set<string>();
+    if (this.rs.remote.folderETagsAreRecursive === false) {
+      await this._sessionLocal.forAllNodes((node: RSNode) => {
+        if (isFolder(node.path) && this.rs.access.checkPathPermission(node.path, 'r') &&
+            this.rs.caching.checkPath(node.path) !== 'FLUSH') { cachedFolders.add(node.path); }
+      });
+    }
     await this._sessionLocal.forAllNodes((node: RSNode) => {
       let parentPath: string;
       if (this.needsRefresh(node)) {
+        // Check every cached container: its own validator does not cover its
+        // descendants. Child HEAD metadata then selects changed files to fetch,
+        // avoiding an additional routine GET for every file in the same folder.
+        if (this.rs.remote.folderETagsAreRecursive === false) {
+          if (!isFolder(node.path) && (cachedFolders.has(this.getParentPath(node.path)) ||
+              this.rs.remote.hasActiveSubscription?.(node.path))) { return; }
+          if (this.rs.access.checkPathPermission(node.path, 'r')) { this.addTask(node.path); }
+          return;
+        }
         try {
           parentPath = this.getParentPath(node.path);
         } catch(e) {
@@ -455,18 +484,31 @@ export class Sync {
    * Sync one path
    */
   async doTask (path: string): Promise<SyncTask> {
+    const revalidate = this.remoteChanges.delete(path);
     return this._sessionLocal.getNodes([path]).then((nodes: RSNodes) => {
       // The session may have been replaced while the cache lookup was in
       // flight; do not act on it against the replacement session.
       this.assertCurrentSession();
 
       const node = nodes[path];
+      if (revalidate) {
+        return taskFor('get', path, this.rs.remote.get(path,
+          node?.common?.revision ? { ifNoneMatch: node.common.revision } : {}));
+      }
       // First fetch:
       if (typeof(node) === 'undefined') {
         return taskFor('get', path, this.rs.remote.get(path));
       }
       // Fetch known-stale child:
       else if (isStaleChild(node)) {
+        return taskFor('get', path, this.rs.remote.get(path));
+      }
+      // A successful write can omit its ETag. Before another mutation, fetch
+      // and compare the acknowledged representation instead of treating an
+      // existing document as a create or attaching a later unrelated validator.
+      else if (!hasCommonRevision(node) && node.common?.body !== undefined &&
+               node.common.body !== false &&
+               (this.needsRemotePut(node) || this.needsRemoteDelete(node))) {
         return taskFor('get', path, this.rs.remote.get(path));
       }
       // Push PUT:
@@ -570,6 +612,12 @@ export class Sync {
   autoMergeDocument (node: RSNode): RSNode {
     if (hasNoRemoteChanges(node)) {
       node = mergeMutualDeletion(node);
+      // Only adopt a missing write validator when readback confirms that the
+      // bytes and media type still equal the acknowledged common version.
+      if (!node.common.revision && node.remote.revision &&
+          node.common.body !== undefined && node.remote.body !== false) {
+        node.common = node.remote;
+      }
       delete node.remote;
     } else if (node.remote.body !== undefined) {
       if (node.remote.body === false && node.local?.body === false) {
@@ -1185,7 +1233,8 @@ export class Sync {
     delete this._timeStarted[task.path];
     delete this._running[task.path];
 
-    if (completed) {
+    // An event arriving after doTask began must get a subsequent request.
+    if (completed && !this.remoteChanges.has(task.path)) {
       if (this._tasks[task.path]) {
         for (let i=0; i < this._tasks[task.path].length; i++) {
           this._tasks[task.path][i]();
@@ -1376,6 +1425,13 @@ export class Sync {
       };
 
       this.doTasks();
+      // All stale resources may be subscribed. Complete the idle cycle too,
+      // so the next timer can poll resources whose subscription later fails.
+      if (this.rs.backend === 'solid' && this.isCurrentSession() && !this.hasTasks() &&
+          !Object.keys(this._running).length && !this.done) {
+        this.done = true;
+        this.rs._emit('sync-done', { completed: true });
+      }
     }
   }
 

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2015",
     "module": "commonjs",
-    "lib": ["es2020", "dom"],
+    "lib": ["es2020", "es2022.error", "dom"],
     "types": ["node"],
     "sourceMap": true,
     "allowJs": false,

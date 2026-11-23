@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Solid adapter lab</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/remotestorage-solid.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div><p class="eyebrow">remoteStorage.js · experimental Solid build</p>
+        <h1>Solid adapter lab<span>.</span></h1>
+        <p class="intro">Sign in to a pod. Write something. Read the exact bytes back.</p></div>
+      <div class="status"><span id="status-light"></span><strong id="status">Not connected</strong></div>
+    </header>
+
+    <section class="connection">
+      <div><h2>01 / Connect a pod</h2>
+        <p>For the bundled local server, create a disposable account and pod first. Its data resets when you stop the demo.</p>
+        <a href="http://localhost:3000/" target="_blank" rel="noopener">Open local account setup ↗</a>
+      </div>
+      <form id="connect-form">
+        <label for="issuer">Solid identity provider</label>
+        <div class="inline"><input id="issuer" type="url" value="http://localhost:3000/" required><button id="connect">Connect</button><button id="disconnect" type="button" class="secondary" disabled>Disconnect</button></div>
+        <p class="fine">You can also enter an HTTPS provider. The app writes only inside <code>/solid-demo/</code>.</p>
+      </form>
+      <div id="pod-choice" hidden><label for="pods">Choose a pod</label><div class="inline"><select id="pods"></select><button id="choose-pod">Use this pod</button></div></div>
+      <p id="identity" class="identity">No authenticated session.</p>
+    </section>
+
+    <section class="workspace">
+      <div class="editor">
+        <h2>02 / Try the adapter</h2>
+        <label for="note">A note to save as JSON</label>
+        <textarea id="note" rows="5">Hello from remoteStorage, on a Solid Pod.</textarea>
+        <div class="actions">
+          <button id="save-json" class="operation" disabled>Save JSON</button>
+          <button id="read-json" class="operation secondary" disabled>Read from pod</button>
+        </div>
+        <hr>
+        <div class="test"><div><h3>Binary round trip</h3><p>Write 1,024 bytes, read them back, and compare SHA-256.</p></div><button id="test-binary" class="operation secondary" disabled>Test bytes</button></div>
+        <div class="test"><div><h3>Stale write + delete</h3><p>Try an old revision. Both operations must return 412.</p></div><button id="test-conflict" class="operation secondary" disabled>Test conflict</button></div>
+        <div class="test"><div><h3>Container listing</h3><p>Parse Turtle and check each child's HTTP ETag.</p></div><button id="list" class="operation secondary" disabled>List files</button></div>
+        <div class="actions"><button id="sync" class="operation secondary" disabled>Sync now</button><button id="delete-json" class="operation quiet" disabled>Delete sample JSON</button></div>
+      </div>
+      <div class="output"><div class="output-heading"><h2>Results</h2><span id="cache-mode">Cache + sync enabled</span></div><pre id="result">Connect a pod to begin.</pre><h2>Activity</h2><ol id="activity" aria-live="polite"></ol></div>
+    </section>
+    <footer>Real Solid-OIDC login · real pod HTTP requests · no simulated backend. <span id="summary">Not tested yet</span></footer>
+  </main>
+</body>
+</html>
