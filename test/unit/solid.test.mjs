@@ -352,6 +352,8 @@ describe('Solid backend', () => {
     }
 
     it('validates pod selection and reports pending selection even with zero pods', () => {
+      solid.selectedPodURL = null;
+      solid.connected = false;
       solid.session.info.isLoggedIn = true;
       solid.podURLs = [];
       solid.setPodURL(null);
@@ -361,6 +363,8 @@ describe('Solid backend', () => {
     });
 
     it('connects only to a discovered pod and returns a copy of the pod list', () => {
+      solid.selectedPodURL = null;
+      solid.connected = false;
       solid.session.info.isLoggedIn = true;
       solid.podURLs = [POD];
       const connected = sinon.spy();
@@ -373,11 +377,74 @@ describe('Solid backend', () => {
       expect(connected.calledOnce).to.equal(true);
     });
 
+    it('requires disconnect before changing or clearing a selected pod', () => {
+      const otherPod = 'https://second.example/';
+      solid.session.info.isLoggedIn = true;
+      solid.podURLs = [POD, otherPod];
+      solid.configure({});
+      const saved = localStorage.getItem('remotestorage:solid');
+      const connected = sinon.spy();
+      solid.on('connected', connected);
+      for (const pod of [otherPod, null]) {
+        expect(() => solid.setPodURL(pod)).to.throw('Disconnect before changing or clearing');
+        expect(solid.getPodURL()).to.equal(POD);
+        expect(solid.getFileURL('/notes/one')).to.equal(POD + 'notes/one');
+        expect(solid.connected).to.equal(true);
+        expect(localStorage.getItem('remotestorage:solid')).to.equal(saved);
+      }
+      expect(connected.called).to.equal(false);
+      expect(rs._emit.calledWith('pod-not-selected')).to.equal(false);
+    });
+
+    it('does not reconnect or emit connected twice for the selected pod', () => {
+      solid.selectedPodURL = null;
+      solid.connected = false;
+      solid.session.info.isLoggedIn = true;
+      solid.podURLs = [POD];
+      const connected = sinon.spy();
+      solid.on('connected', connected);
+      solid.setPodURL(POD);
+      solid.setPodURL(POD);
+      expect(connected.calledOnce).to.equal(true);
+    });
+
+    it('refuses a different pod after reopening with a remembered selection', () => {
+      localStorage.setItem('remotestorage:solid', JSON.stringify({ properties: { podURL: POD } }));
+      const reopened = new Solid(rs);
+      reopened.session.info.isLoggedIn = true;
+      reopened.podURLs = [POD, 'https://second.example/'];
+      expect(() => reopened.setPodURL('https://second.example/')).to.throw('Disconnect before changing');
+      expect(() => reopened.setPodURL(null)).to.throw('Disconnect before changing');
+      expect(reopened.getPodURL()).to.equal(POD);
+      expect(reopened.connected).to.equal(false);
+      reopened.setPodURL(POD);
+      expect(reopened.connected).to.equal(true);
+    });
+
+    it('retains the old pod binding when discovery no longer advertises it', async () => {
+      solid.connected = false;
+      solid.session.info.isLoggedIn = true;
+      solid.session.info.webId = 'https://id.example/profile#me';
+      sinon.stub(solid.session, 'handleIncomingRedirect').resolves();
+      publicFetch.callsFake(async url => response(
+        '<https://id.example/profile#me> <http://www.w3.org/ns/pim/space#storage> <https://second.example/> .',
+        200, { 'Content-Type': 'text/turtle' }, String(url)
+      ));
+      await expect(solid.restore()).to.be.rejectedWith('no longer advertised');
+      expect(solid.getPodURL()).to.equal(POD);
+      expect(solid.connected).to.equal(false);
+      expect(solid.podURLs).to.deep.equal(['https://second.example/']);
+      expect(() => solid.setPodURL('https://second.example/')).to.throw('Disconnect before changing');
+      expect(() => solid.setPodURL(null)).to.throw('Disconnect before changing');
+      expect(rs._emit.calledWith('pod-not-selected')).to.equal(false);
+    });
+
     for (const pods of [[], [POD], [POD, 'https://second.example/']]) {
       it('discovers ' + pods.length + ' pods from an authenticated extended profile', async () => {
         solid.session.info.isLoggedIn = true;
         solid.session.info.webId = 'https://id.example/profile#me';
         solid.selectedPodURL = null;
+        solid.connected = false;
         sinon.stub(solid.session, 'handleIncomingRedirect').resolves();
         const profile = pods.map(pod => '<https://id.example/profile#me> <http://www.w3.org/ns/pim/space#storage> <' + pod + '> .').join('\n');
         publicFetch.callsFake(async url => response(
@@ -467,6 +534,8 @@ describe('Solid backend', () => {
     });
 
     it('clears the discovery deadline when public discovery succeeds', async () => {
+      solid.selectedPodURL = null;
+      solid.connected = false;
       const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       solid.session.info.isLoggedIn = true;
       solid.session.info.webId = 'https://id.example/profile#me';

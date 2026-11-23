@@ -89,6 +89,9 @@ export interface Remote {
   /** Whether a folder validator covers every descendant. Defaults to true. @internal */
   folderETagsAreRecursive?: boolean;
 
+  /** Lower bound for routine recovery polling; explicit reads/writes are unaffected. @internal */
+  minRefreshInterval?: number;
+
   /** Whether notifications currently cover this exact path for routine polling. @internal */
   hasActiveSubscription?: (path: string) => boolean;
 

@@ -48,5 +48,17 @@ $ npm run build:solid
 
 This builds `release/remotestorage-solid.js`, which includes Solid login and
 RDF dependencies. Applications offering Solid use this bundle instead of the
-default bundle. The default build does not include these dependencies. See
+default bundle. The SDKs are development dependencies for a source checkout
+(`npm ci` installs them), and optional peers for npm consumers. A default
+production installation does not install them. The prebuilt Solid browser bundle
+includes the SDKs; consumers importing SDK types or rebuilding Solid source
+install compatible peers explicitly:
+
+```sh
+$ npm install @inrupt/solid-client@^4.0.0 @inrupt/solid-client-authn-browser@^5.0.2
+```
+
+The Solid authentication flow runs in the browser. The SDKs currently declare
+Node 20/22/24 support for tooling; default Node 26 consumers do not install or
+import them. The default build does not include these dependencies. See
 [Solid storage](../solid) for connection requirements and validation steps.

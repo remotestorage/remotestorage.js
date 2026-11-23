@@ -126,21 +126,34 @@ describe('Solid notifications', () => {
     expect(rs.sync.refreshRemote.callCount).to.equal(1);
   });
 
-  it('recovers every cached permitted resource without requiring notification support', async () => {
+  it('recovers cached folders without redundant file reads or notification support', async () => {
     solid.session.fetch.resolves(response(null, POD));
     nodes.push({ path: '/private/secret' });
     notifications.recovery = true;
     await notifications.reconcile();
-    expect(rs.sync.refreshRemote.getCalls().map(call => call.args[0])).to.deep.equal(nodes.slice(0, 3).map(node => node.path));
+    expect(rs.sync.refreshRemote.getCalls().map(call => call.args[0])).to.deep.equal(['/notes/', '/notes/nested/']);
     expect(sockets).to.have.length(0);
   });
 
-  it('bounds channel count while recovery still covers the entire cache', async () => {
+  it('bounds channels to eight and paces recovery over the entire cache', async () => {
     nodes = Array.from({ length: 80 }, (_, index) => ({ path: '/notes/' + index }));
     notifications.recovery = true;
     await notifications.reconcile();
-    expect(sockets).to.have.length(64);
+    expect(sockets).to.have.length(8);
+    expect(rs.sync.refreshRemote.callCount).to.equal(2);
+    await clock.tickAsync(39000);
     expect(rs.sync.refreshRemote.callCount).to.equal(80);
+  });
+
+  it('cancels queued recovery when the session is stopped', async () => {
+    nodes = Array.from({ length: 10 }, (_, index) => ({ path: '/notes/' + index }));
+    notifications.recovery = true;
+    await notifications.reconcile();
+    expect(rs.sync.refreshRemote.callCount).to.equal(2);
+    await notifications.stop();
+    await clock.tickAsync(10000);
+    expect(rs.sync.refreshRemote.callCount).to.equal(2);
+    expect(notifications.recoveryQueue.size).to.equal(0);
   });
 
   it('bounds simultaneous subscriptions to four', async () => {
@@ -215,16 +228,20 @@ describe('Solid notifications', () => {
     notifications.active = false;
     notifications.start();
     await clock.tickAsync(101);
-    expect(rs.sync.refreshRemote.callCount).to.equal(3);
+    expect(rs.sync.refreshRemote.callCount).to.equal(2);
     window.dispatchEvent(new Event('online'));
     await clock.tickAsync(101);
     document.dispatchEvent(new Event('visibilitychange'));
     await clock.tickAsync(101);
-    expect(rs.sync.refreshRemote.callCount).to.equal(9);
+    expect(rs.sync.refreshRemote.callCount).to.equal(2);
+    await clock.tickAsync(60000);
+    window.dispatchEvent(new Event('online'));
+    await clock.tickAsync(101);
+    expect(rs.sync.refreshRemote.callCount).to.equal(4);
     await notifications.stop();
     window.dispatchEvent(new Event('online'));
     await clock.tickAsync(101);
-    expect(rs.sync.refreshRemote.callCount).to.equal(9);
+    expect(rs.sync.refreshRemote.callCount).to.equal(4);
   });
 
   it('renews expired channels and retires sockets with stalled handshakes', async () => {
@@ -259,6 +276,7 @@ describe('Solid sync recovery', () => {
   let rs, sync;
   beforeEach(() => {
     rs = {
+      backend: 'solid',
       local: new InMemoryStorage(),
       remote: { connected: true, online: true, folderETagsAreRecursive: false, get: sinon.stub().resolves({ statusCode: 304, revision: 'r1' }) },
       access: { checkPathPermission: () => true },
@@ -271,6 +289,54 @@ describe('Solid sync recovery', () => {
   });
   afterEach(() => sinon.restore());
 
+  it('leaves idle sync-done unchanged for other backends', async () => {
+    rs.backend = 'remotestorage';
+    await sync.sync();
+    expect(rs._emit.calledWith('sync-done')).to.equal(false);
+  });
+
+  it('applies the Solid recovery minimum without delaying writes or explicit invalidation', async () => {
+    const path = '/notes/file';
+    rs.remote.minRefreshInterval = 60000;
+    sinon.stub(sync, 'now').returns(50000);
+    await rs.local.setNodes({ [path]: { path, common: { revision: 'r1', timestamp: 1000, body: 'cached' } } });
+    await sync.collectRefreshTasks();
+    expect(sync.hasTasks()).to.equal(false);
+    sync.refreshRemote(path);
+    expect(sync._tasks).to.have.property(path);
+    delete sync._tasks[path];
+    sync.remoteChanges.clear();
+    sync.now.returns(62000);
+    await sync.collectRefreshTasks();
+    expect(sync._tasks).to.have.property(path);
+  });
+
+  it('keeps a new local edit after an ETag-less PUT and its own notification readback', async () => {
+    const path = '/notes/file';
+    await rs.local.setNodes({ [path]: { path,
+      common: { revision: 'r1', body: 'old', contentType: 'text/plain' },
+      local: { body: 'first edit', contentType: 'text/plain' },
+      push: { body: 'first edit', contentType: 'text/plain' }
+    } });
+    await sync.completePush(path, 'put', false, undefined);
+    let nodes = await rs.local.getNodes([path]);
+    nodes[path].local = { body: 'second edit', contentType: 'text/plain' };
+    await rs.local.setNodes(nodes);
+    rs.remote.get.resolves({ statusCode: 200, body: 'first edit', contentType: 'text/plain', revision: 'verified' });
+    rs.remote.put = sinon.stub().resolves({ statusCode: 200, revision: 'next' });
+    const changes = sinon.spy(rs.local, 'emitChange');
+    sync.refreshRemote(path);
+    const read = await sync.doTask(path);
+    await sync.handleResponse(path, read.action, await read.promise);
+    nodes = await rs.local.getNodes([path]);
+    expect(nodes[path].local.body).to.equal('second edit');
+    expect(nodes[path].common.revision).to.equal('verified');
+    expect(changes.called).to.equal(false);
+    const write = await sync.doTask(path);
+    expect(write.action).to.equal('put');
+    expect(rs.remote.put.lastCall.args).to.deep.equal([path, 'second edit', 'text/plain', { ifMatch: 'verified' }]);
+  });
+
   it('keeps descendant checks even when an ancestor is queued', () => {
     sync.addTask('/notes/');
     sync.refreshRemote('/notes/nested/file');
@@ -278,11 +344,11 @@ describe('Solid sync recovery', () => {
     expect(Object.keys(sync._tasks)).to.have.members(['/notes/', '/notes/nested/file']);
   });
 
-  it('periodically checks every stale cached node despite unchanged ancestor revisions', async () => {
+  it('checks all cached containers despite unchanged ancestors without duplicate file GETs', async () => {
     await rs.local.setNodes(Object.fromEntries(['/notes/', '/notes/nested/', '/notes/nested/file'].map(path =>
       [path, { path, common: { revision: 'unchanged', timestamp: 0, ...(path.endsWith('/') ? { itemsMap: {} } : { body: 'old' }) } }])));
     await sync.collectRefreshTasks();
-    expect(Object.keys(sync._tasks)).to.have.members(['/notes/', '/notes/nested/', '/notes/nested/file']);
+    expect(Object.keys(sync._tasks)).to.have.members(['/notes/', '/notes/nested/']);
   });
 
   it('preserves the recursive-folder optimization for other backends', () => {
@@ -293,14 +359,14 @@ describe('Solid sync recovery', () => {
     expect(Object.keys(sync._tasks)).to.deep.equal(['/notes/']);
   });
 
-  it('skips only subscribed paths during routine refresh, preserving explicit recovery', async () => {
+  it('keeps container recovery and explicit file invalidation despite subscriptions', async () => {
     const paths = ['/notes/', '/notes/nested/', '/notes/nested/file'];
     await rs.local.setNodes(Object.fromEntries(paths.map(path =>
       [path, { path, common: { revision: 'r1', timestamp: 0 } }])));
     rs.remote.hasActiveSubscription = path => path === '/notes/nested/';
     await sync.collectRefreshTasks();
-    expect(Object.keys(sync._tasks)).to.have.members(['/notes/', '/notes/nested/file']);
-    sync.refreshRemote('/notes/nested/');
+    expect(Object.keys(sync._tasks)).to.have.members(['/notes/', '/notes/nested/']);
+    sync.refreshRemote('/notes/nested/file');
     expect(Object.keys(sync._tasks)).to.have.members(paths);
     const task = await sync.doTask('/notes/nested/');
     expect(task.action).to.equal('get');

@@ -10,6 +10,18 @@ Use `release/remotestorage-solid.js` **instead of** `release/remotestorage.js`.
 Both browser bundles export the `RemoteStorage` constructor. The Solid build
 includes the Inrupt authentication and RDF libraries; the default build does not.
 For a source checkout, build it with `npm ci` and `npm run build:solid`.
+The SDKs are development dependencies here and optional npm peers. A default
+npm consumer installs only the existing core runtime dependencies, without the
+Solid SDK tree or its Node engine requirements. The prebuilt Solid browser
+bundle already contains the SDKs. Source/TypeScript consumers of the optional
+entry point install its peers explicitly:
+
+```sh
+npm install @inrupt/solid-client@^4.0.0 @inrupt/solid-client-authn-browser@^5.0.2
+```
+
+The current SDK tooling supports Node 20/22/24, separately from the core's
+Node 22/24/26 support. It does not supply Node-based Solid browser login.
 
 ```html
 <script src="remotestorage-solid.js"></script>
@@ -81,8 +93,15 @@ is a connection state rather than an authentication error. `getPodURLs()` return
 `null` before discovery, an empty array if there are no pods, or a list of
 advertised URLs. A listener added after initialization also receives this
 pending state, including the zero-pod case. Selecting a valid URL fires
-`connected`; selecting `null` returns to pod selection. A remembered selection
-is reused only if it is still advertised by the account.
+`connected`. Before first selection, `null` remains a pending selection.
+After a Pod is selected, changing or clearing it requires
+calling `remoteStorage.disconnect()` and waiting for its `disconnected` event
+before starting a new connection. The method itself returns immediately; register
+the listener before calling it. This clears the previous account's cache before
+selecting another Pod; otherwise local
+edits could be sent to the wrong Pod. Selecting the same connected Pod is
+idempotent. If a remembered Pod is no longer advertised, the adapter stays
+disconnected and reports an error; it never silently rebinds the old cache.
 
 `remoteStorage.disconnect()` clears the local cache and settings and awaits
 the SDK's application logout before reinitializing and emitting `disconnected`.
@@ -100,32 +119,44 @@ every descendant. File events trigger revalidation of that file; container
 membership events trigger a fresh listing and normal cache synchronization.
 Notifications never replace conditional writes or the existing conflict policy.
 
-The adapter subscribes to cached resources that the app has permission to read,
-with at most 64 channels and four subscription requests in flight. Existing
-subscriptions are kept stable; resources beyond that limit still synchronize
-through periodic checks. Notifications are optional: discovery, subscription,
-or WebSocket failures do not prevent file operations.
+The adapter subscribes to at most **eight resources per tab**, with four
+subscription requests in flight. Each topic needs its own WebSocket; this cost
+also applies when multiple tabs are open. Existing subscriptions stay stable;
+resources beyond the limit still synchronize through recovery polling.
+Notifications are optional: failures do not prevent file operations.
 
-Recovery checks run when connecting, returning online, or returning to a visible
-tab. Each socket opening also triggers a fresh read of its topic, closing the
-read/subscribe gap. Renewal also revalidates the topic and is scheduled after
-30 minutes or sooner if the server expires the channel. Maintenance checks run
-every ten seconds while the page is active. Channels are retried with bounded
-backoff and closed when their resource leaves the cache or the app disconnects. CSS channel
-deletion is attempted during cleanup; expiry is requested when supported.
+Connecting, returning online, and returning to a visible tab request recovery.
+These requests coalesce for one minute and drain at two cached paths per second,
+checking containers and files whose parent is not cached. A container read
+retrieves each child's metadata, so recovery does not also GET every unchanged
+file. Each socket opening immediately revalidates its exact topic, closing the
+read/subscribe gap. Renewal revalidates after 30 minutes or sooner if the server
+expires the channel. Maintenance runs every ten seconds, with bounded retry
+backoff. Channels are closed when their resource leaves the cache or the app
+disconnects. CSS channel deletion is best effort; expiry is requested when
+supported.
 
-Solid container ETags do not certify the state of all descendants. Routine sync
-checks each stale cached resource without an active subscription directly.
-An open, unexpired subscription suppresses routine polling only for its exact
-path, after socket opening has queued recovery. Connecting, failed, expired,
-and unwatched resources retain checks at the configured sync intervals.
-Notifications, explicit reads, pending local writes, and recovery still run
-for subscribed resources. A notification arriving during a request queues a
-subsequent revalidation. Child checks are never discarded just because an
-ancestor is also queued. Idle sync cycles still schedule the next cycle, so
-polling resumes if a subscription later fails. Renewal limits how long an
-undetected missed notification can leave an otherwise connected resource stale,
-assuming the renewal and recovery requests succeed.
+Solid container ETags do not certify all descendants. Routine recovery checks
+every cached container, including nested ones even when parent revisions are
+unchanged. Its per-child HEAD metadata selects changed documents for GET. A
+file whose readable parent is not cached is checked directly, unless an open,
+unexpired subscription covers it. Routine checks have a **60-second minimum**
+interval (or the app's longer configured interval), rather than polling every
+file every ten seconds. Foreground recovery is coalesced as above; a recovery
+request inside that window can wait for polling or subscription reconnection.
+These limits do not delay explicit reads, pending local writes, or actual
+notification invalidations. Notification invalidations arriving during a
+request remain queued. No descendant check is discarded because an ancestor
+is queued. Solid's idle sync cycles schedule the next cycle so recovery resumes
+if a subscription fails; idle event behavior is unchanged for other backends.
+
+After a successful write without ETag, the next mutation or notification
+revalidation compares readback with the acknowledged body and media type. Only
+a matching representation supplies the missing validator, preserving any newer
+local edit. A different remote representation remains a conflict with local,
+remote and last-common values; it is never adopted as the validator for the
+acknowledged bytes. Renewal bounds missed-notification staleness only when the
+renewal and recovery requests succeed.
 
 The implementation supports the compact JSON-LD subscription response and
 ActivityStreams event shapes used by CSS 7.2.0. It does not implement legacy
@@ -175,7 +206,7 @@ Choose a current provider from the
 Use a disposable account and the application's final callback route. Verify:
 
 1. Login, returning to the application, and selecting one of the advertised pods.
-2. Reloading the page, restoring login, and retaining or changing the pod selection.
+2. Reloading the page and restoring the same Pod; disconnecting before changing Pods.
 3. Storing and retrieving JSON and a binary file with identical bytes.
 4. Listing folders, including empty folders and filenames with spaces.
 5. Editing the same file from two clients and observing a conflict rather than

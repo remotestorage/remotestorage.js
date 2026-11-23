@@ -32,6 +32,8 @@
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
+    "@inrupt/solid-client": "^4.0.0",
+    "@inrupt/solid-client-authn-browser": "^5.0.2",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.2.0",
     "@types/tv4": "^1.2.33",
@@ -57,8 +59,6 @@
     "webpack-cli": "^7.2.2"
   },
   "dependencies": {
-    "@inrupt/solid-client": "^4.0.0",
-    "@inrupt/solid-client-authn-browser": "^5.0.2",
     "esm": "^3.2.25",
     "tv4": "^1.3.0",
     "webfinger.js": "^3.0.6",
@@ -67,7 +67,9 @@
   "types": "./release/types/remotestorage.d.ts",
   "typesVersions": {
     "*": {
-      "release/remotestorage-solid.js": ["release/types/remotestorage-solid.d.ts"]
+      "release/remotestorage-solid.js": [
+        "release/types/remotestorage-solid.d.ts"
+      ]
     }
   },
   "optionalDependencies": {
@@ -76,6 +78,18 @@
   "overrides": {
     "mocha": {
       "diff": "^8.0.3"
+    }
+  },
+  "peerDependencies": {
+    "@inrupt/solid-client": "^4.0.0",
+    "@inrupt/solid-client-authn-browser": "^5.0.2"
+  },
+  "peerDependenciesMeta": {
+    "@inrupt/solid-client": {
+      "optional": true
+    },
+    "@inrupt/solid-client-authn-browser": {
+      "optional": true
     }
   }
 }

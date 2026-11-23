@@ -10,7 +10,9 @@ connecting and syncing data with a person's Dropbox or Google Drive account
 (optional).
 
 An [optional Solid build](docs/solid.md) also supports Solid Pods. Its login
-and RDF dependencies are excluded from the default browser bundle.
+and RDF dependencies are excluded from the default browser bundle and default
+npm installation. Applications using Solid source or SDK types install the
+optional peer dependencies described in the Solid guide.
 
 The library is well-tested and actively maintained. It is safe to use in
 production.

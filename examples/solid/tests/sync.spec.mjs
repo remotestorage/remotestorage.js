@@ -150,7 +150,9 @@ test('two authenticated browser clients: polling suppression, notifications, ren
       window.demo.remote.setBackgroundSyncInterval(2000);
     });
     await write(a, 'nested/note.json', 'polling fallback');
-    await expect.poll(() => cached(b, 'nested/note.json')).toBe('polling fallback');
+    // Exercise the actual default one-minute recovery floor, not an artificial
+    // two-second per-resource poll. Other operations above still use live events.
+    await expect.poll(() => cached(b, 'nested/note.json'), { timeout: 75000 }).toBe('polling fallback');
 
     const stale = await b.evaluate(() => window.demo.remote.solid.get('/solid-demo/nested/note.json'));
     await write(a, 'nested/note.json', 'protected newer edit');
@@ -162,7 +164,7 @@ test('two authenticated browser clients: polling suppression, notifications, ren
       ];
     }, stale.revision);
     expect(statuses).toEqual([412, 412]);
-    await expect.poll(() => cached(b, 'nested/note.json')).toBe('protected newer edit');
+    await expect.poll(() => cached(b, 'nested/note.json'), { timeout: 75000 }).toBe('protected newer edit');
     expect(errors).toEqual([]);
     await a.evaluate(() => window.demo.remote.disconnect());
     await expect(a.locator('#status')).toHaveText('Not connected');

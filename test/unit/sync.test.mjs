@@ -491,6 +491,58 @@ describe("Sync", function() {
     });
   });
 
+  describe("writes after an acknowledgement without ETag", function() {
+    it("revalidates the acknowledged body before another PUT and adopts the verified revision", async function() {
+      const path = "/foo/native.ttl";
+      this.rs.caching.enable("/foo/");
+      await this.rs.local.setNodes({ [path]: {
+        path,
+        common: { body: "acknowledged RDF", contentType: "text/turtle", timestamp: Date.now() },
+        local: { body: "next RDF edit", contentType: "text/turtle", timestamp: Date.now() }
+      } });
+      const get = sinon.stub(this.rs.remote, "get").resolves({ statusCode: 200 });
+      const put = sinon.stub(this.rs.remote, "put").resolves({ statusCode: 201 });
+      const first = await this.rs.sync.doTask(path);
+      expect(first.action).to.equal("get");
+      expect(get.calledOnce).to.be.true;
+      expect(put.called).to.be.false;
+      await this.rs.sync.handleGetResponse(path, { changed: true, notFound: false }, "acknowledged RDF", "text/turtle", "verified-etag");
+      const node = (await this.rs.local.getNodes([path]))[path];
+      expect(node.common.revision).to.equal("verified-etag");
+      expect(node.local.body).to.equal("next RDF edit");
+      const second = await this.rs.sync.doTask(path);
+      expect(second.action).to.equal("put");
+      expect(put.firstCall.args[3]).to.deep.equal({ ifMatch: "verified-etag" });
+    });
+
+    it("revalidates before DELETE rather than creating a dangling push version", async function() {
+      const path = "/foo/native.ttl";
+      this.rs.caching.enable("/foo/");
+      await this.rs.local.setNodes({ [path]: { path,
+        common: { body: "acknowledged RDF", contentType: "text/turtle" }, local: { body: false }
+      } });
+      sinon.stub(this.rs.remote, "get").resolves({ statusCode: 200 });
+      const task = await this.rs.sync.doTask(path);
+      expect(task.action).to.equal("get");
+      expect((await this.rs.local.getNodes([path]))[path]).not.to.have.property("push");
+    });
+
+    it("keeps a real concurrent change as a conflict instead of adopting its ETag", function(done) {
+      this.rs.local.emitChange = change => {
+        expect(change.origin).to.equal("conflict");
+        expect(change.oldValue).to.equal("local edit");
+        expect(change.newValue).to.equal("another writer");
+        expect(change.lastCommonValue).to.equal("acknowledged RDF");
+        done();
+      };
+      this.rs.sync.autoMerge({ path: "/foo/native.ttl",
+        common: { body: "acknowledged RDF", contentType: "text/turtle" },
+        local: { body: "local edit", contentType: "text/turtle" },
+        remote: { body: "another writer", contentType: "text/turtle", revision: "newer-etag" }
+      });
+    });
+  });
+
   describe("#doTask with ArrayBuffer body", function() {
     beforeEach(function() {
       this.rs.sync.doTasks = this.original.doTasks;

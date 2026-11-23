@@ -32,6 +32,7 @@ function httpURL (value: string): URL {
  */
 export class Solid extends RemoteBase implements Remote {
   readonly folderETagsAreRecursive = false;
+  readonly minRefreshInterval = 60000;
   authURL: string | null = null;
   podURLs: string[] | null = null;
   selectedPodURL: string | null = null;
@@ -121,10 +122,13 @@ export class Solid extends RemoteBase implements Remote {
     return this.selectedPodURL;
   }
 
-  /** Select a discovered pod, or clear the selection without logging out. */
+  /** Select the initial discovered pod. Disconnect before changing or clearing it. */
   setPodURL (podURL: string | null): void {
     if (!this.session.info.isLoggedIn || this.podURLs === null) {
       throw new Error('Authenticate with Solid before selecting a pod.');
+    }
+    if (this.selectedPodURL !== null && podURL !== this.selectedPodURL) {
+      throw new Error('Disconnect before changing or clearing the selected Solid pod.');
     }
     if (podURL !== null && !this.podURLs.includes(podURL)) {
       throw new Error('Select a pod returned by getPodURLs().');
@@ -135,7 +139,7 @@ export class Solid extends RemoteBase implements Remote {
         throw new Error('A Solid pod URL must end with a slash.');
       }
     }
-    if (podURL !== this.selectedPodURL) { void this.stopNotifications(); }
+    if (podURL !== null && podURL === this.selectedPodURL && this.connected) { return; }
     this.selectedPodURL = podURL;
     this.connected = podURL !== null;
     this.saveSettings();
@@ -363,6 +367,9 @@ export class Solid extends RemoteBase implements Remote {
     this.podURLs = podURLs;
     if (this.selectedPodURL && this.podURLs.includes(this.selectedPodURL)) {
       this.setPodURL(this.selectedPodURL);
+    } else if (this.selectedPodURL) {
+      this.connected = false;
+      throw new Error('The selected Solid pod is no longer advertised. Disconnect before selecting another pod.');
     } else {
       this.setPodURL(null);
     }

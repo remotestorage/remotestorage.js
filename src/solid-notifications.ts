@@ -7,7 +7,9 @@ import log from './log';
 const NOTIFY = 'http://www.w3.org/ns/solid/notifications#';
 const CHANNEL_TYPE = NOTIFY + 'WebSocketChannel2023';
 const STORAGE_DESCRIPTION = 'http://www.w3.org/ns/solid/terms#storageDescription';
-const MAX_CHANNELS = 64;
+const MAX_CHANNELS = 8;
+const RECOVERY_INTERVAL = 60000;
+const RECOVERY_BATCH = 2;
 const RENEW_AFTER = 30 * 60 * 1000;
 
 interface Watch {
@@ -46,6 +48,9 @@ export class SolidNotifications {
   private reconciling = false;
   private again = false;
   private recovery = false;
+  private lastRecovery = -Infinity;
+  private recoveryQueue = new Set<string>();
+  private recoveryTimer?: ReturnType<typeof setTimeout>;
 
   constructor (private rs: RemoteStorage, private solid: Solid) {}
 
@@ -96,8 +101,14 @@ export class SolidNotifications {
             this.rs.caching.checkPath(node.path) !== 'FLUSH') { paths.push(node.path); }
       });
       if (!this.active) { return; }
-      if (recover) {
-        for (const path of paths) { this.rs.sync.refreshRemote(path); }
+      if (recover && Date.now() - this.lastRecovery >= RECOVERY_INTERVAL) {
+        this.lastRecovery = Date.now();
+        const folders = new Set(paths.filter(path => path.endsWith('/')));
+        for (const path of paths) {
+          const parent = path.slice(0, path.lastIndexOf('/') + 1);
+          if (folders.has(path) || !folders.has(parent)) { this.recoveryQueue.add(path); }
+        }
+        this.drainRecovery();
       }
       if (typeof WebSocket === 'undefined') { return; }
       // Keep existing subscriptions stable; bound sockets and subscription POSTs.
@@ -134,6 +145,24 @@ export class SolidNotifications {
     } finally {
       this.reconciling = false;
       if (this.again) { this.again = false; this.schedule(); }
+    }
+  }
+
+  /** Pace foreground/online recovery; exact live notifications remain immediate. */
+  private drainRecovery (): void {
+    if (!this.active || this.recoveryTimer) { return; }
+    let count = 0;
+    for (const path of this.recoveryQueue) {
+      this.recoveryQueue.delete(path);
+      if (this.rs.access.checkPathPermission(path, 'r') &&
+          this.rs.caching.checkPath(path) !== 'FLUSH') { this.rs.sync?.refreshRemote(path); }
+      if (++count >= RECOVERY_BATCH) { break; }
+    }
+    if (this.recoveryQueue.size) {
+      this.recoveryTimer = setTimeout(() => {
+        this.recoveryTimer = undefined;
+        this.drainRecovery();
+      }, 1000);
     }
   }
 
@@ -280,6 +309,8 @@ export class SolidNotifications {
     this.active = false;
     clearInterval(this.timer);
     clearTimeout(this.scheduled);
+    clearTimeout(this.recoveryTimer);
+    this.recoveryQueue.clear();
     this.rs.removeEventListener('sync-done', this.onSync);
     window.removeEventListener('online', this.onOnline);
     document.removeEventListener('visibilitychange', this.onVisible);
