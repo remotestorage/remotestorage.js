@@ -14,6 +14,7 @@ import Dropbox from "../../build/dropbox.js";
 import InMemoryStorage from '../../build/inmemorystorage.js';
 import { RemoteStorage } from '../../build/remotestorage.js';
 import { Sync } from '../../build/sync.js';
+import {expectedPKCECodeChallenge} from "../helpers/expectedCodeChallenge.mjs";
 
 const SETTINGS_KEY = 'remotestorage:dropbox';
 const ACCOUNT_URL = 'https://api.dropboxapi.com/2/users/get_current_account';
@@ -247,7 +248,7 @@ describe('Dropbox backend', () => {
 
       expect(saveStub.calledOnce).to.equal(true);
       const transaction = saveStub.getCall(0).args[0];
-      expect(transaction.codeVerifier).to.be.a('string').with.length.above(0);
+      expect(transaction.codeVerifier).to.be.a('string').with.length.within(43, 128);
       expect(transaction.state).to.be.a('string').with.length.above(0);
       // Dropbox sets its own token endpoint and client id, so it stores neither
       expect(transaction.tokenURL).to.be.undefined;
@@ -258,7 +259,7 @@ describe('Dropbox backend', () => {
       expect(options.authURL).to.equal('https://www.dropbox.com/oauth2/authorize');
       expect(options.response_type).to.equal('code');
       expect(options.code_challenge_method).to.equal('S256');
-      expect(options.code_challenge).to.be.a('string').with.length.above(0);
+      expect(options.code_challenge).to.equal(await expectedPKCECodeChallenge(transaction.codeVerifier));
       // The same random state is sent and stored, so the callback can be matched
       expect(options.state).to.equal(transaction.state);
       expect(options.clientId).to.equal(CLIENT_ID);

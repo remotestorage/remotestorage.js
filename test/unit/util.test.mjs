@@ -1,6 +1,7 @@
 import 'mocha';
 import { expect } from 'chai';
 import * as util from '../../build/util.js';
+import { expectedPKCECodeChallenge } from '../helpers/expectedCodeChallenge.mjs';
 
 function stringToArrayBuffer(str) {
   const buf = new ArrayBuffer(str.length * 2);
@@ -210,15 +211,6 @@ describe('util', () => {
     // The unreserved characters allowed in a PKCE code verifier (RFC 7636 §4.1)
     const UNRESERVED = /^[A-Za-z0-9\-._~]+$/;
 
-    // The S256 code challenge is base64url(SHA-256(ASCII(codeVerifier))), without
-    // padding. Recomputing it here proves the challenge actually matches the
-    // verifier, which is what the authorization server will check.
-    async function expectedChallenge(codeVerifier) {
-      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier));
-      return Buffer.from(digest).toString('base64')
-        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-
     it('defaults to a 128-character verifier from the unreserved set', async () => {
       const { codeVerifier } = await util.generateCodeVerifier();
       expect(codeVerifier).to.have.lengthOf(128);
@@ -232,7 +224,7 @@ describe('util', () => {
 
     it('derives the challenge as the url-safe SHA-256 of the verifier', async () => {
       const { codeVerifier, codeChallenge } = await util.generateCodeVerifier();
-      expect(codeChallenge).to.equal(await expectedChallenge(codeVerifier));
+      expect(codeChallenge).to.equal(await expectedPKCECodeChallenge(codeVerifier));
     });
 
     it('url-encodes the challenge without padding', async () => {
