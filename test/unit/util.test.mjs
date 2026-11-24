@@ -1,6 +1,7 @@
 import 'mocha';
 import { expect } from 'chai';
 import * as util from '../../build/util.js';
+import { expectedPKCECodeChallenge } from '../helpers/expectedCodeChallenge.mjs';
 
 function stringToArrayBuffer(str) {
   const buf = new ArrayBuffer(str.length * 2);
@@ -203,6 +204,47 @@ describe('util', () => {
       expect(util.pkceTokenURL(info({ authorizationURL: 'https://a', pkceMethods: 'S256' }))).to.equal(null);
       expect(util.pkceTokenURL(info({ tokenURL: 'https://t', pkceMethods: 'S256' }))).to.equal(null);
       expect(util.pkceTokenURL(info({}))).to.equal(null);
+    });
+  });
+
+  describe('generateCodeVerifier', () => {
+    // The unreserved characters allowed in a PKCE code verifier (RFC 7636 §4.1)
+    const UNRESERVED = /^[A-Za-z0-9\-._~]+$/;
+
+    it('defaults to a 128-character verifier from the unreserved set', async () => {
+      const { codeVerifier } = await util.generateCodeVerifier();
+      expect(codeVerifier).to.have.lengthOf(128);
+      expect(codeVerifier).to.match(UNRESERVED);
+    });
+
+    it('honors the requested verifier length at both ends of the range', async () => {
+      expect((await util.generateCodeVerifier(43)).codeVerifier).to.have.lengthOf(43);
+      expect((await util.generateCodeVerifier(128)).codeVerifier).to.have.lengthOf(128);
+    });
+
+    it('derives the challenge as the url-safe SHA-256 of the verifier', async () => {
+      const { codeVerifier, codeChallenge } = await util.generateCodeVerifier();
+      expect(codeChallenge).to.equal(await expectedPKCECodeChallenge(codeVerifier));
+    });
+
+    it('url-encodes the challenge without padding', async () => {
+      const { codeChallenge } = await util.generateCodeVerifier();
+      expect(codeChallenge).not.to.match(/[+/=]/);
+    });
+
+    it('returns a state separate from the verifier', async () => {
+      const { codeVerifier, state } = await util.generateCodeVerifier();
+      expect(state).to.be.a('string').with.length.above(0);
+      expect(state).to.match(UNRESERVED);
+      expect(state).not.to.equal(codeVerifier);
+    });
+
+    it('generates a fresh verifier, challenge and state each call', async () => {
+      const a = await util.generateCodeVerifier();
+      const b = await util.generateCodeVerifier();
+      expect(a.codeVerifier).not.to.equal(b.codeVerifier);
+      expect(a.codeChallenge).not.to.equal(b.codeChallenge);
+      expect(a.state).not.to.equal(b.state);
     });
   });
 });
