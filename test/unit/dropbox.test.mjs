@@ -277,6 +277,9 @@ describe('Dropbox backend', () => {
       expect(saveStub.called).to.equal(false);
       expect(authorizeStub.called).to.equal(false);
       expect(rs.backend).to.equal('dropbox');
+      // hookIt(rs) calls hookRemote(rs) which redirects rs.remote to the dropbox
+      // instance; if that call is omitted, rs.remote stays as the WireClient default
+      expect(rs.remote).to.equal(rs.dropbox);
     });
   });
 
