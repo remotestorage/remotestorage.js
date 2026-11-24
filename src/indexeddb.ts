@@ -50,6 +50,9 @@ const DEFAULT_DB_NAME = 'remotestorage';
 // TODO very weird that this is re-assigned
 let DEFAULT_DB;
 
+// Connections we closed because another tab wanted to delete or upgrade the database
+const closedByVersionChange = new WeakSet<IDBDatabase>();
+
 class IndexedDB extends CachingLayer {
   db: any;
   getsRunning: number;
@@ -57,6 +60,7 @@ class IndexedDB extends CachingLayer {
   changesQueued: { [key: string]: unknown };
   changesRunning: { [key: string]: unknown };
   commitSlownessWarning: any; // TODO null | number (but node's setInterval returns an unknown type)
+  reopening: Promise<any> | null; // TODO Promise<IDBDatabase> once this.db is typed
 
   constructor(database) {
     super();
@@ -170,10 +174,12 @@ class IndexedDB extends CachingLayer {
    *
    * @internal
    */
-  getNodesFromDb (paths: string[]): Promise<RSNodes> {
+  async getNodesFromDb (paths: string[]): Promise<RSNodes> {
+    const db = this.isClosed() ? await this.reopenDB() : this.db;
+
     return new Promise((resolve, reject) => {
 
-      const transaction = this.db.transaction(['nodes'], 'readonly');
+      const transaction = db.transaction(['nodes'], 'readonly');
       const nodes = transaction.objectStore('nodes');
       const retrievedNodes = {};
 
@@ -203,13 +209,23 @@ class IndexedDB extends CachingLayer {
    * @internal
    */
   async setNodesInDb (nodes: { [key: string]: unknown }): Promise<void> {
+    // Count the put before waiting for a reopen, so maybeFlush() doesn't start
+    // a second flush in the meantime
+    this.putsRunning++;
+
+    let transaction: IDBTransaction;
+    try {
+      const db = this.isClosed() ? await this.reopenDB() : this.db;
+      transaction = db.transaction(['nodes'], 'readwrite');
+    } catch (e) {
+      this.putsRunning--;
+      throw e;
+    }
+
     return new Promise((resolve, reject) => {
 
-      const transaction = this.db.transaction(['nodes'], 'readwrite');
       const nodesStore = transaction.objectStore('nodes');
       const startTime = new Date().getTime();
-
-      this.putsRunning++;
 
       log('[IndexedDB] Starting puts', nodes, this.putsRunning);
 
@@ -260,7 +276,11 @@ class IndexedDB extends CachingLayer {
 
     this.db.close();
 
-    IndexedDB.clean(dbName, () => {
+    IndexedDB.clean(dbName, (cleanErr) => {
+      if (cleanErr) {
+        log(`[IndexedDB] Error while resetting database ${dbName}:`, cleanErr);
+      }
+      // Reopen even if the delete failed, so this instance doesn't keep a closed handle
       IndexedDB.open(dbName, (err, other) => {
         if (err) {
           log(`[IndexedDB] Error while resetting database ${dbName}:`, err);
@@ -269,19 +289,61 @@ class IndexedDB extends CachingLayer {
           this.db = other;
         }
         if (typeof callback === 'function') {
-          callback(self);
+          callback(cleanErr || self);
         }
       });
     });
   }
 
   /**
+   * Whether the connection was closed because another tab deleted or
+   * upgraded the database. Checked before awaiting a reopen, so
+   * transactions on an open connection still start synchronously.
+   *
+   * @internal
+   */
+  isClosed (): boolean {
+    return closedByVersionChange.has(this.db);
+  }
+
+  /**
+   * Reopen the database after the connection was closed on versionchange.
+   * Concurrent callers share one reopen.
+   *
+   * @internal
+   */
+  reopenDB (): Promise<any> {
+    if (!this.reopening) {
+      const closed = this.db;
+      log(`[IndexedDB] Reopening database "${closed.name}" after versionchange`);
+
+      this.reopening = new Promise((resolve, reject) => {
+        IndexedDB.open(closed.name, (err, db?: IDBDatabase) => {
+          this.reopening = null;
+          if (err) {
+            reject(err);
+            return;
+          }
+          db.onerror = closed.onerror;
+          if (DEFAULT_DB === closed) { DEFAULT_DB = db; }
+          this.db = db;
+          resolve(db);
+        });
+      });
+    }
+
+    return this.reopening;
+  }
+
+  /**
    * TODO: Document
    */
   async forAllNodes (cb: (node: RSNode) => void): Promise<void> {
+    const db = this.isClosed() ? await this.reopenDB() : this.db;
+
     return new Promise((resolve/*, reject*/) => {
 
-      const transaction = this.db.transaction(['nodes'], 'readonly');
+      const transaction = db.transaction(['nodes'], 'readonly');
       const cursorReq = transaction.objectStore('nodes').openCursor();
 
       cursorReq.onsuccess = (evt) => {
@@ -348,11 +410,21 @@ class IndexedDB extends CachingLayer {
         if (!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
           log("[IndexedDB] Missing object store. Resetting the database.");
           db.close();
-          IndexedDB.clean(name, function () {
+          IndexedDB.clean(name, function (err) {
+            if (err) {
+              callback(err);
+              return;
+            }
             IndexedDB.open(name, callback);
           });
           return;
         }
+
+        // Let another tab delete or upgrade the database instead of blocking it
+        db.onversionchange = () => {
+          db.close();
+          closedByVersionChange.add(db);
+        };
 
         callback(null, req.result);
       };
@@ -362,7 +434,11 @@ class IndexedDB extends CachingLayer {
 
       clearTimeout(timer);
 
-      IndexedDB.clean(name, function () {
+      IndexedDB.clean(name, function (err) {
+        if (err) {
+          callback(err);
+          return;
+        }
         IndexedDB.open(name, callback);
       });
     }
@@ -371,7 +447,7 @@ class IndexedDB extends CachingLayer {
   /**
    * Cleanup: Delete IndexedDB database
    */
-  static clean (databaseName: string, callback: () => void) {
+  static clean (databaseName: string, callback: (err?: unknown) => void) {
     const req = indexedDB.deleteDatabase(databaseName);
 
     req.onblocked = function (evt) {
@@ -386,6 +462,7 @@ class IndexedDB extends CachingLayer {
     // TODO check if this does anything as onabort does not exist on type according to ts
     req.onerror = (req as any).onabort = function (evt) {
       console.error('Failed to remove database "' + databaseName + '"', evt);
+      callback(evt);
     };
   }
 
